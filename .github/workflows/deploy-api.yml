@@ -140,9 +140,38 @@ jobs:
           USER: ${{ secrets.DEPLOY_USER }}
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           HOSTKEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          # Same names read as VARIABLES. Secrets and variables are two
+          # separate tabs on the same settings page, and the Variables
+          # one shows its values while Secrets does not -- so being able
+          # to read your value back is itself the symptom of putting it
+          # in the wrong tab. Detected here because "DEPLOY_HOST is not
+          # set" sends you to re-add something you already added.
+          VAR_HOST: ${{ vars.DEPLOY_HOST }}
+          VAR_USER: ${{ vars.DEPLOY_USER }}
+          VAR_KEY: ${{ vars.DEPLOY_SSH_KEY }}
+          VAR_HOSTKEY: ${{ vars.DEPLOY_HOST_KEY }}
         run: |
           bad=0
           complain() { echo "::error::$1"; bad=1; }
+
+          wrong_tab=""
+          [ -z "$HOST" ] && [ -n "$VAR_HOST" ] && wrong_tab="$wrong_tab DEPLOY_HOST"
+          [ -z "$USER" ] && [ -n "$VAR_USER" ] && wrong_tab="$wrong_tab DEPLOY_USER"
+          [ -z "$KEY" ] && [ -n "$VAR_KEY" ] && wrong_tab="$wrong_tab DEPLOY_SSH_KEY"
+          [ -z "$HOSTKEY" ] && [ -n "$VAR_HOSTKEY" ] && wrong_tab="$wrong_tab DEPLOY_HOST_KEY"
+          if [ -n "$wrong_tab" ]; then
+            echo "::error::These are set as repository VARIABLES but are read as SECRETS:$wrong_tab"
+            echo "::error::Settings > Secrets and variables > Actions > the SECRETS tab (not Variables). Delete the variables afterwards -- DEPLOY_SSH_KEY as a variable is a private key stored in the clear."
+            {
+              echo "### Wrong tab"
+              echo ""
+              echo "Found in **Variables**, needed in **Secrets**:\`$wrong_tab\`"
+              echo ""
+              echo "Variables are for public values and show their contents."
+              echo "A private key must be a Secret."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
           if [ -z "$HOST" ]; then
             complain "DEPLOY_HOST is not set. It is your droplet's IP."
