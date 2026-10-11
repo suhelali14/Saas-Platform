@@ -45,10 +45,11 @@ else
   apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   info "docker $(docker --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*' | head -1)"
 fi
-# The deploy user drives docker, so it needs the group. This is close to
-# root-equivalent on the host -- accepted deliberately, because the
-# alternative is the deploy key having passwordless sudo instead.
-usermod -aG docker "$DEPLOY_USER" 2>/dev/null || true
+# NOTE: the deploy user is added to the docker group further down, AFTER
+# it exists. Doing it here ran usermod against a user that had not been
+# created yet; it failed, "|| true" swallowed the failure, and the first
+# deploy died with "permission denied ... /var/run/docker.sock" with
+# nothing in the bootstrap output to suggest why.
 systemctl enable --now docker > /dev/null 2>&1 || true
 
 # Cap the journal so container logs cannot fill a 25 GB disk and take
@@ -61,6 +62,17 @@ cat > /etc/docker/daemon.json <<'DOCKERJSON'
 }
 DOCKERJSON
 systemctl restart docker > /dev/null 2>&1 || true
+
+# Confirm the daemon is actually up. Both systemctl calls above tolerate
+# failure, so a malformed daemon.json or a failed install would otherwise
+# pass silently here and surface much later as a deploy that cannot reach
+# the socket.
+if ! docker info > /dev/null 2>&1; then
+  echo
+  systemctl status docker --no-pager -l 2>&1 | tail -15
+  die "Docker is installed but not running. Nothing below will work until it is."
+fi
+info "docker daemon responding"
 
 if ! command -v node > /dev/null || [ "$(node -v | cut -c2- | cut -d. -f1)" -lt "$NODE_MAJOR" ]; then
   info "installing Node $NODE_MAJOR"
@@ -129,6 +141,24 @@ chmod 700 "/home/$DEPLOY_USER/.ssh"
 touch "/home/$DEPLOY_USER/.ssh/authorized_keys"
 chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
+
+# Docker group, now that the user exists. The deploy user drives docker,
+# which is close to root-equivalent on the host -- accepted deliberately,
+# since the alternative is giving the deploy key passwordless sudo.
+#
+# Checked rather than assumed: this failing quietly is what broke the
+# first deployment, and it is invisible until a deploy tries to pull.
+if getent group docker > /dev/null; then
+  usermod -aG docker "$DEPLOY_USER"
+  if id -nG "$DEPLOY_USER" | tr ' ' '
+' | grep -qx docker; then
+    info "$DEPLOY_USER added to the docker group"
+  else
+    die "Could not add $DEPLOY_USER to the docker group. Deploys will fail with a socket permission error."
+  fi
+else
+  die "No docker group -- the Docker install did not complete."
+fi
 
 # The deploy user restarts services but must not become root wholesale.
 # Scoped to exactly the units it manages -- a deploy key stolen from CI
