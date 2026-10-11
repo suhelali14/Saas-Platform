@@ -105,7 +105,9 @@ for env_file in "${ENV_FILES[@]}"; do
       *)
         echo "provider.env's DATABASE_URL does not select the provider schema." >&2
         echo "  Append it:  ...&schema=provider   (or ?schema=provider if there is no query string yet)" >&2
-        echo "  Fix: sed -i 's|^DATABASE_URL=\\(.*\\)$|DATABASE_URL=\\1\\&schema=provider|' $env_file" >&2
+        # The /schema=provider/! guard skips the line if it already has
+        # it, so re-running this cannot append the parameter twice.
+        echo "  Fix: sed -i '/schema=provider/!s|^DATABASE_URL=.*|&\\&schema=provider|' $env_file" >&2
         die "provider DATABASE_URL is missing schema=provider"
         ;;
     esac
