@@ -1,0 +1,39 @@
+# Line endings.
+#
+# This repo is developed on Windows and deployed to Linux. A shell script
+# that reaches the server with CRLF endings fails as:
+#
+#     /usr/bin/env: 'bash\r': No such file or directory
+#
+# which gives no hint that line endings are the cause. Today the index
+# happens to hold LF because this machine has core.autocrlf=true, but that
+# is a local setting nobody else inherits, so it is pinned here instead.
+
+# Default: normalise text in the repo, let each checkout do as it likes.
+* text=auto
+
+# Must be LF wherever they are checked out -- these are executed by Linux.
+*.sh            text eol=lf
+*.service       text eol=lf
+*.mjs           text eol=lf
+.nvmrc          text eol=lf
+Dockerfile      text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+
+# Never touched. Mangling a byte here corrupts the file.
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.pdf           binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.node          binary
+
+# Generated and lock files: keep diffs out of review, since nobody reads
+# them line by line and they bury the real changes.
+package-lock.json   -diff linguist-generated
+src/generated/**    -diff linguist-generated

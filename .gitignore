@@ -48,3 +48,6 @@ Thumbs.db
 # Editor
 .vscode/*
 !.vscode/extensions.json
+
+# Vercel CLI link state -- contains project/org ids.
+.vercel

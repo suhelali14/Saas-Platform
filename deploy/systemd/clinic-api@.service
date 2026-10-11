@@ -1,0 +1,64 @@
+# One clinic's API. A systemd TEMPLATE unit: the %i is the clinic slug, so
+# this single file serves every clinic.
+#
+#   sudo systemctl enable --now clinic-api@acme
+#   sudo systemctl restart clinic-api@bright
+#   journalctl -u clinic-api@acme -f
+#
+# Installed at /etc/systemd/system/clinic-api@.service
+[Unit]
+Description=Clinic API (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+
+# The clinic's OWN directory, not the release directory. The app resolves
+# uploads against its working directory, so patient scans land here and
+# survive every deploy. Pointing this at a release would orphan a
+# clinic's X-rays on the next one.
+WorkingDirectory=/srv/clinic/data/%i
+
+# Code comes from the symlink, so a deploy swaps the binary without
+# touching this file. Node resolves node_modules from the script's own
+# path, not the working directory, so this works.
+ExecStart=/usr/bin/node /srv/clinic/current/apps/clinic-api/dist/index.js
+
+# This clinic's config, including the only copy of its DATABASE_URL.
+EnvironmentFile=/srv/clinic/env/%i.env
+
+Restart=always
+RestartSec=5
+# Five restarts in a minute means it is crash-looping, not unlucky. Stop
+# and leave it visibly failed rather than hiding it in the journal.
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clinic-%i
+
+# ── Hardening ──────────────────────────────────────────────────────────
+# This process holds patient health records. If it is ever exploited,
+# these limit what the attacker reaches from inside it.
+NoNewPrivileges=true
+PrivateTmp=true
+# Read-only filesystem except the paths named below.
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/clinic/data/%i
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+# Only the address families actually used: IP for serving and reaching
+# Postgres, UNIX for DNS resolution.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,97 @@
+name: Deploy APIs
+
+# clinic-api and provider-api run on your own server, because clinic-api
+# writes patient scans to a real disk and a serverless filesystem would
+# lose them.
+#
+# This workflow does almost nothing itself: it SSHes in and runs
+# deploy/deploy.sh, which lives in the repo so the deploy logic is
+# versioned and reviewable alongside the code it ships. CI runs first.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/clinic-api/**'
+      - 'apps/provider-api/**'
+      - 'packages/**'
+      - 'package-lock.json'
+      - 'deploy/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or SHA to deploy (default - this branch)
+        required: false
+        default: ''
+
+concurrency:
+  # Never two deploys at once: they would fight over the same symlink and
+  # the same databases. Queued, NOT cancelled -- a half-finished deploy is
+  # worse than a slow one.
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check the server is configured
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          missing=""
+          [ -z "$HOST" ] && missing="$missing DEPLOY_HOST"
+          [ -z "$USER" ] && missing="$missing DEPLOY_USER"
+          [ -z "$KEY" ]  && missing="$missing DEPLOY_SSH_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets:$missing. See deploy/README.md."
+            exit 1
+          fi
+
+      - name: Set up SSH
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Pin the host key rather than accepting any. Without this a
+          # DNS or routing compromise would hand your deploy key, and a
+          # shell on the box holding patient data, to whoever answered.
+          if [ -n "${{ secrets.DEPLOY_HOST_KEY }}" ]; then
+            printf '%s\n' "${{ secrets.DEPLOY_HOST_KEY }}" > ~/.ssh/known_hosts
+          else
+            echo "::warning::DEPLOY_HOST_KEY is not set, so the server's identity is not verified. Add it -- deploy/README.md explains how."
+            ssh-keyscan -p "${PORT:-22}" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+          REF: ${{ github.event.inputs.ref || github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "${PORT:-22}" \
+              -o BatchMode=yes -o ConnectTimeout=15 \
+              "$USER@$HOST" \
+              "DEPLOY_REF='$REF' /srv/clinic/repo/deploy/deploy.sh"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### API deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ref: \`${{ github.event.inputs.ref || github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Result: **${{ job.status }}**" >> "$GITHUB_STEP_SUMMARY"

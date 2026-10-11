@@ -1,0 +1,47 @@
+# Your provider console's API. One of these, ever -- it is not per clinic.
+#
+# Installed at /etc/systemd/system/provider-api.service
+[Unit]
+Description=Provider API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+
+WorkingDirectory=/srv/clinic/data/provider
+# Note the entry point differs from clinic-api's: this app's entry is
+# src/server.ts, clinic-api's is src/index.ts.
+ExecStart=/usr/bin/node /srv/clinic/current/apps/provider-api/dist/server.js
+EnvironmentFile=/srv/clinic/env/provider.env
+
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=provider-api
+
+# ── Hardening ──────────────────────────────────────────────────────────
+# This one holds the Neon API key, which can create and destroy every
+# clinic's database. Worth locking down at least as tightly as the
+# clinic APIs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/clinic/data/provider
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

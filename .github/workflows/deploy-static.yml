@@ -1,0 +1,109 @@
+name: Deploy static apps
+
+# clinic-web and provider-console are static bundles on Vercel.
+#
+# Why this rather than Vercel's own Git integration: Vercel deploys
+# whatever you push, pass or fail. Here CI has to go green first, so a
+# bundle that does not typecheck never reaches a clinic. The tradeoff is
+# this file existing.
+#
+# clinic-web is ONE deployment serving every clinic through the wildcard,
+# so this runs once per push, not once per clinic.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/clinic-web/**'
+      - 'apps/provider-console/**'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-static.yml'
+  # So you can redeploy without an empty commit.
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Which app to deploy
+        type: choice
+        options: [both, clinic-web, provider-console]
+        default: both
+
+concurrency:
+  # A second push while the first is deploying cancels the first: the
+  # older bundle was going to be overwritten anyway.
+  group: deploy-static
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    strategy:
+      # Independent projects, but kept serial so a failure is easy to read
+      # in the log rather than interleaved.
+      max-parallel: 1
+      matrix:
+        include:
+          - app: clinic-web
+            project_id_secret: VERCEL_PROJECT_ID_CLINIC_WEB
+          - app: provider-console
+            project_id_secret: VERCEL_PROJECT_ID_PROVIDER_CONSOLE
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Should this app deploy?
+        id: gate
+        run: |
+          choice="${{ github.event.inputs.app }}"
+          if [ -z "$choice" ] || [ "$choice" = "both" ] || [ "$choice" = "${{ matrix.app }}" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ${{ matrix.app }} (asked for $choice)"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.gate.outputs.run == 'true'
+        env:
+          # clinic-web resolves its clinic at runtime from the hostname,
+          # so these two are the only build-time values it needs. They are
+          # vars, not secrets: both end up readable in the bundle, and
+          # marking a public value secret only makes the logs useless.
+          VITE_PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          VITE_PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
+          VITE_API_URL: ${{ matrix.app == 'provider-console' && format('{0}/api/provider', vars.PROVIDER_API_URL) || '' }}
+        run: npm run --workspace "apps/${{ matrix.app }}" build
+
+      - name: Deploy to Vercel
+        if: steps.gate.outputs.run == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets[matrix.project_id_secret] }}
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Missing VERCEL_TOKEN or ${{ matrix.project_id_secret }}. See deploy/README.md."
+            exit 1
+          fi
+          # --prebuilt uploads dist/ as-is rather than rebuilding on
+          # Vercel, so what ships is exactly what CI verified.
+          npx --yes vercel@48 build --prod --token "$VERCEL_TOKEN" --yes
+          npx --yes vercel@48 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+
+      - name: Summary
+        if: steps.gate.outputs.run == 'true'
+        run: echo "Deployed **${{ matrix.app }}**" >> "$GITHUB_STEP_SUMMARY"

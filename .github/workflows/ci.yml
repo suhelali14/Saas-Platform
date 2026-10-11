@@ -1,0 +1,79 @@
+name: CI
+
+# Runs on every push and PR. The deploy workflows wait on this, so a
+# broken typecheck never reaches a clinic.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  # Deploy workflows call this so there is exactly one definition of
+  # "is this build good", rather than two that can drift apart.
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Each API's postinstall runs `prisma generate`, so the clients are
+      # built here. Note `prisma` is a devDependency, so --omit=dev would
+      # make this install fail rather than merely skip the generate.
+      - name: Install
+        run: npm ci
+
+      # Belt and braces: if a postinstall is ever removed, this fails with
+      # the app's name rather than as a wall of type errors about models
+      # that "do not exist".
+      - name: Generate Prisma clients
+        run: |
+          for app in clinic-api provider-api; do
+            echo "--- $app ---"
+            ( cd "apps/$app" && npx prisma generate )
+          done
+
+      - name: Typecheck
+        run: |
+          for app in clinic-api provider-api; do
+            echo "--- $app ---"
+            ( cd "apps/$app" && npx tsc --noEmit )
+          done
+          for app in clinic-web provider-console; do
+            echo "--- $app ---"
+            ( cd "apps/$app" && npx tsc -b )
+          done
+
+      # Subdomain routing, the CORS origin check and slug validation all
+      # fail OPEN if they regress: a wrong hostname match would point one
+      # clinic's staff at another clinic's database. Cheap to run, so it
+      # gates every deploy.
+      - name: Subdomain and origin tests
+        run: bash scripts/subdomain-tests/run.sh
+
+      - name: Build everything
+        run: |
+          for app in clinic-api provider-api clinic-web provider-console; do
+            echo "--- building $app ---"
+            npm run --workspace "apps/$app" build
+          done
+
+      # A build that is clean but accidentally bundles a secret is worse
+      # than a failing one, because it ships.
+      - name: Check no secrets in the frontend bundles
+        run: |
+          fail=0
+          for dir in apps/clinic-web/dist apps/provider-console/dist; do
+            for pattern in "JWT_SECRET" "NEON_API_KEY" "VERCEL_TOKEN" "postgresql://" "DATABASE_URL"; do
+              if grep -rqF "$pattern" "$dir" 2>/dev/null; then
+                echo "::error::$pattern found in $dir -- a server secret reached a browser bundle"
+                fail=1
+              fi
+            done
+          done
+          [ "$fail" = "0" ] && echo "clean: no server secrets in either bundle"
+          exit $fail
