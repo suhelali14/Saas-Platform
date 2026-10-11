@@ -1,0 +1,7 @@
+# Written by `vercel link`, with one addition.
+.vercel
+.env*
+# Vercel's `.env*` would also hide the committed template, which is the
+# one env file that belongs in git -- it is how anyone setting this up
+# knows which variables exist.
+!.env.example
