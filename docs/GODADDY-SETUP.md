@@ -253,12 +253,17 @@ sudo -u deploy nano /srv/clinic/env/provider.env
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL=<your provider-console Neon connection string>
+DATABASE_URL=<your Neon connection string>&schema=provider
 JWT_SECRET=<paste the output of: openssl rand -base64 32>
 PLATFORM_DOMAIN=nayaverse.in
 CORS_ORIGINS=https://console.nayaverse.in
 NEON_API_KEY=<your Neon API key>
 ```
+
+> The `&schema=provider` on the end is required. The provider
+> migration namespaces itself into a `provider` schema, and without
+> this Prisma targets `public` and the migration fails with P1014.
+> Clinic databases do **not** need it.
 
 Save with `Ctrl+O`, `Enter`, `Ctrl+X`.
 

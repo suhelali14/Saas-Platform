@@ -343,12 +343,17 @@ sudo -u deploy nano /srv/clinic/env/provider.env
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL=<the provider-console string from Step 6>
+DATABASE_URL=<the provider-console string from Step 6>&schema=provider
 JWT_SECRET=<paste from: openssl rand -base64 32>
 PLATFORM_DOMAIN=yourco.in
 CORS_ORIGINS=https://console.yourco.in
 NEON_API_KEY=<from Step 6>
 ```
+
+> The `&schema=provider` on the end is required. The provider
+> migration namespaces itself into a `provider` schema, and without
+> this Prisma targets `public` and the migration fails with P1014.
+> Clinic databases do **not** need it.
 
 Generate the secret with `openssl rand -base64 32` and paste the output.
 Save with `Ctrl+O`, `Enter`, `Ctrl+X`.

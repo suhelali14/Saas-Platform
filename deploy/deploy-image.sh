@@ -89,6 +89,28 @@ for env_file in "${ENV_FILES[@]}"; do
   # \1 was eaten both times. Fields are positional and cannot be.
   quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file" \
             | awk -F'[:=]' '{ printf "    line %s: %s\n", $1, $2 }' || true)"
+  # The provider's migration starts with SET search_path TO "provider",
+  # so its URL must say ?schema=provider. Without it Prisma targets
+  # public, puts _prisma_migrations there, and the migration then looks
+  # for that table in a schema it was never created in -- P1014, which
+  # names the missing table and not the cause.
+  #
+  # Clinic databases do not need this: their migrations use the default
+  # schema. Only the provider namespaces itself.
+  if [ "$(basename "$env_file" .env)" = "provider" ]; then
+    provider_url="$(sed -n 's/^DATABASE_URL=//p' "$env_file" | head -1)"
+    case "$provider_url" in
+      *schema=provider*) ;;
+      '') ;;
+      *)
+        echo "provider.env's DATABASE_URL does not select the provider schema." >&2
+        echo "  Append it:  ...&schema=provider   (or ?schema=provider if there is no query string yet)" >&2
+        echo "  Fix: sed -i 's|^DATABASE_URL=\\(.*\\)$|DATABASE_URL=\\1\\&schema=provider|' $env_file" >&2
+        die "provider DATABASE_URL is missing schema=provider"
+        ;;
+    esac
+  fi
+
   if [ -n "$quoted" ]; then
     echo "Quoted values in $(basename "$env_file"):" >&2
     printf '%s
