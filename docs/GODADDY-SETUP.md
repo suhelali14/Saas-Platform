@@ -280,7 +280,10 @@ GHCR, then the deploy SSHes in and starts `provider-api`.
 Then TLS and your console login:
 
 ```bash
-sudo certbot --nginx -d api.nayaverse.in
+# Creates the nginx vhost AND gets the certificate. certbot alone is
+# not enough: without a server block for this hostname, nginx's default
+# site answers and returns 404 while the API runs fine on 127.0.0.1.
+sudo /srv/clinic/repo/deploy/setup-provider-nginx.sh
 
 sudo /srv/clinic/repo/deploy/seed-provider.sh you@example.com "Your Name"
 ```
