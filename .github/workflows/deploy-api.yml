@@ -247,6 +247,8 @@ jobs:
           USER: ${{ secrets.DEPLOY_USER }}
           PORT: ${{ secrets.DEPLOY_PORT }}
           TAG: ${{ github.event.inputs.tag || needs.build.outputs.image }}
+          # The commit whose deploy scripts should run on the server.
+          SHA: ${{ github.sha }}
           # A short-lived token so the server can pull a private image.
           # Scoped to read packages and expires with this job, which is
           # why no long-lived registry credential is stored on the box.
@@ -254,6 +256,22 @@ jobs:
           ACTOR: ${{ github.actor }}
         run: |
           echo "Deploying $TAG"
+          # Update the server's copy of the deploy scripts FIRST.
+          # deploy-image.sh runs from /srv/clinic/repo, a clone made once
+          # by the bootstrap and never touched again -- so every fix to
+          # the deploy logic stayed in the repository while the server
+          # kept running the version it was born with, including its old
+          # error messages.
+          #
+          # Reset rather than pull: nobody edits this clone, and a merge
+          # conflict at deploy time would be a terrible place to find out.
+          ssh -i ~/.ssh/id_deploy -p "${PORT:-22}" \
+              -o BatchMode=yes -o ConnectTimeout=15 \
+              "$USER@$HOST" \
+              "cd /srv/clinic/repo && git fetch --quiet origin && git reset --hard --quiet '$SHA' \
+               && echo \"deploy scripts now at \$(git rev-parse --short HEAD)\"" \
+            || echo "::warning::Could not update the server's script copy; it will run whatever version is on disk."
+
           ssh -i ~/.ssh/id_deploy -p "${PORT:-22}" \
               -o BatchMode=yes -o ConnectTimeout=15 \
               "$USER@$HOST" \
