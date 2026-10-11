@@ -27,8 +27,22 @@ if [ -z "$IMAGE" ]; then
   exit 1
 fi
 
-read_var() {  # read_var <env-file> <KEY>
-  (set -a; . "$1" >/dev/null 2>&1; set +a; printf '%s' "${!2:-}")
+# Parsed, not sourced. A value containing `&` -- every Neon connection
+# string has one -- is truncated to nothing when the shell evaluates it,
+# while docker --env-file reads it correctly. PORT happens to survive
+# that, but relying on which keys happen to be shell-safe is not a
+# property worth depending on.
+read_var() {  # read_var <file> <KEY>
+  local raw
+  raw="$(sed -n "s/^$2=//p" "$1" | head -1)"
+  # Strip one layer of surrounding quotes using parameter expansion.
+  # No sed backreference: it is the thing that keeps getting eaten by
+  # whichever layer writes this file.
+  case "$raw" in
+    \"*\") raw="${raw#\"}"; raw="${raw%\"}" ;;
+    \'*\') raw="${raw#\'}"; raw="${raw%\'}" ;;
+  esac
+  printf '%s' "$raw"
 }
 
 # Per-container memory cap, sized from the machine rather than hardcoded.

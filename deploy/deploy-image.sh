@@ -80,7 +80,15 @@ for env_file in "${ENV_FILES[@]}"; do
   # printed the matched line, which put a JWT secret straight into a CI
   # log -- a check for a misconfiguration must not leak the value it is
   # complaining about.
-  quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file"             | sed -E 's/^([0-9]+):([A-Za-z_][A-Za-z0-9_]*)=.*/  line : /' || true)"
+  # Line number and KEY ONLY -- never the value. The first version
+  # printed the whole matching line, which put a JWT secret into a
+  # CI log; a check for a misconfiguration must not leak what it is
+  # complaining about.
+  #
+  # awk, not sed: this ran through a sed backreference twice and the
+  # \1 was eaten both times. Fields are positional and cannot be.
+  quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file" \
+            | awk -F'[:=]' '{ printf "    line %s: %s\n", $1, $2 }' || true)"
   if [ -n "$quoted" ]; then
     echo "Quoted values in $(basename "$env_file"):" >&2
     printf '%s

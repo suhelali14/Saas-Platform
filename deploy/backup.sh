@@ -21,6 +21,27 @@ STAMP="$(date -u +%Y%m%d-%H%M%S)"
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 redact() { sed -E 's#(postgres(ql)?://)[^@[:space:]]*@#\1***:***@#g'; }
 
+# Reads one value WITHOUT letting the shell evaluate it.
+#
+# Sourcing an env file runs it as shell, and a Neon connection string
+# contains `&` -- which the shell reads as "run this in the background",
+# silently truncating the value to nothing. Docker's --env-file reads
+# the same line correctly, so the mismatch is invisible until something
+# that sourced the file gets an empty string. Here that was pg_dump,
+# which would have failed every night.
+read_env() {  # read_env <file> <KEY>
+  local raw
+  raw="$(sed -n "s/^$2=//p" "$1" | head -1)"
+  # Strip one layer of surrounding quotes using parameter expansion.
+  # No sed backreference: it is the thing that keeps getting eaten by
+  # whichever layer writes this file.
+  case "$raw" in
+    \"*\") raw="${raw#\"}"; raw="${raw%\"}" ;;
+    \'*\') raw="${raw#\'}"; raw="${raw%\'}" ;;
+  esac
+  printf '%s' "$raw"
+}
+
 mkdir -p "$OUT"
 FAILED=0
 
@@ -40,7 +61,7 @@ for env_file in "${ENV_FILES[@]}"; do
   dest="$OUT/$slug"
   mkdir -p "$dest"
 
-  DB_URL="$(set -a; . "$env_file"; set +a; printf '%s' "${DATABASE_URL:-}")"
+  DB_URL="$(read_env "$env_file" DATABASE_URL)"
   if [ -z "$DB_URL" ]; then
     log "$slug: SKIPPED, no DATABASE_URL"
     FAILED=1
