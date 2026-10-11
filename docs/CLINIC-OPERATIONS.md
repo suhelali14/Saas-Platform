@@ -64,8 +64,8 @@ Anything else is treated as the patient site.
 
 ```bash
 PORT=4200
-DATABASE_URL="postgresql://…/provider_console?schema=provider"
-JWT_SECRET="<64+ random chars>"
+DATABASE_URL=postgresql://…/provider_console?schema=provider
+JWT_SECRET=<64+ random chars>
 
 # First console account, created by `npm run seed`
 PROVIDER_SEED_EMAIL=you@example.com
@@ -115,8 +115,8 @@ dev clinic.
 
 ```bash
 PORT=4100
-DATABASE_URL="postgresql://…"      # that clinic's own database
-JWT_SECRET="<64+ random chars>"    # unique per clinic, never reused
+DATABASE_URL=postgresql://…      # that clinic's own database
+JWT_SECRET=<64+ random chars>    # unique per clinic, never reused
 CLINIC_PLAN=STANDARD               # BASIC | STANDARD | PREMIUM
 
 # Optional: AI translation for the patient site

@@ -253,8 +253,8 @@ sudo -u deploy nano /srv/clinic/env/provider.env
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL="<your provider-console Neon connection string>"
-JWT_SECRET="<paste the output of: openssl rand -base64 32>"
+DATABASE_URL=<your provider-console Neon connection string>
+JWT_SECRET=<paste the output of: openssl rand -base64 32>
 PLATFORM_DOMAIN=nayaverse.in
 CORS_ORIGINS=https://console.nayaverse.in
 NEON_API_KEY=<your Neon API key>

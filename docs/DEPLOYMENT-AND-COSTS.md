@@ -109,7 +109,7 @@ rather than tight.
 Set a pool that lets idle connections close:
 
 ```
-DATABASE_URL="postgresql://...?connection_limit=5&pool_timeout=20"
+DATABASE_URL=postgresql://...?connection_limit=5&pool_timeout=20
 ```
 
 Check Neon usage in week one. If you are near the cap, Launch is
@@ -313,8 +313,8 @@ npm run build
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL="<its own Neon project>"
-JWT_SECRET="<openssl rand -base64 32>"
+DATABASE_URL=<its own Neon project>
+JWT_SECRET=<openssl rand -base64 32>
 PLATFORM_DOMAIN=yourco.in
 CORS_ORIGINS=https://console.yourco.in
 NEON_API_KEY=...
@@ -386,8 +386,8 @@ uploads directory.
 ```bash
 NODE_ENV=production
 PORT=4101                       # 4102, 4103... for later clinics
-DATABASE_URL="<this clinic's Neon project only>"
-JWT_SECRET="<a fresh openssl rand -base64 32>"
+DATABASE_URL=<this clinic's Neon project only>
+JWT_SECRET=<a fresh openssl rand -base64 32>
 CLINIC_PLAN=STANDARD
 CORS_ORIGINS=https://acme.yourco.in,https://acme.portal.yourco.in
 ```

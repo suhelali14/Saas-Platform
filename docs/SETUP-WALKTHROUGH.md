@@ -343,8 +343,8 @@ sudo -u deploy nano /srv/clinic/env/provider.env
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL="<the provider-console string from Step 6>"
-JWT_SECRET="<paste from: openssl rand -base64 32>"
+DATABASE_URL=<the provider-console string from Step 6>
+JWT_SECRET=<paste from: openssl rand -base64 32>
 PLATFORM_DOMAIN=yourco.in
 CORS_ORIGINS=https://console.yourco.in
 NEON_API_KEY=<from Step 6>

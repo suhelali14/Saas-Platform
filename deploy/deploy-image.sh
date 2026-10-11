@@ -70,6 +70,25 @@ ENV_FILES=("$ENV_DIR"/*.env)
 shopt -u nullglob
 [ ${#ENV_FILES[@]} -gt 0 ] || die "no env files in $ENV_DIR -- nothing to deploy"
 
+# Quoted values break `docker run --env-file`, which takes KEY=VALUE
+# literally and keeps the quotes. Sourcing the same file in a shell
+# strips them, so the file looks fine when tested by hand and fails
+# inside the container -- as a Prisma protocol error that never mentions
+# quoting. Caught here, by name, before anything is migrated.
+for env_file in "${ENV_FILES[@]}"; do
+  quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file" | cut -d: -f1,2 | sed 's/:/ line /' || true)"
+  if [ -n "$quoted" ]; then
+    echo "Quoted values in $(basename "$env_file"):" >&2
+    printf '%s
+' "$quoted" | sed 's/^/    /' >&2
+    echo >&2
+    echo "  docker --env-file keeps the quotes, so the value arrives wrong." >&2
+    echo "  Remove them:  DATABASE_URL=postgresql://...   not   DATABASE_URL=\"postgresql://...\"" >&2
+    echo "  Fix in place: sed -i 's/=\"\(.*\)\"$/=\1/' $env_file" >&2
+    die "env file has quoted values"
+  fi
+done
+
 for env_file in "${ENV_FILES[@]}"; do
   slug="$(basename "$env_file" .env)"
   if [ "$slug" = "provider" ]; then app=provider-api; else app=clinic-api; fi

@@ -162,8 +162,8 @@ is a published secret.
 ```bash
 NODE_ENV=production
 PORT=4200
-DATABASE_URL="postgresql://...@...neon.tech/neondb?sslmode=require"
-JWT_SECRET="<openssl rand -base64 32>"
+DATABASE_URL=postgresql://...@...neon.tech/neondb?sslmode=require
+JWT_SECRET=<openssl rand -base64 32>
 PLATFORM_DOMAIN=yourco.in
 CORS_ORIGINS=https://console.yourco.in
 NEON_API_KEY=<from Neon>
@@ -176,8 +176,8 @@ NEON_API_KEY=<from Neon>
 ```bash
 NODE_ENV=production
 PORT=4101                    # assigned automatically
-DATABASE_URL="..."           # you paste it in when prompted
-JWT_SECRET="..."             # generated fresh per clinic
+DATABASE_URL=...             # you paste it in when prompted
+JWT_SECRET=...               # generated fresh per clinic
 CLINIC_PLAN=STANDARD
 CORS_ORIGINS=https://acme.yourco.in,https://acme.portal.yourco.in
 ```

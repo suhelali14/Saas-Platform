@@ -116,11 +116,18 @@ NODE_ENV=production
 PORT=$PORT
 
 # This clinic's database, and nothing else's.
-DATABASE_URL="$DB_URL"
+#
+# UNQUOTED, deliberately. These files are read two ways: the shell
+# sources them (which strips quotes) and `docker run --env-file` reads
+# them literally (which does not). A quoted value therefore reaches the
+# container with the quote characters still attached, and Prisma rejects
+# it with "the URL must start with the protocol postgresql://" -- an
+# error that says nothing about quoting.
+DATABASE_URL=$DB_URL
 
 # Freshly generated for this clinic. Never shared: a token minted at one
 # clinic must not be valid at another.
-JWT_SECRET="$JWT"
+JWT_SECRET=$JWT
 
 CLINIC_PLAN=$PLAN
 CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN
