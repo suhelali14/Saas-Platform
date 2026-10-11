@@ -37,7 +37,20 @@ PREVIOUS="$(cat "$IMAGE_FILE" 2>/dev/null || true)"
 
 # ── 1. Pull ───────────────────────────────────────────────────────────
 log "Pulling $TAG"
-docker pull --quiet "$TAG" > /dev/null 2>&1 || die "could not pull $TAG (is the registry login still valid?)"
+# Show what docker actually said. Swallowing it and substituting a guess
+# ("is the login still valid?") sent a missing `packages: read` scope
+# looking like an expired credential -- the real message names the
+# permission.
+if ! docker pull "$TAG" > /tmp/pull.log 2>&1; then
+  redact < /tmp/pull.log | tail -15
+  echo
+  echo "Common causes:" >&2
+  echo "  - the deploy job is missing 'permissions: packages: read', so its" >&2
+  echo "    token can log in but not read the package" >&2
+  echo "  - the package is private and owned by a different account" >&2
+  echo "  - the tag does not exist (did the build job actually push?)" >&2
+  die "could not pull $TAG"
+fi
 info "$(docker image inspect "$TAG" --format '{{.Id}}' | cut -c1-19)"
 info "size $(docker image inspect "$TAG" --format '{{.Size}}' | awk '{printf "%.0f MB", $1/1024/1024}')"
 

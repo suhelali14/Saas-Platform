@@ -128,6 +128,17 @@ jobs:
     if: always() && (needs.build.result == 'success' || github.event.inputs.tag != '')
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
+      # Required. The GITHUB_TOKEN this job passes to the server is what
+      # the server logs into ghcr with, and without this scope it can
+      # authenticate but not read the package -- so `docker login`
+      # succeeds and `docker pull` fails, which reads as an expired
+      # login rather than a missing permission.
+      #
+      # The build job's `packages: write` does not carry over: every job
+      # gets its own token with its own scopes.
+      packages: read
     steps:
       # Checks the SHAPE of each secret, not just that something is set.
       # A placeholder like "23" for a host passes a presence check and then
