@@ -100,6 +100,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets[matrix.project_id_secret] }}
+          # Same values the npm build used, so `vercel build` matches it.
+          VITE_PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          VITE_PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
+          VITE_API_URL: ${{ matrix.app == 'provider-console' && format('{0}/api/provider', vars.PROVIDER_API_URL) || '' }}
           # The same names read as variables, to tell "not set at all"
           # apart from "set in the wrong place".
           VAR_TOKEN: ${{ vars.VERCEL_TOKEN }}
@@ -126,10 +130,42 @@ jobs:
             fi
             exit 1
           fi
-          # --prebuilt uploads dist/ as-is rather than rebuilding on
-          # Vercel, so what ships is exactly what CI verified.
+          # `vercel build` re-runs the framework build under Vercel's own
+          # environment, which does not have the variables this workflow
+          # set -- so the npm build above is discarded and the values go
+          # missing. Writing .env.production, which Vite reads natively,
+          # is what makes the second build agree with the first.
+          #
+          # Without this the console shipped pointing at
+          # http://localhost:4200 and failed in the browser with
+          # ERR_CONNECTION_REFUSED, naming nothing useful.
+          {
+            echo "VITE_PLATFORM_DOMAIN=$VITE_PLATFORM_DOMAIN"
+            echo "VITE_PROVIDER_API_URL=$VITE_PROVIDER_API_URL"
+            [ -n "$VITE_API_URL" ] && echo "VITE_API_URL=$VITE_API_URL"
+          } > .env.production
+          echo "build-time environment:"
+          sed 's/^/    /' .env.production
+
           npx --yes vercel@63 build --prod --token "$VERCEL_TOKEN" --yes
           npx --yes vercel@63 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+
+      - name: Check the bundle does not point at localhost
+        if: steps.gate.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          # A production build containing localhost means a VITE_ variable
+          # was missing and the code fell back to its dev default. In the
+          # browser that surfaces as ERR_CONNECTION_REFUSED against
+          # 127.0.0.1, which looks like a server outage rather than a
+          # build-time configuration mistake.
+          if grep -rqE 'localhost:(4100|4200|5173|5176|5177)' dist/ 2>/dev/null; then
+            echo "::error::The ${{ matrix.app }} bundle still references a localhost dev URL."
+            echo "::error::A VITE_ variable was empty at build time. Check the repository VARIABLES PLATFORM_DOMAIN and PROVIDER_API_URL (variables, not secrets)."
+            grep -roE 'localhost:[0-9]+' dist/ | sort -u | sed 's/^/  /'
+            exit 1
+          fi
+          echo "clean: no localhost URLs in the production bundle"
 
       - name: Summary
         if: steps.gate.outputs.run == 'true'
