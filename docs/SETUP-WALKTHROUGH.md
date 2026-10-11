@@ -113,6 +113,20 @@ From now on you manage all DNS **at Vercel**, not the registrar.
 > Propagation takes 10 minutes to a few hours. Start Step 4 while you
 > wait — it does not depend on this.
 
+> **Do not use GoDaddy's "Connect to Vercel" / Domain Connect button, and
+> do not add A records.** Both lead to a working apex domain and **no
+> wildcards** — which is the entire basis of giving each clinic a
+> subdomain. Vercel can only issue a wildcard certificate if it can
+> answer DNS challenges, and that means it has to run the DNS.
+>
+> Symptoms that you went down that path: GoDaddy shows several `A` records
+> on `@` plus a `_domainconnect` CNAME, Vercel shows **Invalid
+> Configuration**, and GoDaddy will not let you delete the records — they
+> are locked because a third party is managing them through Domain
+> Connect. Switching the nameservers below makes all of it moot: GoDaddy
+> stops answering DNS for the domain entirely, so those records no longer
+> matter and do not need deleting.
+
 ### On GoDaddy specifically
 
 1. Sign in → **Domain Portfolio** (or *My Products*)
