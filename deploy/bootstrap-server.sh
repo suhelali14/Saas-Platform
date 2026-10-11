@@ -79,6 +79,42 @@ apt-get install -y -qq unattended-upgrades
 dpkg-reconfigure -f noninteractive unattended-upgrades > /dev/null 2>&1 || true
 info "enabled"
 
+# ── Swap ─────────────────────────────────────────────────────
+# DigitalOcean droplets ship with no swap at all. On a small box that
+# turns a brief memory spike -- a clinic generating a PDF while another
+# is being migrated -- into the kernel OOM-killing a container mid
+# consultation, rather than into a few slow seconds.
+#
+# Swap on SSD is slow, and that is the point: slow is recoverable,
+# OOM-killed is a doctor losing what they were typing.
+log "Configuring swap"
+TOTAL_MB=$(free -m | awk '/^Mem:/ {print $2}')
+if [ -f /swapfile ]; then
+  skip "swapfile already present ($(free -m | awk '/^Swap:/ {print $2}') MB)"
+else
+  # 2x RAM on a small instance, capped so it cannot eat a 10 GB disk.
+  SWAP_MB=$((TOTAL_MB * 2))
+  [ "$SWAP_MB" -gt 4096 ] && SWAP_MB=4096
+  info "${TOTAL_MB} MB RAM detected -> ${SWAP_MB} MB swap"
+  fallocate -l "${SWAP_MB}M" /swapfile || dd if=/dev/zero of=/swapfile bs=1M count="$SWAP_MB" status=none
+  chmod 600 /swapfile
+  mkswap /swapfile > /dev/null
+  swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # Prefer RAM, but use swap rather than killing something. The default
+  # of 60 swaps too eagerly for a server; 10 keeps it as a safety net.
+  sysctl -w vm.swappiness=10 > /dev/null
+  grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
+  info "swap active, swappiness 10"
+fi
+
+if [ "$TOTAL_MB" -lt 900 ]; then
+  info ""
+  info "NOTE: ${TOTAL_MB} MB RAM is the \$4 droplet. Comfortable for the"
+  info "      console plus ONE clinic. Resize to 1 GB before clinic #2 --"
+  info "      it is one click in DigitalOcean and needs no redeploy."
+fi
+
 # ── Deploy user ───────────────────────────────────────────────────────
 log "Creating the $DEPLOY_USER user"
 if id "$DEPLOY_USER" > /dev/null 2>&1; then
