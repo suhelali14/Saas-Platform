@@ -1,12 +1,17 @@
 name: Deploy APIs
 
-# clinic-api and provider-api run on your own server, because clinic-api
-# writes patient scans to a real disk and a serverless filesystem would
-# lose them.
+# Build an image once, push it, then deploy that exact image.
 #
-# This workflow does almost nothing itself: it SSHes in and runs
-# deploy/deploy.sh, which lives in the repo so the deploy logic is
-# versioned and reviewable alongside the code it ships. CI runs first.
+#   CI green -> build -> push to ghcr.io -> SSH -> pull, migrate, restart
+#
+# Nothing is compiled on the server. What runs in production is the
+# artifact that passed the tests, not a second build from the same source
+# that could differ because a dependency moved or the box has a different
+# toolchain.
+#
+# The registry is GitHub's own: container storage and bandwidth are free,
+# and it authenticates with the token this workflow already has, so there
+# is no extra account and no extra secret.
 
 on:
   push:
@@ -17,31 +22,97 @@ on:
       - 'packages/**'
       - 'package-lock.json'
       - 'deploy/**'
+      - '.dockerignore'
       - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
     inputs:
-      ref:
-        description: Branch, tag or SHA to deploy (default - this branch)
+      tag:
+        description: 'Existing image tag to deploy (skips the build). Leave blank to build this commit.'
         required: false
         default: ''
 
 concurrency:
-  # Never two deploys at once: they would fight over the same symlink and
-  # the same databases. Queued, NOT cancelled -- a half-finished deploy is
-  # worse than a slow one.
+  # Queued, never cancelled: two deploys at once would fight over the same
+  # databases and the same compose file. A half-finished deploy is worse
+  # than a slow one.
   group: deploy-api
   cancel-in-progress: false
 
+env:
+  REGISTRY: ghcr.io
+  # Lowercased below -- ghcr rejects uppercase in a repository name, and
+  # GitHub owners often have capitals.
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   ci:
+    # Skipped when redeploying an already-built tag: it was tested then.
+    if: github.event.inputs.tag == ''
     uses: ./.github/workflows/ci.yml
 
-  deploy:
+  build:
     needs: ci
+    if: github.event.inputs.tag == ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the image name
+        id: meta
+        run: |
+          repo="$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "image=${{ env.REGISTRY }}/$repo/api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # Provided automatically; `packages: write` above is what makes
+          # it able to push.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: true
+          # Immutable SHA tag is what gets deployed, so a rollback names
+          # an exact artifact. `latest` is a convenience for humans and is
+          # never what the deploy step uses.
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.repo }}/api:latest
+          # Layer cache in the registry, so an unchanged dependency tree
+          # is not reinstalled on every push.
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.meta.outputs.repo }}/api:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.meta.outputs.repo }}/api:buildcache,mode=max
+          provenance: false
+
+      - name: Summary
+        run: |
+          echo "### Image built" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.image }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: build
+    # Runs when the build ran, or when redeploying a given tag.
+    if: always() && (needs.build.result == 'success' || github.event.inputs.tag != '')
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Check the server is configured
+      - name: Check the server secrets exist
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
@@ -52,7 +123,9 @@ jobs:
           [ -z "$USER" ] && missing="$missing DEPLOY_USER"
           [ -z "$KEY" ]  && missing="$missing DEPLOY_SSH_KEY"
           if [ -n "$missing" ]; then
-            echo "::error::Missing secrets:$missing. See deploy/README.md."
+            echo "::error::Missing repository secrets:$missing"
+            echo "::error::Add them under Settings > Secrets and variables > Actions. See docs/SETUP-WALKTHROUGH.md step 8."
+            echo "The image was built and pushed successfully -- only the deploy step is unconfigured." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
@@ -61,17 +134,18 @@ jobs:
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           HOST: ${{ secrets.DEPLOY_HOST }}
           PORT: ${{ secrets.DEPLOY_PORT }}
+          HOSTKEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          # Pin the host key rather than accepting any. Without this a
-          # DNS or routing compromise would hand your deploy key, and a
-          # shell on the box holding patient data, to whoever answered.
-          if [ -n "${{ secrets.DEPLOY_HOST_KEY }}" ]; then
-            printf '%s\n' "${{ secrets.DEPLOY_HOST_KEY }}" > ~/.ssh/known_hosts
+          # Pin the host key. Without it this accepts whatever answers on
+          # that address, so a DNS or routing compromise is handed the
+          # deploy key and a shell on the box holding patient records.
+          if [ -n "$HOSTKEY" ]; then
+            printf '%s\n' "$HOSTKEY" > ~/.ssh/known_hosts
           else
-            echo "::warning::DEPLOY_HOST_KEY is not set, so the server's identity is not verified. Add it -- deploy/README.md explains how."
+            echo "::warning::DEPLOY_HOST_KEY is unset, so the server's identity is not verified. See docs/SETUP-WALKTHROUGH.md step 8."
             ssh-keyscan -p "${PORT:-22}" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           fi
           chmod 600 ~/.ssh/known_hosts
@@ -81,17 +155,24 @@ jobs:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
           PORT: ${{ secrets.DEPLOY_PORT }}
-          REF: ${{ github.event.inputs.ref || github.sha }}
+          TAG: ${{ github.event.inputs.tag || needs.build.outputs.image }}
+          # A short-lived token so the server can pull a private image.
+          # Scoped to read packages and expires with this job, which is
+          # why no long-lived registry credential is stored on the box.
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
         run: |
+          echo "Deploying $TAG"
           ssh -i ~/.ssh/id_deploy -p "${PORT:-22}" \
               -o BatchMode=yes -o ConnectTimeout=15 \
               "$USER@$HOST" \
-              "DEPLOY_REF='$REF' /srv/clinic/repo/deploy/deploy.sh"
+              "echo '$GHCR_TOKEN' | docker login ghcr.io -u '$ACTOR' --password-stdin >/dev/null \
+               && IMAGE_TAG='$TAG' /srv/clinic/repo/deploy/deploy-image.sh \
+               ; rc=\$?; docker logout ghcr.io >/dev/null 2>&1; exit \$rc"
 
       - name: Summary
         if: always()
         run: |
-          echo "### API deploy" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Ref: \`${{ github.event.inputs.ref || github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: \`${{ github.event.inputs.tag || needs.build.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "Result: **${{ job.status }}**" >> "$GITHUB_STEP_SUMMARY"

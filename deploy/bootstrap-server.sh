@@ -32,6 +32,36 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq curl git nginx certbot python3-certbot-nginx ufw jq postgresql-client
 
+# ── Docker ────────────────────────────────────────────────────────────
+log "Installing Docker"
+if command -v docker > /dev/null; then
+  skip "docker $(docker --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*' | head -1) already present"
+else
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg     -o /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable"     > /etc/apt/sources.list.d/docker.list
+  apt-get update -qq
+  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  info "docker $(docker --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*' | head -1)"
+fi
+# The deploy user drives docker, so it needs the group. This is close to
+# root-equivalent on the host -- accepted deliberately, because the
+# alternative is the deploy key having passwordless sudo instead.
+usermod -aG docker "$DEPLOY_USER" 2>/dev/null || true
+systemctl enable --now docker > /dev/null 2>&1 || true
+
+# Cap the journal so container logs cannot fill a 25 GB disk and take
+# every clinic down in a way that looks like an application fault.
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'DOCKERJSON'
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "3" }
+}
+DOCKERJSON
+systemctl restart docker > /dev/null 2>&1 || true
+
 if ! command -v node > /dev/null || [ "$(node -v | cut -c2- | cut -d. -f1)" -lt "$NODE_MAJOR" ]; then
   info "installing Node $NODE_MAJOR"
   curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - > /dev/null
@@ -97,8 +127,13 @@ else
   sudo -u "$DEPLOY_USER" git clone --quiet "$GIT_URL" "$ROOT/repo"
   info "$GIT_URL"
 fi
+# Owned by uid 1000, not the deploy user. The containers run as the
+# image's `node` user, which is uid 1000 in the official Node images, and
+# `deploy` is a system account with some other id. Get this wrong and the
+# API starts fine, then fails the first time a doctor uploads a scan --
+# the one failure mode nobody tests for.
 mkdir -p "$ROOT/data/provider"
-chown "$DEPLOY_USER:$DEPLOY_USER" "$ROOT/data/provider"
+chown -R 1000:1000 "$ROOT/data"
 
 # ── systemd units ─────────────────────────────────────────────────────
 log "Installing systemd units"

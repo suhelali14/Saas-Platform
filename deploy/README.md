@@ -3,26 +3,41 @@
 Connect the repo once. After that, `git push` deploys everything.
 
 ```
-git push origin main
+git push origin master
       │
-      ├─ CI ─────────── typecheck, subdomain tests, builds, secret scan
-      │                 (everything below waits on this)
+      ├─ CI ─────────── typecheck, 53 tests, Dockerfile check, builds,
+      │                 secret scan   (everything below waits on this)
       │
       ├─ deploy-static ─ clinic-web      → Vercel  (one deploy, all clinics)
       │                  provider-console → Vercel
       │
-      └─ deploy-api ──── SSH → deploy.sh on your server
-                           ├─ build a new release directory
-                           ├─ migrate EVERY clinic's database
-                           ├─ swap the `current` symlink (atomic)
-                           ├─ restart provider-api + every clinic-api@<slug>
-                           └─ health-check, and roll back if anything fails
+      └─ deploy-api ──── build image → push to ghcr.io
+                           └─ SSH → deploy-image.sh on your server
+                                ├─ pull that exact image tag
+                                ├─ migrate EVERY clinic's database (in the image)
+                                ├─ docker compose up onto the new tag
+                                └─ health-check, roll back to the previous tag
+                                   if anything fails
 ```
+
+The image is built **once** and that same artifact is what runs. Nothing
+is compiled on the server, so there is no "passed CI, failed on the box"
+class of failure, and a rollback means running a previous tag rather than
+rebuilding old source.
+
+Config is never in the image — see
+[docs/WHERE-ENV-GOES.md](../docs/WHERE-ENV-GOES.md).
 
 Nothing deploys unless CI is green, so a build that does not typecheck
 never reaches a clinic.
 
 ---
+
+> Not to be confused with the `docker-compose.yml` at the repo root —
+> that is a local dev Postgres for the older SAAS app and has nothing to
+> do with deployment. The deploy compose file is **generated on the
+> server** at `/srv/clinic/compose.yml` and is not in git, because it
+> changes every time you add a clinic.
 
 ## Part 1 — The server, once
 
@@ -167,7 +182,12 @@ so a half-finished setup is never publicly visible.
 
 | Task | Command |
 |---|---|
-| Deploy | `git push origin main` |
+| Deploy | `git push origin master` |
+| Deploy an existing tag | Actions → Deploy APIs → Run workflow → paste the tag |
+| What image is live | `cat /srv/clinic/.image` |
+| Roll back the image | `IMAGE_TAG=$(cat /srv/clinic/.image.previous) /srv/clinic/repo/deploy/deploy-image.sh` |
+| Container logs | `docker logs -f clinic-acme` |
+| What is running | `docker compose -f /srv/clinic/compose.yml ps` |
 | Deploy a specific ref | Actions → Deploy APIs → Run workflow |
 | See releases | `deploy/rollback.sh --list` |
 | Roll back | `deploy/rollback.sh` |

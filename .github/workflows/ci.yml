@@ -55,6 +55,14 @@ jobs:
       - name: Subdomain and origin tests
         run: bash scripts/subdomain-tests/run.sh
 
+      # The image build is the slowest thing in the pipeline, and the two
+      # ways it fails are both static: a COPY source that does not exist,
+      # and a workspace manifest that never reaches the context (npm ci
+      # then fails on the lockfile). Both are caught here in a second
+      # instead of five minutes into a build.
+      - name: Check the Dockerfile against the build context
+        run: python3 scripts/check-dockerfile.py
+
       - name: Build everything
         run: |
           for app in clinic-api provider-api clinic-web provider-console; do

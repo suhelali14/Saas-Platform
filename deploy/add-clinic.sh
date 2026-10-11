@@ -125,14 +125,25 @@ info "plan $PLAN, own JWT secret, 0600"
 
 # ── Data directory ────────────────────────────────────────────────────
 log "Creating $DATA_DIR/$SLUG"
-install -d -o deploy -g deploy -m 750 "$DATA_DIR/$SLUG"
-install -d -o deploy -g deploy -m 750 "$DATA_DIR/$SLUG/uploads"
-info "uploads/ lives here, outside releases, so deploys never touch it"
+# Owned by uid 1000, which is the `node` user inside the image, NOT the
+# deploy user. Get this wrong and the API starts cleanly, then fails the
+# first time a doctor uploads a scan.
+install -d -o 1000 -g 1000 -m 750 "$DATA_DIR/$SLUG"
+install -d -o 1000 -g 1000 -m 750 "$DATA_DIR/$SLUG/uploads"
+info "uploads/ is bind-mounted into the container, so deploys never touch it"
 
 # ── Migrate and seed ──────────────────────────────────────────────────
+# Both run inside the deployed image, so they use exactly the migrations
+# and seed script that shipped with the running code rather than whatever
+# happens to be checked out on the host.
+IMAGE="$(cat "$ROOT/.image" 2>/dev/null || true)"
+[ -n "$IMAGE" ] || die "No image deployed yet. Run a deploy first (push to master, or deploy-image.sh)."
+info "using $IMAGE"
+
 log "Migrating"
-sudo -u deploy bash -c "cd '$ROOT/current/apps/clinic-api' && DATABASE_URL='$DB_URL' npx prisma migrate deploy" \
-  || die "migration failed -- $ENV_DIR/$SLUG.env was written, so fix and re-run just this step"
+docker run --rm --env-file "$ENV_DIR/$SLUG.env" -w /app/apps/clinic-api \
+  "$IMAGE" npx prisma migrate deploy \
+  || die "migration failed -- $ENV_DIR/$SLUG.env was written, so fix the connection string and re-run"
 
 log "Seeding the clinic record and first login"
 read -rp "    Clinic name (e.g. Acme Clinic): " CLINIC_NAME
@@ -143,14 +154,15 @@ read -rp "    Doctor's name as it should print (e.g. Dr. Asif Khan): " DOCTOR_NA
 read -rp "    Doctor's login email: " DOCTOR_EMAIL
 DOCTOR_PASS="$(openssl rand -base64 12 | tr -d '/+=' | cut -c1-14)"
 
-sudo -u deploy bash -c "cd '$ROOT/current/apps/clinic-api' && \
-  DATABASE_URL='$DB_URL' \
-  CLINIC_SEED_NAME='$CLINIC_NAME' \
-  CLINIC_SEED_DOCTOR_NAME='$DOCTOR_NAME' \
-  CLINIC_SEED_EMAIL='$DOCTOR_EMAIL' \
-  CLINIC_SEED_PASSWORD='$DOCTOR_PASS' \
-  CLINIC_PLAN='$PLAN' \
-  npx tsx prisma/seed-clinic.ts" || die "seed failed"
+docker run --rm \
+  --env-file "$ENV_DIR/$SLUG.env" \
+  -e CLINIC_SEED_NAME="$CLINIC_NAME" \
+  -e CLINIC_SEED_DOCTOR_NAME="$DOCTOR_NAME" \
+  -e CLINIC_SEED_EMAIL="$DOCTOR_EMAIL" \
+  -e CLINIC_SEED_PASSWORD="$DOCTOR_PASS" \
+  -w /app/apps/clinic-api \
+  "$IMAGE" npx tsx prisma/seed-clinic.ts \
+  || die "seed failed"
 
 # ── nginx + TLS ───────────────────────────────────────────────────────
 log "Configuring nginx for $API_HOST"
@@ -190,13 +202,21 @@ else
 fi
 
 # ── Start ─────────────────────────────────────────────────────────────
-log "Starting clinic-api@$SLUG"
-systemctl enable --now "clinic-api@$SLUG"
-sleep 4
-systemctl is-active --quiet "clinic-api@$SLUG" \
-  || die "service did not start. journalctl -u clinic-api@$SLUG -n 40"
-CODE="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$PORT/health" || echo 000)"
-[ "$CODE" = "200" ] || die "health check returned $CODE. journalctl -u clinic-api@$SLUG -n 40"
+log "Starting clinic-$SLUG"
+# Regenerate compose so it includes this clinic, then bring up only the
+# new service -- `up -d <service>` leaves every other clinic untouched,
+# so onboarding one clinic never restarts the others.
+"$ROOT/repo/deploy/render-compose.sh" || die "could not render compose.yml"
+docker compose -f "$ROOT/compose.yml" up -d "clinic-$SLUG" \
+  || die "could not start clinic-$SLUG"
+
+CODE=000
+for _ in 1 2 3 4 5 6; do
+  CODE="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 8 "http://127.0.0.1:$PORT/health" 2>/dev/null || echo 000)"
+  [ "$CODE" = "200" ] && break
+  sleep 3
+done
+[ "$CODE" = "200" ] || die "health check returned $CODE. Logs: docker logs clinic-$SLUG"
 info "health 200"
 
 # ── Done ──────────────────────────────────────────────────────────────

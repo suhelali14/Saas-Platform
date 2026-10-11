@@ -1,0 +1,60 @@
+# Keeps the build context small and, more importantly, keeps secrets and
+# patient data out of the image. Anything listed here is never sent to the
+# Docker daemon at all.
+
+# ── Must never enter an image ─────────────────────────────────────────
+# Every .env on this machine: clinic DATABASE_URLs, JWT secrets, API keys.
+# An image is pushed to a registry, so a secret baked into one is a
+# published secret.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.mcp.json
+
+# Patient files: scans, X-rays, lab reports. 22 MB of real PHI locally.
+uploads/
+**/uploads/
+
+# ── Rebuilt inside the image ──────────────────────────────────────────
+node_modules
+**/node_modules
+dist
+**/dist
+**/src/generated
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ── Irrelevant to the APIs ────────────────────────────────────────────
+.git
+.github
+.vercel
+**/.vercel
+apps/clinic-web/dist
+apps/provider-console/dist
+
+# The unrelated apps' SOURCE is excluded, but not their package.json --
+# npm ci resolves every workspace member against the lockfile and fails
+# if one named there is missing, so the manifests have to reach the build.
+apps/mobile/**
+!apps/mobile/package.json
+apps/business-dashboard/**
+!apps/business-dashboard/package.json
+apps/admin/**
+!apps/admin/package.json
+apps/api/**
+!apps/api/package.json
+
+# ── Noise ─────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+coverage
+*.tar.gz
+*.dump
+docs
