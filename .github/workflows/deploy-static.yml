@@ -40,6 +40,13 @@ jobs:
   deploy:
     needs: ci
     runs-on: ubuntu-latest
+    # Declared so that secrets scoped to this environment are visible.
+    # A job with an environment reads BOTH repository secrets and that
+    # environment's, so this works whichever way they were added --
+    # without it, environment-scoped secrets are silently absent and
+    # report as "not set", which is indistinguishable from never having
+    # added them.
+    environment: production
     strategy:
       # Independent projects, but kept serial so a failure is easy to read
       # in the log rather than interleaved.
