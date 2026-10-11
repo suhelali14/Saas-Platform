@@ -6,6 +6,7 @@ import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
 import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from "../lib/plans.js";
 import { provisionClinic, provisioningAvailable, isDryRun } from "../lib/provisioning.js";
 import { validateSlug } from "../lib/subdomain.js";
+import { env } from "../config/env.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -63,6 +64,9 @@ export async function accountRoutes(app: FastifyInstance) {
       suggestedFees: SUGGESTED_MONTHLY_FEE,
       onboardingTemplate: ONBOARDING_TEMPLATE,
       provisioning: { ...provisioningAvailable(), dryRun: isDryRun() },
+      // So the console can show a clinic's real hostnames instead of a
+      // placeholder. Not a secret, and this route is authenticated.
+      platformDomain: env.PLATFORM_DOMAIN,
     };
   });
 

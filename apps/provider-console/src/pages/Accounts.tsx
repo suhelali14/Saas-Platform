@@ -166,6 +166,13 @@ function NewAccountDialog({ meta, onClose, onCreated }: {
 }) {
   const toast = useToast();
   const [name, setName] = useState('');
+  // The slug IS the clinic's subdomain, so it has to be deliberate rather
+  // than derived from a legal name: "Dr Asif's Family Clinic Pvt Ltd"
+  // slugifies to something nobody wants to read out over the phone. It is
+  // also effectively permanent -- changing it later would move every URL
+  // the clinic has given to patients.
+  const [slug, setSlug] = useState('');
+  const [slugEdited, setSlugEdited] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -180,6 +187,20 @@ function NewAccountDialog({ meta, onClose, onCreated }: {
     if (meta?.suggestedFees) setMonthlyFee(String(meta.suggestedFees[plan]));
   }, [plan, meta]);
 
+  // Mirrors the server's slugify so the preview matches what would
+  // actually be stored. Kept in sync deliberately rather than fetched:
+  // the field needs to update on every keystroke.
+  const suggestedSlug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+
+  // Follow the name until the operator takes over, then leave it alone.
+  useEffect(() => {
+    if (!slugEdited) setSlug(suggestedSlug);
+  }, [suggestedSlug, slugEdited]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -188,6 +209,7 @@ function NewAccountDialog({ meta, onClose, onCreated }: {
         method: 'POST',
         data: {
           name,
+          slug: slug || undefined,
           contactName: contactName || undefined,
           contactEmail: contactEmail || undefined,
           contactPhone: contactPhone || undefined,
@@ -220,6 +242,29 @@ function NewAccountDialog({ meta, onClose, onCreated }: {
 
         <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Clinic name" span><input value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} /></Field>
+
+          <Field label="Subdomain" span>
+            <input
+              value={slug}
+              onChange={(e) => { setSlugEdited(true); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
+              required
+              className={inputCls}
+              placeholder="acme"
+              aria-describedby="slug-hint"
+            />
+            <p id="slug-hint" className="mt-1 text-[11px] leading-relaxed text-gray-400">
+              {slug ? (
+                <>
+                  Patients: <span className="text-gray-300">{slug}.{meta?.platformDomain ?? 'yourdomain'}</span>
+                  {' · '}Staff: <span className="text-gray-300">{slug}.portal.{meta?.platformDomain ?? 'yourdomain'}</span>
+                </>
+              ) : (
+                'Becomes the clinic’s web address. Keep it short.'
+              )}
+              <br />
+              Must match the slug used when the API was created, and cannot be changed later.
+            </p>
+          </Field>
           <Field label="Contact person"><input value={contactName} onChange={(e) => setContactName(e.target.value)} className={inputCls} /></Field>
           <Field label="City"><input value={city} onChange={(e) => setCity(e.target.value)} className={inputCls} /></Field>
           <Field label="Email" hint="Becomes their first sign-in."><input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputCls} /></Field>

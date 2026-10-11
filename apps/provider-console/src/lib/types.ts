@@ -87,6 +87,8 @@ export interface Meta {
   suggestedFees: Record<PlanTier, number>;
   onboardingTemplate: { key: string; label: string; automated: boolean; hint: string }[];
   provisioning: { neon: boolean; vercel: boolean; dryRun: boolean };
+  /** The domain clinic subdomains hang off, e.g. "yourco.in". */
+  platformDomain?: string;
 }
 
 export interface ProvisionStep {

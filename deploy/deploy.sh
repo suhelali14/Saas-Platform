@@ -29,7 +29,16 @@ ENV_DIR="$ROOT/env"
 DATA_DIR="$ROOT/data"
 KEEP_RELEASES=5
 
-REF="${DEPLOY_REF:-main}"
+# Default to whatever the remote calls its default branch, rather than
+# assuming `main`. This repo's is `master`, and hardcoding either one
+# makes a hand-run deploy fail with a confusing "ref not found".
+if [ -n "${DEPLOY_REF:-}" ]; then
+  REF="$DEPLOY_REF"
+else
+  REF="$(git -C "$REPO" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null \
+         | sed 's#^origin/##')"
+  REF="${REF:-master}"
+fi
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 RELEASE="$RELEASES/$STAMP"
 
