@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "@nexus2520/figma-mcp-server"],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "figd_your_personal_access_token_here"
+      }
+    }
+  }
+}

@@ -1,0 +1,1655 @@
+// Prisma schema for the unified Intently + BusinessOS platform.
+// Mirrors docs/06-data-model.md for the original Intently entities.
+// Location/budget/timing are flattened on IntentRequest for indexing; the
+// API layer maps them to the nested DTO shapes defined in
+// packages/shared-types before returning them over HTTP.
+//
+// BusinessOS section (below the "BUSINESSOS" divider) is ported from
+// SAAS/backend/prisma/schema.prisma per the unify-platform plan (Phase 1).
+// Ported models keep their original field shapes/relations/uuid() ids
+// as-is; only two things changed on the way in: (1) BusinessOS's own
+// `User` model is renamed `BusinessUser` here to avoid colliding with
+// Intently's consumer `User`, and (2) every ported model gets an explicit
+// snake_case `@@map`, matching this schema's existing house style (SAAS's
+// own schema relied on Prisma's default PascalCase table naming instead).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  // Anonymous-device auth (docs/14-mvp-implementation-plan.md M5) -- kept as
+  // a "continue as guest" option alongside real email/password auth below.
+  // Phone/OTP (per docs/05-native-app-spec.md) is still a future upgrade --
+  // it needs an SMS provider, an external dependency not configured here.
+  deviceId      String?  @unique
+  phone         String?  @unique
+  email         String?  @unique
+  passwordHash  String?
+  name          String?
+  city          String?
+  rewardCredits Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  intentRequests IntentRequest[]
+  transactions   Transaction[]
+  bookings       Booking[]
+  rewardLedger   RewardLedgerEntry[]
+  profile        UserProfile?
+  funnelEvents   FunnelEvent[]
+
+
+  @@map("users")
+}
+
+// docs/14-mvp-implementation-plan.md M7 / docs/05-native-app-spec.md's named
+// funnel: submitted -> shown -> opened -> compared -> booked. COMPARED and
+// BOOKED are defined here for a stable, forward-compatible enum even though
+// nothing fires them yet (no Compare screen, no transaction flow) -- an
+// unused enum value isn't fake data, it just names where the funnel goes
+// next; only fire an event for something that actually happened.
+enum FunnelEventType {
+  INTENT_SUBMITTED
+  RESULTS_SHOWN
+  RESULT_OPENED
+  COMPARED
+  BOOKED
+}
+
+model FunnelEvent {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  eventType       FunnelEventType
+  intentRequestId String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@map("funnel_events")
+}
+
+// v0: pure arithmetic, updated on every IntentRequest (see
+// src/services/user-profile-service.ts). The learned UserTasteVector
+// (embedding) described in docs/13-ai-cost-optimization-personalization.md
+// is Phase 3+ and not in this schema yet -- it needs real transaction
+// volume to mean anything, this doesn't.
+model UserProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  categoryAffinity   Json     @default("{}")
+  avgBudgetByCategory Json    @default("{}")
+  preferredTiming    Json     @default("{}")
+  updatedAt          DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+enum BusinessVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// The single canonical Business (tenant) row, merged from Intently's
+// original thin marketplace-only model and BusinessOS's rich operational
+// model (docs/plans unify-platform Phase 1). `type` (genre, e.g. SALON,
+// RESTAURANT) drives BusinessOS's genre master-template onboarding;
+// `categories` (Intently's own marketplace search tags) is separate and
+// stays -- a business can be genre=GYM_FITNESS with categories=["gym",
+// "wellness"]. `slug`/`type` are nullable since existing seeded rows
+// predate BusinessOS's onboarding flow.
+model Business {
+  id                 String                      @id @default(cuid())
+  name               String
+  slug               String?                     @unique
+  type               BusinessType?
+  description        String?
+  logo               String?
+
+  categories         String[]
+  city               String
+  address            String?
+  state              String?
+  country            String                       @default("India")
+  pincode            String?
+  latitude           Float?
+  longitude          Float?
+  phone              String?
+  email              String?
+  website            String?
+
+  languages          String[]                     @default(["English", "Hindi"])
+  currency           String                       @default("INR")
+  timezone           String                       @default("Asia/Kolkata")
+  workingHours       Json?
+  deliveryRules      Json?
+  paymentMethods     String[]                     @default(["cash", "upi"])
+  pricingRules       Json?
+  policies           Json?
+
+  aiProvider         String                       @default("openai")
+  aiApiKey           String?
+
+  plan               PlanType                     @default(STARTER)
+  planExpiresAt      DateTime?
+
+  isActive           Boolean                      @default(true)
+  onboardingCompleted Boolean                     @default(false)
+
+  verificationStatus BusinessVerificationStatus  @default(PENDING)
+  ratingAverage      Float                        @default(0)
+  verifiedTxnCount   Int                          @default(0)
+
+  // ── KYC (platform-trust-layer) ────────────────────────────────────────────
+  // Typed fields, not just uploaded photos of them -- per Razorpay's own
+  // published data, a mismatch between the PAN and the cancelled-cheque name
+  // causes ~40% of real-world KYC rejections, which is only checkable if the
+  // PAN itself is captured as data, not buried inside an image.
+  panNumber          String?
+  gstin              String?
+  noGstinDeclared    Boolean                      @default(false)
+  verificationNotes  String?
+  kycDocuments       KycDocument[]
+  tickets            Ticket[]
+
+  // ── Intently Marketplace Integration Fields ──────────────────────────────
+  intentlyEnabled    Boolean   @default(false)  // Opted in to marketplace
+  intentlyCategories String[]  // Subset of categories shown on Intently
+  intentlyRadius     Float?    // km radius for consumer matching
+  intentlyPlan       String    @default("free") // free | growth | intelligence
+  autoAcceptUnder    Int?      // Auto-accept orders below this amount (paise)
+  responseTargetMin  Int       @default(30) // Target response time (affects rank)
+  // ────────────────────────────────────────────────────────────────────────
+
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  offers           Offer[]
+  transactions     Transaction[]
+  bookings         Booking[]
+  embeddingRecords EmbeddingRecord[] @relation("BusinessEmbeddings")
+
+  // BusinessOS relations
+  users                BusinessUser[]
+  employees            Employee[]
+  customers            Customer[]
+  products             Product[]
+  services             Service[]
+  categoryTree         Category[]
+  orders               Order[]
+  appointments         Appointment[]
+  inventory            InventoryItem[]
+  payments             Payment[]
+  invoices             Invoice[]
+  channels             Channel[]
+  conversations        Conversation[]
+  campaigns            Campaign[]
+  workflows            Workflow[]
+  analyticsEvents      AnalyticsEvent[]
+  websiteConfig        WebsiteConfig?
+  genreProductRequests GenreProductRequest[]
+  onboardingDraft      OnboardingDraft?
+
+  // Razorpay — each business provides their own keys.
+  // keySecret is server-only, never returned to the client.
+  razorpayKeyId     String?
+  razorpayKeySecret String?
+
+  @@index([slug])
+  @@index([type])
+  @@map("businesses")
+}
+
+// Smart-onboarding wizard state (docs/plans smart-onboarding). One draft per
+// business, created at registration, deleted once /onboarding/complete runs.
+// `step` is the furthest step reached (for resume); `data` accumulates each
+// step's answers keyed by step name -- nothing here writes to Product/
+// Service/WebsiteConfig/Business until the provisioner runs at completion.
+model OnboardingDraft {
+  id         String   @id @default(uuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  step       Int      @default(1)
+  data       Json     @default("{}")
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@map("onboarding_drafts")
+}
+
+enum IntentRequestStatus {
+  OPEN
+  MATCHED
+  FULFILLED
+  EXPIRED
+}
+
+model IntentRequest {
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id])
+  rawText         String
+  category        String?
+  locationLat     Float?
+  locationLng     Float?
+  radiusKm        Float?
+  budgetMin       Int?
+  budgetMax       Int?
+  currency        String              @default("INR")
+  timingType      String?
+  timingWindow    String?
+  hardConstraints String[]
+  softPreferences String[]
+  confidence      Json?
+  status          IntentRequestStatus @default(OPEN)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  matches  Match[]
+  messages IntentMessage[]
+
+  @@map("intent_requests")
+}
+
+enum IntentMessageRole {
+  USER
+  ASSISTANT
+}
+
+// The refinement chat thread for one IntentRequest -- doc 04's Intent
+// Understanding Agent re-parses using the full thread + the previously
+// understood fields each turn, not just the latest message in isolation,
+// so "under 1500 instead" correctly merges with the category/location
+// already established earlier in the thread rather than losing it.
+model IntentMessage {
+  id              String            @id @default(cuid())
+  intentRequestId String
+  intentRequest   IntentRequest     @relation(fields: [intentRequestId], references: [id])
+  role            IntentMessageRole
+  content         String
+  createdAt       DateTime          @default(now())
+
+  @@map("intent_messages")
+}
+
+model Offer {
+  id                String    @id @default(cuid())
+  businessId        String
+  business          Business  @relation(fields: [businessId], references: [id])
+  intentRequestId   String?
+  price             Int
+  currency          String    @default("INR")
+  description       String
+  availabilitySlots DateTime[]
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Set when this Offer was auto-generated from a BusinessOS catalog item
+  // by the Catalog -> Offer-embedding flywheel hook (unify-platform Phase
+  // 4), so biz-catalog can find-or-create idempotently instead of creating
+  // a duplicate Offer on every product/service update. No Prisma-level
+  // relation to Product/Service (both live in this same schema but a hard
+  // FK isn't needed for this lookup-by-id use) -- plain unique columns.
+  productId         String?   @unique
+  serviceId         String?   @unique
+
+  matches      Match[]
+  transactions Transaction[]
+  bookings     Booking[]
+
+  @@map("offers")
+}
+
+
+model Match {
+  id              String        @id @default(cuid())
+  intentRequestId String
+  intentRequest   IntentRequest @relation(fields: [intentRequestId], references: [id])
+  offerId         String
+  offer           Offer         @relation(fields: [offerId], references: [id])
+  rank            Int
+  relevanceScore  Float
+  reason          String?
+  shownAt         DateTime      @default(now())
+
+  @@map("matches")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  DISPUTED
+}
+
+model Transaction {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id])
+  businessId       String
+  business         Business          @relation(fields: [businessId], references: [id])
+  offerId          String?
+  offer            Offer?            @relation(fields: [offerId], references: [id])
+  amount           Int
+  commissionAmount Int
+  currency         String            @default("INR")
+  status           TransactionStatus @default(PENDING)
+  paymentReference String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  review              Review?
+  rewardLedgerEntries RewardLedgerEntry[]
+
+
+  @@map("transactions")
+}
+
+model Review {
+  id            String      @id @default(cuid())
+
+  // A review can come from either a legacy Transaction flow or the new
+  // consumer Booking flow. One of these will be set, not both.
+  transactionId String?     @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  bookingId     String?     @unique
+  booking       Booking?    @relation(fields: [bookingId], references: [id])
+
+  rating        Int
+  text          String?
+  createdAt     DateTime    @default(now())
+
+  @@map("reviews")
+}
+
+enum RewardLedgerType {
+  REFERRAL
+  REDEMPTION
+}
+
+model RewardLedgerEntry {
+  id                   String            @id @default(cuid())
+  userId               String
+  user                 User              @relation(fields: [userId], references: [id])
+  type                 RewardLedgerType
+  amount               Int
+  relatedTransactionId String?
+  relatedTransaction   Transaction?      @relation(fields: [relatedTransactionId], references: [id])
+  createdAt            DateTime          @default(now())
+
+  @@map("reward_ledger_entries")
+}
+
+// ============================================================================
+// BOOKING — consumer-facing booking record (Phase A: Transaction Rail)
+// Separate from BusinessOS's Appointment (business-internal entity linked to
+// Customer+Service). The flywheel creates a BusinessOS Appointment from a
+// confirmed Booking. See lib/booking-flywheel.ts.
+// ============================================================================
+
+enum BookingStatus {
+  PENDING      // Created, awaiting business confirmation (pay-at-venue)
+  CONFIRMED    // Business accepted, or online payment succeeded
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMode {
+  PAY_AT_VENUE  // Consumer pays cash/UPI at the venue
+  RAZORPAY      // Online pre-payment via business's own Razorpay account
+}
+
+model Booking {
+  id                String        @id @default(cuid())
+
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+
+  businessId        String
+  business          Business      @relation(fields: [businessId], references: [id])
+
+  offerId           String
+  offer             Offer         @relation(fields: [offerId], references: [id])
+
+  // The Match row that surfaced this business to the consumer (optional,
+  // guests submitting a direct booking without an intent won't have one).
+  matchId           String?
+
+  scheduledAt       DateTime
+  durationMin       Int           @default(60)
+  notes             String?
+  status            BookingStatus @default(PENDING)
+
+  // Amount in paise (Rs.1 = 100 paise), copied from Offer.price at booking
+  // time so price changes don't retroactively affect existing bookings.
+  amount            Int
+  currency          String        @default("INR")
+  paymentMode       PaymentMode   @default(PAY_AT_VENUE)
+
+  // Set by the /api/bookings/:id/pay route before the Razorpay sheet opens.
+  razorpayOrderId   String?       @unique
+  // Set by the webhook handler after payment succeeds.
+  razorpayPaymentId String?       @unique
+
+  // Set by the booking flywheel after confirmation, so the business's
+  // dashboard can link directly to the CRM order/appointment rows.
+  businessOrderId   String?
+  appointmentId     String?
+
+  review            Review?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, scheduledAt])
+  @@map("bookings")
+}
+
+// ============================================================================
+// VECTOR INTELLIGENCE LAYER
+// One table, five embedding kinds. Separated by a kind discriminator column.
+// pgvector ivfflat index on the vector column (see migration).
+// Revisit trigger: move to Qdrant when query P99 > 100ms at real volume.
+// Per docs/13-ai-cost-optimization-personalization.md
+// ============================================================================
+
+enum EmbeddingKind {
+  INTENT_CACHE       // Verified intent parses — semantic cache lookup
+  USER_TASTE         // Per-user EMA taste vector — personalization
+  BUSINESS_OFFER     // Business/offer descriptions — semantic matching
+  BIZ_CUSTOMER       // Per-customer interaction history in BusinessOS
+  UNFULFILLED_DEMAND // Intents with no good match — market intelligence
+}
+
+model EmbeddingRecord {
+  id         String        @id @default(cuid())
+  kind       EmbeddingKind
+
+  // The entity this embedding belongs to (userId, businessId, intentRequestId, offerId, etc.)
+  refId      String
+
+  // The embedding vector. 768-dim (Google gemini-embedding-001, truncated
+  // via outputDimensionality -- see services/vector/embedding.service.ts).
+  // Using Unsupported because Prisma doesn't have a native vector type yet.
+  // The actual column is created by the raw SQL migration.
+  // vector    Unsupported("vector(768)")  ← added via raw migration, not here
+
+  // Structured payload — varies by kind:
+  // INTENT_CACHE: { structuralParse, taxonomyVersion, hitCount }
+  // USER_TASTE: { interactionCount, lastDecayedAt }
+  // BUSINESS_OFFER: { businessId, offerId, outOfStock }
+  // BIZ_CUSTOMER: { businessId, segment, ltv }
+  // UNFULFILLED_DEMAND: { city, category, weekOf }
+  metadata   Json
+
+  // Verified = this embedding led to a real transaction (used to weight cache)
+  verified   Boolean  @default(false)
+  hitCount   Int      @default(0)
+
+  // Cross-refs (optional, for FK-backed lookups)
+  businessId String?
+  business   Business? @relation("BusinessEmbeddings", fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([kind, refId])
+  @@index([businessId])
+  @@map("embedding_records")
+}
+
+// ============================================================================
+// BUSINESSOS — ported from SAAS/backend/prisma/schema.prisma
+// (unify-platform plan, Phase 1). See the file header for what changed on
+// the way in. Everything below keeps BusinessOS's original field shapes,
+// relations, and uuid() ids.
+// ============================================================================
+
+enum BusinessType {
+  KIRANA_STORE
+  RETAIL_STORE
+  GROCERY
+  ELECTRONICS
+  BOUTIQUE
+  D2C_BRAND
+  RESTAURANT
+  CAFE
+  BAKERY
+  SALON
+  SPA
+  CLINIC
+  HOSPITAL
+  PHARMACY
+  GYM_FITNESS
+  REAL_ESTATE
+  TRAVEL_AGENCY
+  EDUCATION
+  COACHING
+  HOME_BUSINESS
+  SERVICES
+  OTHER
+}
+
+enum PlanType {
+  STARTER
+  GROWTH
+  BUSINESS
+  ENTERPRISE
+}
+
+/// Platform login for business owners/staff. Named BusinessUser here (SAAS
+/// called it `User`) to avoid colliding with Intently's consumer `User`.
+model BusinessUser {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  name        String
+  phone       String?
+  avatar      String?
+  role        UserRole @default(OWNER)
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  isActive    Boolean  @default(true)
+  lastLoginAt DateTime?
+
+  // Expo push token for new-booking notifications.
+  // Collected and stored on login from the mobile dashboard (Phase A).
+  expoPushToken String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  assignedOrders Order[]    @relation("assignedTo")
+  messages       Message[]  @relation("sentByUser")
+
+  @@index([businessId])
+  @@index([email])
+  @@map("business_users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  VIEWER
+}
+
+model Channel {
+  id          String      @id @default(uuid())
+  type        ChannelType
+  name        String
+  isActive    Boolean     @default(true)
+  config      Json?
+
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  conversations Conversation[]
+
+  @@unique([businessId, type])
+  @@index([businessId])
+  @@map("channels")
+}
+
+enum ChannelType {
+  WHATSAPP
+  WEBSITE
+  INSTAGRAM
+  EMAIL
+  SMS
+  PHONE
+  APP
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+
+  name            String
+  phone           String?
+  email           String?
+  avatar          String?
+
+  gender          String?
+  dateOfBirth     DateTime?
+
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+
+  lifetimeValue   Float    @default(0)
+  totalOrders     Int      @default(0)
+  averageOrderValue Float  @default(0)
+  lastOrderAt     DateTime?
+  firstOrderAt    DateTime?
+
+  preferredChannel  ChannelType?
+  preferredLanguage String?
+  purchaseFrequency Float?
+  favoriteProducts  String[]
+
+  churnProbability  Float    @default(0)
+  segment           CustomerSegment @default(NEW)
+
+  tags            String[]
+  notes           String?
+
+  // Where this lead originated, e.g. "INTENTLY" when created by the
+  // Match -> Customer flywheel hook (unify-platform Phase 4). Null means
+  // manually added / unknown origin (every pre-existing Customer row).
+  leadSource      String?
+
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders          Order[]
+  appointments    Appointment[]
+  conversations   Conversation[]
+  payments        Payment[]
+  campaignRecipients CampaignRecipient[]
+
+  @@unique([businessId, phone])
+  @@index([businessId])
+  @@index([businessId, segment])
+  @@index([businessId, lastOrderAt])
+  @@map("customers")
+}
+
+enum CustomerSegment {
+  NEW
+  ACTIVE
+  LOYAL
+  VIP
+  AT_RISK
+  CHURNED
+  INACTIVE
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  image       String?
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  sortOrder   Int      @default(0)
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  products    Product[]
+  services    Service[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+
+  price       Float
+  compareAtPrice Float?
+  costPrice   Float?
+  currency    String   @default("INR")
+  taxRate     Float?
+
+  images      String[]
+
+  hasVariants Boolean  @default(false)
+  variants    ProductVariant[]
+
+  sku         String?
+  barcode     String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        String[]
+
+  isActive    Boolean  @default(true)
+  isDigital   Boolean  @default(false)
+
+  trackInventory Boolean @default(true)
+  inventory   InventoryItem?
+
+  searchTerms String[]
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  totalSold   Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([businessId, categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  name        String
+  sku         String?
+  price       Float
+  compareAtPrice Float?
+
+  attributes  Json
+
+  isActive    Boolean  @default(true)
+
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  stock       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+
+  price       Float
+  duration    Int?
+  currency    String   @default("INR")
+
+  images      String[]
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        String[]
+
+  isActive    Boolean  @default(true)
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@map("services")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String
+
+  customerId      String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+
+  status          OrderStatus @default(PENDING)
+
+  source          OrderSource @default(MANUAL)
+  channelType     ChannelType?
+  conversationId  String?
+
+  items           OrderItem[]
+
+  subtotal        Float
+  taxAmount       Float       @default(0)
+  deliveryFee     Float       @default(0)
+  discount        Float       @default(0)
+  total           Float
+
+  deliveryType    DeliveryType @default(PICKUP)
+  deliveryAddress String?
+  deliveryNotes   String?
+  estimatedDelivery DateTime?
+  deliveredAt     DateTime?
+
+  assignedToId    String?
+  assignedTo      BusinessUser? @relation("assignedTo", fields: [assignedToId], references: [id])
+
+  notes           String?
+  customerNotes   String?
+
+  businessId      String
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  payments        Payment[]
+  invoice         Invoice?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, customerId])
+  @@index([businessId, createdAt])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+
+  productName String
+  productPrice Float
+  variantName String?
+
+  quantity    Int
+  unitPrice   Float
+  total       Float
+
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderSource {
+  MANUAL
+  WHATSAPP
+  WEBSITE
+  APP
+  INSTAGRAM
+  PHONE
+  AI_AGENT
+}
+
+enum DeliveryType {
+  PICKUP
+  DELIVERY
+  DINE_IN
+  DIGITAL
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+
+  customerId  String
+  customer    Customer          @relation(fields: [customerId], references: [id])
+
+  serviceId   String
+  service     Service           @relation(fields: [serviceId], references: [id])
+
+  employeeId  String?
+  employee    Employee?         @relation(fields: [employeeId], references: [id])
+
+  status      AppointmentStatus @default(SCHEDULED)
+
+  scheduledAt DateTime
+  duration    Int
+  endAt       DateTime
+
+  notes       String?
+
+  businessId  String
+  business    Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, scheduledAt])
+  @@index([businessId, employeeId])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+
+  productId   String   @unique
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity    Int      @default(0)
+  reservedQuantity Int @default(0)
+  lowStockThreshold Int @default(10)
+
+  location    String?
+
+  costPerUnit Float?
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  movements   InventoryMovement[]
+
+  lastRestockedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, quantity])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id          String        @id @default(uuid())
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  type        MovementType
+  quantity    Int
+  reason      String?
+  reference   String?
+
+  previousQuantity Int
+  newQuantity      Int
+
+  createdAt   DateTime     @default(now())
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+enum MovementType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+  ORDER_RESERVED
+  ORDER_FULFILLED
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+
+  amount          Float
+  currency        String        @default("INR")
+  status          PaymentStatus @default(PENDING)
+  method          PaymentMethod?
+
+  gatewayId       String?
+  gatewayOrderId  String?
+  gatewayData     Json?
+
+  orderId         String?
+  order           Order?        @relation(fields: [orderId], references: [id])
+
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([gatewayId])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  NET_BANKING
+  WALLET
+  COD
+  BANK_TRANSFER
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+  invoiceNumber   String
+
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id])
+
+  subtotal        Float
+  taxAmount       Float
+  total           Float
+
+  items           Json
+  businessDetails Json
+  customerDetails Json
+
+  issuedAt        DateTime @default(now())
+  dueAt           DateTime?
+  paidAt          DateTime?
+
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+
+  @@index([businessId])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+model Conversation {
+  id          String             @id @default(uuid())
+
+  customerId  String
+  customer    Customer           @relation(fields: [customerId], references: [id])
+
+  channelId   String?
+  channel     Channel?           @relation(fields: [channelId], references: [id])
+  channelType ChannelType
+
+  externalId  String?
+
+  status      ConversationStatus @default(OPEN)
+
+  isAiHandled Boolean            @default(true)
+  aiConfidence Float?
+
+  assignedToId String?
+
+  subject     String?
+  lastMessageAt DateTime?
+  messageCount Int               @default(0)
+  unreadCount  Int               @default(0)
+
+  businessId  String
+  business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  messages    Message[]
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, lastMessageAt])
+  @@index([customerId])
+  @@map("conversations")
+}
+
+model Message {
+  id              String      @id @default(uuid())
+
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  type            MessageType @default(TEXT)
+  content         String
+
+  mediaUrl        String?
+  mediaType       String?
+
+  direction       MessageDirection
+
+  senderType      SenderType
+  sentByUserId    String?
+  sentByUser      BusinessUser? @relation("sentByUser", fields: [sentByUserId], references: [id])
+
+  aiInterpretation Json?
+  aiResponse       Boolean    @default(false)
+
+  externalId      String?
+
+  status          MessageStatus @default(SENT)
+
+  readAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime    @default(now())
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+enum ConversationStatus {
+  OPEN
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  PRODUCT
+  ORDER
+  TEMPLATE
+  SYSTEM
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SenderType {
+  CUSTOMER
+  USER
+  AI_AGENT
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model Employee {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  email       String?
+  avatar      String?
+
+  role        String?
+  department  String?
+
+  isAvailable Boolean  @default(true)
+  workingHours Json?
+
+  tasksCompleted Int   @default(0)
+  rating        Float?
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Soft link to BusinessUser -- not a real Prisma relation, kept exactly
+  // as SAAS/backend defined it (not every Employee has a login account).
+  userId      String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([businessId])
+  @@map("employees")
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+
+  targetSegment CustomerSegment?
+  targetCount   Int            @default(0)
+
+  channel     ChannelType
+  subject     String?
+  content     String
+  template    String?
+
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  completedAt DateTime?
+
+  sentCount   Int            @default(0)
+  deliveredCount Int         @default(0)
+  readCount   Int            @default(0)
+  clickCount  Int            @default(0)
+  conversionCount Int        @default(0)
+  revenue     Float          @default(0)
+
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  recipients  CampaignRecipient[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id          String   @id @default(uuid())
+
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  status      String   @default("pending")
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([customerId])
+  @@map("campaign_recipients")
+}
+
+enum CampaignType {
+  REACTIVATION
+  UPSELL
+  PROMOTION
+  ANNOUNCEMENT
+  FOLLOWUP
+  ABANDONED_CART
+  BIRTHDAY
+  CUSTOM
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Workflow {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+
+  trigger     WorkflowTrigger
+  triggerConfig Json?
+
+  actions     Json
+
+  isActive    Boolean        @default(true)
+
+  executionCount Int         @default(0)
+  lastExecutedAt DateTime?
+
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  executions  WorkflowExecution[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, trigger])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id          String   @id @default(uuid())
+
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  status      String   @default("running")
+  input       Json?
+  output      Json?
+  error       String?
+
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([workflowId])
+  @@map("workflow_executions")
+}
+
+enum WorkflowTrigger {
+  NEW_ORDER
+  ORDER_STATUS_CHANGE
+  NEW_CUSTOMER
+  CUSTOMER_INACTIVE
+  LOW_STOCK
+  NEW_CONVERSATION
+  PAYMENT_RECEIVED
+  APPOINTMENT_REMINDER
+  SCHEDULED
+  MANUAL
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+
+  type        String
+  category    String?
+
+  properties  Json?
+
+  value       Float?
+
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, type])
+  @@index([businessId, createdAt])
+  @@index([businessId, category, createdAt])
+  @@map("analytics_events")
+}
+
+model WebsiteConfig {
+  id          String   @id @default(uuid())
+
+  businessId  String   @unique
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  subdomain   String?  @unique
+  customDomain String?
+
+  template    String   @default("default")
+  theme       Json?
+
+  heroTitle   String?
+  heroSubtitle String?
+  heroImage   String?
+
+  showProducts  Boolean @default(true)
+  showServices  Boolean @default(false)
+  showWhatsApp  Boolean @default(true)
+  showReviews   Boolean @default(true)
+  enableOrdering Boolean @default(true)
+
+  metaTitle     String?
+  metaDescription String?
+
+  blocks        Json?
+
+  githubRepo      String?
+  githubDeployUrl String?
+
+  isPublished   Boolean @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("website_configs")
+}
+
+// RAG vector store for website-generation component templates. `embedding`
+// is added via raw migration SQL, same pattern as EmbeddingRecord.vector --
+// not declared here (see migration).
+model ComponentTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  category    String
+  genre       String   @default("ALL")
+  htmlContent String   @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([genre])
+  @@index([category])
+  @@map("component_templates")
+}
+
+/// A complete, pre-built genre master template (docs discussion: "base
+/// template ready, business can customize on top") -- the data-driven
+/// per-industry onboarding config, not a code fork per business.
+model GenreProduct {
+  id           String   @id @default(uuid())
+  genre        String   @unique
+  name         String
+  description  String?
+  thumbnail    String?
+  icon         String?
+
+  defaultTheme Json
+  sections     Json
+
+  isActive     Boolean  @default(true)
+  version      String   @default("1.0")
+  usageCount   Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([genre])
+  @@index([isActive])
+  @@map("genre_products")
+}
+
+/// Requests from users whose genre doesn't have a GenreProduct yet.
+model GenreProductRequest {
+  id           String   @id @default(uuid())
+
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  genre        String
+  requirements String   @db.Text
+  referenceUrls String?
+  contactPhone String?
+  contactEmail String?
+
+  status       String   @default("PENDING")
+  adminNotes   String?  @db.Text
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([genre])
+  @@map("genre_product_requests")
+}
+
+// ============================================================================
+// PLATFORM TRUST LAYER -- KYC verification, platform admins, support tickets.
+// AdminUser is deliberately separate from BusinessUser: a platform admin
+// reviews KYC across every business, not just one, so it needs its own
+// auth boundary (requireAdminAuth) rather than a role flag bolted onto a
+// business account. No public admin-registration endpoint anywhere --
+// admins are created by prisma/seed-admin.ts only.
+// ============================================================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  REVIEWER
+  SUPPORT
+}
+
+model AdminUser {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  name      String
+  role      AdminRole @default(REVIEWER)
+  isActive  Boolean   @default(true)
+
+  reviewedDocuments KycDocument[]      @relation("ReviewedBy")
+  assignedTickets   Ticket[]           @relation("AssignedTo")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
+enum KycDocumentType {
+  PAN_CARD
+  BUSINESS_REGISTRATION
+  GST_CERTIFICATE
+  CANCELLED_CHEQUE
+  SIGNATORY_ID
+  OTHER
+}
+
+enum KycDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KycDocument {
+  id              String            @id @default(uuid())
+
+  businessId      String
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  type            KycDocumentType
+  fileName        String
+  mimeType        String            @default("application/octet-stream")
+  storagePath     String
+  status          KycDocumentStatus @default(PENDING)
+  rejectionReason String?
+
+  reviewedByAdminId String?
+  reviewedByAdmin   AdminUser?      @relation("ReviewedBy", fields: [reviewedByAdminId], references: [id])
+  reviewedAt        DateTime?
+
+  uploadedAt      DateTime          @default(now())
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@map("kyc_documents")
+}
+
+enum TicketCategory {
+  KYC_VERIFICATION
+  PAYMENT_ISSUE
+  TECHNICAL
+  ACCOUNT
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  raisedByBusinessUserId String?
+
+  category    TicketCategory
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
+  subject     String
+  description String         @db.Text
+
+  assignedAdminId String?
+  assignedAdmin   AdminUser? @relation("AssignedTo", fields: [assignedAdminId], references: [id])
+
+  messages    TicketMessage[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+  @@index([status, priority])
+  @@map("tickets")
+}
+
+enum TicketSenderType {
+  BUSINESS
+  ADMIN
+}
+
+model TicketMessage {
+  id         String           @id @default(uuid())
+
+  ticketId   String
+  ticket     Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderType TicketSenderType
+  senderName String
+  content    String           @db.Text
+
+  createdAt  DateTime         @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_messages")
+}

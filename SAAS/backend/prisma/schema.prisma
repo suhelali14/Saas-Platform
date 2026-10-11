@@ -1,0 +1,1192 @@
+// ============================================================================
+// BusinessOS — Universal Data Model
+// The heart of the platform. Universal primitives that compose differently
+// per business type. Multi-tenant with businessId on every entity.
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ============================================================================
+// CORE IDENTITY
+// ============================================================================
+
+/// The Business (Tenant) — contains the "Business DNA"
+model Business {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  type        BusinessType
+  description String?
+  logo        String?  // URL to logo image
+  
+  // Location
+  address     String?
+  city        String?
+  state       String?
+  country     String   @default("India")
+  pincode     String?
+  latitude    Float?
+  longitude   Float?
+  
+  // Contact
+  phone       String?
+  email       String?
+  website     String?
+  
+  // Business DNA Configuration
+  languages       String[]   @default(["English", "Hindi"])
+  currency        String     @default("INR")
+  timezone        String     @default("Asia/Kolkata")
+  workingHours    Json?      // { mon: { open: "09:00", close: "21:00" }, ... }
+  deliveryRules   Json?      // { enabled: true, radius: 5, minOrder: 200, fee: 30 }
+  paymentMethods  String[]   @default(["cash", "upi"])
+  pricingRules    Json?      // { gst: true, gstRate: 18, roundOff: true }
+  policies        Json?      // { returns: "...", refunds: "..." }
+  
+  // AI Settings (BYOK)
+  aiProvider      String   @default("openai") // openai, gemini, anthropic
+  aiApiKey        String?
+  
+  // Subscription
+  plan            PlanType   @default(STARTER)
+  planExpiresAt   DateTime?
+  
+  // Channels
+  channels        Channel[]
+  
+  // Status
+  isActive        Boolean    @default(true)
+  onboardingCompleted Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  employees   Employee[]
+  customers   Customer[]
+  products    Product[]
+  services    Service[]
+  categories  Category[]
+  orders      Order[]
+  appointments Appointment[]
+  inventory   InventoryItem[]
+  payments    Payment[]
+  invoices    Invoice[]
+  conversations Conversation[]
+  campaigns   Campaign[]
+  workflows   Workflow[]
+  analyticsEvents AnalyticsEvent[]
+  websiteConfig   WebsiteConfig?
+  genreProductRequests GenreProductRequest[]
+
+  @@index([slug])
+  @@index([type])
+}
+
+enum BusinessType {
+  KIRANA_STORE
+  RETAIL_STORE
+  GROCERY
+  ELECTRONICS
+  BOUTIQUE
+  D2C_BRAND
+  RESTAURANT
+  CAFE
+  BAKERY
+  SALON
+  SPA
+  CLINIC
+  HOSPITAL
+  PHARMACY
+  GYM_FITNESS
+  REAL_ESTATE
+  TRAVEL_AGENCY
+  EDUCATION
+  COACHING
+  HOME_BUSINESS
+  SERVICES
+  OTHER
+}
+
+enum PlanType {
+  STARTER
+  GROWTH
+  BUSINESS
+  ENTERPRISE
+}
+
+/// Platform users (business owners, employees)
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  name        String
+  phone       String?
+  avatar      String?
+  role        UserRole @default(OWNER)
+  
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  isActive    Boolean  @default(true)
+  lastLoginAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  assignedOrders Order[]    @relation("assignedTo")
+  messages       Message[]  @relation("sentByUser")
+
+  @@index([businessId])
+  @@index([email])
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  VIEWER
+}
+
+// ============================================================================
+// CHANNELS
+// ============================================================================
+
+model Channel {
+  id          String      @id @default(uuid())
+  type        ChannelType
+  name        String
+  isActive    Boolean     @default(true)
+  config      Json?       // Channel-specific config (WhatsApp phone ID, etc.)
+  
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  conversations Conversation[]
+
+  @@unique([businessId, type])
+  @@index([businessId])
+}
+
+enum ChannelType {
+  WHATSAPP
+  WEBSITE
+  INSTAGRAM
+  EMAIL
+  SMS
+  PHONE
+  APP
+}
+
+// ============================================================================
+// CUSTOMERS (Customer 360)
+// ============================================================================
+
+model Customer {
+  id              String   @id @default(uuid())
+  
+  // Identity
+  name            String
+  phone           String?
+  email           String?
+  avatar          String?
+  
+  // Demographics
+  gender          String?
+  dateOfBirth     DateTime?
+  
+  // Address
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+  
+  // Customer Intelligence
+  lifetimeValue   Float    @default(0)
+  totalOrders     Int      @default(0)
+  averageOrderValue Float  @default(0)
+  lastOrderAt     DateTime?
+  firstOrderAt    DateTime?
+  
+  // Behavioral
+  preferredChannel  ChannelType?
+  preferredLanguage String?
+  purchaseFrequency Float?   // days between purchases
+  favoriteProducts  String[] // product IDs
+  
+  // Risk
+  churnProbability  Float    @default(0) // 0-100
+  segment           CustomerSegment @default(NEW)
+  
+  // Tags & Notes
+  tags            String[]
+  notes           String?
+  
+  // Multi-tenant
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  orders          Order[]
+  appointments    Appointment[]
+  conversations   Conversation[]
+  payments        Payment[]
+  campaignRecipients CampaignRecipient[]
+
+  @@unique([businessId, phone])
+  @@index([businessId])
+  @@index([businessId, segment])
+  @@index([businessId, lastOrderAt])
+}
+
+enum CustomerSegment {
+  NEW
+  ACTIVE
+  LOYAL
+  VIP
+  AT_RISK
+  CHURNED
+  INACTIVE
+}
+
+// ============================================================================
+// CATALOG (Products & Services)
+// ============================================================================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  image       String?
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  sortOrder   Int      @default(0)
+  
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  products    Product[]
+  services    Service[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  
+  // Pricing
+  price       Float
+  compareAtPrice Float? // original/MRP for showing discounts
+  costPrice   Float?   // for profit calculation
+  currency    String   @default("INR")
+  taxRate     Float?   // GST percentage
+  
+  // Media
+  images      String[] // array of image URLs
+  
+  // Variants
+  hasVariants Boolean  @default(false)
+  variants    ProductVariant[]
+  
+  // Organization
+  sku         String?
+  barcode     String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        String[]
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isDigital   Boolean  @default(false)
+  
+  // Inventory link
+  trackInventory Boolean @default(true)
+  inventory   InventoryItem?
+  
+  // SEO / Search
+  searchTerms String[] // alternative names, Hindi names, etc.
+  
+  // Multi-tenant
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Stats
+  totalSold   Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  orderItems  OrderItem[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([businessId, categoryId])
+}
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  name        String   // e.g., "Large", "Red", "500g"
+  sku         String?
+  price       Float
+  compareAtPrice Float?
+  
+  // Attributes
+  attributes  Json     // { size: "L", color: "Red" }
+  
+  isActive    Boolean  @default(true)
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Inventory for this variant
+  stock       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  
+  // Pricing
+  price       Float
+  duration    Int?     // in minutes
+  currency    String   @default("INR")
+  
+  // Media
+  images      String[]
+  
+  // Organization
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        String[]
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Multi-tenant
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  appointments Appointment[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+}
+
+// ============================================================================
+// ORDERS
+// ============================================================================
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      // Human-readable: #1847
+  
+  // Customer
+  customerId      String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  
+  // Status
+  status          OrderStatus @default(PENDING)
+  
+  // Source
+  source          OrderSource @default(MANUAL)
+  channelType     ChannelType?
+  conversationId  String?     // if created from a conversation
+  
+  // Items
+  items           OrderItem[]
+  
+  // Pricing
+  subtotal        Float
+  taxAmount       Float       @default(0)
+  deliveryFee     Float       @default(0)
+  discount        Float       @default(0)
+  total           Float
+  
+  // Delivery
+  deliveryType    DeliveryType @default(PICKUP)
+  deliveryAddress String?
+  deliveryNotes   String?
+  estimatedDelivery DateTime?
+  deliveredAt     DateTime?
+  
+  // Assignment
+  assignedToId    String?
+  assignedTo      User?       @relation("assignedTo", fields: [assignedToId], references: [id])
+  
+  // Notes
+  notes           String?
+  customerNotes   String?
+  
+  // Multi-tenant
+  businessId      String
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Payments
+  payments        Payment[]
+  invoice         Invoice?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, customerId])
+  @@index([businessId, createdAt])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  // Snapshot at time of order
+  productName String
+  productPrice Float
+  variantName String?
+  
+  quantity    Int
+  unitPrice   Float
+  total       Float
+  
+  notes       String?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderSource {
+  MANUAL
+  WHATSAPP
+  WEBSITE
+  APP
+  INSTAGRAM
+  PHONE
+  AI_AGENT
+}
+
+enum DeliveryType {
+  PICKUP
+  DELIVERY
+  DINE_IN
+  DIGITAL
+}
+
+// ============================================================================
+// APPOINTMENTS (for service businesses)
+// ============================================================================
+
+model Appointment {
+  id          String            @id @default(uuid())
+  
+  customerId  String
+  customer    Customer          @relation(fields: [customerId], references: [id])
+  
+  serviceId   String
+  service     Service           @relation(fields: [serviceId], references: [id])
+  
+  employeeId  String?
+  employee    Employee?         @relation(fields: [employeeId], references: [id])
+  
+  status      AppointmentStatus @default(SCHEDULED)
+  
+  scheduledAt DateTime
+  duration    Int              // minutes
+  endAt       DateTime
+  
+  notes       String?
+  
+  businessId  String
+  business    Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, scheduledAt])
+  @@index([businessId, employeeId])
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================================================
+// INVENTORY
+// ============================================================================
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  
+  productId   String   @unique
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Stock levels
+  quantity    Int      @default(0)
+  reservedQuantity Int @default(0) // reserved by pending orders
+  lowStockThreshold Int @default(10)
+  
+  // Location
+  location    String?  // shelf, bin, warehouse
+  
+  // Cost
+  costPerUnit Float?
+  
+  // Multi-tenant
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // History
+  movements   InventoryMovement[]
+  
+  lastRestockedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, quantity])
+}
+
+model InventoryMovement {
+  id          String        @id @default(uuid())
+  
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  
+  type        MovementType
+  quantity    Int           // positive for in, negative for out
+  reason      String?
+  reference   String?       // order ID, adjustment reason, etc.
+  
+  previousQuantity Int
+  newQuantity      Int
+  
+  createdAt   DateTime     @default(now())
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+}
+
+enum MovementType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+  ORDER_RESERVED
+  ORDER_FULFILLED
+}
+
+// ============================================================================
+// PAYMENTS & INVOICES
+// ============================================================================
+
+model Payment {
+  id              String        @id @default(uuid())
+  
+  amount          Float
+  currency        String        @default("INR")
+  status          PaymentStatus @default(PENDING)
+  method          PaymentMethod?
+  
+  // Gateway
+  gatewayId       String?       // Razorpay payment ID
+  gatewayOrderId  String?       // Razorpay order ID
+  gatewayData     Json?         // full gateway response
+  
+  // Relations
+  orderId         String?
+  order           Order?        @relation(fields: [orderId], references: [id])
+  
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  
+  // Multi-tenant
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([gatewayId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  NET_BANKING
+  WALLET
+  COD
+  BANK_TRANSFER
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+  invoiceNumber   String
+  
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id])
+  
+  subtotal        Float
+  taxAmount       Float
+  total           Float
+  
+  // Details
+  items           Json     // snapshot of order items
+  businessDetails Json     // snapshot of business info
+  customerDetails Json     // snapshot of customer info
+  
+  issuedAt        DateTime @default(now())
+  dueAt           DateTime?
+  paidAt          DateTime?
+  
+  // Multi-tenant
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+
+  @@index([businessId])
+  @@index([invoiceNumber])
+}
+
+// ============================================================================
+// CONVERSATIONS & MESSAGES (Universal Inbox)
+// ============================================================================
+
+model Conversation {
+  id          String             @id @default(uuid())
+  
+  // Customer
+  customerId  String
+  customer    Customer           @relation(fields: [customerId], references: [id])
+  
+  // Channel
+  channelId   String?
+  channel     Channel?           @relation(fields: [channelId], references: [id])
+  channelType ChannelType
+  
+  // External IDs
+  externalId  String?            // WhatsApp conversation ID, etc.
+  
+  // Status
+  status      ConversationStatus @default(OPEN)
+  
+  // AI
+  isAiHandled Boolean            @default(true)
+  aiConfidence Float?
+  
+  // Assignment
+  assignedToId String?
+  
+  // Metadata
+  subject     String?
+  lastMessageAt DateTime?
+  messageCount Int               @default(0)
+  unreadCount  Int               @default(0)
+  
+  // Multi-tenant
+  businessId  String
+  business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  messages    Message[]
+  
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, lastMessageAt])
+  @@index([customerId])
+}
+
+model Message {
+  id              String      @id @default(uuid())
+  
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  // Content
+  type            MessageType @default(TEXT)
+  content         String      // text content
+  
+  // Media
+  mediaUrl        String?
+  mediaType       String?     // image/jpeg, audio/ogg, etc.
+  
+  // Direction
+  direction       MessageDirection
+  
+  // Sender
+  senderType      SenderType
+  sentByUserId    String?
+  sentByUser      User?       @relation("sentByUser", fields: [sentByUserId], references: [id])
+  
+  // AI Processing
+  aiInterpretation Json?      // { intent, entities, confidence, extractedData }
+  aiResponse       Boolean    @default(false)
+  
+  // External
+  externalId      String?     // WhatsApp message ID
+  
+  // Status
+  status          MessageStatus @default(SENT)
+  
+  readAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime    @default(now())
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+}
+
+enum ConversationStatus {
+  OPEN
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  PRODUCT
+  ORDER
+  TEMPLATE
+  SYSTEM
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SenderType {
+  CUSTOMER
+  USER
+  AI_AGENT
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// ============================================================================
+// EMPLOYEES
+// ============================================================================
+
+model Employee {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  email       String?
+  avatar      String?
+  
+  role        String?  // Stylist, Chef, Driver, etc.
+  department  String?
+  
+  // Availability
+  isAvailable Boolean  @default(true)
+  workingHours Json?   // { mon: { start: "09:00", end: "18:00" }, ... }
+  
+  // Performance
+  tasksCompleted Int   @default(0)
+  rating        Float? // average customer rating
+  
+  // Multi-tenant
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Link to user account (optional)
+  userId      String?
+  
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  appointments Appointment[]
+
+  @@index([businessId])
+}
+
+// ============================================================================
+// CAMPAIGNS & MARKETING (Growth Engine)
+// ============================================================================
+
+model Campaign {
+  id          String         @id @default(uuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+  
+  // Target
+  targetSegment CustomerSegment?
+  targetCount   Int            @default(0)
+  
+  // Content
+  channel     ChannelType
+  subject     String?
+  content     String
+  template    String?
+  
+  // Schedule
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  completedAt DateTime?
+  
+  // Results
+  sentCount   Int            @default(0)
+  deliveredCount Int         @default(0)
+  readCount   Int            @default(0)
+  clickCount  Int            @default(0)
+  conversionCount Int        @default(0)
+  revenue     Float          @default(0)
+  
+  // Multi-tenant
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  recipients  CampaignRecipient[]
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+}
+
+model CampaignRecipient {
+  id          String   @id @default(uuid())
+  
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  
+  status      String   @default("pending") // pending, sent, delivered, read, clicked, converted
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([customerId])
+}
+
+enum CampaignType {
+  REACTIVATION
+  UPSELL
+  PROMOTION
+  ANNOUNCEMENT
+  FOLLOWUP
+  ABANDONED_CART
+  BIRTHDAY
+  CUSTOM
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================================
+// WORKFLOWS & AUTOMATION
+// ============================================================================
+
+model Workflow {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  
+  // Trigger
+  trigger     WorkflowTrigger
+  triggerConfig Json?        // conditions for trigger
+  
+  // Actions
+  actions     Json           // array of action steps
+  
+  isActive    Boolean        @default(true)
+  
+  // Stats
+  executionCount Int         @default(0)
+  lastExecutedAt DateTime?
+  
+  // Multi-tenant
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  executions  WorkflowExecution[]
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, trigger])
+}
+
+model WorkflowExecution {
+  id          String   @id @default(uuid())
+  
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  status      String   @default("running") // running, completed, failed
+  input       Json?
+  output      Json?
+  error       String?
+  
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([workflowId])
+}
+
+enum WorkflowTrigger {
+  NEW_ORDER
+  ORDER_STATUS_CHANGE
+  NEW_CUSTOMER
+  CUSTOMER_INACTIVE
+  LOW_STOCK
+  NEW_CONVERSATION
+  PAYMENT_RECEIVED
+  APPOINTMENT_REMINDER
+  SCHEDULED
+  MANUAL
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  
+  type        String   // page_view, order_created, customer_acquired, etc.
+  category    String?  // revenue, customer, product, etc.
+  
+  // Dimensions
+  properties  Json?    // flexible event properties
+  
+  // Value
+  value       Float?   // monetary value if applicable
+  
+  // Multi-tenant
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, type])
+  @@index([businessId, createdAt])
+  @@index([businessId, category, createdAt])
+}
+
+// ============================================================================
+// WEBSITE CONFIGURATION
+// ============================================================================
+
+model WebsiteConfig {
+  id          String   @id @default(uuid())
+  
+  businessId  String   @unique
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Domain
+  subdomain   String?  @unique // storename.businessos.com
+  customDomain String?
+  
+  // Design
+  template    String   @default("default")
+  theme       Json?    // { primaryColor, secondaryColor, font, ... }
+  
+  // Content
+  heroTitle   String?
+  heroSubtitle String?
+  heroImage   String?
+  
+  // Features
+  showProducts  Boolean @default(true)
+  showServices  Boolean @default(false)
+  showWhatsApp  Boolean @default(true)
+  showReviews   Boolean @default(true)
+  enableOrdering Boolean @default(true)
+  
+  // SEO
+  metaTitle     String?
+  metaDescription String?
+  
+  // Dynamic Block Architecture
+  blocks        Json?    // Array of { id, type, props, order }
+  
+  // GitHub Export & Generative Code
+  githubRepo      String?  // owner/repo-name
+  githubDeployUrl String?  // e.g. vercel/netlify deployed URL
+
+  isPublished   Boolean @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================================
+// AI TEMPLATES (RAG VECTOR STORE)
+// ============================================================================
+
+model ComponentTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // e.g., 'Hero', 'FeatureGrid', 'Pricing', 'Testimonial'
+  genre       String   @default("ALL") // BusinessType or "ALL" for universal
+  htmlContent String   @db.Text
+  
+  // pgvector embedding for semantic search (using Gemini embedding size 768)
+  embedding   Unsupported("vector(768)")?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([genre])
+  @@index([category])
+}
+
+// ============================================================================
+// GENRE PRODUCT CATALOG
+// ============================================================================
+
+/// A complete, pre-built website solution for a specific industry genre
+model GenreProduct {
+  id           String   @id @default(uuid())
+  genre        String   @unique  // Maps to BusinessType enum value e.g. "SALON", "RESTAURANT"
+  name         String            // Display name e.g. "Luxury Salon & Spa Solution"
+  description  String?           // What's included
+  thumbnail    String?           // Preview image URL
+  icon         String?           // Emoji icon for the card
+  
+  // The actual product content
+  defaultTheme Json              // { primaryColor, font, mode }
+  sections     Json              // Array of section definitions with order, category, defaultContent
+  
+  // Metadata
+  isActive     Boolean  @default(true)
+  version      String   @default("1.0")
+  usageCount   Int      @default(0)  // How many businesses used this product
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([genre])
+  @@index([isActive])
+}
+
+/// Requests from users whose genre doesn't have a product yet
+model GenreProductRequest {
+  id           String   @id @default(uuid())
+  
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  genre        String            // The genre they need
+  requirements String   @db.Text // What they described they need
+  referenceUrls String?          // Comma-separated reference website URLs
+  contactPhone String?           // How to reach them
+  contactEmail String?
+  
+  status       String   @default("PENDING")  // PENDING, IN_PROGRESS, COMPLETED, REJECTED
+  adminNotes   String?  @db.Text
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([genre])
+}

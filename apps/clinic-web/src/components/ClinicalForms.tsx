@@ -1,0 +1,425 @@
+import { useState, useEffect } from 'react';
+import { apiFetch, ApiError } from '../lib/api';
+import { Button } from './Button';
+
+export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
+interface Drug { id: string; name: string; composition: string | null; manufacturer: string | null }
+interface Template { id: string; name: string; items: PrescriptionItem[] }
+
+const FREQUENCIES = ['OD', 'BD', 'TDS', 'QID', 'SOS', 'STAT'];
+const CERT_TYPES = [
+  { id: 'SICK_LEAVE', label: 'Sick Leave' },
+  { id: 'FITNESS', label: 'Fitness' },
+  { id: 'REFERRAL', label: 'Referral' },
+];
+
+/** Everything created from these forms can optionally be bound to a live
+ * appointment (the "session data, appointment-wise" model) -- passed by the
+ * Encounter screen; omitted when creating a standalone record from the
+ * patient's profile directly. */
+interface EncounterBinding { appointmentId?: string; initialVitals?: { bp?: string; temp?: string; spo2?: string; weight?: string; pulse?: string } }
+
+export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone }: { patientId: string; onDone: () => void } & EncounterBinding) {
+  const [form, setForm] = useState({
+    chiefComplaint: '', hopi: '',
+    bp: initialVitals?.bp || '', temp: initialVitals?.temp || '', spo2: initialVitals?.spo2 || '', weight: initialVitals?.weight || '', pulse: initialVitals?.pulse || '',
+    diagnosis: '', notes: '', followUpDate: '', remindDoctor: false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [frequentDiagnoses, setFrequentDiagnoses] = useState<string[]>([]);
+
+  useEffect(() => {
+    apiFetch<{ data: string[] }>('/diagnoses/frequent').then((res) => setFrequentDiagnoses(res.data)).catch(() => {});
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await apiFetch<{ id: string }>('/case-sheets', {
+        method: 'POST',
+        data: {
+          patientId,
+          appointmentId,
+          chiefComplaint: form.chiefComplaint || undefined,
+          hopi: form.hopi || undefined,
+          vitals: { bp: form.bp || undefined, temp: form.temp || undefined, spo2: form.spo2 || undefined, weight: form.weight || undefined, pulse: form.pulse || undefined },
+          diagnosis: form.diagnosis || undefined,
+          notes: form.notes || undefined,
+          followUpDate: form.followUpDate ? new Date(form.followUpDate).toISOString() : undefined,
+          remindDoctor: form.followUpDate ? form.remindDoctor : undefined,
+        },
+      });
+      setCreatedId(res.id);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to save case sheet.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadAttachment = async () => {
+    if (!file || !createdId) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('clinicAccessToken');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch(`${apiBase}/case-sheets/${createdId}/attachments`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Upload failed');
+      }
+      setFile(null);
+      onDone();
+    } catch (e: any) {
+      setError(e?.message || 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (createdId) {
+    return (
+      <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+        <p className="text-sm text-emerald-400 mb-3">Case sheet saved. Attach an X-ray or lab report? (optional)</p>
+        <div className="flex items-center gap-2">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-xs text-gray-300" />
+          <button onClick={uploadAttachment} disabled={!file || uploading} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-xs font-semibold disabled:opacity-50">
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
+          <button onClick={onDone} className="px-3 py-1.5 rounded-lg bg-white/10 text-xs">Skip</button>
+        </div>
+        {error && <div className="mt-2 text-xs text-red-400">{error}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+      <h3 className="text-sm font-semibold">New Case Sheet</h3>
+      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+      </div>
+      {initialVitals && Object.values(initialVitals).some(Boolean) && (
+        <p className="text-xs text-emerald-400">Pre-filled from the nurse's pre-consult vitals.</p>
+      )}
+      {frequentDiagnoses.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {frequentDiagnoses.map((d) => (
+            <button type="button" key={d} onClick={() => setForm({ ...form, diagnosis: d })} className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300">
+              {d}
+            </button>
+          ))}
+        </div>
+      )}
+      <input placeholder="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <div>
+        <label className="block text-xs font-medium text-gray-400 mb-1">Follow-up date (optional)</label>
+        <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+        {form.followUpDate && (
+          <label className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+            <input type="checkbox" checked={form.remindDoctor} onChange={(e) => setForm({ ...form, remindDoctor: e.target.checked })} />
+            Remind me when this follow-up is due
+          </label>
+        )}
+      </div>
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+        {saving ? 'Saving...' : 'Save Case Sheet'}
+      </button>
+    </form>
+  );
+}
+
+export function PrescriptionForm({ patientId, appointmentId, onDone }: { patientId: string; onDone: () => void } & EncounterBinding) {
+  const [items, setItems] = useState<PrescriptionItem[]>([{ drugName: '', dosage: '', frequency: 'OD', duration: '', instructions: '' }]);
+  const [suggestions, setSuggestions] = useState<Record<number, Drug[]>>({});
+  const [searchedEmpty, setSearchedEmpty] = useState<Record<number, boolean>>({});
+  const [addingDrug, setAddingDrug] = useState<number | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveAsTemplateName, setSaveAsTemplateName] = useState('');
+
+  useEffect(() => {
+    apiFetch<{ data: Template[] }>('/prescription-templates').then((res) => setTemplates(res.data)).catch(() => {});
+  }, []);
+
+  const searchDrug = async (index: number, query: string) => {
+    // Typing away from a previously-matched suggestion clears drugId -- the
+    // link should only survive an exact pick, never a free-text edit,
+    // otherwise stock could get decremented against the wrong medicine.
+    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, drugName: query, drugId: undefined } : it)));
+    if (query.length < 2) {
+      setSuggestions((s) => ({ ...s, [index]: [] }));
+      setSearchedEmpty((s) => ({ ...s, [index]: false }));
+      return;
+    }
+    try {
+      const res = await apiFetch<{ data: Drug[] }>(`/drugs?search=${encodeURIComponent(query)}`);
+      setSuggestions((s) => ({ ...s, [index]: res.data }));
+      setSearchedEmpty((s) => ({ ...s, [index]: res.data.length === 0 }));
+    } catch {
+      // ignore
+    }
+  };
+
+  const addNewMedicine = async (index: number, name: string) => {
+    setAddingDrug(index);
+    setError(null);
+    try {
+      const drug = await apiFetch<Drug>('/drugs', { method: 'POST', data: { name } });
+      setItems((prev) => prev.map((it, i) => (i === index ? { ...it, drugName: drug.name, drugId: drug.id } : it)));
+      setSuggestions((s) => ({ ...s, [index]: [] }));
+      setSearchedEmpty((s) => ({ ...s, [index]: false }));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to add medicine.');
+    } finally {
+      setAddingDrug(null);
+    }
+  };
+
+  const updateItem = (index: number, field: keyof PrescriptionItem, value: string) => {
+    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [field]: value } : it)));
+  };
+
+  const addRow = () => setItems((prev) => [...prev, { drugName: '', dosage: '', frequency: 'OD', duration: '', instructions: '' }]);
+  const removeRow = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index));
+
+  const loadTemplate = (templateId: string) => {
+    const t = templates.find((t) => t.id === templateId);
+    if (t) setItems(t.items.map((it) => ({ ...it, instructions: it.instructions || '' })));
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validItems = items.filter((it) => it.drugName && it.dosage && it.duration);
+    if (validItems.length === 0) {
+      setError('Add at least one complete drug entry.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch('/prescriptions', { method: 'POST', data: { patientId, appointmentId, items: validItems.map((it) => ({ ...it, instructions: it.instructions || undefined })) } });
+      if (saveAsTemplateName.trim()) {
+        await apiFetch('/prescription-templates', { method: 'POST', data: { name: saveAsTemplateName, items: validItems } }).catch(() => {});
+      }
+      onDone();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to save prescription.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">New Prescription</h3>
+        {templates.length > 0 && (
+          <select onChange={(e) => e.target.value && loadTemplate(e.target.value)} defaultValue="" className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs outline-none">
+            <option value="">Load template...</option>
+            {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        )}
+      </div>
+      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+
+      {items.map((item, i) => (
+        <div key={i} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-start">
+          <div className="col-span-2 sm:col-span-4 relative">
+            <input
+              placeholder="Drug name"
+              value={item.drugName}
+              onChange={(e) => searchDrug(i, e.target.value)}
+              className="w-full px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400"
+            />
+            {(suggestions[i]?.length ?? 0) > 0 && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-[#14171f] max-h-40 overflow-y-auto">
+                {suggestions[i].map((d) => (
+                  <button type="button" key={d.id} onClick={() => { setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, drugName: d.name, drugId: d.id } : it))); setSuggestions((s) => ({ ...s, [i]: [] })); }} className="block w-full text-left px-2 py-1.5 text-xs hover:bg-white/5">
+                    <div>{d.name}</div>
+                    {d.composition && <div className="text-[10px] text-gray-500 truncate">{d.composition}</div>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchedEmpty[i] && item.drugName.length >= 2 && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-emerald-500/30 bg-[#14171f] p-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => addNewMedicine(i, item.drugName)}
+                  busy={addingDrug === i}
+                  busyLabel="Adding…"
+                  className="!px-0 text-emerald-400"
+                >
+                  {`+ Add "${item.drugName}" as new medicine`}
+                </Button>
+              </div>
+            )}
+          </div>
+          <input placeholder="Dosage (1-0-1)" value={item.dosage} onChange={(e) => updateItem(i, 'dosage', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+          <select value={item.frequency} onChange={(e) => updateItem(i, 'frequency', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400">
+            {FREQUENCIES.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+          <input placeholder="Instructions" value={item.instructions ?? ''} onChange={(e) => updateItem(i, 'instructions', e.target.value)} className="col-span-1 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-gray-500 hover:text-red-400 disabled:opacity-30">✕</button>
+        </div>
+      ))}
+      <button type="button" onClick={addRow} className="self-start text-xs text-emerald-400 hover:underline">+ Add drug</button>
+
+      <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+        {saving ? 'Saving...' : 'Save Prescription'}
+      </button>
+    </form>
+  );
+}
+
+export function CertificateForm({ patientId, patientName, appointmentId, onDone }: { patientId: string; patientName: string; onDone: () => void } & EncounterBinding) {
+  const [type, setType] = useState('SICK_LEAVE');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [customContent, setCustomContent] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch('/certificates', {
+        method: 'POST',
+        data: {
+          patientId,
+          appointmentId,
+          type,
+          fromDate: fromDate ? new Date(fromDate).toISOString() : undefined,
+          toDate: toDate ? new Date(toDate).toISOString() : undefined,
+          content: customContent || undefined,
+        },
+      });
+      onDone();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to issue certificate.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+      <h3 className="text-sm font-semibold">New Certificate for {patientName}</h3>
+      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      <div className="flex gap-2">
+        {CERT_TYPES.map((t) => (
+          <button type="button" key={t.id} onClick={() => setType(t.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${type === t.id ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {type === 'SICK_LEAVE' && (
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1">From</label>
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1">To</label>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+          </div>
+        </div>
+      )}
+      <div>
+        <label className="block text-xs font-medium text-gray-400 mb-1">Content (leave blank to auto-generate)</label>
+        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      </div>
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+        {saving ? 'Issuing...' : 'Issue Certificate'}
+      </button>
+    </form>
+  );
+}
+
+interface LabTest { id: string; name: string }
+
+export function LabOrderForm({ patientId, appointmentId, onDone }: { patientId: string; onDone: () => void } & EncounterBinding) {
+  const [catalog, setCatalog] = useState<LabTest[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ data: LabTest[] }>('/lab-tests').then((res) => setCatalog(res.data)).catch(() => {});
+  }, []);
+
+  const toggle = (name: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selected.size === 0) {
+      setError('Select at least one test.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch('/lab-orders', { method: 'POST', data: { patientId, appointmentId, testNames: Array.from(selected) } });
+      onDone();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to order tests.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+      <h3 className="text-sm font-semibold">Order Lab Tests</h3>
+      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+        {catalog.map((t) => (
+          <button
+            type="button"
+            key={t.id}
+            onClick={() => toggle(t.name)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${selected.has(t.name) ? 'bg-emerald-500 text-black' : 'bg-white/5 text-gray-300 hover:bg-white/10'}`}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+        {saving ? 'Ordering...' : `Order ${selected.size || ''} Test${selected.size === 1 ? '' : 's'}`.trim()}
+      </button>
+    </form>
+  );
+}

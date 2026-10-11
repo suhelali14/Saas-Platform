@@ -1,0 +1,621 @@
+// Clinic Management System -- single-tenant-per-deployment. Every deployment
+// of this codebase points at its own database for exactly one clinic; see
+// the plan's "Multi-client deployment model". No clinicId/tenant scoping
+// anywhere in this schema on purpose -- there's only ever one clinic per DB.
+
+// Custom output path -- this monorepo's apps/api has its own, completely
+// different Prisma schema. Both would otherwise generate to the same
+// hoisted node_modules/@prisma/client, and whichever workspace's
+// `postinstall` ran last would silently overwrite the other's client
+// (that collision is exactly what broke this app's typecheck the first
+// time both existed side by side). A dedicated output path makes that
+// impossible.
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ClinicRole {
+  DOCTOR
+  RECEPTIONIST
+  NURSE
+  PHARMACIST
+  ADMIN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum DrugFrequency {
+  OD
+  BD
+  TDS
+  QID
+  SOS
+  STAT
+}
+
+enum CertificateType {
+  SICK_LEAVE
+  FITNESS
+  REFERRAL
+}
+
+// OPD triage priority -- real Indian government-hospital norms give
+// configurable queue priority to senior citizens, pregnant women, and
+// emergencies layered on the main queue (see the plan's Phase 3 research).
+// CHILD included as a fourth common priority group. Drives the priority-tier
+// sort in GET /appointments, not stored anywhere else.
+enum PatientCategory {
+  GENERAL
+  PREGNANT
+  SENIOR_CITIZEN
+  CHILD
+  EMERGENCY
+}
+
+// ── Phase 4: billing ────────────────────────────────────────────────────
+enum InvoiceItemCategory {
+  CONSULTATION
+  MEDICINE
+  PROCEDURE
+  LAB
+  OTHER
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+}
+
+// ── Phase 4: lab orders ─────────────────────────────────────────────────
+enum LabOrderStatus {
+  ORDERED
+  COMPLETED
+  CANCELLED
+}
+
+// Singleton branding/config row for this deployment -- one clinic per
+// database, so this is read as findFirst()/upsert(), never filtered by id
+// from a request. Deliberately has NO plan field: which features are
+// active is decided once, at boot, from CLINIC_PLAN in this deployment's
+// own env (see config/features.ts) -- a DB-stored plan value could drift
+// from that at runtime (it did, in dev testing) and become a second,
+// disagreeing source of truth for something security-relevant.
+model Clinic {
+  id                 String   @id @default(cuid())
+  name               String
+  code               String?
+  address            String?
+  phone              String?
+  email              String?
+  doctorName         String?
+  registrationNumber String?
+  logoPath           String?
+  signatureImagePath String?
+  defaultConsultationFee Decimal? @db.Decimal(10, 2)
+  // Public clinic page content (Phase 5/6) -- what patients see before they
+  // ever walk in. `timings` is an array of { day, opensAt, closesAt,
+  // closed }, `services` a plain string array, `highlights` an array of
+  // { title, description }, `faqs` an array of { question, answer }; all are
+  // edited as a whole in the settings screen and never queried by their
+  // inner fields, so JSON is the right shape rather than four more tables.
+  about              String?
+  timings            Json?
+  services           Json?
+  tagline            String?
+  establishedYear    Int?
+  highlights         Json?
+  faqs               Json?
+  emergencyPhone     String?
+  mapUrl             String?
+  // Phase 8 -- the clinic controls its own page. `publicSections` is an
+  // array of { key, enabled } in display order, so the admin can turn
+  // sections off and reorder them without a code change. `publicTheme` is
+  // one of a small set of curated palettes rather than a free colour
+  // picker: a free picker reliably produces unreadable text on a page
+  // patients rely on, and every curated option is contrast-checked.
+  // Phase 9 -- which languages this clinic publishes in. English is
+  // always available and is the language content is authored in.
+  defaultLocale      String?  @default("en")
+  enabledLocales     Json?
+  documentTemplate   Json?
+  publicSections     Json?
+  publicTheme        String?
+  heroImagePath      String?
+  mapEmbedUrl        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ClinicUser {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         ClinicRole
+  isActive     Boolean    @default(true)
+  // Per-doctor credentials (Phase 5) -- these belong to the individual
+  // doctor, not the clinic, since a clinic can have several. They print on
+  // that doctor's own prescriptions/certificates and show on the public
+  // clinic page. `signatureImagePath` finally makes the signature block on
+  // generated documents real instead of a printed underscore line.
+  qualifications     String?
+  specialization     String?
+  bio                String?
+  photoPath          String?
+  signatureImagePath String?
+  showOnPublicPage   Boolean    @default(true)
+  // Research on clinic sites calls out years in practice and languages
+  // spoken as two of the strongest conversion signals on a doctor bio.
+  experienceYears    Int?
+  languages          String?
+  createdAt    DateTime   @default(now())
+
+  caseSheets              CaseSheet[]
+  prescriptions           Prescription[]
+  certificates            Certificate[]
+  doctorAppointments      Appointment[]  @relation("DoctorAppointments")
+  dispensedPrescriptions  Prescription[] @relation("DispensedPrescriptions")
+  receivedPayments        Payment[]      @relation("ReceivedPayments")
+  doctorLabOrders         LabOrder[]     @relation("DoctorLabOrders")
+  recordedExpenses        Expense[]      @relation("RecordedExpenses")
+  authoredPosts           BlogPost[]     @relation("AuthoredPosts")
+}
+
+// Patients are looked up constantly at the front desk -- by name, by UHID, by
+// phone -- so all three get indexes, not just name.
+model Patient {
+  id                String   @id @default(cuid())
+  uhid              String   @unique
+  name              String
+  dob                DateTime?
+  age               Int?
+  gender            String?
+  phone             String?
+  address           String?
+  bloodGroup        String?
+  allergies         String?
+  chronicConditions String?
+  category          PatientCategory @default(GENERAL)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  appointments  Appointment[]
+  caseSheets    CaseSheet[]
+  prescriptions Prescription[]
+  certificates  Certificate[]
+  invoices      Invoice[]
+  labOrders     LabOrder[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+model Appointment {
+  id                  String            @id @default(cuid())
+  patientId           String
+  patient             Patient           @relation(fields: [patientId], references: [id])
+  doctorId            String?
+  doctor              ClinicUser?       @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
+  scheduledAt         DateTime
+  status              AppointmentStatus @default(SCHEDULED)
+  reason              String?
+  vitals              Json?
+  followUpOfCaseSheetId String?
+  followUpOfCaseSheet CaseSheet?        @relation("FollowUpAppointments", fields: [followUpOfCaseSheetId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  caseSheets    CaseSheet[]    @relation("AppointmentCaseSheets")
+  prescriptions Prescription[] @relation("AppointmentPrescriptions")
+  certificates  Certificate[]  @relation("AppointmentCertificates")
+  invoices      Invoice[]      @relation("AppointmentInvoices")
+  labOrders     LabOrder[]     @relation("AppointmentLabOrders")
+
+  @@index([scheduledAt])
+  @@index([patientId])
+  @@index([doctorId])
+}
+
+model CaseSheet {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  appointmentId   String?
+  appointment     Appointment? @relation("AppointmentCaseSheets", fields: [appointmentId], references: [id], onDelete: SetNull)
+  doctorId        String
+  doctor          ClinicUser @relation(fields: [doctorId], references: [id])
+  chiefComplaint  String?
+  hopi            String?
+  vitals          Json?
+  diagnosis       String?
+  notes           String?
+  followUpDate    DateTime?
+  remindDoctor    Boolean   @default(false)
+  reminderResolvedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  attachments      CaseSheetAttachment[]
+  prescriptions    Prescription[]
+  followUpAppointments Appointment[] @relation("FollowUpAppointments")
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+model CaseSheetAttachment {
+  id          String    @id @default(cuid())
+  caseSheetId String
+  caseSheet   CaseSheet @relation(fields: [caseSheetId], references: [id], onDelete: Cascade)
+  fileName    String
+  storagePath String
+  mimeType    String
+  uploadedAt  DateTime  @default(now())
+}
+
+// Backed by a real ~250k-row Indian medicine dataset (MIT licensed --
+// github.com/junioralive/Indian-Medicine-Dataset) plus anything a doctor adds
+// manually when a search comes up empty. `name` gets a trigram GIN index
+// (added via raw SQL in the migration, not expressible in the Prisma schema
+// language) -- a plain btree index doesn't serve case-insensitive
+// prefix/substring search well at this scale.
+model Drug {
+  id             String   @id @default(cuid())
+  name           String
+  composition    String?
+  manufacturer   String?
+  packSize       String?
+  type           String?
+  // MRP from the imported dataset (dropped in the Phase 2 import, added back
+  // in Phase 4 to suggest a starting amount on a billing line item -- always
+  // editable, never auto-charged, since a clinic's real retail price can
+  // differ from the source dataset's MRP).
+  price          Decimal? @db.Decimal(10, 2)
+  isDiscontinued Boolean  @default(false)
+  addedManually  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  batches DrugBatch[]
+  prescriptionItems PrescriptionItem[]
+
+  @@index([name])
+}
+
+// Batch/expiry tracking for FEFO dispensing (see plan's Phase 4 research --
+// First-Expired-First-Out is the real pharmacy safety standard, not FIFO).
+model DrugBatch {
+  id               String   @id @default(cuid())
+  drugId           String
+  drug             Drug     @relation(fields: [drugId], references: [id], onDelete: Cascade)
+  batchNumber      String
+  expiryDate       DateTime
+  quantityInHand   Int
+  reorderThreshold Int      @default(10)
+  costPrice        Decimal? @db.Decimal(10, 2)
+  receivedAt       DateTime @default(now())
+
+  @@index([drugId])
+  @@index([expiryDate])
+}
+
+model PrescriptionTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  items     Json
+  createdAt DateTime @default(now())
+}
+
+model Prescription {
+  id            String       @id @default(cuid())
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [id])
+  caseSheetId   String?
+  caseSheet     CaseSheet?   @relation(fields: [caseSheetId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id], onDelete: SetNull)
+  doctorId      String
+  doctor        ClinicUser   @relation(fields: [doctorId], references: [id])
+  dispensed     Boolean      @default(false)
+  dispensedAt   DateTime?
+  dispensedById String?
+  dispensedBy   ClinicUser?  @relation("DispensedPrescriptions", fields: [dispensedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+
+  items PrescriptionItem[]
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+model PrescriptionItem {
+  id             String        @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  // Nullable -- populated automatically when the doctor picks from the
+  // existing drug autocomplete (which already returns Drug.id); stays null
+  // for a manually-typed drug name that was never matched to a catalog row.
+  // Needed so FEFO dispensing has something concrete to decrement stock
+  // against -- drugName alone (free text) can't be matched reliably.
+  drugId         String?
+  drug           Drug?         @relation(fields: [drugId], references: [id], onDelete: SetNull)
+  drugName       String
+  dosage         String
+  frequency      DrugFrequency
+  duration       String
+  instructions   String?
+}
+
+model Certificate {
+  id            String          @id @default(cuid())
+  patientId     String
+  patient       Patient         @relation(fields: [patientId], references: [id])
+  appointmentId String?
+  appointment   Appointment?    @relation("AppointmentCertificates", fields: [appointmentId], references: [id], onDelete: SetNull)
+  doctorId      String
+  doctor        ClinicUser      @relation(fields: [doctorId], references: [id])
+  type          CertificateType
+  fromDate      DateTime?
+  toDate        DateTime?
+  content       String
+  createdAt     DateTime        @default(now())
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+// ── Phase 4: billing ────────────────────────────────────────────────────
+// Status is computed in application code from `payments` vs the sum of
+// `items` (PENDING/PARTIAL/PAID) rather than stored -- one source of truth,
+// can't drift the way the earlier Clinic.plan column did (see Phase 2).
+model Invoice {
+  id            String        @id @default(cuid())
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id])
+  appointmentId String?
+  appointment   Appointment?  @relation("AppointmentInvoices", fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+model InvoiceItem {
+  id          String               @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  category    InvoiceItemCategory
+  description String
+  quantity    Int                  @default(1)
+  amount      Decimal              @db.Decimal(10, 2)
+}
+
+model Payment {
+  id           String      @id @default(cuid())
+  invoiceId    String
+  invoice      Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount       Decimal     @db.Decimal(10, 2)
+  mode         PaymentMode
+  receivedById String
+  receivedBy   ClinicUser  @relation("ReceivedPayments", fields: [receivedById], references: [id])
+  paidAt       DateTime    @default(now())
+
+  @@index([invoiceId])
+}
+
+// ── Phase 4: lab orders ─────────────────────────────────────────────────
+model LabTest {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  normalRange String?
+}
+
+model LabOrder {
+  id            String         @id @default(cuid())
+  patientId     String
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  appointmentId String?
+  appointment   Appointment?   @relation("AppointmentLabOrders", fields: [appointmentId], references: [id], onDelete: SetNull)
+  doctorId      String
+  doctor        ClinicUser     @relation("DoctorLabOrders", fields: [doctorId], references: [id])
+  status        LabOrderStatus @default(ORDERED)
+  createdAt     DateTime       @default(now())
+
+  items LabOrderItem[]
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+model LabOrderItem {
+  id              String    @id @default(cuid())
+  labOrderId      String
+  labOrder        LabOrder  @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  testName        String
+  resultText      String?
+  resultFilePath  String?
+  resultFileName  String?
+  resultFileMime  String?
+  completedAt     DateTime?
+}
+
+// ── Phase 7: audit trail ────────────────────────────────────────────────
+// India's DPDP Act 2023 (and NABH) require that every access to a patient
+// record is logged with the user, timestamp and what was touched, and that
+// those logs are immutable and survive an audit. A clinic holding real PHI
+// cannot go live without this.
+//
+// Deliberately APPEND-ONLY: there is no update or delete route anywhere in
+// the API for this table. A log a staff member can edit is not an audit
+// trail.
+//
+// `userName`/`userRole` are denormalized on purpose rather than joined
+// through `clinicUserId`. A log entry has to stay readable after the staff
+// member who created it is deactivated or removed -- "who looked at this
+// patient's file" must still answer, years later, even if that person no
+// longer works here.
+model AuditLog {
+  id           String   @id @default(cuid())
+  at           DateTime @default(now())
+  clinicUserId String?
+  userName     String
+  userRole     String
+  action       String
+  resource     String
+  // The PHI subject, when the request identifies one. Indexed so the
+  // question an auditor actually asks -- "show me everyone who accessed
+  // this patient's record" -- is a single indexed lookup, not a scan.
+  patientId    String?
+  method       String
+  path         String
+  statusCode   Int
+  ip           String?
+
+  @@index([at])
+  @@index([patientId, at])
+  @@index([clinicUserId, at])
+}
+
+// ── Phase 7: expense ledger ─────────────────────────────────────────────
+// The original SRS asked for billing *and* an expense ledger with financial
+// reports. Phase 4 built the revenue half; without expenses the doctor can
+// see what came in but never what the clinic actually earned.
+model Expense {
+  id          String      @id @default(cuid())
+  category    String
+  description String
+  amount      Decimal     @db.Decimal(10, 2)
+  paidAt      DateTime
+  paymentMode PaymentMode @default(CASH)
+  vendor      String?
+  notes       String?
+  recordedById String
+  recordedBy  ClinicUser  @relation("RecordedExpenses", fields: [recordedById], references: [id])
+  createdAt   DateTime    @default(now())
+
+  @@index([paidAt])
+}
+
+// ── Phase 8: public site builder, blog, gallery, feedback ───────────────
+model BlogPost {
+  id             String    @id @default(cuid())
+  title          String
+  // URL-safe identifier, unique so /blog/:slug is stable even if the title
+  // is later edited -- a link a patient bookmarked shouldn't break.
+  slug           String    @unique
+  excerpt        String?
+  content        String
+  coverImagePath String?
+  tags           String?
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  authorId       String
+  author         ClinicUser @relation("AuthoredPosts", fields: [authorId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+model GalleryPhoto {
+  id          String   @id @default(cuid())
+  caption     String?
+  storagePath String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([sortOrder])
+}
+
+// Patient feedback.
+//
+// `isPublished` defaults to FALSE and is meant to stay that way. India's
+// Code of Medical Ethics (Clause 6.1.1, and the NMC's social-media
+// guidance) prohibits a registered practitioner from requesting or sharing
+// patient testimonials, recommendations, endorsements or reviews --
+// publishing these on the clinic's own site is the doctor's registration at
+// risk, not a marketing choice. The field exists because it is the
+// clinic's decision to make, not this software's; the UI states the rule
+// plainly at the point of the toggle.
+//
+// Collected internally, this is unambiguously useful and unambiguously
+// allowed: it tells the doctor where service is failing.
+model Feedback {
+  id          String   @id @default(cuid())
+  patientName String?
+  rating      Int
+  comment     String?
+  visitDate   DateTime?
+  isPublished Boolean  @default(false)
+  submittedAt DateTime @default(now())
+
+  @@index([submittedAt])
+  @@index([isPublished])
+}
+
+// ── Phase 9: regional language support ──────────────────────────────────
+// The clinic writes everything in English once; each enabled language gets
+// a translated copy stored here, served to patients who pick that language.
+//
+// `isReviewed` is the heart of this design. Machine translation of clinic
+// content into Marathi/Hindi/Tamil is a good first draft, not a finished
+// one -- and nobody should claim otherwise about a page real patients rely
+// on. So a machine draft lands here with isReviewed=false and is shown to
+// the admin for correction; once the doctor (who actually speaks the
+// language) confirms or fixes it, it flips true. That review step is what
+// makes the result trustworthy, not the model.
+//
+// `entityId` is "" rather than null for clinic-level fields: Postgres
+// treats NULLs as distinct in a unique index, so a nullable column here
+// would silently allow duplicate rows for the same field.
+model Translation {
+  id             String   @id @default(cuid())
+  locale         String
+  namespace      String
+  entityId       String   @default("")
+  field          String
+  sourceText     String
+  translatedText String
+  isReviewed     Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([locale, namespace, entityId, field])
+  @@index([locale, namespace])
+}
+
+// ── Phase 11: document template ─────────────────────────────────────────
+// How this clinic's printed documents look. Stored as one JSON blob on the
+// clinic because it is edited as a whole in a single settings screen and
+// never queried by its inner fields.
+//
+// Shape (all optional, with defaults in lib/document-template.ts):
+//   headerMode      "full" | "compact" | "none"
+//   topOffsetMm     blank space reserved above the body, for pre-printed
+//                   stationery -- the single most-requested option in real
+//                   clinic software, because a practice that already has
+//                   letterhead paper needs the software to skip its own
+//                   header rather than print over theirs
+//   accentColor     one of a curated, contrast-checked set
+//   watermarkText   drawn faintly behind the body
+//   watermarkEnabled
+//   showFooter      page numbers + generated stamp
+//   footerNote      free text, e.g. a disclaimer
+//   showQty         whether the prescription prints a computed quantity

@@ -1,0 +1,10 @@
+[
+  { "rawText": "Find me a rooftop restaurant tonight for two, budget 1500, within 5km", "expectedCategory": "restaurant", "expectedBudgetMax": 1500 },
+  { "rawText": "I need a gym near Koramangala under 2000 rupees a month", "expectedCategory": "gym", "expectedBudgetMax": 2000 },
+  { "rawText": "Looking for a haircut, budget under 700", "expectedCategory": "salon", "expectedBudgetMax": 700 },
+  { "rawText": "Spa and facial package, willing to spend up to 1200", "expectedCategory": "salon", "expectedBudgetMax": 1200 },
+  { "rawText": "Somewhere to get a workout in this evening, no budget in mind", "expectedCategory": "gym", "expectedBudgetMax": null },
+  { "rawText": "I want to buy a new laptop for coding", "expectedCategory": null, "expectedBudgetMax": null },
+  { "rawText": "Dinner for four tonight, live music if possible", "expectedCategory": "restaurant", "expectedBudgetMax": null },
+  { "rawText": "asdfghjkl", "expectedCategory": null, "expectedBudgetMax": null }
+]

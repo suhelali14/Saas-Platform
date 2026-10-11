@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Intently",
+    "slug": "intently",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "intently",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.intently.app"
+    },
+    "android": {
+      "package": "com.intently.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-splash-screen",
+      "expo-font",
+      "expo-dev-client"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "16c893a6-b1e5-4eff-8265-6c4e48be1916"
+      }
+    },
+    "owner": "suhelali"
+  }
+}

@@ -1,0 +1,87 @@
+/*
+ * Provider console styles.
+ *
+ * The console is dark-only -- it is an internal tool for one team, not a
+ * product with a theme preference -- so it takes the shimmer, toast and
+ * accessibility rules from the clinic portal without the light-theme
+ * remapping.
+ */
+
+/*
+ * Shimmer for skeleton placeholders.
+ *
+ * A moving highlight rather than a pulse: a pulse reads as "this element is
+ * disabled", a sweep reads as "this is filling in". Both themes, because
+ * the same grey on a light ground would be invisible.
+ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+html.theme-light .skeleton {
+  background-color: rgba(15, 23, 42, 0.07);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.07),
+    transparent
+  );
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+
+html.theme-light .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Toast entrance. Short and from below, so it reads as arriving rather
+   than as the page reflowing. */
+.toast-enter {
+  animation: toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/*
+ * Motion is decoration here, and for some people it is a migraine. Both
+ * animations stop; the skeleton stays a visible placeholder and the toast
+ * still appears, just without movement.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after,
+  .toast-enter {
+    animation: none;
+  }
+}
+
+/* Screen-reader-only text, used to announce loading regions. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
