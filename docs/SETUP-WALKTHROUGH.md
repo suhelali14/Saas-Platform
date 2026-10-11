@@ -111,10 +111,36 @@ From now on you manage all DNS **at Vercel**, not the registrar.
 > Propagation takes 10 minutes to a few hours. Start Step 4 while you
 > wait — it does not depend on this.
 
-If you would rather keep DNS at your registrar, the alternative (NS
-delegation of `_acme-challenge`) is in
-[DEPLOYMENT-AND-COSTS.md](DEPLOYMENT-AND-COSTS.md) §4 Step 0. Moving the
-nameservers is simpler and what the rest of this assumes.
+### On GoDaddy specifically
+
+1. Sign in → **Domain Portfolio** (or *My Products*)
+2. Click the domain itself — not the Manage button beside it
+3. Find **DNS and Nameservers** at the top of the domain's page
+4. Open **Nameservers** → **Change**
+5. Choose **I'll use my own nameservers**
+6. Paste the two Vercel nameservers, remove any GoDaddy ones
+7. **Save**
+
+GoDaddy may then ask for a verification code — a 2-step code if you have
+had 2SV enabled for over 24 hours, otherwise a one-time password emailed
+to your account address. That is Domain Protection, not an error.
+
+After this, **stop using GoDaddy's DNS records page.** Once the
+nameservers point at Vercel, GoDaddy is no longer answering DNS queries
+for the domain and anything you add there has no effect. Every record from
+here on goes in Vercel → Domains → your domain → DNS Records.
+
+> **Where does the IP come from?** Not from GoDaddy. A registrar sells you
+> the name; the IP belongs to whatever hosts the service. In this setup
+> the only IP you need is your **DigitalOcean droplet's**, created in
+> Step 4, and it goes into Vercel's DNS in Step 5. Vercel itself never
+> gives you an IP — it gives nameservers, which is why Step 3 exists.
+
+If you would rather keep DNS at GoDaddy, the alternative (NS delegation of
+`_acme-challenge`) is in
+[DEPLOYMENT-AND-COSTS.md](DEPLOYMENT-AND-COSTS.md) §4 Step 0. It is more
+fiddly and easy to get wrong; moving the nameservers is simpler and is
+what the rest of this assumes.
 
 **Cost: $0. Time: 5 minutes, plus waiting.**
 
@@ -143,6 +169,10 @@ cat ~/.ssh/id_ed25519.pub        # paste this into DigitalOcean
 - [ ] Hostname: `clinic-server`
 - [ ] **Create Droplet**
 - [ ] Copy the **IP address** it gives you
+
+Find it again any time at **digitalocean.com → Droplets** — the IPv4
+address is in the list, and clicking the droplet shows it in full. This is
+the only IP address in the whole setup.
 
 Choose the $6 size, not the $4. The $4 has 512 MB, which runs out at
 about two clinics plus the build.
