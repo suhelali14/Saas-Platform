@@ -194,13 +194,13 @@ else
   sudo -u "$DEPLOY_USER" git clone --quiet "$GIT_URL" "$ROOT/repo"
   info "$GIT_URL"
 fi
-# Owned by uid 1000, not the deploy user. The containers run as the
-# image's `node` user, which is uid 1000 in the official Node images, and
-# `deploy` is a system account with some other id. Get this wrong and the
-# API starts fine, then fails the first time a doctor uploads a scan --
-# the one failure mode nobody tests for.
+# Owned by the deploy user, which is what creates clinic directories at
+# deploy time. The containers are then run AS this uid rather than as the
+# image's built-in `node` user -- see render-compose.sh. Pinning the host
+# directories to 1000 instead meant deploy could not write to the tree it
+# is responsible for managing.
 mkdir -p "$ROOT/data/provider"
-chown -R 1000:1000 "$ROOT/data"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$ROOT/data"
 
 # ── systemd units ─────────────────────────────────────────────────────
 log "Installing systemd units"

@@ -138,11 +138,11 @@ info "plan $PLAN, own JWT secret, 0600"
 
 # ── Data directory ────────────────────────────────────────────────────
 log "Creating $DATA_DIR/$SLUG"
-# Owned by uid 1000, which is the `node` user inside the image, NOT the
-# deploy user. Get this wrong and the API starts cleanly, then fails the
-# first time a doctor uploads a scan.
-install -d -o 1000 -g 1000 -m 750 "$DATA_DIR/$SLUG"
-install -d -o 1000 -g 1000 -m 750 "$DATA_DIR/$SLUG/uploads"
+# Owned by deploy, matching the rest of the data tree. The container is
+# run as this uid (render-compose.sh reads it from the directory), so the
+# two cannot drift apart.
+install -d -o deploy -g deploy -m 750 "$DATA_DIR/$SLUG"
+install -d -o deploy -g deploy -m 750 "$DATA_DIR/$SLUG/uploads"
 info "uploads/ is bind-mounted into the container, so deploys never touch it"
 
 # ── Migrate and seed ──────────────────────────────────────────────────

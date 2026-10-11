@@ -32,6 +32,19 @@ fi
 # while docker --env-file reads it correctly. PORT happens to survive
 # that, but relying on which keys happen to be shell-safe is not a
 # property worth depending on.
+# Run containers as whoever owns the data directory.
+#
+# The image defines a `node` user at uid 1000, but the host's deploy
+# account is a system user with a different uid -- so a bind-mounted
+# uploads directory is either unwritable by the container or unmanageable
+# by the deploy user, depending on which one you chown it to. Reading the
+# owner here means neither side has to match a number chosen by the other.
+if [ -d "$DATA_DIR" ]; then
+  RUN_AS="$(stat -c '%u:%g' "$DATA_DIR")"
+else
+  RUN_AS="$(id -u):$(id -g)"
+fi
+
 read_var() {  # read_var <file> <KEY>
   local raw
   raw="$(sed -n "s/^$2=//p" "$1" | head -1)"
@@ -123,6 +136,8 @@ for env_file in "${ENV_FILES[@]}"; do
   $service:
     image: $IMAGE
     command: $command
+    # Matches the owner of the bind-mounted uploads directory.
+    user: "$RUN_AS"
     container_name: $service
     env_file:
       - $ENV_DIR/$slug.env
