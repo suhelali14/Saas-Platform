@@ -53,6 +53,69 @@ ever reads them.
 | `VERCEL_PROJECT_ID_CLINIC_WEB` | same file |
 | `VERCEL_PROJECT_ID_PROVIDER_CONSOLE` | `apps/provider-console/.vercel/project.json` |
 
+### How to obtain each one
+
+They split into two groups. **The Vercel four can be done right now**; the
+`DEPLOY_*` four need the droplet to exist first.
+
+#### Group A — Vercel (no server needed)
+
+```bash
+npm i -g vercel          # you already have 63.x
+vercel login
+
+cd apps/clinic-web
+vercel link              # "Set up a new project?" Yes. Name: clinic-web
+cat .vercel/project.json
+#   { "orgId": "team_xxx", "projectId": "prj_xxx" }
+#     ↑ VERCEL_ORG_ID        ↑ VERCEL_PROJECT_ID_CLINIC_WEB
+
+cd ../provider-console
+vercel link              # Name: provider-console
+cat .vercel/project.json
+#                              ↑ VERCEL_PROJECT_ID_PROVIDER_CONSOLE
+```
+
+`orgId` is the same in both files — it is your account, so you only need
+it once.
+
+`VERCEL_TOKEN`: **vercel.com** → your avatar (top right) → **Account
+Settings** → **Tokens** → **Create**. Scope *Full Account*. Copy it
+immediately — it is shown once and cannot be retrieved later.
+
+#### Group B — your server (droplet must exist)
+
+`DEPLOY_HOST` — **digitalocean.com** → **Droplets** → the IPv4 column.
+
+`DEPLOY_USER` — literally `deploy`. Not a lookup; `bootstrap-server.sh`
+creates that user.
+
+`DEPLOY_SSH_KEY` — you generate this, it is not found anywhere:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/clinic-deploy -N "" -C "github-actions"
+ssh-copy-id -i ~/.ssh/clinic-deploy.pub deploy@<droplet-ip>
+
+cat ~/.ssh/clinic-deploy     # <- paste ALL of this, including the
+                             #    BEGIN and END lines
+```
+
+The **public** half (`.pub`) goes on the server; the **private** half
+(no extension) goes in the GitHub secret. Getting these the wrong way
+round is the usual mistake — the private one is the longer file and says
+`OPENSSH PRIVATE KEY`.
+
+`DEPLOY_HOST_KEY` — pins the server's identity so CI cannot be tricked
+into handing the deploy key to an impostor:
+
+```bash
+ssh-keyscan -H <droplet-ip>      # paste the whole output
+```
+
+`bootstrap-server.sh` also prints this at the end.
+
+`DEPLOY_PORT` — **skip it.** Only needed if you moved SSH off port 22.
+
 > **The registry needs no secret.** The image is pushed to GitHub's own
 > container registry using `GITHUB_TOKEN`, which Actions provides
 > automatically. The server gets a short-lived pull token from the same

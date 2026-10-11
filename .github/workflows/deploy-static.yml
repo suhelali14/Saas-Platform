@@ -101,8 +101,8 @@ jobs:
           fi
           # --prebuilt uploads dist/ as-is rather than rebuilding on
           # Vercel, so what ships is exactly what CI verified.
-          npx --yes vercel@48 build --prod --token "$VERCEL_TOKEN" --yes
-          npx --yes vercel@48 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+          npx --yes vercel@63 build --prod --token "$VERCEL_TOKEN" --yes
+          npx --yes vercel@63 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
 
       - name: Summary
         if: steps.gate.outputs.run == 'true'
