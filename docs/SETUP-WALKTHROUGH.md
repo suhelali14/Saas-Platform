@@ -90,6 +90,26 @@ Project **provider-console** → **Settings** → **Domains**:
 
 - [ ] Add `console.yourco.in`
 
+> **Check that neither wildcard is set to redirect.** If you added the
+> apex and `www` first, Vercel offers to redirect one to the other, and
+> the wildcards can get swept into that configuration. The Domains list
+> then shows something like:
+>
+> ```
+> *.nayaverse.in          307  → www.nayaverse.in     ← WRONG
+> *.portal.nayaverse.in   301  → www.nayaverse.in     ← WRONG
+> ```
+>
+> A redirecting wildcard means a patient opening `acme.yourco.in` is
+> bounced to `www` instead of reaching Acme's site, and every clinic URL
+> in the system goes nowhere. Both wildcards must **serve**, not redirect:
+> click **Edit** on each and set the redirect to **No Redirect**, so the
+> row shows the environment (`Production`) rather than an arrow.
+>
+> `No Deployment` beside a domain is fine at this stage — it just means
+> nothing has been deployed to the project yet, and it clears on the first
+> deploy.
+
 Vercel will now show you **nameservers** (like `ns1.vercel-dns.com`)
 because wildcards need DNS-challenge access to issue certificates.
 
