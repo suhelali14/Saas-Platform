@@ -110,9 +110,10 @@ fi
 
 if [ "$TOTAL_MB" -lt 900 ]; then
   info ""
-  info "NOTE: ${TOTAL_MB} MB RAM is the \$4 droplet. Comfortable for the"
-  info "      console plus ONE clinic. Resize to 1 GB before clinic #2 --"
-  info "      it is one click in DigitalOcean and needs no redeploy."
+  info "NOTE: ${TOTAL_MB} MB RAM is comfortable for the console plus ONE"
+  info "      clinic. Resize to 1 GB before clinic #2. On every provider"
+  info "      that is a resize in their panel, not a redeploy here --"
+  info "      the containers and data are untouched by it."
 fi
 
 # ── Deploy user ───────────────────────────────────────────────────────
