@@ -26,6 +26,8 @@
  * address, not about concealing the login.
  */
 
+import { currentTenant } from './tenant';
+
 export type SiteMode = 'public' | 'portal' | 'both';
 
 /**
@@ -62,6 +64,14 @@ function envList(value: string | undefined): string[] {
 export function resolveSiteMode(hostname?: string): SiteMode {
   const forced = (import.meta.env.VITE_SITE_MODE ?? '').trim().toLowerCase();
   if (forced === 'public' || forced === 'portal' || forced === 'both') return forced;
+
+  // Platform subdomain addressing, when configured, is authoritative:
+  // `acme.yourco.in` is Acme's patient site and `acme.portal.yourco.in` is
+  // Acme's portal. The prefix rules below predate it and still serve every
+  // clinic running on its own domain.
+  const tenant = currentTenant();
+  if (tenant.kind === 'tenant') return tenant.mode;
+  if (tenant.kind === 'platform') return 'public';
 
   const host = (hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '')).toLowerCase();
   if (!host) return 'both';
@@ -121,7 +131,17 @@ function siblingOrigin(stripPortalPrefix: boolean): string {
 
   const labels = hostname.split('.');
   let nextHostname: string;
-  if (stripPortalPrefix) {
+
+  // Under platform subdomain addressing the two hosts differ by one
+  // middle label, not by a leading one:
+  //   acme.yourco.in  <->  acme.portal.yourco.in
+  const tenant = currentTenant();
+  if (tenant.kind === 'tenant') {
+    const rest = labels.slice(tenant.mode === 'portal' ? 2 : 1).join('.');
+    nextHostname = stripPortalPrefix
+      ? `${tenant.slug}.${rest}`
+      : `${tenant.slug}.portal.${rest}`;
+  } else if (stripPortalPrefix) {
     nextHostname = DEFAULT_PORTAL_PREFIXES.includes(labels[0] ?? '') ? labels.slice(1).join('.') : hostname;
   } else {
     nextHostname = `dashboard.${hostname}`;

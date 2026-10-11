@@ -5,6 +5,7 @@ import { requireProviderAuth, requireOwnerAuth } from "../plugins/auth.js";
 import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
 import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from "../lib/plans.js";
 import { provisionClinic, provisioningAvailable, isDryRun } from "../lib/provisioning.js";
+import { validateSlug } from "../lib/subdomain.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -124,6 +125,15 @@ export async function accountRoutes(app: FastifyInstance) {
 
     const { slug, contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides, ...rest } = parsed.data;
     const finalSlug = slug ?? slugify(parsed.data.name);
+
+    // A slug is a hostname here, not just a key: it becomes
+    // <slug>.<platform domain>. So it has to clear the DNS-label rules and
+    // the reserved list before it can clash-check, or a clinic called
+    // "api" would claim the platform's own hostname.
+    const slugCheck = validateSlug(finalSlug);
+    if (!slugCheck.ok) {
+      return reply.status(400).send({ error: slugCheck.reason, field: "slug" });
+    }
 
     const clash = await prisma.clinicAccount.findUnique({ where: { slug: finalSlug } });
     if (clash) return reply.status(400).send({ error: `The identifier "${finalSlug}" is already used by ${clash.name}.` });

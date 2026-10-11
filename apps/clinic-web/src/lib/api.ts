@@ -1,4 +1,24 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+/**
+ * Which clinic API this bundle talks to.
+ *
+ * Deliberately NOT a `const` read from `import.meta.env`. Vite inlines
+ * that at build time, so a bundle baked with one clinic's API could only
+ * ever serve that clinic -- and one static build now serves every clinic
+ * on the platform wildcard. The tenant directory resolves the real base
+ * URL at boot and calls `setApiBaseUrl` before anything renders.
+ *
+ * The build-time value remains the default, so a single-clinic deployment
+ * on its own domain keeps working with no directory involved at all.
+ */
+let apiBaseUrl: string = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+
+export function setApiBaseUrl(url: string): void {
+  apiBaseUrl = url.replace(/\/+$/, '');
+}
+
+export function getApiBaseUrl(): string {
+  return apiBaseUrl;
+}
 
 // clinic-api's responses are raw (not enveloped) -- brand-new app, no
 // existing frontend contract to match, same reasoning as apps/admin.
@@ -57,7 +77,7 @@ async function performFetch<T>(endpoint: string, options: RequestInit & { data?:
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options.data && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${apiBaseUrl}${endpoint}`, {
     ...options,
     headers,
     body: options.data ? JSON.stringify(options.data) : options.body,
@@ -98,7 +118,7 @@ export async function apiUpload<T = any>(endpoint: string, file: File, fields?: 
     for (const [k, v] of Object.entries(fields ?? {})) body.append(k, v);
     body.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${apiBaseUrl}${endpoint}`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body,
@@ -118,7 +138,7 @@ export async function apiUpload<T = any>(endpoint: string, file: File, fields?: 
  * plain <a href> can't attach a Bearer token, so fetch as a blob instead. */
 export async function openPdf(path: string) {
   const token = localStorage.getItem('clinicAccessToken');
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!response.ok) throw new ApiError(`Could not load PDF (${response.status})`);

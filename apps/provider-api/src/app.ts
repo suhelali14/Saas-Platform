@@ -5,7 +5,9 @@ import authPlugin from "./plugins/auth.js";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/accounts.js";
 import { healthRoutes } from "./routes/health.js";
+import { publicTenantRoutes } from "./routes/public-tenant.js";
 import { env } from "./config/env.js";
+import { isPlatformSubdomain } from "./lib/subdomain.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -32,6 +34,12 @@ export function buildApp() {
             // A same-origin or server-to-server request sends no Origin.
             if (!origin) return cb(null, true);
             if (allowed.includes(origin)) return cb(null, true);
+            // Every clinic site is a subdomain of the platform domain and
+            // must reach the tenant directory to boot at all. There is no
+            // finite list to enumerate -- clinic #500 gets no DNS work and
+            // no config change -- so the platform domain is matched by
+            // suffix instead.
+            if (isPlatformSubdomain(origin, env.PLATFORM_DOMAIN)) return cb(null, true);
             cb(new Error("Origin not allowed"), false);
           },
   });
@@ -69,6 +77,8 @@ export function buildApp() {
   app.register(healthRoutes);
   app.register(authRoutes);
   app.register(accountRoutes);
+  // Public and unauthenticated: every clinic site calls this to boot.
+  app.register(publicTenantRoutes);
 
   return app;
 }

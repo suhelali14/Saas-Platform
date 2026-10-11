@@ -472,3 +472,151 @@ console.yourco.in    → provider-console + provider-api
 
 Get that working end to end with a throwaway clinic before onboarding a
 paying one.
+
+---
+
+## 12. Multi-tenant subdomains
+
+Clinics are addressed by subdomain under one platform domain. Onboarding
+clinic #2 — or #500 — needs no domain purchase, no DNS change and no
+certificate work.
+
+```
+yourco.in                  the platform's own marketing site
+console.yourco.in          your provider console
+api.yourco.in              the provider API (tenant directory)
+
+acme.yourco.in             Acme Clinic's patient website
+acme.portal.yourco.in      Acme Clinic's staff portal
+
+bright.yourco.in           a different clinic
+bright.portal.yourco.in    …its portal
+```
+
+Clinic **APIs** are deliberately *not* on vanity subdomains. Each clinic's
+API is its own deployment with its own database, so one wildcard cannot
+point at all of them — `*.api.yourco.in` would need a record per clinic,
+which is exactly the per-clinic DNS work subdomains exist to avoid.
+
+Instead each API keeps the hostname its host assigns
+(`acme-api.up.railway.app`, `acme-api.fly.dev`), and that goes in the
+account's `apiDomain`. The directory hands it to the browser at boot.
+Patients never see it, so it does not need to be pretty — and this way
+adding a clinic touches no DNS at all.
+
+Set `CLINIC_API_URL_TEMPLATE` only if you *do* want vanity API hostnames
+and accept adding one DNS record per clinic.
+
+### Each clinic still has its own database
+
+Nothing about the isolation model changed. The subdomain decides *which*
+clinic's API and database to use; it does not put two clinics in one.
+There is still no `clinicId` column anywhere, so a missing `WHERE` clause
+cannot leak one clinic's patients into another's screen — that class of
+bug does not exist here, which for regulated health records is worth more
+than the hosting it costs.
+
+### DNS: three records, once
+
+| Record | Type | Points at | Covers |
+|---|---|---|---|
+| `yourco.in` | A / ALIAS | platform marketing site | the root |
+| `*.yourco.in` | CNAME | the `clinic-web` deployment | every clinic's patient site |
+| `*.portal.yourco.in` | CNAME | the same `clinic-web` deployment | every clinic's staff portal |
+
+That is the whole DNS story. Clinic APIs add no records — see above.
+
+**Two wildcards are required, not one.** A DNS or TLS wildcard matches
+exactly one label, so `*.yourco.in` covers `acme.yourco.in` but **not**
+`acme.portal.yourco.in`. Getting this wrong produces a certificate error
+only on the portal, only for clinics, and only in production — so it is
+worth checking before you need it.
+
+Your TLS certificate therefore needs both `*.yourco.in` and
+`*.portal.yourco.in` as SANs. Let's Encrypt issues wildcards via DNS-01;
+most hosts do it for you once the records exist.
+
+### One build serves every clinic
+
+`clinic-web` is a single static deployment on the wildcard. It reads its
+own hostname at boot, asks the tenant directory which clinic that is, and
+points itself at that clinic's API before rendering anything.
+
+```
+VITE_PLATFORM_DOMAIN=yourco.in
+VITE_PROVIDER_API_URL=https://api.yourco.in
+```
+
+Leave both unset and the app behaves exactly as it did before — one
+clinic, its own domain, `VITE_API_URL` baked in. Existing deployments are
+unaffected, and a clinic that insists on its own domain still gets one:
+set `apiDomain` on its account and that always wins over the template.
+
+### The tenant directory
+
+`GET /api/provider/public/tenant/:slug` — unauthenticated, because it
+runs before a patient has any identity.
+
+It returns only `slug`, `name`, `status`, `suspended`, `apiBaseUrl`,
+`publicHost` and `portalHost`. The account row beside those fields holds
+the monthly fee, the contact's email, private notes and the Neon project
+id, so the response is built field by field rather than by excluding
+things from a row — and the test plants canary values in every sensitive
+column and asserts they never appear.
+
+Two behaviours worth knowing:
+
+- **A clinic still being onboarded returns 404**, not "ONBOARDING". Which
+  clinics are mid-deal is commercially sensitive and there is nothing for
+  a visitor to see either way.
+- **Suspension is enforced here.** A `SUSPENDED` clinic resolves, so its
+  site can explain itself instead of looking broken, but it is handed no
+  API base URL at all — so the bundle has nowhere to send patient data
+  even if something downstream ignored the status. This is what turned
+  suspension from a record in a table into an actual switch.
+
+### The new dependency, and why it is survivable
+
+Every clinic's website now needs the directory to boot. That is a real
+single point of failure, so it is cached at two levels:
+
+- The response carries
+  `Cache-Control: public, max-age=300, stale-while-revalidate=86400`, so
+  a CDN keeps serving the last good answer for a day.
+- The browser keeps its own copy in `localStorage` and serves it when the
+  lookup fails.
+
+So the directory going down degrades to "returning visitors are
+unaffected" rather than "every clinic is offline at once". A 404 is
+treated as authoritative and clears the cached copy — otherwise a removed
+clinic would resurrect itself from a stale entry.
+
+### Slugs are hostnames, so they are validated as hostnames
+
+A slug becomes `<slug>.yourco.in`. A clinic onboarded as `api` would
+claim the platform's own hostname and take everything down with it, so
+**91 reserved slugs** are refused at account creation (`api`, `www`,
+`console`, `portal`, `mail`, `ns1`, `staging`…), along with leading or
+trailing hyphens, the `xn--` punycode prefix, and anything over 63
+characters — the hard limit on a single DNS label.
+
+The console suggests `<slug>-clinic` when a name is reserved, so the
+operator gets a working alternative rather than a rejection.
+
+### CORS
+
+Clinic subdomains are unbounded, so they cannot be enumerated in an
+allowlist. The provider API matches the platform domain by suffix
+instead — on a label boundary, and over HTTPS only, so `evil-yourco.in`
+and `yourco.in.evil.com` are both refused. Those two are exactly how a
+hand-rolled origin check usually fails open, and both are covered by
+tests.
+
+### Adding a clinic, end to end
+
+1. Create the account in the console. Pick a slug — it is the subdomain.
+2. Provision: Neon project, API deployment, migrate, seed.
+3. Set status to **LIVE**. Nothing else happens anywhere.
+4. `acme.yourco.in` and `acme.portal.yourco.in` now work.
+
+No DNS. No certificate. No redeploy of `clinic-web`.

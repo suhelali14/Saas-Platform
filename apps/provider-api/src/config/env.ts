@@ -21,6 +21,19 @@ const envSchema = z.object({
   // Ignored in development, where any origin is accepted so a Vite dev
   // server on any port works.
   CORS_ORIGINS: z.string().optional(),
+  // The domain every clinic subdomain hangs off:
+  //   <slug>.<PLATFORM_DOMAIN>         -> that clinic's patient website
+  //   <slug>.portal.<PLATFORM_DOMAIN>  -> that clinic's staff portal
+  // Used to generate the hostnames shown in the console and written to
+  // each account at provisioning time.
+  PLATFORM_DOMAIN: z.string().min(3).default("localhost"),
+
+  // Template for a clinic API's base URL, with {slug} substituted.
+  // Each clinic keeps its OWN database and its OWN API deployment, so the
+  // directory has to tell the browser which one to call. Falls back to a
+  // per-account apiDomain when one is set, so a clinic on a custom domain
+  // still works.
+  CLINIC_API_URL_TEMPLATE: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
