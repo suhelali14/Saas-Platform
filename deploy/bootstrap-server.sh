@@ -208,7 +208,13 @@ ufw --force enable > /dev/null
 info "22, 80, 443 only -- API ports stay on loopback"
 
 # ── Next steps ────────────────────────────────────────────────────────
-HOSTKEY="$(ssh-keyscan -H "$(hostname -I | awk '{print $1}')" 2>/dev/null | head -2 || true)"
+# All three types, explicitly. ssh-keyscan's defaults vary by version
+# and here returned only rsa and ecdsa -- but clients PREFER ed25519, so
+# a known_hosts missing it makes CI fail with "Host key verification
+# failed" while the server is perfectly reachable by hand.
+# No head -2 either: truncating the list drops whichever type the client
+# then negotiates.
+HOSTKEY="$(ssh-keyscan -t rsa,ecdsa,ed25519 -H "$(hostname -I | awk '{print $1}')" 2>/dev/null || true)"
 
 cat <<NEXT
 
