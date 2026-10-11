@@ -154,8 +154,15 @@ for env_file in "${ENV_FILES[@]}"; do
 
     DB=\$(sed -n 's/^DATABASE_URL=//p' $env_file | sed 's/[?&]schema=[^&]*//')
     psql "\$DB" -c 'DROP SCHEMA IF EXISTS $schema_name CASCADE;'
+    psql "\$DB" -c 'DROP TABLE IF EXISTS public._prisma_migrations;'
 
   The sed strips ?schema=, which psql does not accept as a URI parameter.
+
+  Both lines matter. A migration that ran its SQL but failed before
+  recording completion leaves the history row in whichever schema was
+  current at the time -- usually public, not the one being migrated.
+  Dropping only the schema leaves that row behind, pointing at a
+  migration for a schema that no longer exists.
 
   If it DOES hold real data, do not run that. Baseline instead:
     https://pris.ly/d/migrate-baseline
