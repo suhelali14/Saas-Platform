@@ -76,7 +76,11 @@ shopt -u nullglob
 # inside the container -- as a Prisma protocol error that never mentions
 # quoting. Caught here, by name, before anything is migrated.
 for env_file in "${ENV_FILES[@]}"; do
-  quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file" | cut -d: -f1,2 | sed 's/:/ line /' || true)"
+  # Print the line number and the KEY ONLY. The first version of this
+  # printed the matched line, which put a JWT secret straight into a CI
+  # log -- a check for a misconfiguration must not leak the value it is
+  # complaining about.
+  quoted="$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*=["'"'"']' "$env_file"             | sed -E 's/^([0-9]+):([A-Za-z_][A-Za-z0-9_]*)=.*/  line : /' || true)"
   if [ -n "$quoted" ]; then
     echo "Quoted values in $(basename "$env_file"):" >&2
     printf '%s
