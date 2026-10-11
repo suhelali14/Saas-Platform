@@ -93,10 +93,30 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets[matrix.project_id_secret] }}
+          # The same names read as variables, to tell "not set at all"
+          # apart from "set in the wrong place".
+          VAR_TOKEN: ${{ vars.VERCEL_TOKEN }}
+          VAR_ORG: ${{ vars.VERCEL_ORG_ID }}
+          VAR_PROJECT: ${{ vars[matrix.project_id_secret] }}
         working-directory: apps/${{ matrix.app }}
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "::error::Missing VERCEL_TOKEN or ${{ matrix.project_id_secret }}. See deploy/README.md."
+            if [ -n "$VAR_TOKEN" ] || [ -n "$VAR_PROJECT" ] || [ -n "$VAR_ORG" ]; then
+              echo "::error::The Vercel credentials are set as VARIABLES, but are read as SECRETS."
+              echo "::error::Settings > Secrets and variables > Actions > the SECRETS tab, as REPOSITORY secrets."
+              echo "::error::Do not scope them to an Environment: this job declares none, so environment-scoped values never reach it."
+              echo "::error::VERCEL_TOKEN as a variable is stored in the clear and is readable by anyone with repo access -- rotate it after moving."
+              {
+                echo "### Vercel credentials are in the wrong place"
+                echo ""
+                echo "Found as **Variables**; needed as **repository Secrets**."
+                echo "A variable shows you its value, which is how you can tell them apart."
+                echo ""
+                echo "\`VERCEL_TOKEN\` stored as a variable should be rotated, not just moved."
+              } >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::Missing VERCEL_TOKEN or ${{ matrix.project_id_secret }}. See docs/WHERE-ENV-GOES.md."
+            fi
             exit 1
           fi
           # --prebuilt uploads dist/ as-is rather than rebuilding on
