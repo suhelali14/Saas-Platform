@@ -136,6 +136,32 @@ for env_file in "${ENV_FILES[@]}"; do
         "$TAG" \
         npx prisma migrate deploy > "/tmp/migrate-$slug.log" 2>&1; then
     redact < "/tmp/migrate-$slug.log" | tail -25
+
+    # P3005: objects exist in the target schema but there is no
+    # migration history. Usually the residue of an earlier migration
+    # that failed partway, which leaves the schema half-built and
+    # unrecorded.
+    if grep -q 'P3005' "/tmp/migrate-$slug.log"; then
+      schema_name=public
+      case "$slug" in provider) schema_name=provider ;; esac
+      cat >&2 <<HINT
+
+  P3005 means the schema already contains objects that Prisma did not
+  create -- almost always leftovers from a migration that failed partway.
+
+  If this database has NO real data yet, drop the schema and let the
+  migration build it cleanly. On the server:
+
+    DB=\$(sed -n 's/^DATABASE_URL=//p' $env_file | sed 's/[?&]schema=[^&]*//')
+    psql "\$DB" -c 'DROP SCHEMA IF EXISTS $schema_name CASCADE;'
+
+  The sed strips ?schema=, which psql does not accept as a URI parameter.
+
+  If it DOES hold real data, do not run that. Baseline instead:
+    https://pris.ly/d/migrate-baseline
+HINT
+    fi
+
     die "migration failed for '$slug'. Nothing was restarted -- the previous image is still serving."
   fi
 done
