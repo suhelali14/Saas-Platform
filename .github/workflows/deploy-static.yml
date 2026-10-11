@@ -150,22 +150,58 @@ jobs:
           npx --yes vercel@63 build --prod --token "$VERCEL_TOKEN" --yes
           npx --yes vercel@63 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
 
-      - name: Check the bundle does not point at localhost
+      - name: Check the bundle was built with its configuration
         if: steps.gate.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
+        env:
+          PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
         run: |
-          # A production build containing localhost means a VITE_ variable
-          # was missing and the code fell back to its dev default. In the
-          # browser that surfaces as ERR_CONNECTION_REFUSED against
-          # 127.0.0.1, which looks like a server outage rather than a
-          # build-time configuration mistake.
-          if grep -rqE 'localhost:(4100|4200|5173|5176|5177)' dist/ 2>/dev/null; then
-            echo "::error::The ${{ matrix.app }} bundle still references a localhost dev URL."
-            echo "::error::A VITE_ variable was empty at build time. Check the repository VARIABLES PLATFORM_DOMAIN and PROVIDER_API_URL (variables, not secrets)."
-            grep -roE 'localhost:[0-9]+' dist/ | sort -u | sed 's/^/  /'
-            exit 1
+          # The two apps get their API address in different ways, so a
+          # correct bundle looks different for each.
+          fail=0
+
+          if [ "${{ matrix.app }}" = "provider-console" ]; then
+            # Build-time: VITE_API_URL is compiled in. A localhost URL
+            # here means it was empty and the code fell back to its dev
+            # default -- which in a browser is ERR_CONNECTION_REFUSED,
+            # looking like the server is down.
+            if grep -rqE 'localhost:(4100|4200)' dist/ 2>/dev/null; then
+              echo "::error::provider-console still points at a localhost dev URL."
+              echo "::error::PROVIDER_API_URL (a repository VARIABLE, not a secret) was empty at build time."
+              grep -roE 'localhost:[0-9]+' dist/ | sort -u | sed 's/^/  /'
+              fail=1
+            fi
+            if [ -n "$PROVIDER_API_URL" ] && ! grep -rqF "$PROVIDER_API_URL" dist/ 2>/dev/null; then
+              echo "::error::provider-console does not contain $PROVIDER_API_URL."
+              fail=1
+            fi
+          else
+            # Runtime: clinic-web reads its own hostname and asks the
+            # tenant directory which clinic's API to call, so one bundle
+            # serves every clinic. VITE_API_URL is empty on purpose and
+            # the localhost fallback in api.ts is dead code that
+            # TenantGate overwrites before the first render.
+            #
+            # What must be present is the platform domain and the
+            # directory URL. Without them the bundle cannot work out
+            # which clinic it is, and every clinic site breaks at once.
+            for needle in "$PLATFORM_DOMAIN" "$PROVIDER_API_URL"; do
+              [ -z "$needle" ] && continue
+              if ! grep -rqF "$needle" dist/ 2>/dev/null; then
+                echo "::error::clinic-web does not contain '$needle'."
+                echo "::error::Set PLATFORM_DOMAIN and PROVIDER_API_URL as repository VARIABLES."
+                fail=1
+              fi
+            done
+            if [ -z "$PLATFORM_DOMAIN" ] || [ -z "$PROVIDER_API_URL" ]; then
+              echo "::error::PLATFORM_DOMAIN or PROVIDER_API_URL is unset. clinic-web cannot resolve clinics without them."
+              fail=1
+            fi
           fi
-          echo "clean: no localhost URLs in the production bundle"
+
+          [ "$fail" = "0" ] && echo "${{ matrix.app }}: built with the right configuration"
+          exit $fail
 
       - name: Summary
         if: steps.gate.outputs.run == 'true'
