@@ -59,11 +59,23 @@ Provisioning takes 10–20 minutes. When it finishes, from
 
 ## 3. Get in, and install your key
 
+> **GoDaddy does not give you `root` over SSH.** Its newer VPS tiers
+> create a **named user with sudo** and disable direct root login, so
+> `ssh root@...` returns "Permission denied" even with the correct
+> password. Find your username at **Servers → Manage → Access → Login
+> credentials** — it is usually derived from your account name.
+
 ```powershell
-ssh root@<your-ip>
+ssh <your-username>@<your-ip>
 ```
 
-Enter the root password. Accept the fingerprint prompt with `yes`.
+Enter the password you set. At the fingerprint prompt, type **`yes`** —
+nothing else. That prompt is not masked, so anything you type there is
+left in your terminal history; if you accidentally type your password,
+change it.
+
+Everything below that needs root gets `sudo` in front, or run `sudo -i`
+once to become root for the rest of the session.
 
 > If this hangs, check GoDaddy's firewall for the server in their panel
 > and make sure **22, 80 and 443** are allowed inbound. Some plans ship
@@ -73,16 +85,16 @@ Your public key is already at `~/.ssh/id_ed25519.pub` on your laptop. Get
 it onto the server. **On your laptop**, in a second terminal:
 
 ```powershell
-type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@<your-ip> "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <your-username>@<your-ip> "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
 Now prove key login works **before** turning passwords off:
 
 ```powershell
-ssh root@<your-ip> whoami
+ssh <your-username>@<your-ip> whoami
 ```
 
-It must print `root` **without asking for a password**. Only once it does:
+It must print your username **without asking for a password**. Only once it does:
 
 ```bash
 sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
@@ -145,8 +157,12 @@ type one.
 Install its public half for the `deploy` user:
 
 ```powershell
-type $env:USERPROFILE\.ssh\clinic-deploy.pub | ssh root@<your-ip> "mkdir -p /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && chmod 600 /home/deploy/.ssh/authorized_keys"
+type $env:USERPROFILE\.ssh\clinic-deploy.pub | ssh <your-username>@<your-ip> "sudo mkdir -p /home/deploy/.ssh && sudo tee -a /home/deploy/.ssh/authorized_keys > /dev/null && sudo chown -R deploy:deploy /home/deploy/.ssh && sudo chmod 700 /home/deploy/.ssh && sudo chmod 600 /home/deploy/.ssh/authorized_keys"
 ```
+
+Note `sudo tee -a` rather than `cat >>`: the redirection in `cat >>` is
+performed by *your* shell, which is not root, so it fails on a file in
+another user's home. `tee` runs under sudo and does the writing itself.
 
 Test it:
 
