@@ -199,6 +199,13 @@ fi
 # image's built-in `node` user -- see render-compose.sh. Pinning the host
 # directories to 1000 instead meant deploy could not write to the tree it
 # is responsible for managing.
+# Let root read the deploy user's clone without complaint. Git refuses
+# to operate on a repository owned by another user ("dubious ownership"),
+# which stops root from so much as running `git pull` there -- and the
+# scripts in it are run as root. Marking it safe is the documented
+# escape; writes still happen as deploy.
+git config --global --add safe.directory "$ROOT/repo" 2>/dev/null || true
+
 mkdir -p "$ROOT/data/provider"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$ROOT/data"
 
