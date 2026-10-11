@@ -69,6 +69,13 @@ jobs:
           echo "repo=$repo" >> "$GITHUB_OUTPUT"
           echo "image=${{ env.REGISTRY }}/$repo/api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
+      # Only needed to build for an architecture the runner is not. The
+      # runner is amd64, so an ARM target (Oracle's free Ampere
+      # instances, an AWS Graviton box) is emulated through QEMU.
+      - name: Set up QEMU
+        if: contains(vars.IMAGE_PLATFORMS, 'arm')
+        uses: docker/setup-qemu-action@v3
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to the registry
@@ -86,6 +93,16 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           push: true
+          # Which CPU the server runs. Defaults to amd64, which covers
+          # DigitalOcean, Hetzner, Railway and Render. Set the repo
+          # variable IMAGE_PLATFORMS to linux/arm64 for an ARM host such
+          # as Oracle's Always Free Ampere instances -- an amd64 image
+          # simply will not start there, with an exec format error that
+          # does not mention architecture.
+          #
+          # Emulated ARM builds take roughly 3x longer, so build only the
+          # architecture you actually deploy to rather than both.
+          platforms: ${{ vars.IMAGE_PLATFORMS || 'linux/amd64' }}
           # Immutable SHA tag is what gets deployed, so a rollback names
           # an exact artifact. `latest` is a convenience for humans and is
           # never what the deploy step uses.

@@ -128,6 +128,71 @@ droplet's SSD is fine for years at clinic scale.
 
 ---
 
+## 3b. Free options for the server
+
+The static sites (Vercel) and the databases (Neon) are already free and
+stay free. The only thing that costs money is the box running the APIs.
+Options, with what actually disqualifies most of them:
+
+| Option | Free for | Catch |
+|---|---|---|
+| **DigitalOcean $200 credit** | **60 days** | Then $6/mo. No surprises, no ARM, matches this guide exactly. |
+| **Oracle Cloud Always Free** | **forever** | ARM, capacity lottery, home region locked at signup. See below. |
+| Google Cloud `e2-micro` | forever | **No India region.** us-west1/central1/east1 only — ~250ms to Indian clinics. |
+| AWS `t3.micro` | 12 months | Then ~$8/mo, more than the droplet. Mumbai available. |
+| Render free tier | forever | **Cannot attach a disk.** Patient uploads would vanish. Also sleeps after 15 min. |
+| Railway free | — | $1/month of credit. Not enough for one clinic. |
+| Fly.io | — | No meaningful free allowance any more. |
+
+### Render's free tier is disqualified, not merely worse
+
+Free Render services **cannot have persistent disks**. `clinic-api`
+writes X-rays and lab reports to its disk, so on a free Render service
+every uploaded scan is lost on the next restart — and free services also
+sleep after 15 minutes idle, so restarts are constant. This is the same
+constraint as §1: the API needs a real disk.
+
+### Oracle Always Free, honestly
+
+On paper the best free option anywhere: an Ampere A1 ARM instance plus
+200 GB of block storage, free indefinitely rather than for a trial
+period. Even at the lower allocation some 2026 sources report, it is
+several times the $6 droplet.
+
+Four things to know before relying on it:
+
+1. **Sources disagree on the current allocation.** Older guides say
+   4 OCPU / 24 GB; several 2026 sources say Oracle quietly reduced the
+   monthly OCPU-hour and GB-hour limits to roughly 2 OCPU / 12 GB, with
+   inconsistent enforcement. Check what the console actually offers you.
+2. **ARM capacity is frequently unavailable** in popular regions — the
+   common experience is retrying creation over days. The AMD micro
+   instances (1 GB) are easier to get but tight for more than one clinic.
+3. **Your home region is chosen at signup and cannot be changed.** Pick
+   an Indian region if one is offered to you.
+4. **It is ARM, so the image must be built for ARM.** Set the repository
+   variable `IMAGE_PLATFORMS` to `linux/arm64` and CI will build for it
+   (emulated, so roughly 3x slower). An amd64 image on an ARM host fails
+   with an exec format error that never mentions architecture.
+
+A credit card is required for identity verification on both Oracle and
+DigitalOcean, free tier or not.
+
+### What to actually do
+
+**Take DigitalOcean's $200 / 60-day credit now.** It costs nothing today,
+needs no ARM build, no capacity lottery and no deviation from this guide,
+and 60 days is far longer than it takes to find out whether the first
+clinic is paying. At that point $6/month against a clinic paying
+₹2,000–5,000/month is not a decision worth optimising.
+
+Move to Oracle later if you want the cost to be genuinely zero — the
+apps are containers and the move is an afternoon. Doing it *now*, before
+the product has a paying user, means debugging ARM emulation and Oracle's
+capacity queue instead of onboarding a doctor.
+
+---
+
 ## 4. Step by step
 
 ### Step 0 — Buy the domain, point it at Vercel
