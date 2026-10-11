@@ -61,17 +61,18 @@ They split into two groups. **The Vercel four can be done right now**; the
 #### Group A — Vercel (no server needed)
 
 ```bash
-npm i -g vercel          # you already have 63.x
-vercel login
+# npx runs it with no install. The bare `vercel` command needs a
+# global install and, on Windows, a fresh terminal afterwards.
+npx vercel login
 
 cd apps/clinic-web
-vercel link              # "Set up a new project?" Yes. Name: clinic-web
+npx vercel link          # "Set up a new project?" Yes. Name: clinic-web
 cat .vercel/project.json
 #   { "orgId": "team_xxx", "projectId": "prj_xxx" }
 #     ↑ VERCEL_ORG_ID        ↑ VERCEL_PROJECT_ID_CLINIC_WEB
 
 cd ../provider-console
-vercel link              # Name: provider-console
+npx vercel link          # Name: provider-console
 cat .vercel/project.json
 #                              ↑ VERCEL_PROJECT_ID_PROVIDER_CONSOLE
 ```

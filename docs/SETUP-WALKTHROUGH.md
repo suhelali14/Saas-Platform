@@ -48,15 +48,17 @@ creates the project with no Git connection, so your workflow owns deploys.
 In your project folder:
 
 ```bash
-npm i -g vercel
-vercel login
+# npx runs it without installing anything. Using the bare `vercel`
+# command instead needs a global install, and on Windows that gives
+# "vercel is not recognized" until you reopen the terminal.
+npx vercel login
 
 cd apps/clinic-web
-vercel link          # Set up a new project? Yes.  Name: clinic-web
+npx vercel link      # Set up a new project? Yes.  Name: clinic-web
 cat .vercel/project.json          # <- copy orgId and projectId
 
 cd ../provider-console
-vercel link          # Name: provider-console
+npx vercel link      # Name: provider-console
 cat .vercel/project.json          # <- copy projectId
 ```
 
