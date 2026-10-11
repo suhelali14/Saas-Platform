@@ -82,6 +82,25 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: npm ci
 
+      # Both apps are single-page apps: the server must return
+      # index.html for any path it has no file for, or every URL except
+      # "/" returns the host's own 404. That failure is invisible until
+      # someone opens a link to anything but the home page -- /login was
+      # how it surfaced here.
+      - name: Check the SPA rewrite exists
+        if: steps.gate.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          if [ ! -f vercel.json ]; then
+            echo "::error::apps/${{ matrix.app }}/vercel.json is missing. Without a rewrite to /index.html, every deep link 404s."
+            exit 1
+          fi
+          if ! grep -q '"/index.html"' vercel.json; then
+            echo "::error::apps/${{ matrix.app }}/vercel.json has no rewrite to /index.html."
+            exit 1
+          fi
+          echo "SPA rewrite present"
+
       - name: Build
         if: steps.gate.outputs.run == 'true'
         env:
