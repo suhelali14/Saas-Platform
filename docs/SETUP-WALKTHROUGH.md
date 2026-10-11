@@ -379,13 +379,11 @@ If certbot fails, `api.yourco.in` has not propagated yet. Wait and retry.
 ### Create your console login
 
 ```bash
-cd /srv/clinic/current/apps/provider-api
-sudo -u deploy env $(grep -v '^#' /srv/clinic/env/provider.env | xargs) \
-  PROVIDER_SEED_EMAIL=you@example.com \
-  PROVIDER_SEED_NAME="Your Name" \
-  PROVIDER_SEED_PASSWORD='<a strong password>' \
-  npx tsx prisma/seed-provider.ts
+sudo /srv/clinic/repo/deploy/seed-provider.sh you@example.com "Your Name"
 ```
+
+It prompts for the password, so it does not reach your shell history or
+the process list.
 
 - [ ] It confirms the user was created
 

@@ -21,6 +21,27 @@
 # would silently orphan a clinic's X-rays.
 set -euo pipefail
 
+# ---------------------------------------------------------------------
+# SUPERSEDED by deploy-image.sh.
+#
+# This builds from source on the server. Deployment now ships a prebuilt
+# image from the registry instead, so that what runs in production is the
+# artifact CI tested rather than a second build of the same source.
+#
+# Kept because it is the only path that works without Docker. Refuses to
+# run on a server already using images, where it would build into a
+# releases/ tree that nothing serves from -- appearing to succeed while
+# changing nothing.
+if [ -f /srv/clinic/.image ] && [ -z "${FORCE_SOURCE_DEPLOY:-}" ]; then
+  echo "This server deploys prebuilt images. Use:" >&2
+  echo "    IMAGE_TAG=<tag> /srv/clinic/repo/deploy/deploy-image.sh" >&2
+  echo "  current image: $(cat /srv/clinic/.image)" >&2
+  echo "  (set FORCE_SOURCE_DEPLOY=1 to override, which is almost never right)" >&2
+  exit 1
+fi
+# ---------------------------------------------------------------------
+
+
 ROOT=/srv/clinic
 REPO="$ROOT/repo"
 RELEASES="$ROOT/releases"
