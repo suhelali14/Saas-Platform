@@ -344,7 +344,7 @@ sudo systemctl enable --now clinic-acme
 # and point it at this clinic's .env (systemd: EnvironmentFile=).
 ```
 
-4. Give it a hostname the browser can reach — `acme-api.yourco.in` via
+4. Give it a hostname the browser can reach — `acme.api.yourco.in` via
    nginx, or the host's own assigned name. Patients never see this URL.
 
 5. In the console: create the account with slug `acme`, set `apiDomain` to

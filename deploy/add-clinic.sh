@@ -68,7 +68,13 @@ info "port $PORT"
 # ── Platform domain ───────────────────────────────────────────────────
 PLATFORM_DOMAIN="$(grep -hoP '^PLATFORM_DOMAIN=\K.*' "$ENV_DIR/provider.env" 2>/dev/null | tr -d '"' || true)"
 [ -n "$PLATFORM_DOMAIN" ] || die "PLATFORM_DOMAIN is not set in $ENV_DIR/provider.env -- set it first"
-API_HOST="$SLUG-api.$PLATFORM_DOMAIN"
+# Two labels, deliberately: <slug>.api.<domain>, not <slug>-api.<domain>.
+# A DNS wildcard matches exactly one label, so "acme-api.example.in" is
+# matched by "*.example.in" -- which points at Vercel -- and the clinic's
+# API would resolve to the static site host instead of this server.
+# "acme.api.example.in" is two labels, so it misses that wildcard and is
+# caught by "*.api.example.in" pointing here.
+API_HOST="$SLUG.api.$PLATFORM_DOMAIN"
 info "api hostname: $API_HOST"
 
 # ── The database ──────────────────────────────────────────────────────

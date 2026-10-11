@@ -229,7 +229,20 @@ under the same domain, so this record lives at Vercel now.
 - [ ] **Add** → Type `A`, Name `*.api`, Value *your droplet IP*
 
 The second one is a wildcard so each clinic's API hostname
-(`acme-api.yourco.in`) resolves without you adding a record per clinic.
+(`acme.api.yourco.in`) resolves without you adding a record per clinic.
+Note the shape: `acme.api.`, with a dot. Only a whole label can be
+wildcarded — there is no `*-api` record — so `acme-api.yourco.in` would
+need one DNS record per clinic, while `acme.api.yourco.in` is covered by
+the single `*.api` record above.
+
+**Verify this one after adding it**, because Vercel's DNS answers for
+subdomains at any depth and will happily claim it otherwise:
+
+```powershell
+nslookup acme.api.yourco.in 8.8.8.8
+```
+
+It must return your droplet IP, not a Vercel address.
 
 Check it after a few minutes:
 
@@ -473,7 +486,7 @@ It will ask for:
 
 - [ ] Contact, city, plan, monthly fee
 - [ ] **Create account**
-- [ ] Open the new clinic → set **apiDomain** to `acme-api.yourco.in`
+- [ ] Open the new clinic → set **apiDomain** to `acme.api.yourco.in`
       (printed in Step 9)
 - [ ] Set status to **LIVE**
 
