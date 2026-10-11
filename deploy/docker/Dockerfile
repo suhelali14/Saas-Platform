@@ -34,8 +34,16 @@ COPY apps/provider-api/package.json       apps/provider-api/
 COPY apps/provider-console/package.json   apps/provider-console/
 COPY packages/shared-types/package.json   packages/shared-types/
 
-# Prisma's postinstall needs the schemas present, and openssl is required
-# by its query engine.
+# Every workspace whose postinstall runs `prisma generate` needs its
+# schema here, not just the two apps this image actually runs: `npm ci`
+# executes postinstall for the whole workspace, and a missing schema
+# fails the install outright with "Could not find Prisma Schema".
+#
+# apps/api is not deployed from this image and its client is never used.
+# Its schema is copied anyway because that is cheaper and far less
+# fragile than --ignore-scripts, which would also skip esbuild's
+# postinstall and leave tsx unable to run the clinic seed scripts.
+COPY apps/api/prisma/          apps/api/prisma/
 COPY apps/clinic-api/prisma/   apps/clinic-api/prisma/
 COPY apps/provider-api/prisma/ apps/provider-api/prisma/
 

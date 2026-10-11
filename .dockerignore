@@ -46,6 +46,12 @@ apps/admin/**
 !apps/admin/package.json
 apps/api/**
 !apps/api/package.json
+# apps/api's postinstall runs `prisma generate`, and npm ci runs it for
+# every workspace -- so its schema has to reach the build even though
+# this image never runs that app. Without it the install fails with
+# "Could not find Prisma Schema".
+!apps/api/prisma
+!apps/api/prisma/**
 
 # ── Noise ─────────────────────────────────────────────────────────────
 *.log

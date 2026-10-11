@@ -145,6 +145,37 @@ for m in members:
     if not ok:
         problems.append('LOCKFILE  %s is a workspace member but is never copied' % m)
 
+# Every workspace whose postinstall runs `prisma generate` needs its
+# schema in the build context. `npm ci` runs postinstall for the WHOLE
+# workspace, so one app's missing schema fails the entire install -- even
+# an app this image never runs. Checking manifests alone missed this and
+# the build died 33 seconds in.
+print('\nWorkspaces whose postinstall needs a Prisma schema:')
+import json
+for mf in members:
+    d = os.path.dirname(mf)
+    manifest = os.path.join(ROOT, mf.replace('/', os.sep))
+    try:
+        pkg = json.load(io.open(manifest, encoding='utf-8'))
+    except Exception:
+        continue
+    postinstall = (pkg.get('scripts') or {}).get('postinstall') or ''
+    if 'prisma' not in postinstall:
+        continue
+
+    schema_rel = '%s/prisma/schema.prisma' % d
+    on_disk = os.path.exists(os.path.join(ROOT, schema_rel.replace('/', os.sep)))
+    if not on_disk:
+        print('  %-28s postinstall needs prisma, but no schema on disk' % d)
+        continue
+
+    # Reaches the build if it is not ignored, whether via an explicit
+    # COPY of the directory or via `COPY . .`.
+    ignored = is_ignored(schema_rel, rules) and is_ignored('%s/prisma' % d, rules)
+    print('  %-28s %s' % (d, 'reaches the build' if not ignored else '*** EXCLUDED -> npm ci will fail ***'))
+    if ignored:
+        problems.append('POSTINSTALL %s runs `prisma generate` but %s is excluded' % (d, schema_rel))
+
 if problems:
     print('\n%d PROBLEM(S):' % len(problems))
     for p in problems:
