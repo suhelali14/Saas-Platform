@@ -382,3 +382,93 @@ Being explicit so you do not discover these in front of a customer.
   Backup. Nothing runs on a schedule.
 - **No staged rollout.** A code change deploys to whichever clinic you
   redeploy. There is no canary and no version pinning per clinic.
+
+---
+
+## 11. Before you go live
+
+### ⛔ The one real blocker: where patient files live
+
+`clinic-api` writes uploaded scans, X-rays and lab reports to
+`./uploads` on the local disk. There are already 22MB of them in
+development.
+
+**That does not survive a serverless host.** On Vercel, Netlify Functions
+or Lambda the filesystem is ephemeral and per-instance: a file written
+during one request is gone when the instance recycles, and invisible to
+every other instance in the meantime. A doctor would upload an X-ray, see
+it work, and find it missing the next day.
+
+The provisioning code currently creates a **Vercel** project for the API.
+That is wrong for this reason and must be changed before a real clinic
+uses attachments.
+
+Two ways out:
+
+| Option | Effort | Notes |
+|---|---|---|
+| **Host the API somewhere with a persistent disk** — Railway, Render, Fly.io, or a small VPS | Low. No code change. | Recommended for clinic #1. Attach a volume at `apps/clinic-api/uploads`. Update `createVercelProject` in `provisioning.ts` to call that host's API instead. |
+| **Move uploads to object storage** — S3, Cloudflare R2, Backblaze | Medium. Rewrite `lib/file-storage.ts`. | The right answer at ten clinics. `file-storage.ts` is already the single chokepoint — every read and write goes through it — so this is a contained change. |
+
+`clinic-web` and `provider-console` are static builds and deploy to Vercel
+perfectly well. Only the **API** needs a disk.
+
+### Pre-flight checklist
+
+- [ ] **Rotate every credential.** The dev accounts
+      (`doctor@wellnessclinic.local` etc., all `dev-pass-12345`) and the
+      console owner account must not exist in production.
+- [ ] **Generate a fresh `JWT_SECRET` per clinic.** Never copy an env file
+      between deployments — a shared secret means a token minted for one
+      clinic is valid at another.
+- [ ] **Set `NODE_ENV=production`.** This is what switches CORS from
+      permissive to an allowlist and binds the provider API to `0.0.0.0`.
+- [ ] **Set `CORS_ORIGINS`** to that clinic's real domains, comma
+      separated. Without it, production CORS rejects everything.
+- [ ] **Decide the uploads story** per the table above.
+- [ ] **Take a database backup** before the first real patient.
+- [ ] **Create a pharmacist account** if the clinic has one — none exists
+      yet, so the pharmacy screens are currently reachable only by the
+      doctor.
+- [ ] **Run the first provisioning against a throwaway clinic.** The live
+      Neon/Vercel path has never executed; only the dry run has.
+
+### What is already hardened
+
+| | |
+|---|---|
+| Login rate limiting | 5 attempts/minute per IP on both APIs, returning 429 with a countdown. `/health` is exempt so monitoring never looks like an outage. |
+| CORS | Allowlist in production, permissive only in development. |
+| Double submits | Identical in-flight mutations are collapsed in `apiFetch`, verified by counting network calls. |
+| Secrets | `.env` and `uploads/` gitignored; verified nothing sensitive is tracked. |
+| PHI access logging | Central hook, no route can skip it. |
+| Error responses | 5xx are generic; 4xx keep their actionable message. |
+
+### Deploying, concretely
+
+```bash
+# 1. Static front-ends — Vercel, Netlify, anywhere
+cd apps/clinic-web && npm run build          # → dist/ (533KB)
+cd apps/provider-console && npm run build    # → dist/ (269KB)
+# Both need SPA fallback: serve index.html for unknown paths.
+
+# 2. APIs — a host with a persistent disk
+cd apps/clinic-api && npm run build && npm start
+cd apps/provider-api && npm run build && npm start
+```
+
+All four build clean today.
+
+### Smallest sensible first deployment
+
+One clinic, three domains, four services:
+
+```
+drasif.in            → clinic-web      (static)
+dashboard.drasif.in  → clinic-web      (same build, same deployment)
+api.drasif.in        → clinic-api      (needs a disk)
+console.yourco.in    → provider-console + provider-api
+```
+
+Get that working end to end with a throwaway clinic before onboarding a
+paying one.
