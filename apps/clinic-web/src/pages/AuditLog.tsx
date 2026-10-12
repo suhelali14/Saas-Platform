@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, Download, Filter, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError } from '../lib/api';
+import { Pick } from '../components/Field';
 
 /**
  * The clinic's PHI access log, required by India's DPDP Act 2023 and NABH:
@@ -247,10 +248,7 @@ function FilterSelect({ label, value, onChange, options }: {
   return (
     <div>
       <label className="block text-[11px] text-muted-foreground/70 mb-1">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={selectCls}>
-        <option value="">All</option>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <Pick value={value} onChange={onChange} emptyLabel="All" options={options} />
     </div>
   );
 }

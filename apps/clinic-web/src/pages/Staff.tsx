@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
+import { Pick } from '../components/Field';
 
 interface StaffUser {
   id: string; email: string; name: string; role: string; isActive: boolean; createdAt: string;
@@ -72,9 +73,11 @@ export function Staff() {
           <input placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           <input type="password" placeholder="Temporary password (min 6 chars)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <Pick
+            value={form.role}
+            onChange={(role) => setForm({ ...form, role })}
+            options={ROLES.map((r) => ({ value: r, label: r }))}
+          />
           <button type="submit" disabled={creating} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {creating ? 'Adding...' : 'Add Staff Member'}
           </button>

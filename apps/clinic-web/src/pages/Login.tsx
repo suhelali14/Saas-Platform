@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope, AlertCircle } from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { apiFetch } from '../lib/api';
+import { Button } from '../components/Button';
+import { Card, CardContent, Input, Label } from '../components/ui';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -24,50 +26,77 @@ export function Login() {
     try {
       await login(email, password);
       navigate('/queue', { replace: true });
-    } catch (err: any) {
-      setError(err?.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm p-8 rounded-2xl border border-border/10 bg-foreground/[0.03]">
-        <div className="flex items-center gap-2 mb-1">
-          <Stethoscope size={20} className="text-emerald-400" />
-          <h1 className="text-xl font-bold">{clinicName || 'Clinic Portal'}</h1>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">Sign in with your staff credentials.</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+      <Card className="w-full max-w-sm">
+        {/* A form, not a div with a button: pressing Enter in the password
+            field has to submit, which is how most people sign in. */}
+        <form onSubmit={handleSubmit} noValidate={false}>
+          <CardContent className="p-7">
+            <div className="mb-1 flex items-center gap-2">
+              <Stethoscope size={20} className="text-primary" aria-hidden="true" />
+              <h1 className="text-xl font-semibold tracking-tight">{clinicName || 'Clinic Portal'}</h1>
+            </div>
+            <p className="mb-6 text-sm text-muted-foreground">Sign in with your staff credentials.</p>
 
-        {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+            {error && (
+              <div
+                className="mb-4 flex items-start gap-2 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
+                // Assertive: a failed sign-in has to interrupt, because
+                // nothing else on this screen will have changed and a
+                // screen-reader user would otherwise be left waiting.
+                role="alert"
+              >
+                <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full mb-4 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
-        />
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full mb-6 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
-        />
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-60"
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-      </form>
+            <Button
+              type="submit"
+              variant="primary"
+              busy={loading}
+              busyLabel="Signing in…"
+              className="mt-6 w-full"
+            >
+              Sign In
+            </Button>
+          </CardContent>
+        </form>
+      </Card>
     </div>
   );
 }

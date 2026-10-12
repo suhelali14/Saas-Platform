@@ -6,6 +6,7 @@ import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CaseSheetForm, PrescriptionForm, CertificateForm } from '../components/ClinicalForms';
 import { PATIENT_CATEGORIES, CATEGORY_BADGES } from '../lib/categories';
+import { Pick } from '../components/Field';
 
 interface Patient {
   id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
@@ -24,6 +25,16 @@ interface Appointment { id: string; scheduledAt: string; status: string; reason:
 interface VitalsPoint { date: string; bp: { systolic: number; diastolic: number } | null; weight: number | null; pulse: number | null; spo2: number | null; temp: number | null }
 
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
+
+
+/** The options a patient's gender field offers. One list, shared by the
+ *  create and the edit form -- they were two literal copies, which is how
+ *  one screen ends up offering a choice the other does not. */
+const GENDERS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
+];
 
 export function PatientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -296,19 +307,22 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
       {error && <div className="col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
-        <option value="">Gender</option>
-        <option>Male</option>
-        <option>Female</option>
-        <option>Other</option>
-      </select>
+      <Pick
+        value={form.gender}
+        onChange={(gender) => setForm({ ...form, gender })}
+        emptyLabel="Not recorded"
+        placeholder="Gender"
+        options={GENDERS}
+      />
       <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div className="col-span-2">
         <label className="block text-xs font-medium text-muted-foreground mb-1">OPD Priority Category</label>
-        <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
-          {PATIENT_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
+        <Pick
+          value={form.category}
+          onChange={(category) => setForm({ ...form, category })}
+          options={PATIENT_CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
+        />
       </div>
       <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />

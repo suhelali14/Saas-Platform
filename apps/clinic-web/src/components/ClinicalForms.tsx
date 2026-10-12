@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { Button } from './Button';
+import { Pick } from './Field';
 
 export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface Drug { id: string; name: string; composition: string | null; manufacturer: string | null }
@@ -233,10 +234,13 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">New Prescription</h3>
         {templates.length > 0 && (
-          <select onChange={(e) => e.target.value && loadTemplate(e.target.value)} defaultValue="" className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none">
-            <option value="">Load template...</option>
-            {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          <Pick
+            value=""
+            placeholder="Load template…"
+            onChange={(id) => { if (id) loadTemplate(id); }}
+            options={templates.map((t) => ({ value: t.id, label: t.name }))}
+            triggerClassName="h-8 text-xs"
+          />
         )}
       </div>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
@@ -277,9 +281,12 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
             )}
           </div>
           <input placeholder="Dosage (1-0-1)" value={item.dosage} onChange={(e) => updateItem(i, 'dosage', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-          <select value={item.frequency} onChange={(e) => updateItem(i, 'frequency', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400">
-            {FREQUENCIES.map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
+          <Pick
+            className="col-span-1 sm:col-span-2"
+            value={item.frequency}
+            onChange={(f) => updateItem(i, 'frequency', f)}
+            options={FREQUENCIES.map((f) => ({ value: f, label: f }))}
+          />
           <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
           <input placeholder="Instructions" value={item.instructions ?? ''} onChange={(e) => updateItem(i, 'instructions', e.target.value)} className="col-span-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
           <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>

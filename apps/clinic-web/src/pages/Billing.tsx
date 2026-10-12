@@ -4,6 +4,7 @@ import { IndianRupee, ArrowLeft, Download } from 'lucide-react';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { Button } from '../components/Button';
 import { apiFetch, openPdf, ApiError } from '../lib/api';
+import { Pick } from '../components/Field';
 
 interface InvoiceItem { id: string; category: string; description: string; quantity: number; amount: string }
 interface PaymentRow { id: string; amount: string; mode: string; paidAt: string; receivedBy: { name: string } }
@@ -198,9 +199,12 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
           {invoice.items.length === 0 && <p className="text-xs text-muted-foreground/70">No items yet.</p>}
         </div>
         <form onSubmit={addItem} className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none">
-            {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
+          <Pick
+            className="col-span-2"
+            value={category}
+            onChange={setCategory}
+            options={CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
+          />
           <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
           <input placeholder="Qty" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
           <input placeholder="₹" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
@@ -229,9 +233,11 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
       {invoice.balance > 0 && (
         <form onSubmit={recordPayment} className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex gap-2">
           <input placeholder={`Up to ₹${invoice.balance.toFixed(2)}`} type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="flex-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none" />
-          <select value={payMode} onChange={(e) => setPayMode(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none">
-            {MODES.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <Pick
+            value={payMode}
+            onChange={setPayMode}
+            options={MODES.map((m) => ({ value: m, label: m }))}
+          />
           <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">Record Payment</button>
         </form>
       )}

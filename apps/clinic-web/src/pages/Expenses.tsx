@@ -5,6 +5,7 @@ import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanel
 import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
+import { Pick } from '../components/Field';
 
 /**
  * Expense ledger and profit & loss -- the other half of the SRS's billing
@@ -184,6 +185,15 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Checked here rather than left to the browser. The category used to
+    // be a native select carrying `required`, and the handler relied on
+    // that entirely -- so when it became a Radix select, an empty
+    // category would have reached the API and come back as a validation
+    // error about a field the person had simply not noticed.
+    if (!category) {
+      setError('Choose a category. Expenses are summed by category, so one without it cannot be reported on.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -207,10 +217,13 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
       {error && <div className="md:col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Category</label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} required className={inputCls + ' w-full'}>
-          <option value="">Select…</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <Pick
+          value={category}
+          onChange={setCategory}
+          required
+          placeholder="Select…"
+          options={categories.map((c) => ({ value: c, label: c }))}
+        />
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Amount (₹)</label>
@@ -226,9 +239,15 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Paid by</label>
-        <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)} className={inputCls + ' w-full'}>
-          <option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option>
-        </select>
+        <Pick
+          value={paymentMode}
+          onChange={setPaymentMode}
+          options={[
+            { value: 'CASH', label: 'Cash' },
+            { value: 'UPI', label: 'UPI' },
+            { value: 'CARD', label: 'Card' },
+          ]}
+        />
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Vendor (optional)</label>

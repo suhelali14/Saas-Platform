@@ -4,6 +4,7 @@ import { Plus, Clock, Phone, Stethoscope, Activity, AlertTriangle, ChevronLeft, 
 import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CATEGORY_BADGES } from '../lib/categories';
+import { Pick } from '../components/Field';
 
 /** Local YYYY-MM-DD for `<input type="date">` -- deliberately not
  * toISOString().slice(0,10), which shifts to UTC and lands on the wrong day
@@ -251,10 +252,12 @@ export function Queue() {
             {doctors.length > 0 && (
               <div className="flex-[2]">
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Doctor (optional)</label>
-                <select value={bookDoctorId} onChange={(e) => setBookDoctorId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
-                  <option value="">Unassigned</option>
-                  {doctors.map((d) => <option key={d.id} value={d.id}>Dr. {d.name}</option>)}
-                </select>
+                <Pick
+                  value={bookDoctorId}
+                  onChange={setBookDoctorId}
+                  emptyLabel="Unassigned"
+                  options={doctors.map((d) => ({ value: d.id, label: `Dr. ${d.name}` }))}
+                />
               </div>
             )}
             <div className="flex-1">
