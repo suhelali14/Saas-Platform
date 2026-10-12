@@ -7,9 +7,9 @@ import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from 
 // provisionClinic is gone with the route that used it; the remaining
 // two report whether provisioning is configured.
 import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
-import { validateSlug } from "../lib/subdomain.js";
+import { validateSlug, publicHostFor, portalHostFor } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
-import { queueHealth } from "../lib/provision-jobs.js";
+import { queueHealth, enqueueDomainSync } from "../lib/provision-jobs.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -44,6 +44,47 @@ const accountSchema = z.object({
   portalDomain: domain,
   apiDomain: domain,
 });
+
+/**
+ * Which record a custom domain needs, and where.
+ *
+ * The apex of a zone cannot hold a CNAME -- it has to coexist with that
+ * zone's SOA and NS records, and RFC 1034 does not allow a CNAME
+ * alongside anything else. Registrars either refuse it or accept it and
+ * quietly break the domain's mail. So the apex gets an A record and a
+ * subdomain gets a CNAME.
+ *
+ * Apex is decided by counting labels, with the second-level registry
+ * suffixes India actually uses spelled out: drasif.in is an apex with two
+ * labels and drasif.co.in is an apex with three. A full public-suffix
+ * list would be more correct, but it is a dependency that needs updating
+ * and the failure here is recoverable -- the record is shown to a person,
+ * who can see whether their domain has a subdomain on the front.
+ */
+const REGISTRY_SUFFIXES = new Set([
+  "co", "net", "org", "gen", "firm", "ind", "ac", "edu", "gov", "mil", "res",
+]);
+
+function isApex(host: string): boolean {
+  const labels = host.split(".");
+  if (labels.length <= 2) return true;
+  // drasif.co.in -- three labels, but still the apex of its zone.
+  return labels.length === 3 && REGISTRY_SUFFIXES.has(labels[1]!);
+}
+
+function dnsRecordFor(host: string) {
+  const apex = isApex(host);
+  return {
+    type: apex ? "A" : "CNAME",
+    name: host,
+    // Vercel's apex address and its CNAME target. The website is a static
+    // bundle on Vercel; only the clinic's API lives on the VPS.
+    value: apex ? "76.76.21.21" : "cname.vercel-dns.com",
+    note: apex
+      ? `At the registrar for ${host}, as an A record on the root (often written "@"). A CNAME is not valid at a domain's apex. Then add ${host} to the clinic-web project, or it will serve the wrong site.`
+      : `At the registrar for ${host}. Then add ${host} to the clinic-web project, or it will serve the wrong site.`,
+  };
+}
 
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "clinic";
@@ -185,7 +226,21 @@ export async function accountRoutes(app: FastifyInstance) {
     const existing = await prisma.clinicAccount.findUnique({ where: { id } });
     if (!existing) return reply.status(404).send({ error: "Not found" });
 
-    const { contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides, ...rest } = parsed.data;
+    const {
+      contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides,
+      // Deliberately dropped here. Changing a website address has to
+      // check uniqueness and then tell the clinic's API about itself,
+      // which is what PUT /accounts/:id/domains does. Accepting them
+      // silently on the general edit route would be a second path to the
+      // same change with none of the safety -- and the clinic would end
+      // up refusing its own website.
+      //
+      // apiDomain is NOT dropped: it is where the clinic's server answers,
+      // not a website the browser is served from, so no clinic has to be
+      // told when it changes.
+      slug: _slug, publicDomain: _publicDomain, portalDomain: _portalDomain,
+      ...rest
+    } = parsed.data;
     const account = await prisma.clinicAccount.update({
       where: { id },
       data: {
@@ -206,6 +261,145 @@ export async function accountRoutes(app: FastifyInstance) {
     await log(id, auth, "account.updated", changes.join(", ") || undefined);
 
     return account;
+  });
+
+  /**
+   * Change where a clinic's website lives.
+   *
+   * Three things can move, and they are not equally safe:
+   *
+   * - The **slug** changes the platform addresses
+   *   (vadgaonkar.nayaverse.in -> drmomin.nayaverse.in). Both are covered
+   *   by the existing wildcard certificate and need no DNS work, and the
+   *   clinic's API hostname is stored separately and deliberately left
+   *   alone -- so this does NOT require re-provisioning. The old address
+   *   stops working immediately, which is the part worth warning about.
+   * - A **custom domain** is additive: the clinic keeps its platform
+   *   address and gains its own. It needs DNS from the clinic's registrar
+   *   and the domain attached to the website project, neither of which
+   *   this console can do, so both are returned as instructions.
+   * - Either change makes the clinic's API refuse the new address, because
+   *   CORS is an allowlist written when the clinic was provisioned. That is
+   *   the part that cannot be left to a later manual step: the site would
+   *   load and then fail every request. So a job is queued to the host.
+   */
+  app.put("/api/provider/accounts/:id/domains", async (request, reply) => {
+    // Owner-only. These are the addresses patients have been given and
+    // the addresses the clinic's own API trusts.
+    const auth = requireOwnerAuth(request, reply);
+    if (!auth) return;
+
+    const { id } = request.params as { id: string };
+    const parsed = z
+      .object({
+        slug: z.string().trim().toLowerCase().min(2).max(63).optional(),
+        publicDomain: domain,
+        portalDomain: domain,
+      })
+      .safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+    const account = await prisma.clinicAccount.findUnique({ where: { id } });
+    if (!account) return reply.status(404).send({ error: "Not found" });
+
+    const slug = parsed.data.slug ?? account.slug;
+    const publicDomain = parsed.data.publicDomain === undefined ? account.publicDomain : (parsed.data.publicDomain || null);
+    const portalDomain = parsed.data.portalDomain === undefined ? account.portalDomain : (parsed.data.portalDomain || null);
+
+    if (slug !== account.slug) {
+      // The same rules the slug was created under -- reserved names, DNS
+      // label length, no leading hyphen. A slug is a hostname here, so a
+      // value that merely passes the regex is not necessarily usable.
+      const problem = validateSlug(slug);
+      if (!problem.ok) return reply.status(400).send({ error: problem.reason });
+
+      const clash = await prisma.clinicAccount.findUnique({ where: { slug }, select: { id: true, name: true } });
+      if (clash && clash.id !== id) {
+        return reply.status(409).send({ error: `"${slug}" is already used by ${clash.name}.` });
+      }
+    }
+
+    // A custom domain is how the directory finds a clinic, and that lookup
+    // matches on the first row it finds. Two accounts claiming one
+    // hostname would resolve to whichever was created first, silently and
+    // differently depending on the query plan -- so it is refused here.
+    if (publicDomain && publicDomain === portalDomain) {
+      return reply.status(400).send({
+        error: "The patient site and the staff portal cannot share one hostname -- the bundle would not know which to render.",
+      });
+    }
+
+    for (const value of [publicDomain, portalDomain]) {
+      if (!value) continue;
+      const taken = await prisma.clinicAccount.findFirst({
+        where: { id: { not: id }, OR: [{ publicDomain: value }, { portalDomain: value }] },
+        select: { name: true },
+      });
+      if (taken) {
+        return reply.status(409).send({
+          error: `${value} is already pointed at ${taken.name}. Remove it there first.`,
+        });
+      }
+    }
+
+    // Every address this clinic's website may be served from. Both the
+    // platform subdomains and any custom domain: a clinic that has its own
+    // domain keeps the platform one working, which is what makes a custom
+    // domain safe to set up before DNS has propagated.
+    const origins = [
+      `https://${publicHostFor(slug, env.PLATFORM_DOMAIN)}`,
+      `https://${portalHostFor(slug, env.PLATFORM_DOMAIN)}`,
+      ...(publicDomain ? [`https://${publicDomain}`] : []),
+      ...(portalDomain ? [`https://${portalDomain}`] : []),
+    ];
+
+    const updated = await prisma.clinicAccount.update({
+      where: { id },
+      data: { slug, publicDomain, portalDomain },
+    });
+
+    const changes: string[] = [];
+    if (slug !== account.slug) changes.push(`slug ${account.slug} → ${slug}`);
+    if (publicDomain !== account.publicDomain) changes.push(`public ${account.publicDomain ?? "none"} → ${publicDomain ?? "none"}`);
+    if (portalDomain !== account.portalDomain) changes.push(`portal ${account.portalDomain ?? "none"} → ${portalDomain ?? "none"}`);
+    await log(id, auth, "account.domains-changed", changes.join(", ") || "no change");
+
+    // Only a provisioned clinic has an env file to rewrite and a container
+    // to restart. For one that has not been provisioned yet, the addresses
+    // are simply recorded and add-clinic.sh will derive the right list.
+    let jobId: string | null = null;
+    let queueProblem: string | null = null;
+    if (account.provisionedAt) {
+      const health = queueHealth();
+      if (!health.ok) {
+        queueProblem = health.reason;
+      } else {
+        try {
+          jobId = enqueueDomainSync({ slug, origins });
+        } catch (error) {
+          queueProblem = error instanceof Error ? error.message : "Could not queue the origin update.";
+        }
+      }
+    }
+
+    return {
+      account: updated,
+      origins,
+      jobId,
+      // Stated rather than implied. Without the origin update the new
+      // address serves the site and then fails every request it makes,
+      // and that is not a failure anyone would attribute to a domain
+      // change they made in a console.
+      pending: queueProblem
+        ? `The addresses are saved, but this clinic's API has NOT been told about them yet: ${queueProblem} Until that is done, ${publicDomain ?? publicHostFor(slug, env.PLATFORM_DOMAIN)} will load and then fail every request with a CORS error.`
+        : null,
+      // What this console cannot do itself, so nobody is left assuming it
+      // did. DNS belongs to the clinic's registrar, and the website
+      // project's domain list belongs to the host.
+      dns: [publicDomain, portalDomain]
+        .filter((h): h is string => Boolean(h))
+        .map((host) => dnsRecordFor(host)),
+    };
   });
 
   app.patch("/api/provider/accounts/:id/steps/:key", async (request, reply) => {

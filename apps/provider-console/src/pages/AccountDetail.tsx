@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ArrowLeft, Rocket, CheckCircle2, Circle, Server, Wallet, Activity,
+  ArrowLeft, Rocket, CheckCircle2, Circle, Wallet, Activity,
   History, Globe, Copy, Check, AlertTriangle, Loader2, KeyRound,
 } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -109,7 +109,7 @@ export function AccountDetail() {
         <div className="space-y-4 lg:col-span-2">
           <Provisioning account={a} meta={meta} onDone={load} />
           <Checklist accountId={a.id} steps={a.steps} onChange={load} />
-          <Deployment account={a} onSave={save} />
+          <Addresses account={a} meta={meta} onSave={save} onChanged={load} />
         </div>
         <div className="space-y-4">
           <Deal account={a} meta={meta} onSave={save} />
@@ -474,46 +474,344 @@ function Checklist({
   );
 }
 
-function Deployment({
-  account, onSave,
+/**
+ * Every address this clinic answers on, and how to change them.
+ *
+ * Three things live here because an operator thinks of them as one
+ * question ("what is this clinic's web address?") even though they behave
+ * very differently:
+ *
+ * - The **slug** is the platform address. Changing it is cheap: both the
+ *   old and the new name are covered by the same wildcard certificate, so
+ *   there is no DNS work and no re-provisioning. The cost is that the old
+ *   address stops working the moment it is saved, and patients may have
+ *   been given it.
+ * - A **custom domain** is additive. The clinic keeps its platform address
+ *   and gains its own, which is what makes it safe to set up before DNS
+ *   has propagated. It needs two things this console cannot do, so both
+ *   are shown rather than implied.
+ * - The **API hostname** is where the clinic's own server answers. It is
+ *   not a website and is not a CORS origin; it is set when the clinic is
+ *   provisioned and is almost never edited by hand.
+ */
+function Addresses({
+  account, meta, onSave, onChanged,
 }: {
   account: Detail["account"];
+  meta: Meta | null;
   onSave: (p: Record<string, unknown>) => Promise<void>;
+  onChanged: () => void;
 }) {
+  const platform = meta?.platformDomain ?? "";
+  const [slug, setSlug] = useState(account.slug);
+  const [publicDomain, setPublicDomain] = useState(account.publicDomain ?? "");
+  const [portalDomain, setPortalDomain] = useState(account.portalDomain ?? "");
   const [apiDomain, setApiDomain] = useState(account.apiDomain ?? "");
-  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<DomainResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
-  const dirty = apiDomain !== (account.apiDomain ?? "");
+  // Re-seed when the account reloads, or the inputs would keep showing
+  // what was typed before a save that has since been applied.
+  useEffect(() => {
+    setSlug(account.slug);
+    setPublicDomain(account.publicDomain ?? "");
+    setPortalDomain(account.portalDomain ?? "");
+    setApiDomain(account.apiDomain ?? "");
+  }, [account.slug, account.publicDomain, account.portalDomain, account.apiDomain]);
+
+  const clean = (v: string) =>
+    v.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
+  const slugChanged = slug !== account.slug;
+  const domainsChanged =
+    clean(publicDomain) !== (account.publicDomain ?? "") ||
+    clean(portalDomain) !== (account.portalDomain ?? "");
+  const dirty = slugChanged || domainsChanged;
+
+  // Shown live, because a slug is not obviously a hostname until you see
+  // it as one. Typing "dr momin" and being told the address would be
+  // "dr momin.nayaverse.in" is the fastest way to understand the rule.
+  const nextPublic = publicDomain ? clean(publicDomain) : `${slug}.${platform}`;
+  const nextPortal = portalDomain ? clean(portalDomain) : `${slug}.portal.${platform}`;
+
+  async function saveAddresses() {
+    setError(null);
+    setResult(null);
+    try {
+      const body = await apiFetch<DomainResult>(`/api/provider/accounts/${account.id}/domains`, {
+        method: "PUT",
+        body: JSON.stringify({
+          slug,
+          publicDomain: clean(publicDomain),
+          portalDomain: clean(portalDomain),
+        }),
+      });
+      setResult(body);
+      toast.success("Addresses saved");
+      onChanged();
+    } catch (e) {
+      // Shown in the panel rather than only as a toast: a refusal here
+      // names the clinic already using the address, which is the thing
+      // the operator has to act on.
+      setError(e instanceof ApiError ? e.message : "Could not save the addresses.");
+    }
+  }
 
   return (
-    <Panel title="Deployment" icon={Server}>
-      <div className="space-y-1.5">
-        <Label htmlFor="apiDomain">API hostname</Label>
-        <div className="flex gap-2">
-          <Input
-            id="apiDomain"
-            value={apiDomain}
-            onChange={(e) => setApiDomain(e.target.value)}
-            placeholder="acme.api.yourdomain.in"
-            className="font-mono"
-          />
-          <Button
-            variant="outline"
-            disabled={!dirty}
-            loading={saving}
-            onClick={async () => {
-              setSaving(true);
-              try { await onSave({ apiDomain: apiDomain || null }); } finally { setSaving(false); }
-            }}
-          >
-            Save
-          </Button>
+    <Panel title="Addresses" icon={Globe}>
+      <div className="space-y-5">
+        {/* What it is right now, as links, so they can be checked. */}
+        <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
+          <LiveAddress label="Patient site" host={account.publicDomain ?? (platform ? `${account.slug}.${platform}` : null)} />
+          <LiveAddress label="Staff portal" host={account.portalDomain ?? (platform ? `${account.slug}.portal.${platform}` : null)} />
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Where this clinic's own API answers. Set automatically when you provision from here.
+
+        {/* The platform address. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="slug">Platform name</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+              className="font-mono"
+              placeholder="acme"
+            />
+            <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">.{platform || "…"}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Lowercase letters, numbers and hyphens. Covered by the existing wildcard certificate,
+            so a change needs no DNS work and no re-provisioning.
+          </p>
+        </div>
+
+        {/* The consequence, stated before the save rather than after. */}
+        {slugChanged && (
+          <Notice tone={account.status === "LIVE" ? "warn" : "info"}>
+            {account.status === "LIVE" ? (
+              <>
+                <strong>{account.slug}.{platform} will stop working immediately.</strong> Anyone
+                holding the old address — a patient with a bookmark, a printed card, a Google
+                result — gets “no clinic at this address”. The clinic's API hostname is separate
+                and is left alone, so nothing has to be re-provisioned.
+              </>
+            ) : (
+              <>This clinic is not live yet, so changing its name costs nothing.</>
+            )}
+          </Notice>
+        )}
+
+        {/* The clinic's own domain. */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="publicDomain">Own domain (patient site)</Label>
+            <Input
+              id="publicDomain"
+              value={publicDomain}
+              onChange={(e) => setPublicDomain(e.target.value)}
+              placeholder="drasifclinic.in"
+              className="font-mono"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="portalDomain">Own domain (staff portal)</Label>
+            <Input
+              id="portalDomain"
+              value={portalDomain}
+              onChange={(e) => setPortalDomain(e.target.value)}
+              placeholder="dashboard.drasifclinic.in"
+              className="font-mono"
+            />
+          </div>
+        </div>
+        <p className="-mt-2 text-[11px] text-muted-foreground">
+          Optional, and additive — the platform address keeps working either way. Leave blank
+          unless the clinic owns a domain.
         </p>
+
+        {dirty && (
+          <div className="rounded-md border border-border/60 p-3 text-xs">
+            <p className="mb-1.5 font-medium">After saving</p>
+            <p className="font-mono text-[11px] text-muted-foreground">patients → https://{nextPublic}</p>
+            <p className="font-mono text-[11px] text-muted-foreground">staff → https://{nextPortal}</p>
+          </div>
+        )}
+
+        {error && <Notice tone="warn">{error}</Notice>}
+
+        {result && <DomainOutcome result={result} />}
+
+        <div className="flex items-center gap-2">
+          <Button disabled={!dirty} onClick={saveAddresses}>Save addresses</Button>
+          {dirty && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSlug(account.slug);
+                setPublicDomain(account.publicDomain ?? "");
+                setPortalDomain(account.portalDomain ?? "");
+                setError(null);
+                setResult(null);
+              }}
+            >
+              Discard
+            </Button>
+          )}
+        </div>
+
+        {/* The API hostname, kept apart: it is not a website. */}
+        <div className="space-y-1.5 border-t border-border/60 pt-4">
+          <Label htmlFor="apiDomain">API hostname</Label>
+          <div className="flex gap-2">
+            <Input
+              id="apiDomain"
+              value={apiDomain}
+              onChange={(e) => setApiDomain(e.target.value)}
+              placeholder="acme.api.yourdomain.in"
+              className="font-mono"
+            />
+            <Button
+              variant="outline"
+              disabled={apiDomain === (account.apiDomain ?? "")}
+              onClick={async () => { await onSave({ apiDomain: apiDomain || null }); }}
+            >
+              Save
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Where this clinic's own server answers. Set automatically when you provision from
+            here, and tied to its TLS certificate — changing it by hand will take the clinic
+            offline unless that hostname already has a certificate.
+          </p>
+        </div>
       </div>
     </Panel>
+  );
+}
+
+type DomainResult = {
+  origins: string[];
+  jobId: string | null;
+  pending: string | null;
+  dns: { type: string; name: string; value: string; note: string }[];
+};
+
+/**
+ * What the save did, and what is left for a human.
+ *
+ * The queued job is the part that matters and the part an operator would
+ * never think to check: a clinic's API only trusts the addresses it was
+ * told about at provisioning time, so until that job lands the new
+ * address serves the site and then fails every request it makes.
+ */
+function DomainOutcome({ result }: { result: DomainResult }) {
+  const [job, setJob] = useState<JobStatus | null>(null);
+
+  useEffect(() => {
+    if (!result.jobId) return;
+    let stop = false;
+    const poll = async () => {
+      try {
+        const s = await apiFetch<JobStatus>(`/api/provider/provision-jobs/${result.jobId}`);
+        if (stop) return;
+        setJob(s);
+        if (s.state === "queued" || s.state === "running") setTimeout(poll, 2000);
+      } catch {
+        // A job that cannot be read is reported by its absence rather
+        // than by a retry loop that never ends.
+        if (!stop) setJob(null);
+      }
+    };
+    poll();
+    return () => { stop = true; };
+  }, [result.jobId]);
+
+  return (
+    <div className="space-y-3">
+      {result.pending && <Notice tone="warn">{result.pending}</Notice>}
+
+      {result.jobId && (
+        <div className="flex items-start gap-2 rounded-md border border-border/60 p-3 text-xs">
+          {job?.state === "succeeded" ? (
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+          ) : job?.state === "failed" ? (
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          ) : (
+            <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" />
+          )}
+          <div className="min-w-0">
+            <p className="font-medium">
+              {job?.state === "succeeded"
+                ? "The clinic's API now trusts these addresses"
+                : job?.state === "failed"
+                  ? "The clinic's API was not updated"
+                  : "Telling the clinic's API about the new addresses…"}
+            </p>
+            <p className="mt-0.5 break-words text-muted-foreground">
+              {job?.message ?? "Queued."}
+            </p>
+            {job?.state === "failed" && (
+              <p className="mt-1.5 text-muted-foreground">
+                The addresses are saved, but until this succeeds the site will load and then fail
+                every request with a CORS error. Retry by saving again.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {result.dns.length > 0 && (
+        <div className="rounded-md border border-border/60 p-3 text-xs">
+          <p className="mb-2 font-medium">Still to do by hand</p>
+          <p className="mb-2 text-muted-foreground">
+            A custom domain needs two things this console cannot reach: the record below, at the
+            clinic's own registrar, and the domain added to the website project.
+          </p>
+          <div className="space-y-2">
+            {result.dns.map((r) => (
+              <div key={r.name} className="rounded border border-border/60 bg-muted/20 p-2 font-mono text-[11px]">
+                <div>{r.type}  {r.name}  →  {r.value}</div>
+                <div className="mt-1 font-sans text-muted-foreground">{r.note}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveAddress({ label, host }: { label: string; host: string | null }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      {host ? (
+        <a
+          href={`https://${host}`}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate font-mono text-foreground underline-offset-2 hover:underline"
+        >
+          {host}
+        </a>
+      ) : (
+        <span className="font-mono text-muted-foreground">not configured</span>
+      )}
+    </div>
+  );
+}
+
+function Notice({ tone, children }: { tone: "warn" | "info"; children: React.ReactNode }) {
+  const styles =
+    tone === "warn"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+      : "border-border/60 bg-muted/20 text-muted-foreground";
+  return (
+    <div className={`flex items-start gap-2 rounded-md border p-3 text-xs ${styles}`}>
+      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
 

@@ -108,12 +108,66 @@ for job in "${JOB_FILES[@]}"; do
   id="$(basename "$job" .json)"
   log "job $id"
 
+  kind="$(read_json "$job" kind)"
+  # A job written by the previous version carries no kind. It can only
+  # ever have been a provision request, so an in-flight job survives a
+  # deploy rather than being rejected as unrecognised.
+  [ -n "$kind" ] || kind=provision
+
   slug="$(read_json "$job" slug)"
   name="$(read_json "$job" name)"
   doctor="$(read_json "$job" doctorName)"
   email="$(read_json "$job" doctorEmail)"
   plan="$(read_json "$job" plan)"
   dburl="$(read_json "$job" databaseUrl)"
+  extra="$(read_json "$job" extraOrigins)"
+
+  # ── Changing which websites a clinic trusts ────────────────────────
+  #
+  # Separate from provisioning because it touches a live clinic: it
+  # rewrites one line of its env file and recreates its container. It
+  # therefore validates and reports on its own terms rather than being
+  # squeezed into the provisioning path below.
+  if [ "$kind" = "sync-origins" ]; then
+    origins="$(read_json "$job" origins)"
+    fault=""
+    [ -n "$slug" ] || fault="slug is missing"
+    [ -z "$fault" ] && ! printf '%s' "$slug" | grep -qE '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' \
+      && fault="slug '$slug' is not a valid hostname label"
+    # Checked here as well as in set-origins.sh. An empty list would make
+    # the clinic refuse its own website, so it must never get that far on
+    # the strength of one check.
+    [ -z "$fault" ] && [ -z "$origins" ] && fault="no origins given"
+
+    if [ -n "$fault" ]; then
+      log "  rejected: $fault"
+      write_status "$id" failed "$fault"
+      mv -f "$job" "$ARCHIVE/$id.json"
+      continue
+    fi
+
+    write_status "$id" running "Updating the addresses $slug trusts"
+
+    out="$JOBS/.out-$id"
+    if "$ROOT/repo/deploy/set-origins.sh" "$slug" "$origins" > "$out" 2>&1; then
+      applied="$(grep -m1 '^RESULT_ORIGINS=' "$out" | cut -d= -f2-)"
+      write_status "$id" succeeded "$slug now accepts: ${applied:-$origins}" \
+        "$(printf '"origins":%s' "$(json_str "${applied:-$origins}")")"
+      log "  succeeded: $slug origins -> ${applied:-$origins}"
+    else
+      tail="$(redact < "$out" | strip_ansi | tail -8 | tr '\n' ' ' | sed 's/  */ /g')"
+      write_status "$id" failed "$tail"
+      log "  FAILED: $slug origins"
+      redact < "$out" | tail -15 | sed 's/^/      /'
+    fi
+
+    # No connection string in this job, so it is archived rather than
+    # shredded -- a record of who changed a live clinic's addresses is
+    # worth keeping.
+    mv -f "$job" "$ARCHIVE/$id.json"
+    rm -f "$out"
+    continue
+  fi
 
   # Validate before acting. These values came from an HTTP request, and
   # the slug in particular becomes a hostname, a filename and a
@@ -143,6 +197,7 @@ for job in "${JOB_FILES[@]}"; do
      CLINIC_NAME="$name" \
      CLINIC_DOCTOR_NAME="$doctor" \
      CLINIC_DOCTOR_EMAIL="$email" \
+     CLINIC_EXTRA_ORIGINS="$extra" \
      "$ROOT/repo/deploy/add-clinic.sh" "$slug" --plan "$plan" > "$out" 2>&1; then
 
     password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"

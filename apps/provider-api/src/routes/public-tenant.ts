@@ -81,6 +81,65 @@ export async function publicTenantRoutes(app: FastifyInstance) {
       };
     },
   );
+
+  /**
+   * Resolve a clinic from a custom domain.
+   *
+   * A platform subdomain carries its slug in the hostname, so the
+   * browser can ask for it directly. A clinic on its own domain --
+   * drasif.in -- carries nothing, so the lookup has to go the other
+   * way: hostname first, slug second.
+   *
+   * Matched against both the public and the portal domain, because one
+   * clinic may have separate names for the two and the bundle needs to
+   * know which of the two sites it is before it renders either.
+   */
+  app.get<{ Params: { host: string } }>(
+    "/api/provider/public/tenant-by-host/:host",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const host = (request.params.host ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/[:/].*$/, "")
+        .replace(/\.$/, "");
+
+      // Must look like a hostname before it reaches a query.
+      if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9-]+)+$/.test(host) || host.length > 253) {
+        return reply.status(404).send({ error: "Unknown clinic." });
+      }
+
+      const account = await prisma.clinicAccount.findFirst({
+        where: { OR: [{ publicDomain: host }, { portalDomain: host }] },
+        select: {
+          slug: true, name: true, status: true,
+          apiDomain: true, publicDomain: true, portalDomain: true,
+        },
+      });
+
+      if (!account || account.status === "LEAD" || account.status === "ONBOARDING" || account.status === "CHURNED") {
+        reply.header("Cache-Control", "public, max-age=60");
+        return reply.status(404).send({ error: "Unknown clinic." });
+      }
+
+      const suspended = account.status === "SUSPENDED";
+      reply.header("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+
+      return {
+        slug: account.slug,
+        name: account.name,
+        status: account.status,
+        suspended,
+        apiBaseUrl: suspended ? null : clinicApiBaseUrl(account.slug, account.apiDomain),
+        publicHost: account.publicDomain ?? publicHostFor(account.slug, env.PLATFORM_DOMAIN),
+        portalHost: account.portalDomain ?? portalHostFor(account.slug, env.PLATFORM_DOMAIN),
+        // Which of the two this hostname is, so the bundle does not have
+        // to guess from a name it was not given.
+        siteMode: account.portalDomain === host ? "portal" : "public",
+      };
+    },
+  );
 }
 
 /**

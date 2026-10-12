@@ -113,6 +113,9 @@ export async function provisionRoutes(app: FastifyInstance) {
         doctorEmail: parsed.data.doctorEmail,
         plan: account.plan as "BASIC" | "STANDARD" | "PREMIUM",
         databaseUrl,
+        extraOrigins: [account.publicDomain, account.portalDomain]
+          .filter((d): d is string => Boolean(d))
+          .map((d) => `https://${d}`),
       });
 
       // actorName is denormalized on purpose: the entry has to still read

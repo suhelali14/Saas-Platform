@@ -101,6 +101,22 @@ PLATFORM_DOMAIN="$(grep -hoP '^PLATFORM_DOMAIN=\K.*' "$ENV_DIR/provider.env" 2>/
 # "acme.api.example.in" is two labels, so it misses that wildcard and is
 # caught by "*.api.example.in" pointing here.
 API_HOST="$SLUG.api.$PLATFORM_DOMAIN"
+
+# Any domain of the clinic's own, recorded before it was provisioned.
+# Each is checked against the shape @fastify/cors compares literally --
+# scheme, host, nothing else. A trailing slash here would never match the
+# Origin a browser actually sends, and the env file would still look right.
+EXTRA_ORIGINS=""
+if [ -n "${CLINIC_EXTRA_ORIGINS:-}" ]; then
+  IFS="," read -ra _origins <<< "$CLINIC_EXTRA_ORIGINS"
+  for _o in "${_origins[@]}"; do
+    _o="$(printf '%s' "$_o" | tr -d '[:space:]')"
+    [ -n "$_o" ] || continue
+    printf '%s' "$_o" | grep -qE '^https://[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9-]+)+$' \
+      || die "CLINIC_EXTRA_ORIGINS contains '$_o', which is not a plain https origin"
+    EXTRA_ORIGINS="$EXTRA_ORIGINS,$_o"
+  done
+fi
 info "api hostname: $API_HOST"
 
 # ── The database ──────────────────────────────────────────────────────
@@ -179,7 +195,7 @@ DATABASE_URL=$DB_URL
 JWT_SECRET=$JWT
 
 CLINIC_PLAN=$PLAN
-CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN
+CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN$EXTRA_ORIGINS
 ENVFILE
 chmod 600 "$ENV_DIR/$SLUG.env"
 chown deploy:deploy "$ENV_DIR/$SLUG.env"

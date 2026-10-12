@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { currentTenant, fetchTenantConfig, TenantNotFound, type TenantConfig } from './lib/tenant';
+import {
+  currentTenant,
+  fetchTenantConfig,
+  fetchTenantConfigByHost,
+  HAS_TENANT_DIRECTORY,
+  TenantNotFound,
+  type TenantConfig,
+} from './lib/tenant';
+import { setSiteMode } from './lib/site-mode';
 import { setApiBaseUrl } from './lib/api';
 
 /**
@@ -21,7 +29,16 @@ import { setApiBaseUrl } from './lib/api';
  */
 export function TenantGate({ children }: { children: React.ReactNode }) {
   const location = currentTenant();
-  const needsLookup = location.kind === 'tenant';
+
+  // A clinic on its own domain (drasif.in) has to be looked up the other
+  // way round: the hostname carries no slug, so the directory is asked
+  // which clinic answers at this address.
+  //
+  // Only when a directory exists. A single-clinic self-hosted deployment
+  // is also `legacy` and has no directory to ask -- it is correctly served
+  // by its build-time VITE_API_URL, exactly as before.
+  const isCustomDomain = location.kind === 'legacy' && HAS_TENANT_DIRECTORY;
+  const needsLookup = location.kind === 'tenant' || isCustomDomain;
   // A platform hostname -- www, the bare domain, console -- is not a
   // clinic and must not render one. Falling through to the clinic app
   // showed "this clinic hasn't published its details yet" on
@@ -45,12 +62,21 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (location.kind !== 'tenant') return;
+    if (!needsLookup) return;
     let cancelled = false;
 
-    fetchTenantConfig(location.slug)
+    const lookup =
+      location.kind === 'tenant'
+        ? fetchTenantConfig(location.slug)
+        : fetchTenantConfigByHost(window.location.hostname);
+
+    lookup
       .then((config) => {
         if (cancelled) return;
+        // A custom domain is the one case where the hostname does not say
+        // whether this is the patient site or the staff portal, so the
+        // directory does.
+        if (config.siteMode) setSiteMode(config.siteMode);
         if (config.suspended || !config.apiBaseUrl) {
           // The directory withholds the API base URL for a suspended
           // clinic, so there is nothing to point the app at even if this
@@ -73,7 +99,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [location.kind, location.kind === 'tenant' ? location.slug : '']);
+  }, [needsLookup, location.kind, location.kind === 'tenant' ? location.slug : '']);
 
   if (state.phase === 'ready') return <>{children}</>;
 

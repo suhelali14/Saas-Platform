@@ -97,6 +97,10 @@ export function resolveTenant(hostname: string, platformDomain: string): TenantL
 
 export type TenantConfig = {
   slug: string;
+  /** Set only by a by-host lookup: a custom domain carries no hint of
+   *  whether it is the patient site or the portal, so the directory
+   *  says which. */
+  siteMode?: "public" | "portal";
   name: string;
   status: string;
   suspended: boolean;
@@ -106,6 +110,16 @@ export type TenantConfig = {
 };
 
 const DIRECTORY_URL = import.meta.env.VITE_PROVIDER_API_URL ?? "";
+
+/**
+ * Whether this deployment has a directory to ask at all.
+ *
+ * This is what separates the platform (where an unrecognised hostname is
+ * genuinely not a clinic) from a single clinic hosting its own copy (where
+ * every hostname is that one clinic and the build-time VITE_API_URL is the
+ * right answer).
+ */
+export const HAS_TENANT_DIRECTORY: boolean = Boolean(DIRECTORY_URL);
 const CACHE_PREFIX = "tenant-config:";
 /** Treat a cached copy as fresh for five minutes. */
 const FRESH_MS = 5 * 60 * 1000;
@@ -144,6 +158,7 @@ function writeCache(slug: string, config: TenantConfig): void {
  * is offline". The server sends `stale-while-revalidate` for the same
  * reason one layer out.
  */
+
 export async function fetchTenantConfig(slug: string): Promise<TenantConfig> {
   const cached = readCache(slug);
   if (cached && Date.now() - cached.at < FRESH_MS) return cached.config;
@@ -170,6 +185,44 @@ export async function fetchTenantConfig(slug: string): Promise<TenantConfig> {
 
     const config = (await response.json()) as TenantConfig;
     writeCache(slug, config);
+    return config;
+  } catch (error) {
+    if (error instanceof TenantNotFound) throw error;
+    if (cached) return cached.config;
+    throw error;
+  }
+}
+
+/**
+ * Looks a clinic up by its own domain.
+ *
+ * A platform subdomain carries its slug, so it can be asked for
+ * directly. A clinic on drasif.in carries nothing, so the lookup has to
+ * go the other way -- and without this, such a host fell back to the
+ * build-time VITE_API_URL, which in production is the localhost default
+ * and fails in the browser with a connection refused.
+ */
+export async function fetchTenantConfigByHost(host: string): Promise<TenantConfig> {
+  const cached = readCache(`host:${host}`);
+  if (cached && Date.now() - cached.at < FRESH_MS) return cached.config;
+
+  if (!DIRECTORY_URL) {
+    throw new Error("This deployment has no tenant directory configured (VITE_PROVIDER_API_URL).");
+  }
+
+  try {
+    const response = await fetch(
+      `${DIRECTORY_URL}/api/provider/public/tenant-by-host/${encodeURIComponent(host)}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (response.status === 404) {
+      try { localStorage.removeItem(`${CACHE_PREFIX}host:${host}`); } catch { /* ignore */ }
+      throw new TenantNotFound(host);
+    }
+    if (!response.ok) throw new Error(`Directory returned ${response.status}`);
+
+    const config = (await response.json()) as TenantConfig;
+    writeCache(`host:${host}`, config);
     return config;
   } catch (error) {
     if (error instanceof TenantNotFound) throw error;

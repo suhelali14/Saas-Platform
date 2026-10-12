@@ -91,7 +91,34 @@ export function resolveSiteMode(hostname?: string): SiteMode {
   return 'public';
 }
 
-export const SITE_MODE: SiteMode = resolveSiteMode();
+let resolved: SiteMode | null = null;
+
+/**
+ * This page load's site mode.
+ *
+ * Read through a function rather than a module-level constant because a
+ * clinic on its own domain is resolved by the tenant directory, which
+ * answers over the network. A constant is evaluated when this module is
+ * first imported -- before any lookup can have finished -- so a custom
+ * portal domain would have been decided by the prefix rules below and
+ * then never corrected.
+ */
+export function siteMode(): SiteMode {
+  if (!resolved) resolved = resolveSiteMode();
+  return resolved;
+}
+
+/**
+ * Records what the directory said a custom domain is.
+ *
+ * Only the directory knows: drasif.in and portal.drasif.in are both just
+ * hostnames to this bundle, and the conventional prefixes below are a
+ * guess that a clinic is free not to follow. Called by TenantGate before
+ * children mount, so nothing has read the resolved value yet.
+ */
+export function setSiteMode(mode: SiteMode): void {
+  resolved = mode;
+}
 
 /**
  * Absolute URL to the other site, for the cross-links between them
@@ -103,7 +130,7 @@ export const SITE_MODE: SiteMode = resolveSiteMode();
  * and `/queue` does not exist on the patient's.
  */
 export function publicSiteUrl(path = '/'): string {
-  if (SITE_MODE !== 'portal') return path === '/' ? '/clinic' : path;
+  if (siteMode() !== 'portal') return path === '/' ? '/clinic' : path;
   const configured = import.meta.env.VITE_PUBLIC_SITE_URL;
   if (configured) return joinUrl(configured, path);
   // Fall back to dropping the portal subdomain: dashboard.x.in -> x.in.
@@ -111,7 +138,7 @@ export function publicSiteUrl(path = '/'): string {
 }
 
 export function portalSiteUrl(path = '/'): string {
-  if (SITE_MODE !== 'public') return path;
+  if (siteMode() !== 'public') return path;
   const configured = import.meta.env.VITE_PORTAL_SITE_URL;
   if (configured) return joinUrl(configured, path);
   // x.in -> dashboard.x.in
@@ -158,4 +185,6 @@ function joinUrl(origin: string, path: string): string {
 
 /** True when the two sites are on separate hostnames, so cross-links must
  * leave the current origin. */
-export const SITES_ARE_SPLIT = SITE_MODE !== 'both';
+export function sitesAreSplit(): boolean {
+  return siteMode() !== 'both';
+}

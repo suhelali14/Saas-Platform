@@ -3,7 +3,7 @@ import { ClinicAuthProvider, useClinicAuth } from './contexts/ClinicAuthContext'
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './components/Toast';
 import { SkeletonPage } from './components/Skeleton';
-import { SITE_MODE } from './lib/site-mode';
+import { siteMode } from './lib/site-mode';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Queue } from './pages/Queue';
@@ -137,15 +137,19 @@ function portalRoutes() {
  * the client rather than with per-host rewrite rules at the edge.
  */
 export default function App() {
+  // Read here, not at module scope: TenantGate renders nothing until the
+  // directory has said which site this hostname is, and that answer has
+  // to be in before the router tree is chosen.
+  const mode = siteMode();
   return (
     <ThemeProvider>
       <ToastProvider>
       <ClinicAuthProvider>
         <BrowserRouter>
           <Routes>
-            {SITE_MODE === 'public' && publicRoutes()}
-            {SITE_MODE === 'portal' && portalRoutes()}
-            {SITE_MODE === 'both' && [
+            {mode === 'public' && publicRoutes()}
+            {mode === 'portal' && portalRoutes()}
+            {mode === 'both' && [
               // Single-domain / development: the patient site keeps its
               // /clinic path so both fit on one origin, exactly as before.
               <Route key="clinic" path="/clinic" element={<PublicClinic />} />,

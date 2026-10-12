@@ -42,6 +42,30 @@ export type ProvisionRequest = {
   doctorEmail: string;
   plan: "BASIC" | "STANDARD" | "PREMIUM";
   databaseUrl: string;
+  /** Any custom domain already recorded for this clinic. A domain set
+   *  during the sales call, before provisioning, would otherwise be left
+   *  out of the CORS list the new env file is written with -- and the
+   *  clinic would refuse the very address it was sold. */
+  extraOrigins?: string[];
+};
+
+/**
+ * Tell a clinic's API which websites may call it.
+ *
+ * Needed because CORS on a clinic API is a strict allowlist, written into
+ * that clinic's env file when it was provisioned and derived from its slug
+ * at that moment. Change the slug or add a custom domain and the new
+ * address resolves, serves the bundle, and then fails every single request
+ * with a CORS error -- a site that looks live and does nothing.
+ *
+ * So a domain change is not a database edit. It has to reach the host.
+ */
+export type DomainSyncRequest = {
+  slug: string;
+  /** Every origin the clinic's website may be served from, scheme
+   *  included. Replaces the list wholesale rather than appending, so an
+   *  address the clinic has stopped using also stops being trusted. */
+  origins: string[];
 };
 
 /** The runner must have checked in this recently for the queue to be
@@ -114,12 +138,40 @@ export function jobsAvailable(): boolean {
 }
 
 export function enqueueProvision(req: ProvisionRequest): string {
+  const { extraOrigins, ...rest } = req;
+  return writeJob(
+    // Flattened to a string for the same reason as sync-origins: the
+    // runner reads this with a shell-side JSON reader.
+    { kind: "provision", ...rest, extraOrigins: (extraOrigins ?? []).join(",") },
+    `Queued ${req.name}`,
+  );
+}
+
+export function enqueueDomainSync(req: DomainSyncRequest): string {
+  // Written as one comma-separated string rather than a JSON array: the
+  // runner is shell, and its JSON reader stringifies whatever it finds, so
+  // an array would reach set-origins.sh as a Python list literal.
+  return writeJob(
+    { kind: "sync-origins", slug: req.slug, origins: req.origins.join(",") },
+    `Queued an origin update for ${req.slug}`,
+  );
+}
+
+/**
+ * Writes a job for the host runner to pick up.
+ *
+ * `kind` is what the runner dispatches on. It is written explicitly even
+ * for provisioning, which predates it: a job file with no kind is treated
+ * as a provision request by the runner, so an in-flight job written by the
+ * previous version is still handled correctly during a deploy.
+ */
+function writeJob(job: { kind: string } & Record<string, unknown>, queuedMessage: string): string {
   if (!jobsAvailable()) {
     throw new Error("The provisioning job directory is not mounted; this console cannot provision.");
   }
 
   const id = randomUUID();
-  const payload = JSON.stringify({ ...req, requestedAt: new Date().toISOString() }, null, 2);
+  const payload = JSON.stringify({ ...job, requestedAt: new Date().toISOString() }, null, 2);
 
   // Written to a temporary name and renamed into place. The runner polls
   // this directory, and a rename is atomic -- writing directly would let
@@ -136,7 +188,7 @@ export function enqueueProvision(req: ProvisionRequest): string {
     JSON.stringify({
       id,
       state: "queued",
-      message: `Queued ${req.name}`,
+      message: queuedMessage,
       updatedAt: new Date().toISOString(),
     }),
     { mode: 0o600 },
