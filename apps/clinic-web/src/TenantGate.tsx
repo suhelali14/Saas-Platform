@@ -22,14 +22,27 @@ import { setApiBaseUrl } from './lib/api';
 export function TenantGate({ children }: { children: React.ReactNode }) {
   const location = currentTenant();
   const needsLookup = location.kind === 'tenant';
+  // A platform hostname -- www, the bare domain, console -- is not a
+  // clinic and must not render one. Falling through to the clinic app
+  // showed "this clinic hasn't published its details yet" on
+  // www.<domain>, which reads as a broken clinic rather than an address
+  // that was never a clinic.
+  const isPlatformHost = location.kind === 'platform';
 
   const [state, setState] = useState<
     | { phase: 'ready'; config: TenantConfig | null }
     | { phase: 'loading' }
     | { phase: 'suspended'; name: string }
     | { phase: 'unknown' }
+    | { phase: 'platform' }
     | { phase: 'error'; message: string }
-  >(needsLookup ? { phase: 'loading' } : { phase: 'ready', config: null });
+  >(
+    needsLookup
+      ? { phase: 'loading' }
+      : isPlatformHost
+        ? { phase: 'platform' }
+        : { phase: 'ready', config: null },
+  );
 
   useEffect(() => {
     if (location.kind !== 'tenant') return;
@@ -84,6 +97,18 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
         <p className="mt-2 max-w-md text-sm text-gray-600">
           This clinic's online services are paused. Please contact the clinic directly for appointments
           or records.
+        </p>
+      </Centered>
+    );
+  }
+
+  if (state.phase === 'platform') {
+    return (
+      <Centered>
+        <h1 className="text-xl font-semibold text-gray-900">Nayaverse</h1>
+        <p className="mt-2 max-w-md text-sm text-gray-600">
+          Clinic software. Each clinic has its own address — if you are looking for a
+          particular practice, use the link they gave you.
         </p>
       </Centered>
     );
