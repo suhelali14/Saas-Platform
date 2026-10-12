@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { Button } from './Button';
 import { Pick } from './Field';
+import { SegmentedControl } from './SegmentedControl';
 
 export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface Drug { id: string; name: string; composition: string | null; manufacturer: string | null }
@@ -339,13 +340,12 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Certificate for {patientName}</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      <div className="flex gap-2">
-        {CERT_TYPES.map((t) => (
-          <button type="button" key={t.id} onClick={() => setType(t.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${type === t.id ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Certificate type"
+        value={type}
+        onChange={setType}
+        options={CERT_TYPES.map((t) => ({ value: t.id, label: t.label }))}
+      />
       {type === 'SICK_LEAVE' && (
         <div className="flex gap-3">
           <div className="flex-1">

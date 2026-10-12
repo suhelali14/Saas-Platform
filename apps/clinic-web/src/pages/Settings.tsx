@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 interface Timing { day: string; opensAt?: string; closesAt?: string; closed?: boolean }
 interface Highlight { title: string; description?: string }
@@ -49,29 +50,25 @@ export function Settings() {
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><SettingsIcon size={20} className="text-emerald-400" /> Settings</h1>
       <p className="text-sm text-muted-foreground mb-4">Clinic details, your profile, and your password.</p>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {canEditClinic && (
-          <button onClick={() => setTab('clinic')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'clinic' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-            <Building2 size={13} /> Clinic
-          </button>
-        )}
-        <button onClick={() => setTab('profile')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'profile' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-          <UserCircle size={13} /> My Profile
-        </button>
-        <button onClick={() => setTab('security')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'security' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-          <KeyRound size={13} /> Password
-        </button>
-        {canEditClinic && (
-          <button onClick={() => setTab('documents')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'documents' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-            <Printer size={13} /> Documents
-          </button>
-        )}
-        {canEditClinic && (
-          <button onClick={() => setTab('data')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'data' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-            <Database size={13} /> Data &amp; Backup
-          </button>
-        )}
-      </div>
+      {/* Which tabs exist depends on the role: reception can change its
+          own profile and password but not the clinic's registration
+          number, which prints on legal certificates. The tabs are built
+          from a filtered list rather than wrapped individually in
+          `canEditClinic &&`, so the keyboard order matches what is
+          actually on screen. */}
+      <SegmentedControl
+        label="Settings section"
+        className="mb-6"
+        value={tab}
+        onChange={setTab}
+        options={[
+          ...(canEditClinic ? [{ value: 'clinic' as const, label: <><Building2 size={13} /> Clinic</> }] : []),
+          { value: 'profile' as const, label: <><UserCircle size={13} /> My Profile</> },
+          { value: 'security' as const, label: <><KeyRound size={13} /> Password</> },
+          ...(canEditClinic ? [{ value: 'documents' as const, label: <><Printer size={13} /> Documents</> }] : []),
+          ...(canEditClinic ? [{ value: 'data' as const, label: <><Database size={13} /> Data & Backup</> }] : []),
+        ]}
+      />
 
       {tab === 'clinic' && canEditClinic && <ClinicSettings />}
       {tab === 'profile' && <ProfileSettings />}

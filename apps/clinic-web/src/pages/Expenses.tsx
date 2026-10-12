@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { Pick } from '../components/Field';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 /**
  * Expense ledger and profit & loss -- the other half of the SRS's billing
@@ -46,8 +47,17 @@ export function Expenses() {
 
       <div className="flex flex-wrap items-end gap-3 mb-5">
         <div className="flex gap-2">
-          <button onClick={() => setTab('ledger')} className={tabCls(tab === 'ledger')}>Ledger</button>
-          {canSeeProfitLoss && <button onClick={() => setTab('pl')} className={tabCls(tab === 'pl')}>Profit &amp; Loss</button>}
+          <SegmentedControl
+            label="Expenses view"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'ledger', label: 'Ledger' },
+              // Profit & Loss is admin-only: it is the clinic's earnings,
+              // not a record of what was spent.
+              ...(canSeeProfitLoss ? [{ value: 'pl' as const, label: 'Profit & Loss' }] : []),
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2 ml-auto">
           <div>
@@ -343,8 +353,6 @@ function Breakdown({ title, rows, tone }: { title: string; rows: { label: string
 }
 
 const inputCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
-const tabCls = (active: boolean) =>
-  `px-3 py-1.5 rounded-lg text-xs font-medium ${active ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`;
 
 /** Local date, never toISOString().slice(0,10) -- that shifts to UTC and
  * lands on the wrong day in IST. Same fix as the queue's date picker. */

@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 /** Local YYYY-MM-DD for `<input type="date">` -- deliberately not
  * toISOString().slice(0,10), which shifts to UTC and lands on the wrong day
@@ -205,15 +206,21 @@ export function Queue() {
         </span>
       </div>
 
+      {/* A filter over one list, not tabs over panels -- but it is still
+          a set of mutually exclusive choices, so it gets the same
+          keyboard contract. Only shown once there is more than one
+          doctor to choose between. */}
       {doctors.length > 1 && (
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setDoctorFilter('')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${!doctorFilter ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>All Doctors</button>
-          {doctors.map((d) => (
-            <button key={d.id} onClick={() => setDoctorFilter(d.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${doctorFilter === d.id ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-              Dr. {d.name}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Filter the queue by doctor"
+          className="mb-4"
+          value={doctorFilter}
+          onChange={setDoctorFilter}
+          options={[
+            { value: '', label: 'All Doctors' },
+            ...doctors.map((d) => ({ value: d.id, label: `Dr. ${d.name}` })),
+          ]}
+        />
       )}
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}

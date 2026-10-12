@@ -9,6 +9,7 @@ import { brandingUrl } from './Settings';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 /**
  * The clinic admin's control over their own public website: which sections
@@ -62,13 +63,19 @@ export function Website() {
       </div>
       <p className="text-sm text-muted-foreground mb-5">Control what patients see on your public page.</p>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {([['layout', 'Layout & Theme'], ['languages', 'Languages'], ['blog', 'Health Articles'], ['gallery', 'Photo Gallery'], ['feedback', 'Patient Feedback']] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === k ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Website section"
+        className="mb-6"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'layout', label: 'Layout & Theme' },
+          { value: 'languages', label: 'Languages' },
+          { value: 'blog', label: 'Health Articles' },
+          { value: 'gallery', label: 'Photo Gallery' },
+          { value: 'feedback', label: 'Patient Feedback' },
+        ]}
+      />
 
       {tab === 'layout' && <LayoutBuilder />}
       {tab === 'languages' && <LanguageManager />}
@@ -662,15 +669,15 @@ function SitePreview({ sections, theme, heroImagePath }: {
           {!ready && <Spinner size={11} className="text-emerald-400" />}
         </div>
         <div className="flex items-center gap-1">
-          {(['desktop', 'phone'] as const).map((w) => (
-            <button
-              key={w}
-              onClick={() => setWidth(w)}
-              className={`px-2.5 py-1.5 rounded-lg text-[11px] capitalize ${width === w ? 'bg-foreground text-background' : 'bg-foreground/10 text-foreground/80'}`}
-            >
-              {w}
-            </button>
-          ))}
+          <SegmentedControl
+            label="Preview width"
+            value={width}
+            onChange={setWidth}
+            options={[
+              { value: 'desktop', label: 'Desktop' },
+              { value: 'phone', label: 'Phone' },
+            ]}
+          />
           <a href={publicSiteUrl('/')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-[11px] hover:bg-foreground/20">
             <ExternalLink size={11} /> Open
           </a>

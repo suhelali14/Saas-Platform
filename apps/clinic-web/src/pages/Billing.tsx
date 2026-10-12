@@ -5,6 +5,7 @@ import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanel
 import { Button } from '../components/Button';
 import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { Pick } from '../components/Field';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 interface InvoiceItem { id: string; category: string; description: string; quantity: number; amount: string }
 interface PaymentRow { id: string; amount: string; mode: string; paidAt: string; receivedBy: { name: string } }
@@ -76,10 +77,16 @@ export function Billing() {
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><IndianRupee size={20} className="text-emerald-400" /> Billing</h1>
       <p className="text-sm text-muted-foreground mb-4">Invoices, payments, and daily cash closing.</p>
 
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('invoices')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'invoices' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Invoices</button>
-        <button onClick={() => setTab('closing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'closing' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Daily Closing</button>
-      </div>
+      <SegmentedControl
+        label="Billing view"
+        className="mb-6"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'invoices', label: 'Invoices' },
+          { value: 'closing', label: 'Daily Closing' },
+        ]}
+      />
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 

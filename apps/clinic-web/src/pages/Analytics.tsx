@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Users, UserPlus, Repeat, Stethoscope, ClipboardList } from 'lucide-react';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError } from '../lib/api';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 interface DailyVisit { date: string; count: number }
 interface TopDiagnosis { diagnosis: string; count: number }
@@ -46,13 +47,12 @@ export function Analytics() {
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 size={20} className="text-emerald-400" /> Analytics</h1>
-        <div className="flex gap-2">
-          {RANGES.map((r) => (
-            <button key={r.days} onClick={() => setRangeDays(r.days)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${rangeDays === r.days ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
-              {r.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Date range"
+          value={String(rangeDays)}
+          onChange={(v) => setRangeDays(Number(v))}
+          options={RANGES.map((r) => ({ value: String(r.days), label: r.label }))}
+        />
       </div>
       <p className="text-sm text-muted-foreground mb-6">Visit trends, common diagnoses, and workload for the selected period.</p>
 

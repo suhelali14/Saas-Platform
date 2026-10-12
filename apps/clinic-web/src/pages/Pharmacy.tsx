@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Pill, CheckCircle2, AlertTriangle, Search, Plus, Package } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 interface Item { drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface RxRow {
@@ -16,10 +17,16 @@ export function Pharmacy() {
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Pill size={20} className="text-emerald-400" /> Pharmacy</h1>
       <p className="text-sm text-muted-foreground mb-4">Dispensing queue and stock management.</p>
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('dispensing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'dispensing' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Dispensing</button>
-        <button onClick={() => setTab('inventory')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'inventory' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Inventory</button>
-      </div>
+      <SegmentedControl
+        label="Pharmacy view"
+        className="mb-6"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'dispensing', label: 'Dispensing' },
+          { value: 'inventory', label: 'Inventory' },
+        ]}
+      />
       {tab === 'dispensing' ? <Dispensing /> : <Inventory />}
     </div>
   );
