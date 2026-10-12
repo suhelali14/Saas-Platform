@@ -20,13 +20,13 @@ scan() {   # scan <dir>
     -----BEGIN.{0,24}PRIVATE
   '
   for pattern in $patterns; do
-    if grep -rqE "$pattern" "$dir" 2>/dev/null; then
+    if grep -rqE -e "$pattern" "$dir" 2>/dev/null; then
       echo "        caught: /$pattern/"
       fail=1
     fi
   done
   for name in JWT_SECRET NEON_API_KEY VERCEL_TOKEN DATABASE_URL; do
-    if grep -rqE "$name[\"']?[:=][\"']?[A-Za-z0-9+/_-]{16,}" "$dir" 2>/dev/null; then
+    if grep -rqE -e "$name[\"']?[:=][\"']?[A-Za-z0-9+/_-]{16,}" "$dir" 2>/dev/null; then
       echo "        caught: $name with a value attached"
       fail=1
     fi

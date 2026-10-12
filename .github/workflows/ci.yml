@@ -99,11 +99,11 @@ jobs:
           for dir in apps/clinic-web/dist apps/provider-console/dist; do
             [ -d "$dir" ] || continue
             for pattern in $patterns; do
-              if grep -rqE "$pattern" "$dir" 2>/dev/null; then
+              if grep -rqE -e "$pattern" "$dir" 2>/dev/null; then
                 echo "::error::A credential matching /$pattern/ is present in $dir"
                 # Show only where, never the value itself -- a CI log is
                 # retained and often shared.
-                grep -rlE "$pattern" "$dir" | sed 's/^/  /'
+                grep -rlE -e "$pattern" "$dir" | sed 's/^/  /'
                 fail=1
               fi
             done
@@ -112,7 +112,7 @@ jobs:
             # alone is fine; the name followed by something substantial
             # is not.
             for name in JWT_SECRET NEON_API_KEY VERCEL_TOKEN DATABASE_URL; do
-              if grep -rqE "$name[\"']?[:=][\"']?[A-Za-z0-9+/_-]{16,}" "$dir" 2>/dev/null; then
+              if grep -rqE -e "$name[\"']?[:=][\"']?[A-Za-z0-9+/_-]{16,}" "$dir" 2>/dev/null; then
                 echo "::error::$name appears with a value attached in $dir"
                 fail=1
               fi
