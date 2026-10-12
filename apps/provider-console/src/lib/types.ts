@@ -106,18 +106,26 @@ export interface ProvisionOutcome {
   adminPassword?: string;
 }
 
-export const STATUS_STYLE: Record<AccountStatus, string> = {
-  LEAD: 'bg-white/10 text-gray-300',
-  ONBOARDING: 'bg-amber-500/15 text-amber-400',
-  LIVE: 'bg-emerald-500/15 text-emerald-400',
-  SUSPENDED: 'bg-red-500/15 text-red-400',
-  CHURNED: 'bg-white/5 text-gray-500',
+/**
+ * Which badge variant each status gets.
+ *
+ * Visual weight follows the exception, not the norm. LIVE is the
+ * expected state for a healthy account and stays quiet; SUSPENDED and
+ * CHURNED are what should catch the eye when scanning fifty rows. A list
+ * where every row is coloured gives the eye nowhere to rest.
+ */
+export const STATUS_VARIANT: Record<AccountStatus, 'default' | 'outline' | 'success' | 'warning' | 'destructive' | 'primary'> = {
+  LEAD: 'outline',
+  ONBOARDING: 'primary',
+  LIVE: 'success',
+  SUSPENDED: 'warning',
+  CHURNED: 'destructive',
 };
 
-export const PLAN_STYLE: Record<PlanTier, string> = {
-  BASIC: 'bg-white/10 text-gray-300',
-  STANDARD: 'bg-blue-500/15 text-blue-400',
-  PREMIUM: 'bg-purple-500/15 text-purple-400',
+export const PLAN_VARIANT: Record<PlanTier, 'default' | 'outline'> = {
+  BASIC: 'outline',
+  STANDARD: 'outline',
+  PREMIUM: 'default',
 };
 
 export function money(value: string | number | null, currency = 'INR'): string {

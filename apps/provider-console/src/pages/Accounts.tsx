@@ -1,13 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
-  Building2, Plus, Search, Activity, IndianRupee, CircleDot, X, AlertTriangle,
-} from 'lucide-react';
-import { apiFetch, ApiError } from '../lib/api';
-import { Button } from '../components/Button';
-import { SkeletonStats, SkeletonList } from '../components/Skeleton';
-import { useToast } from '../components/Toast';
-import { type AccountListItem, type Meta, STATUS_STYLE, PLAN_STYLE, money } from '../lib/types';
+  Plus, Search, Building2, Wallet, Activity, AlertTriangle, ArrowRight,
+} from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/api";
+import {
+  type AccountListItem, type Meta, type PlanTier,
+  STATUS_VARIANT, PLAN_VARIANT, money,
+} from "@/lib/types";
+import { useToast } from "@/components/Toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 /**
  * Every clinic you have sold to, and what state each one is in.
@@ -20,193 +33,276 @@ export function Accounts() {
   const [accounts, setAccounts] = useState<AccountListItem[]>([]);
   const [mrr, setMrr] = useState(0);
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch<{ accounts: AccountListItem[]; mrr: number }>('/accounts');
-      setAccounts(res.accounts);
-      setMrr(res.mrr);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not load accounts.');
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      const data = await apiFetch<{ accounts: AccountListItem[]; mrr: number }>(
+        `/accounts?${params.toString()}`,
+      );
+      setAccounts(data.accounts);
+      setMrr(data.mrr);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not load clinics.");
     } finally {
       setLoading(false);
     }
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    // Debounced so typing in the search box does not fire a request per
+    // keystroke against a list that is rarely long enough to need it.
+    const t = setTimeout(load, search ? 250 : 0);
+    return () => clearTimeout(t);
+  }, [load, search]);
+
+  useEffect(() => {
+    apiFetch<Meta>("/meta").then(setMeta).catch(() => {
+      /* Reference data only -- the list still works without it. */
+    });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { apiFetch<Meta>('/meta').then(setMeta).catch(() => setMeta(null)); }, []);
-
-  const visible = accounts.filter((a) => {
-    if (statusFilter && a.status !== statusFilter) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return [a.name, a.city, a.contactName, a.publicDomain].some((v) => v?.toLowerCase().includes(q));
-  });
-
-  const live = accounts.filter((a) => a.status === 'LIVE');
-  const down = live.filter((a) => a.lastHealth && !a.lastHealth.ok);
+  const live = accounts.filter((a) => a.status === "LIVE").length;
+  const down = accounts.filter((a) => a.lastHealth && !a.lastHealth.ok).length;
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-[1600px]">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <Building2 size={20} className="text-emerald-400" /> Clinics
-        </h1>
-        <Button variant="primary" icon={<Plus size={15} />} onClick={() => setCreating(true)}>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Clinics</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Every clinic you have sold to, and what state each one is in.
+          </p>
+        </div>
+        <Button onClick={() => setCreating(true)}>
+          <Plus />
           Onboard a clinic
         </Button>
       </div>
-      <p className="text-sm text-gray-400 mb-5">Every clinic you have sold to, and where each one stands.</p>
 
-      {/* Down clinics are the one thing worth interrupting for. */}
-      {down.length > 0 && (
-        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 mb-5">
-          <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-red-200">
-            <strong className="text-red-300">{down.length} live {down.length === 1 ? 'clinic is' : 'clinics are'} not responding.</strong>{' '}
-            {down.map((a) => a.name).join(', ')} — patients may be unable to reach the site.
-          </div>
-        </div>
-      )}
-
-      {loading ? <div className="mb-6"><SkeletonStats count={3} label="Loading totals" /></div> : (
-      <div className="grid sm:grid-cols-3 gap-3 mb-6">
-        <Stat icon={CircleDot} label="Live clinics" value={String(live.length)} tone="text-emerald-400" />
-        <Stat icon={IndianRupee} label="Monthly recurring" value={money(mrr)} tone="text-white"
-          hint="Live accounts only — a lead is a hope, not income." />
-        <Stat icon={Activity} label="Onboarding" value={String(accounts.filter((a) => a.status === 'ONBOARDING').length)} tone="text-amber-400" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat
+          icon={<Building2 className="size-4" />}
+          label="Live clinics"
+          value={loading ? null : String(live)}
+          hint={`${accounts.length} total`}
+        />
+        <Stat
+          icon={<Wallet className="size-4" />}
+          label="Monthly recurring"
+          value={loading ? null : money(mrr)}
+          // Counted from LIVE accounts only. A lead is a hope, not income.
+          hint="from live clinics only"
+        />
+        <Stat
+          icon={down > 0 ? <AlertTriangle className="size-4" /> : <Activity className="size-4" />}
+          label="Health"
+          value={loading ? null : down > 0 ? `${down} down` : "All healthy"}
+          hint={down > 0 ? "check the clinic below" : "last poll"}
+          tone={down > 0 ? "bad" : "good"}
+        />
       </div>
-      )}
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
+      <div className="flex flex-wrap gap-3">
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by clinic, city, contact or domain"
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400"
+            placeholder="Search by name, slug or city"
+            className="pl-9"
+            aria-label="Search clinics"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none">
-          <option value="">All statuses</option>
-          {(meta?.statuses ?? []).map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-44" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {(meta?.statuses ?? []).map((s) => (
+              <SelectItem key={s} value={s}>
+                {s.charAt(0) + s.slice(1).toLowerCase()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm mb-4">{error}</div>}
-      {loading && <SkeletonList rows={5} label="Loading clinics" />}
+      {error && (
+        <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-      <div className="flex flex-col gap-2">
-        {visible.map((a) => (
-          <Link key={a.id} to={`/clinics/${a.id}`}
-            className="flex items-center gap-3 p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium truncate">{a.name}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${STATUS_STYLE[a.status]}`}>{a.status}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PLAN_STYLE[a.plan]}`}>{a.plan}</span>
-              </div>
-              <div className="text-[11px] text-gray-500 truncate mt-0.5">
-                {[a.city, a.contactName, a.publicDomain].filter(Boolean).join('  ·  ') || 'No details yet'}
-              </div>
+      {loading ? (
+        <div role="status" aria-label="Loading clinics" className="space-y-2">
+          <span className="sr-only">Loading clinics</span>
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[72px]" />)}
+        </div>
+      ) : accounts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 p-12 text-center">
+            <Building2 className="size-8 text-muted-foreground" />
+            <div>
+              <p className="font-medium">
+                {search || statusFilter !== "all" ? "No clinics match that" : "No clinics yet"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {search || statusFilter !== "all"
+                  ? "Try a different search or clear the filter."
+                  : "Onboard your first clinic to get started."}
+              </p>
             </div>
-
-            {a.status === 'LIVE' && a.lastHealth && (
-              <span className={`flex items-center gap-1.5 text-[11px] shrink-0 ${a.lastHealth.ok ? 'text-emerald-400' : 'text-red-400'}`}
-                title={`Checked ${new Date(a.lastHealth.checkedAt).toLocaleString()}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${a.lastHealth.ok ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                {a.lastHealth.ok ? `${a.lastHealth.latencyMs}ms` : 'down'}
-              </span>
+            {!search && statusFilter === "all" && (
+              <Button onClick={() => setCreating(true)} className="mt-1">
+                <Plus />
+                Onboard a clinic
+              </Button>
             )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {accounts.map((a) => <AccountRow key={a.id} account={a} />)}
+        </div>
+      )}
 
-            {a.progress.total > 0 && a.progress.done < a.progress.total && (
-              <span className="text-[11px] text-gray-500 shrink-0">{a.progress.done}/{a.progress.total}</span>
-            )}
-            <span className="text-sm shrink-0 tabular-nums">{a.monthlyFee ? money(a.monthlyFee, a.currency) : '—'}</span>
-          </Link>
-        ))}
-
-        {!loading && visible.length === 0 && (
-          <p className="text-sm text-gray-600 py-12 text-center">
-            {accounts.length === 0
-              ? 'No clinics yet. Onboard your first one to get started.'
-              : 'No clinics match that search.'}
-          </p>
-        )}
-      </div>
-
-      {creating && <NewAccountDialog meta={meta} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load(); }} />}
+      {creating && (
+        <CreateDialog
+          meta={meta}
+          onClose={() => setCreating(false)}
+          onCreated={() => { setCreating(false); void load(); }}
+        />
+      )}
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value, tone, hint }: {
-  icon: any; label: string; value: string; tone: string; hint?: string;
+function Stat({
+  icon, label, value, hint, tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | null;
+  hint: string;
+  tone?: "good" | "bad";
 }) {
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-      <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
-        <Icon size={13} className={tone} /> {label}
-      </div>
-      <div className={`text-2xl font-bold ${tone}`}>{value}</div>
-      {hint && <div className="text-[11px] text-gray-600 mt-1">{hint}</div>}
-    </div>
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          {icon}
+          <span className="text-xs font-medium">{label}</span>
+        </div>
+        {value === null ? (
+          <Skeleton className="mt-2 h-7 w-24" />
+        ) : (
+          <p className={`mt-2 text-2xl font-semibold tabular tracking-tight ${tone === "bad" ? "text-destructive" : ""}`}>
+            {value}
+          </p>
+        )}
+        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
   );
 }
 
-function NewAccountDialog({ meta, onClose, onCreated }: {
-  meta: Meta | null; onClose: () => void; onCreated: () => void;
+function AccountRow({ account: a }: { account: AccountListItem }) {
+  const unhealthy = a.lastHealth && !a.lastHealth.ok;
+  return (
+    <Link
+      to={`/clinics/${a.id}`}
+      className="group flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate font-medium">{a.name}</span>
+          <Badge variant={STATUS_VARIANT[a.status]}>{a.status.toLowerCase()}</Badge>
+          <Badge variant={PLAN_VARIANT[a.plan]}>{a.plan.toLowerCase()}</Badge>
+          {unhealthy && (
+            <Badge variant="destructive">
+              <AlertTriangle className="size-3" />
+              unreachable
+            </Badge>
+          )}
+        </div>
+        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+          {a.slug}
+          {a.city ? ` · ${a.city}` : ""}
+          {a.contactName ? ` · ${a.contactName}` : ""}
+        </p>
+      </div>
+
+      <div className="hidden text-right sm:block">
+        <p className="text-sm font-medium tabular">{money(a.monthlyFee, a.currency)}</p>
+        <p className="text-xs text-muted-foreground">
+          {a.progress.done}/{a.progress.total} steps
+        </p>
+      </div>
+
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+    </Link>
+  );
+}
+
+function CreateDialog({
+  meta, onClose, onCreated,
+}: {
+  meta: Meta | null;
+  onClose: () => void;
+  onCreated: () => void;
 }) {
   const toast = useToast();
-  const [name, setName] = useState('');
-  // The slug IS the clinic's subdomain, so it has to be deliberate rather
-  // than derived from a legal name: "Dr Asif's Family Clinic Pvt Ltd"
-  // slugifies to something nobody wants to read out over the phone. It is
-  // also effectively permanent -- changing it later would move every URL
-  // the clinic has given to patients.
-  const [slug, setSlug] = useState('');
+  const [name, setName] = useState("");
+  // The slug IS the clinic's subdomain, so it has to be deliberate
+  // rather than derived from a legal name: "Dr Asif's Family Clinic Pvt
+  // Ltd" slugifies to something nobody wants to read out over the phone.
+  // It is also effectively permanent -- changing it later would move
+  // every URL the clinic has given to patients.
+  const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [city, setCity] = useState('');
-  const [plan, setPlan] = useState<'BASIC' | 'STANDARD' | 'PREMIUM'>('STANDARD');
-  const [monthlyFee, setMonthlyFee] = useState('');
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [plan, setPlan] = useState<PlanTier>("STANDARD");
+  const [monthlyFee, setMonthlyFee] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // Prefill the fee from the plan, but let it be overridden -- the console
-  // should suggest the list price, not insist on it.
+  const suggested = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  useEffect(() => {
+    if (!slugEdited) setSlug(suggested);
+  }, [suggested, slugEdited]);
+
   useEffect(() => {
     if (meta?.suggestedFees) setMonthlyFee(String(meta.suggestedFees[plan]));
   }, [plan, meta]);
 
-  // Mirrors the server's slugify so the preview matches what would
-  // actually be stored. Kept in sync deliberately rather than fetched:
-  // the field needs to update on every keystroke.
-  const suggestedSlug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
-
-  // Follow the name until the operator takes over, then leave it alone.
-  useEffect(() => {
-    if (!slugEdited) setSlug(suggestedSlug);
-  }, [suggestedSlug, slugEdited]);
+  const domain = meta?.platformDomain ?? "yourdomain";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     setError(null);
+    setSaving(true);
     try {
-      await apiFetch('/accounts', {
-        method: 'POST',
+      await apiFetch("/accounts", {
+        method: "POST",
         data: {
           name,
           slug: slug || undefined,
@@ -218,88 +314,115 @@ function NewAccountDialog({ meta, onClose, onCreated }: {
           monthlyFee: monthlyFee ? Number(monthlyFee) : undefined,
         },
       });
-      toast.success(name + " added.");
+      toast.success(`${name} added.`);
       onCreated();
     } catch (err) {
-      const m = err instanceof ApiError ? err.message : 'Could not create the account.';
+      const m = err instanceof ApiError ? err.message : "Could not create the account.";
       setError(m);
       toast.error(m);
-      throw err;
+      setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden="true" />
-      <form onSubmit={submit} role="dialog" aria-label="Onboard a clinic"
-        className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#11141a] p-5 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">Onboard a clinic</h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-white/10" aria-label="Close"><X size={16} /></button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Onboard a clinic</DialogTitle>
+          <DialogDescription>
+            This creates the account. Provisioning the database and server comes next, from the clinic's page.
+          </DialogDescription>
+        </DialogHeader>
 
-        {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm mb-3">{error}</div>}
+        <form onSubmit={submit} className="space-y-4">
+          {error && (
+            <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Clinic name" span><input value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} /></Field>
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Clinic name</Label>
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </div>
 
-          <Field label="Subdomain" span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="slug">Subdomain</Label>
+            <Input
+              id="slug"
               value={slug}
-              onChange={(e) => { setSlugEdited(true); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
+              onChange={(e) => {
+                setSlugEdited(true);
+                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+              }}
               required
-              className={inputCls}
               placeholder="acme"
-              aria-describedby="slug-hint"
+              className="font-mono"
             />
-            <p id="slug-hint" className="mt-1 text-[11px] leading-relaxed text-gray-400">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               {slug ? (
                 <>
-                  Patients: <span className="text-gray-300">{slug}.{meta?.platformDomain ?? 'yourdomain'}</span>
-                  {' · '}Staff: <span className="text-gray-300">{slug}.portal.{meta?.platformDomain ?? 'yourdomain'}</span>
+                  Patients <span className="font-mono text-foreground">{slug}.{domain}</span>
+                  {" · "}
+                  Staff <span className="font-mono text-foreground">{slug}.portal.{domain}</span>
                 </>
               ) : (
-                'Becomes the clinic’s web address. Keep it short.'
+                "Becomes the clinic's web address. Keep it short."
               )}
               <br />
-              Must match the slug used when the API was created, and cannot be changed later.
+              Cannot be changed later.
             </p>
-          </Field>
-          <Field label="Contact person"><input value={contactName} onChange={(e) => setContactName(e.target.value)} className={inputCls} /></Field>
-          <Field label="City"><input value={city} onChange={(e) => setCity(e.target.value)} className={inputCls} /></Field>
-          <Field label="Email" hint="Becomes their first sign-in."><input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputCls} /></Field>
-          <Field label="Phone"><input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={inputCls} /></Field>
-          <Field label="Plan">
-            <select value={plan} onChange={(e) => setPlan(e.target.value as any)} className={inputCls}>
-              {(meta?.plans ?? ['BASIC', 'STANDARD', 'PREMIUM']).map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </Field>
-          <Field label="Monthly fee (₹)" hint="Suggested from the plan; change it to match the deal.">
-            <input type="number" min="0" value={monthlyFee} onChange={(e) => setMonthlyFee(e.target.value)} className={inputCls} />
-          </Field>
-        </div>
+          </div>
 
-        <p className="text-[11px] text-gray-600 mt-4 leading-relaxed">
-          Creating the account only records the deal. Domains and provisioning come next, on the clinic's own page.
-        </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="contactName">Contact person</Label>
+              <Input id="contactName" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="city">City</Label>
+              <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="contactEmail">Email</Label>
+              <Input id="contactEmail" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="contactPhone">Phone</Label>
+              <Input id="contactPhone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan">Plan</Label>
+              <Select value={plan} onValueChange={(v) => setPlan(v as PlanTier)}>
+                <SelectTrigger id="plan"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(meta?.plans ?? ["BASIC", "STANDARD", "PREMIUM"]).map((p) => (
+                    <SelectItem key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="fee">Monthly fee (₹)</Label>
+              <Input
+                id="fee"
+                type="number"
+                min="0"
+                value={monthlyFee}
+                onChange={(e) => setMonthlyFee(e.target.value)}
+                className="tabular"
+              />
+            </div>
+          </div>
 
-        <div className="flex gap-2 mt-4">
-          <Button variant="primary" type="submit" busyLabel="Creating…">Create account</Button>
-          <Button type="button" onClick={onClose}>Cancel</Button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-const inputCls = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400';
-
-function Field({ label, hint, span, children }: { label: string; hint?: string; span?: boolean; children: React.ReactNode }) {
-  return (
-    <div className={span ? 'sm:col-span-2' : ''}>
-      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
-      {children}
-      {hint && <p className="text-[11px] text-gray-600 mt-1">{hint}</p>}
-    </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" loading={saving}>
+              {saving ? "Creating…" : "Create account"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

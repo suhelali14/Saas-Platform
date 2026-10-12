@@ -4,7 +4,9 @@ import { prisma } from "../lib/prisma.js";
 import { requireProviderAuth, requireOwnerAuth } from "../plugins/auth.js";
 import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
 import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from "../lib/plans.js";
-import { provisionClinic, provisioningAvailable, isDryRun } from "../lib/provisioning.js";
+// provisionClinic is gone with the route that used it; the remaining
+// two report whether provisioning is configured.
+import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
 import { validateSlug } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
 
@@ -224,65 +226,26 @@ export async function accountRoutes(app: FastifyInstance) {
    * Owner-only: it creates billable resources and writes DNS. Runs as a dry
    * run whenever credentials are absent, and records which it was.
    */
+  /**
+   * Superseded by POST /accounts/:id/provision-clinic.
+   *
+   * This created Vercel projects for the clinic's API and web, which is
+   * no longer how anything is deployed: clinic APIs are containers on
+   * our own server, because Vercel's filesystem would lose patient
+   * scans, and clinic-web is a single deployment serving every clinic
+   * through the wildcard.
+   *
+   * Refused rather than deleted, so anything still calling it is told
+   * where to go instead of silently creating billable Vercel projects
+   * that nothing will ever serve.
+   */
   app.post("/api/provider/accounts/:id/provision", async (request, reply) => {
     const auth = requireOwnerAuth(request, reply);
     if (!auth) return;
-
-    const { id } = request.params as { id: string };
-    const account = await prisma.clinicAccount.findUnique({ where: { id } });
-    if (!account) return reply.status(404).send({ error: "Not found" });
-
-    if (!account.contactEmail) {
-      return reply.status(400).send({ error: "Add a contact email first — it becomes the clinic's first sign-in." });
-    }
-
-    const outcome = await provisionClinic({
-      slug: account.slug,
-      name: account.name,
-      plan: account.plan,
-      features: resolveFeatures(account.plan as PlanTier, account.featureOverrides),
-      publicDomain: account.publicDomain,
-      portalDomain: account.portalDomain,
-      apiDomain: account.apiDomain,
-      adminEmail: account.contactEmail,
-      adminName: account.contactName ?? account.name,
-      neonProjectId: account.neonProjectId,
-      vercelWebProjectId: account.vercelWebProjectId,
-      vercelApiProjectId: account.vercelApiProjectId,
+    return reply.status(410).send({
+      error:
+        "Superseded. Use POST /api/provider/accounts/:id/provision-clinic, which creates the database and queues the server work.",
     });
-
-    // Only a real run changes stored state. A dry run must leave no trace
-    // that could later be mistaken for a provisioned clinic.
-    if (!outcome.dryRun) {
-      const succeeded = outcome.steps.filter((s) => s.status === "ok").map((s) => s.key);
-      await prisma.clinicAccount.update({
-        where: { id },
-        data: {
-          neonProjectId: outcome.neonProjectId ?? account.neonProjectId,
-          vercelWebProjectId: outcome.vercelWebProjectId ?? account.vercelWebProjectId,
-          vercelApiProjectId: outcome.vercelApiProjectId ?? account.vercelApiProjectId,
-          status: outcome.steps.every((s) => s.status === "ok") ? "ONBOARDING" : account.status,
-          provisionedAt: outcome.steps.every((s) => s.status === "ok") ? new Date() : account.provisionedAt,
-        },
-      });
-      for (const key of succeeded) {
-        await prisma.onboardingStep.updateMany({
-          where: { accountId: id, key },
-          data: { done: true, doneAt: new Date() },
-        });
-      }
-    }
-
-    await log(
-      id,
-      auth,
-      outcome.dryRun ? "provision.dry-run" : "provision.run",
-      outcome.steps.map((s) => `${s.key}:${s.status}`).join(" "),
-      !outcome.dryRun,
-    );
-
-    // The admin password is returned exactly once and never stored.
-    return outcome;
   });
 
   app.delete("/api/provider/accounts/:id", async (request, reply) => {
