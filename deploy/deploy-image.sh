@@ -130,11 +130,40 @@ for env_file in "${ENV_FILES[@]}"; do
   if [ "$slug" = "provider" ]; then app=provider-api; else app=clinic-api; fi
 
   info "$slug -> $app"
-  if ! docker run --rm \
-        --env-file "$env_file" \
-        -w "/app/apps/$app" \
-        "$TAG" \
-        npx prisma migrate deploy > "/tmp/migrate-$slug.log" 2>&1; then
+
+  # Up to three attempts, but ONLY for "cannot reach the database".
+  #
+  # Neon suspends a free-tier database after five minutes idle, so a
+  # deploy nearly always arrives at a sleeping one and the wake-up can
+  # outrun Prisma's connect timeout -- P1001, with nothing attempted.
+  #
+  # A migration that ran and then failed is never retried: the second
+  # attempt would apply part of it on top of the first, which is how a
+  # schema reaches a state no migration describes.
+  migrate_rc=0
+  attempt=1
+  while :; do
+    if docker run --rm \
+         --env-file "$env_file" \
+         -w "/app/apps/$app" \
+         "$TAG" \
+         npx prisma migrate deploy > "/tmp/migrate-$slug.log" 2>&1; then
+      migrate_rc=0
+      break
+    fi
+    migrate_rc=1
+
+    if [ "$attempt" -lt 3 ] && grep -q 'P1001' "/tmp/migrate-$slug.log"; then
+      wait_for=$((attempt * 10))
+      info "  unreachable (P1001) -- the database is probably asleep; retrying in ${wait_for}s"
+      sleep "$wait_for"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    break
+  done
+
+  if [ "$migrate_rc" != "0" ]; then
     redact < "/tmp/migrate-$slug.log" | tail -25
 
     # P3005: objects exist in the target schema but there is no
