@@ -95,38 +95,38 @@ export function Layout() {
       <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
       {enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
 
-      <div className="my-2 border-t border-white/10" />
+      <div className="my-2 border-t border-border/10" />
       <ExternalNavItem href={publicSiteUrl('/live-queue')} icon={Radio} label="Live Queue Display" />
       <ExternalNavItem href={publicSiteUrl('/')} icon={Globe} label="Public Clinic Page" />
     </>
   );
 
   const userFooter = (
-    <div className="border-t border-white/10 pt-3 mt-3">
+    <div className="border-t border-border/10 pt-3 mt-3">
       <div className="px-2 mb-2">
-        <div className="text-xs font-medium text-white truncate">{user?.name}</div>
+        <div className="text-xs font-medium text-foreground truncate">{user?.name}</div>
         {user && (
-          <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${ROLE_COLORS[user.role] || 'bg-white/10 text-gray-300'}`}>
+          <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${ROLE_COLORS[user.role] || 'bg-foreground/10 text-foreground/80'}`}>
             {user.role}
           </span>
         )}
       </div>
-      <button onClick={logout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-white/10 w-full">
+      <button onClick={logout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-foreground/10 w-full">
         <LogOut size={15} /> Sign out
       </button>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0b0d12] text-white md:flex">
+    <div className="min-h-screen bg-background text-foreground md:flex">
       {/* ── Mobile top bar ──────────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-white/10 bg-[#0b0d12]/95 backdrop-blur"
+        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/10 bg-background/95 backdrop-blur"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <button
           onClick={() => setDrawerOpen(true)}
-          className="p-2.5 -ml-1 rounded-lg text-gray-300 hover:bg-white/10"
+          className="p-2.5 -ml-1 rounded-lg text-foreground/80 hover:bg-foreground/10"
           aria-label="Open menu"
           aria-expanded={drawerOpen}
         >
@@ -144,7 +144,7 @@ export function Layout() {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <aside
-            className="relative w-[82%] max-w-[300px] bg-[#0b0d12] border-r border-white/10 flex flex-col p-4 overflow-y-auto"
+            className="relative w-[82%] max-w-[300px] bg-background border-r border-border/10 flex flex-col p-4 overflow-y-auto"
             role="dialog"
             aria-label="Navigation"
           >
@@ -153,7 +153,7 @@ export function Layout() {
                 <Stethoscope size={18} className="text-emerald-400 shrink-0" />
                 <span className="font-bold text-sm truncate">{clinicName || 'Clinic Portal'}</span>
               </div>
-              <button onClick={() => setDrawerOpen(false)} className="p-2 -mr-1 rounded-lg text-gray-400 hover:bg-white/10" aria-label="Close menu">
+              <button onClick={() => setDrawerOpen(false)} className="p-2 -mr-1 rounded-lg text-muted-foreground hover:bg-foreground/10" aria-label="Close menu">
                 <X size={18} />
               </button>
             </div>
@@ -164,7 +164,7 @@ export function Layout() {
       )}
 
       {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
-      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-white/10 flex-col p-4 overflow-y-auto">
+      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-border/10 flex-col p-4 overflow-y-auto">
         <div className="flex items-center justify-between gap-2 mb-8 px-2">
           <div className="flex items-center gap-2 min-w-0">
             <Stethoscope size={20} className="text-emerald-400 shrink-0" />
@@ -195,7 +195,7 @@ function IconButtons({ theme, toggleTheme, dueReminders, onBell }: {
     <div className="flex items-center gap-1 shrink-0">
       <button
         onClick={toggleTheme}
-        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/10"
         title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       >
@@ -203,13 +203,13 @@ function IconButtons({ theme, toggleTheme, dueReminders, onBell }: {
       </button>
       <button
         onClick={onBell}
-        className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+        className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/10"
         title="Follow-up reminders"
         aria-label="Follow-up reminders"
       >
         <Bell size={16} />
         {dueReminders > 0 && (
-          <span className="absolute top-0 right-0 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[11px] leading-none font-bold flex items-center justify-center">
+          <span className="absolute top-0 right-0 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-foreground text-[11px] leading-none font-bold flex items-center justify-center">
             {dueReminders}
           </span>
         )}
@@ -226,14 +226,14 @@ function NavItem({ to, icon: Icon, label, badge }: { to: string; icon: any; labe
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? 'bg-white text-black' : 'text-gray-300 hover:bg-white/10'
+          isActive ? 'bg-foreground text-background' : 'text-foreground/80 hover:bg-foreground/10'
         }`
       }
     >
       <Icon size={16} className="shrink-0" />
       <span className="truncate" title={label}>{label}</span>
       {badge != null && badge > 0 && (
-        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
           {badge}
         </span>
       )}
@@ -247,11 +247,11 @@ function ExternalNavItem({ href, icon: Icon, label }: { href: string; icon: any;
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-white/10"
+      className="flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium text-foreground/80 hover:bg-foreground/10"
     >
       <Icon size={16} className="shrink-0" />
       <span className="truncate" title={label}>{label}</span>
-      <ExternalLink size={11} className="ml-auto text-gray-600 shrink-0" />
+      <ExternalLink size={11} className="ml-auto text-muted-foreground/60 shrink-0" />
     </a>
   );
 }

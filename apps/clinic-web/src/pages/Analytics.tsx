@@ -48,13 +48,13 @@ export function Analytics() {
         <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 size={20} className="text-emerald-400" /> Analytics</h1>
         <div className="flex gap-2">
           {RANGES.map((r) => (
-            <button key={r.days} onClick={() => setRangeDays(r.days)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${rangeDays === r.days ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+            <button key={r.days} onClick={() => setRangeDays(r.days)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${rangeDays === r.days ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
               {r.label}
             </button>
           ))}
         </div>
       </div>
-      <p className="text-sm text-gray-400 mb-6">Visit trends, common diagnoses, and workload for the selected period.</p>
+      <p className="text-sm text-muted-foreground mb-6">Visit trends, common diagnoses, and workload for the selected period.</p>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       {!data && !error && <><SkeletonStats count={4} label="Loading analytics" /><div className="mt-4"><SkeletonPanels count={2} label="Loading charts" /></div></>}
@@ -69,28 +69,28 @@ export function Analytics() {
             <StatTile icon={Stethoscope} label="Case Sheets" value={data.totals.totalCaseSheets} />
           </div>
 
-          <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] mb-6">
-            <h2 className="text-sm font-semibold text-gray-300 mb-3">Daily Visits</h2>
+          <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-6">
+            <h2 className="text-sm font-semibold text-foreground/80 mb-3">Daily Visits</h2>
             {data.dailyVisits.length === 0 ? (
-              <p className="text-xs text-gray-500">No visits in this period.</p>
+              <p className="text-xs text-muted-foreground/70">No visits in this period.</p>
             ) : (
               <TrendChart data={data.dailyVisits} />
             )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-              <h2 className="text-sm font-semibold text-gray-300 mb-3">Top Diagnoses</h2>
+            <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+              <h2 className="text-sm font-semibold text-foreground/80 mb-3">Top Diagnoses</h2>
               {data.topDiagnoses.length === 0 ? (
-                <p className="text-xs text-gray-500">No diagnoses recorded yet.</p>
+                <p className="text-xs text-muted-foreground/70">No diagnoses recorded yet.</p>
               ) : (
                 <BarList items={data.topDiagnoses.map((d) => ({ label: d.diagnosis, value: d.count }))} />
               )}
             </div>
-            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-              <h2 className="text-sm font-semibold text-gray-300 mb-3">Doctor Workload</h2>
+            <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+              <h2 className="text-sm font-semibold text-foreground/80 mb-3">Doctor Workload</h2>
               {data.doctorWorkload.length === 0 ? (
-                <p className="text-xs text-gray-500">No consultations recorded yet.</p>
+                <p className="text-xs text-muted-foreground/70">No consultations recorded yet.</p>
               ) : (
                 <BarList items={data.doctorWorkload.map((d) => ({ label: `Dr. ${d.doctorName}`, value: d.patientsSeen }))} />
               )}
@@ -104,9 +104,9 @@ export function Analytics() {
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: number }) {
   return (
-    <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1"><Icon size={12} /> {label}</div>
-      <div className="text-xl font-bold text-white">{value}</div>
+    <div className="p-3 rounded-xl border border-border/10 bg-foreground/[0.02]">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 mb-1"><Icon size={12} /> {label}</div>
+      <div className="text-xl font-bold text-foreground">{value}</div>
     </div>
   );
 }
@@ -150,11 +150,11 @@ function BarList({ items }: { items: { label: string; value: number }[] }) {
     <div className="flex flex-col gap-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <div className="text-xs text-gray-400 w-32 truncate shrink-0" title={item.label}>{item.label}</div>
-          <div className="flex-1 h-4 bg-white/5 rounded overflow-hidden">
+          <div className="text-xs text-muted-foreground w-32 truncate shrink-0" title={item.label}>{item.label}</div>
+          <div className="flex-1 h-4 bg-foreground/5 rounded overflow-hidden">
             <div className="h-full rounded" style={{ width: `${(item.value / max) * 100}%`, background: ACCENT }} title={`${item.value}`} />
           </div>
-          <div className="text-xs text-gray-300 w-6 text-right shrink-0">{item.value}</div>
+          <div className="text-xs text-foreground/80 w-6 text-right shrink-0">{item.value}</div>
         </div>
       ))}
     </div>

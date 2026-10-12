@@ -91,11 +91,11 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
       <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
         <p className="text-sm text-emerald-400 mb-3">Case sheet saved. Attach an X-ray or lab report? (optional)</p>
         <div className="flex items-center gap-2">
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-xs text-gray-300" />
-          <button onClick={uploadAttachment} disabled={!file || uploading} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-xs font-semibold disabled:opacity-50">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-xs text-foreground/80" />
+          <button onClick={uploadAttachment} disabled={!file || uploading} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
-          <button onClick={onDone} className="px-3 py-1.5 rounded-lg bg-white/10 text-xs">Skip</button>
+          <button onClick={onDone} className="px-3 py-1.5 rounded-lg bg-foreground/10 text-xs">Skip</button>
         </div>
         {error && <div className="mt-2 text-xs text-red-400">{error}</div>}
       </div>
@@ -103,17 +103,17 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
   }
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Case Sheet</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
       </div>
       {initialVitals && Object.values(initialVitals).some(Boolean) && (
         <p className="text-xs text-emerald-400">Pre-filled from the nurse's pre-consult vitals.</p>
@@ -121,25 +121,25 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
       {frequentDiagnoses.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {frequentDiagnoses.map((d) => (
-            <button type="button" key={d} onClick={() => setForm({ ...form, diagnosis: d })} className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300">
+            <button type="button" key={d} onClick={() => setForm({ ...form, diagnosis: d })} className="px-2 py-1 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground/80">
               {d}
             </button>
           ))}
         </div>
       )}
-      <input placeholder="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Follow-up date (optional)</label>
-        <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Follow-up date (optional)</label>
+        <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
         {form.followUpDate && (
-          <label className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+          <label className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <input type="checkbox" checked={form.remindDoctor} onChange={(e) => setForm({ ...form, remindDoctor: e.target.checked })} />
             Remind me when this follow-up is due
           </label>
         )}
       </div>
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Case Sheet'}
       </button>
     </form>
@@ -229,11 +229,11 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
   };
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">New Prescription</h3>
         {templates.length > 0 && (
-          <select onChange={(e) => e.target.value && loadTemplate(e.target.value)} defaultValue="" className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs outline-none">
+          <select onChange={(e) => e.target.value && loadTemplate(e.target.value)} defaultValue="" className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none">
             <option value="">Load template...</option>
             {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
@@ -248,14 +248,14 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               placeholder="Drug name"
               value={item.drugName}
               onChange={(e) => searchDrug(i, e.target.value)}
-              className="w-full px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400"
+              className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
             />
             {(suggestions[i]?.length ?? 0) > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-[#14171f] max-h-40 overflow-y-auto">
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
                 {suggestions[i].map((d) => (
-                  <button type="button" key={d.id} onClick={() => { setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, drugName: d.name, drugId: d.id } : it))); setSuggestions((s) => ({ ...s, [i]: [] })); }} className="block w-full text-left px-2 py-1.5 text-xs hover:bg-white/5">
+                  <button type="button" key={d.id} onClick={() => { setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, drugName: d.name, drugId: d.id } : it))); setSuggestions((s) => ({ ...s, [i]: [] })); }} className="block w-full text-left px-2 py-1.5 text-xs hover:bg-foreground/5">
                     <div>{d.name}</div>
-                    {d.composition && <div className="text-[10px] text-gray-500 truncate">{d.composition}</div>}
+                    {d.composition && <div className="text-[10px] text-muted-foreground/70 truncate">{d.composition}</div>}
                   </button>
                 ))}
               </div>
@@ -276,20 +276,20 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               </div>
             )}
           </div>
-          <input placeholder="Dosage (1-0-1)" value={item.dosage} onChange={(e) => updateItem(i, 'dosage', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-          <select value={item.frequency} onChange={(e) => updateItem(i, 'frequency', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400">
+          <input placeholder="Dosage (1-0-1)" value={item.dosage} onChange={(e) => updateItem(i, 'dosage', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+          <select value={item.frequency} onChange={(e) => updateItem(i, 'frequency', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400">
             {FREQUENCIES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
-          <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-          <input placeholder="Instructions" value={item.instructions ?? ''} onChange={(e) => updateItem(i, 'instructions', e.target.value)} className="col-span-1 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400" />
-          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-gray-500 hover:text-red-400 disabled:opacity-30">✕</button>
+          <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+          <input placeholder="Instructions" value={item.instructions ?? ''} onChange={(e) => updateItem(i, 'instructions', e.target.value)} className="col-span-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>
         </div>
       ))}
       <button type="button" onClick={addRow} className="self-start text-xs text-emerald-400 hover:underline">+ Add drug</button>
 
-      <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
 
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Prescription'}
       </button>
     </form>
@@ -329,12 +329,12 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
   };
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Certificate for {patientName}</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <div className="flex gap-2">
         {CERT_TYPES.map((t) => (
-          <button type="button" key={t.id} onClick={() => setType(t.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${type === t.id ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+          <button type="button" key={t.id} onClick={() => setType(t.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${type === t.id ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
             {t.label}
           </button>
         ))}
@@ -342,20 +342,20 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
       {type === 'SICK_LEAVE' && (
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-400 mb-1">From</label>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+            <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           </div>
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-400 mb-1">To</label>
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+            <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           </div>
         </div>
       )}
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Content (leave blank to auto-generate)</label>
-        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Content (leave blank to auto-generate)</label>
+        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       </div>
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Issuing...' : 'Issue Certificate'}
       </button>
     </form>
@@ -402,7 +402,7 @@ export function LabOrderForm({ patientId, appointmentId, onDone }: { patientId: 
   };
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">Order Lab Tests</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
@@ -411,13 +411,13 @@ export function LabOrderForm({ patientId, appointmentId, onDone }: { patientId: 
             type="button"
             key={t.id}
             onClick={() => toggle(t.name)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${selected.has(t.name) ? 'bg-emerald-500 text-black' : 'bg-white/5 text-gray-300 hover:bg-white/10'}`}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${selected.has(t.name) ? 'bg-primary text-primary-foreground' : 'bg-foreground/5 text-foreground/80 hover:bg-foreground/10'}`}
           >
             {t.name}
           </button>
         ))}
       </div>
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Ordering...' : `Order ${selected.size || ''} Test${selected.size === 1 ? '' : 's'}`.trim()}
       </button>
     </form>

@@ -69,7 +69,7 @@ export function PatientDetail() {
   };
 
   if (!patient) return error
-    ? <div className="p-8 text-gray-400">{error}</div>
+    ? <div className="p-8 text-muted-foreground">{error}</div>
     : <div className="p-4 sm:p-6 md:p-8 max-w-3xl"><SkeletonPanels count={4} label="Loading the patient record" /></div>;
 
   type TimelineEntry = { date: string; kind: 'caseSheet' | 'prescription' | 'certificate' | 'appointment'; data: any };
@@ -82,7 +82,7 @@ export function PatientDetail() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
-      <Link to="/patients" className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4"><ArrowLeft size={14} /> Back to patients</Link>
+      <Link to="/patients" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to patients</Link>
 
       {(patient.allergies || patient.chronicConditions) && (
         <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 flex items-start gap-2">
@@ -94,7 +94,7 @@ export function PatientDetail() {
         </div>
       )}
 
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.03] mb-6">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.03] mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">{patient.name}</h1>
@@ -103,20 +103,20 @@ export function PatientDetail() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setEditing((v) => !v)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-white">
+            <button onClick={() => setEditing((v) => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
               <Pencil size={12} /> Edit
             </button>
             {user && BILLING_ROLES.has(user.role) && (
-              <button onClick={createInvoice} className="flex items-center gap-1 text-xs text-gray-400 hover:text-white">
+              <button onClick={createInvoice} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
                 <IndianRupee size={12} /> New Bill
               </button>
             )}
-            <button onClick={() => openPdf(`/patients/${patient.id}/report/pdf`)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-white">
+            <button onClick={() => openPdf(`/patients/${patient.id}/report/pdf`)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
               <Download size={12} /> Download Report
             </button>
           </div>
         </div>
-        <div className="text-sm text-gray-400 flex flex-wrap gap-3 mt-1">
+        <div className="text-sm text-muted-foreground flex flex-wrap gap-3 mt-1">
           {patient.age != null && <span>{patient.age}y</span>}
           {patient.gender && <span>{patient.gender}</span>}
           {patient.bloodGroup && <span>{patient.bloodGroup}</span>}
@@ -143,13 +143,13 @@ export function PatientDetail() {
 
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">
-          <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <FileText size={14} /> New Case Sheet
           </button>
-          <button onClick={() => setPanel(panel === 'prescription' ? 'none' : 'prescription')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'prescription' ? 'none' : 'prescription')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <Pill size={14} /> New Prescription
           </button>
-          <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <Award size={14} /> New Certificate
           </button>
         </div>
@@ -159,9 +159,9 @@ export function PatientDetail() {
       {panel === 'prescription' && <PrescriptionForm patientId={patient.id} onDone={() => { setPanel('none'); load(); }} />}
       {panel === 'certificate' && <CertificateForm patientId={patient.id} patientName={patient.name} onDone={() => { setPanel('none'); load(); }} />}
 
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-8">History</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 mt-8">History</h2>
       <div className="flex flex-col gap-3">
-        {timeline.length === 0 && <div className="text-center py-10 text-gray-500 text-sm">No records yet.</div>}
+        {timeline.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No records yet.</div>}
         {timeline.map((entry) => (
           <TimelineCard key={`${entry.kind}-${entry.data.id}`} entry={entry} />
         ))}
@@ -176,12 +176,12 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
   if (entry.kind === 'caseSheet') {
     const c: CaseSheet = entry.data;
     return (
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2"><FileText size={12} /> Case Sheet · {dateLabel} · {c.doctor.name}</div>
-        {c.chiefComplaint && <div className="text-sm mb-1"><span className="text-gray-400">Complaint:</span> {c.chiefComplaint}</div>}
-        {c.diagnosis && <div className="text-sm mb-1"><span className="text-gray-400">Diagnosis:</span> {c.diagnosis}</div>}
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-2"><FileText size={12} /> Case Sheet · {dateLabel} · {c.doctor.name}</div>
+        {c.chiefComplaint && <div className="text-sm mb-1"><span className="text-muted-foreground">Complaint:</span> {c.chiefComplaint}</div>}
+        {c.diagnosis && <div className="text-sm mb-1"><span className="text-muted-foreground">Diagnosis:</span> {c.diagnosis}</div>}
         {c.vitals && (
-          <div className="text-xs text-gray-400 mt-2 flex gap-3 flex-wrap">
+          <div className="text-xs text-muted-foreground mt-2 flex gap-3 flex-wrap">
             {c.vitals.bp && <span>BP: {c.vitals.bp}</span>}
             {c.vitals.temp && <span>Temp: {c.vitals.temp}</span>}
             {c.vitals.spo2 && <span>SpO2: {c.vitals.spo2}</span>}
@@ -205,9 +205,9 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
   if (entry.kind === 'prescription') {
     const p: Prescription = entry.data;
     return (
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500"><Pill size={12} /> Prescription · {dateLabel} · {p.doctor.name}</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Pill size={12} /> Prescription · {dateLabel} · {p.doctor.name}</div>
           <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline">
             <Download size={11} /> PDF
           </button>
@@ -216,7 +216,7 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
           {p.items.map((item, i) => (
             <div key={i} className="text-sm">
               <span className="font-medium">{item.drugName}</span> — {item.dosage}, {item.frequency}, {item.duration}
-              {item.instructions && <span className="text-gray-500"> ({item.instructions})</span>}
+              {item.instructions && <span className="text-muted-foreground/70"> ({item.instructions})</span>}
             </div>
           ))}
         </div>
@@ -227,21 +227,21 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
   if (entry.kind === 'certificate') {
     const c: Certificate = entry.data;
     return (
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500"><Award size={12} /> {c.type.replace('_', ' ')} Certificate · {dateLabel} · {c.doctor.name}</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {c.type.replace('_', ' ')} Certificate · {dateLabel} · {c.doctor.name}</div>
           <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline">
             <Download size={11} /> PDF
           </button>
         </div>
-        <p className="text-sm text-gray-300">{c.content}</p>
+        <p className="text-sm text-foreground/80">{c.content}</p>
       </div>
     );
   }
 
   const a: Appointment = entry.data;
   return (
-    <div className="p-3 rounded-xl border border-white/10 bg-white/[0.01] text-xs text-gray-400 flex items-center gap-2">
+    <div className="p-3 rounded-xl border border-border/10 bg-foreground/[0.01] text-xs text-muted-foreground flex items-center gap-2">
       <CalendarClock size={12} /> Appointment · {dateLabel} · {a.status.replace('_', ' ')} {a.reason && `· ${a.reason}`}
     </div>
   );
@@ -291,32 +291,32 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
   };
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
       <h3 className="col-span-2 text-sm font-semibold">Edit Patient</h3>
       {error && <div className="col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400">
+      <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
         <option value="">Gender</option>
         <option>Male</option>
         <option>Female</option>
         <option>Other</option>
       </select>
-      <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div className="col-span-2">
-        <label className="block text-xs font-medium text-gray-400 mb-1">OPD Priority Category</label>
-        <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">OPD Priority Category</label>
+        <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
           {PATIENT_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
       </div>
-      <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div className="col-span-2 flex gap-2">
-        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-white/10 text-sm">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-foreground/10 text-sm">Cancel</button>
       </div>
     </form>
   );
@@ -335,8 +335,8 @@ function VitalsTrendSection({ points }: { points: VitalsPoint[] }) {
   return (
     <div className="grid md:grid-cols-2 gap-4 mb-6">
       {bpPoints.length >= 2 && (
-        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><Activity size={12} /> Blood Pressure Trend</div>
+        <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"><Activity size={12} /> Blood Pressure Trend</div>
           <MiniLineChart series={[
             { label: 'Systolic', color: '#f87171', values: bpPoints.map((p) => ({ date: p.date, value: p.bp.systolic })) },
             { label: 'Diastolic', color: '#60a5fa', values: bpPoints.map((p) => ({ date: p.date, value: p.bp.diastolic })) },
@@ -344,8 +344,8 @@ function VitalsTrendSection({ points }: { points: VitalsPoint[] }) {
         </div>
       )}
       {weightPoints.length >= 2 && (
-        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><Activity size={12} /> Weight Trend</div>
+        <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"><Activity size={12} /> Weight Trend</div>
           <MiniLineChart series={[{ label: 'Weight (kg)', color: '#34d399', values: weightPoints.map((p) => ({ date: p.date, value: p.weight })) }]} />
         </div>
       )}
@@ -385,7 +385,7 @@ function MiniLineChart({ series }: { series: { label: string; color: string; val
       </svg>
       <div className="flex gap-3 mt-1">
         {series.map((s) => (
-          <span key={s.label} className="flex items-center gap-1 text-[10px] text-gray-400">
+          <span key={s.label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full" style={{ background: s.color }} /> {s.label}
           </span>
         ))}

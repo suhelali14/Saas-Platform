@@ -27,7 +27,7 @@ import { PublicBlogPost } from './pages/PublicBlogPost';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useClinicAuth();
-  if (isLoading) return <div className="min-h-screen bg-[#0b0d12]"><SkeletonPage label="Loading your clinic" /></div>;
+  if (isLoading) return <div className="min-h-screen bg-background"><SkeletonPage label="Loading your clinic" /></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

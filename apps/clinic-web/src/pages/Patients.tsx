@@ -73,54 +73,54 @@ export function Patients() {
     <div className="p-4 sm:p-6 md:p-8 max-w-[1600px]">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold">Patients</h1>
-        <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-sm font-semibold">
+        <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           <Plus size={14} /> New Patient
         </button>
       </div>
-      <p className="text-sm text-gray-400 mb-6">Patient records and history.</p>
+      <p className="text-sm text-muted-foreground mb-6">Patient records and history.</p>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
       {showNew && (
-        <form onSubmit={createPatient} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-          <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400">
+        <form onSubmit={createPatient} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
             <option value="">Gender</option>
             <option>Male</option>
             <option>Female</option>
             <option>Other</option>
           </select>
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-400 mb-1">OPD Priority Category</label>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">OPD Priority Category</label>
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
               {PATIENT_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
-          <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
-          <button type="submit" disabled={creating} className="col-span-2 self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+          <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <button type="submit" disabled={creating} className="col-span-2 self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {creating ? 'Adding...' : 'Add Patient'}
           </button>
         </form>
       )}
 
       <div className="relative mb-4">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, UHID (file no.), or phone..."
-          className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400"
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        {patients.length === 0 && <div className="text-center py-10 text-gray-500 text-sm">No patients found.</div>}
+        {patients.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No patients found.</div>}
         {patients.map((p) => (
-          <Link key={p.id} to={`/patients/${p.id}`} className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05]">
+          <Link key={p.id} to={`/patients/${p.id}`} className="flex items-center justify-between p-3.5 rounded-xl border border-border/10 bg-foreground/[0.02] hover:bg-foreground/[0.05]">
             <div>
               <div className="flex items-center gap-2">
                 <div className="font-medium text-sm">{p.name}</div>
@@ -131,7 +131,7 @@ export function Patients() {
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-500 flex items-center gap-2">
+              <div className="text-xs text-muted-foreground/70 flex items-center gap-2">
                 {p.age != null && <span>{p.age}y</span>}
                 {p.gender && <span>{p.gender}</span>}
                 {p.bloodGroup && <span>{p.bloodGroup}</span>}

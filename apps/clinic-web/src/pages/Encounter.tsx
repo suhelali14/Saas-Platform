@@ -78,7 +78,7 @@ export function Encounter() {
   };
 
   if (!appointment) return error
-    ? <div className="p-8 text-gray-400">{error}</div>
+    ? <div className="p-8 text-muted-foreground">{error}</div>
     : <div className="p-4 sm:p-6 md:p-8 max-w-3xl"><SkeletonPanels count={3} label="Loading the consultation" /></div>;
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(appointment.status) + 1];
@@ -87,7 +87,7 @@ export function Encounter() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
-      <Link to="/queue" className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4"><ArrowLeft size={14} /> Back to queue</Link>
+      <Link to="/queue" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to queue</Link>
 
       {/* Patient safety banner -- surfaced first, above the fold, matching
           real EHR allergy-alert conventions (a doctor should never have to
@@ -102,14 +102,14 @@ export function Encounter() {
         </div>
       )}
 
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.03] mb-4">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.03] mb-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{appointment.patient.name}</h1>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-mono font-semibold">{appointment.patient.uhid}</span>
             </div>
-            <div className="text-sm text-gray-400 flex flex-wrap gap-3 mt-1">
+            <div className="text-sm text-muted-foreground flex flex-wrap gap-3 mt-1">
               {appointment.patient.age != null && <span>{appointment.patient.age}y</span>}
               {appointment.patient.gender && <span>{appointment.patient.gender}</span>}
               {appointment.patient.bloodGroup && <span>{appointment.patient.bloodGroup}</span>}
@@ -119,13 +119,13 @@ export function Encounter() {
           </div>
           <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/15 text-purple-400 shrink-0">{appointment.status.replace('_', ' ')}</span>
         </div>
-        <div className="text-xs text-gray-500 mt-3 flex items-center gap-3 flex-wrap">
+        <div className="text-xs text-muted-foreground/70 mt-3 flex items-center gap-3 flex-wrap">
           <span>{new Date(appointment.scheduledAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
           {appointment.doctor && <span className="flex items-center gap-1"><User size={11} /> {appointment.doctor.name}</span>}
           {appointment.reason && <span>· {appointment.reason}</span>}
         </div>
         {nextStatus && (
-          <button onClick={advanceStatus} className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20">
+          <button onClick={advanceStatus} className="mt-3 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20">
             Mark {nextStatus.replace('_', ' ')}
           </button>
         )}
@@ -146,7 +146,7 @@ export function Encounter() {
         {panel === 'vitals' ? (
           <VitalsInlineForm appointmentId={appointment.id} vitals={appointment.vitals} onDone={() => { setPanel('none'); load(); }} />
         ) : hasVitals ? (
-          <div className="text-xs text-gray-300 flex gap-3 flex-wrap">
+          <div className="text-xs text-foreground/80 flex gap-3 flex-wrap">
             {appointment.vitals?.bp && <span>BP: {appointment.vitals.bp}</span>}
             {appointment.vitals?.temp && <span>Temp: {appointment.vitals.temp}</span>}
             {appointment.vitals?.spo2 && <span>SpO2: {appointment.vitals.spo2}</span>}
@@ -154,17 +154,17 @@ export function Encounter() {
             {appointment.vitals?.weight && <span>Wt: {appointment.vitals.weight}</span>}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">Not recorded yet.</p>
+          <p className="text-xs text-muted-foreground/70">Not recorded yet.</p>
         )}
       </div>
 
       {/* Continuity of care -- what happened last time, without leaving this screen. */}
       {previousVisit && (
-        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] mb-6">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><History size={12} /> Last Visit</div>
-          <div className="text-xs text-gray-500 mb-1">{new Date(previousVisit.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-          {previousVisit.chiefComplaint && <div className="text-sm"><span className="text-gray-400">Complaint:</span> {previousVisit.chiefComplaint}</div>}
-          {previousVisit.diagnosis && <div className="text-sm"><span className="text-gray-400">Diagnosis:</span> {previousVisit.diagnosis}</div>}
+        <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-6">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"><History size={12} /> Last Visit</div>
+          <div className="text-xs text-muted-foreground/70 mb-1">{new Date(previousVisit.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          {previousVisit.chiefComplaint && <div className="text-sm"><span className="text-muted-foreground">Complaint:</span> {previousVisit.chiefComplaint}</div>}
+          {previousVisit.diagnosis && <div className="text-sm"><span className="text-muted-foreground">Diagnosis:</span> {previousVisit.diagnosis}</div>}
           {previousVisit.followUpDate && (
             <div className="text-sm text-amber-400 mt-1">Follow-up was due {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
           )}
@@ -175,16 +175,16 @@ export function Encounter() {
 
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">
-          <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <FileText size={14} /> Case Sheet
           </button>
-          <button onClick={() => setPanel(panel === 'prescription' ? 'none' : 'prescription')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'prescription' ? 'none' : 'prescription')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <Pill size={14} /> Prescription
           </button>
-          <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <Award size={14} /> Certificate
           </button>
-          <button onClick={() => setPanel(panel === 'labs' ? 'none' : 'labs')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-sm font-medium hover:bg-white/20">
+          <button onClick={() => setPanel(panel === 'labs' ? 'none' : 'labs')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <FlaskConical size={14} /> Order Labs
           </button>
         </div>
@@ -203,14 +203,14 @@ export function Encounter() {
         <LabOrderForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
       )}
 
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-8">This Visit</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 mt-8">This Visit</h2>
       <div className="flex flex-col gap-3">
         {caseSheets.length === 0 && prescriptions.length === 0 && certificates.length === 0 && labOrders.length === 0 && (
-          <div className="text-center py-10 text-gray-500 text-sm">Nothing recorded for this visit yet.</div>
+          <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing recorded for this visit yet.</div>
         )}
         {labOrders.map((order) => (
-          <div key={order.id} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2"><FlaskConical size={12} /> Lab Order · {order.doctor.name} · {order.status}</div>
+          <div key={order.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-2"><FlaskConical size={12} /> Lab Order · {order.doctor.name} · {order.status}</div>
             {order.items.map((item) => (
               <div key={item.id} className="text-sm flex items-center gap-2">
                 <span>{item.testName}</span>
@@ -220,10 +220,10 @@ export function Encounter() {
           </div>
         ))}
         {caseSheets.map((c) => (
-          <div key={c.id} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2"><FileText size={12} /> Case Sheet · {c.doctor.name}</div>
-            {c.chiefComplaint && <div className="text-sm mb-1"><span className="text-gray-400">Complaint:</span> {c.chiefComplaint}</div>}
-            {c.diagnosis && <div className="text-sm mb-1"><span className="text-gray-400">Diagnosis:</span> {c.diagnosis}</div>}
+          <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-2"><FileText size={12} /> Case Sheet · {c.doctor.name}</div>
+            {c.chiefComplaint && <div className="text-sm mb-1"><span className="text-muted-foreground">Complaint:</span> {c.chiefComplaint}</div>}
+            {c.diagnosis && <div className="text-sm mb-1"><span className="text-muted-foreground">Diagnosis:</span> {c.diagnosis}</div>}
             {(c.attachments?.length ?? 0) > 0 && (
               <div className="mt-2 flex flex-col gap-1">
                 {c.attachments.map((a) => (
@@ -236,9 +236,9 @@ export function Encounter() {
           </div>
         ))}
         {prescriptions.map((p) => (
-          <div key={p.id} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={p.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs text-gray-500"><Pill size={12} /> Prescription · {p.doctor.name}</div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Pill size={12} /> Prescription · {p.doctor.name}</div>
               <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline"><Download size={11} /> PDF</button>
             </div>
             {p.items.map((item, i) => (
@@ -247,12 +247,12 @@ export function Encounter() {
           </div>
         ))}
         {certificates.map((c) => (
-          <div key={c.id} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs text-gray-500"><Award size={12} /> {c.type.replace('_', ' ')} · {c.doctor.name}</div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {c.type.replace('_', ' ')} · {c.doctor.name}</div>
               <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline"><Download size={11} /> PDF</button>
             </div>
-            <p className="text-sm text-gray-300">{c.content}</p>
+            <p className="text-sm text-foreground/80">{c.content}</p>
           </div>
         ))}
       </div>
@@ -285,13 +285,13 @@ function VitalsInlineForm({ appointmentId, vitals, onDone }: { appointmentId: st
     <form onSubmit={submit} className="flex flex-col gap-2 mt-1">
       {error && <div className="px-2 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs">{error}</div>}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
       </div>
-      <button type="submit" disabled={saving} className="self-start px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-3 py-1.5 rounded-lg bg-blue-500 text-foreground text-xs font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Vitals'}
       </button>
     </form>

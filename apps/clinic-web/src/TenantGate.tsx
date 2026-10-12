@@ -120,7 +120,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
     return (
       <Centered>
         <h1 className="text-xl font-semibold text-gray-900">{state.name} is temporarily unavailable</h1>
-        <p className="mt-2 max-w-md text-sm text-gray-600">
+        <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
           This clinic's online services are paused. Please contact the clinic directly for appointments
           or records.
         </p>
@@ -132,7 +132,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
     return (
       <Centered>
         <h1 className="text-xl font-semibold text-gray-900">Nayaverse</h1>
-        <p className="mt-2 max-w-md text-sm text-gray-600">
+        <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
           Clinic software. Each clinic has its own address — if you are looking for a
           particular practice, use the link they gave you.
         </p>
@@ -144,7 +144,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
     return (
       <Centered>
         <h1 className="text-xl font-semibold text-gray-900">No clinic at this address</h1>
-        <p className="mt-2 max-w-md text-sm text-gray-600">
+        <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
           Please check the web address. If you reached this from a link, the clinic may have moved.
         </p>
       </Centered>
@@ -154,16 +154,19 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
   return (
     <Centered>
       <h1 className="text-xl font-semibold text-gray-900">Temporarily unreachable</h1>
-      <p className="mt-2 max-w-md text-sm text-gray-600">
+      <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
         We could not load this clinic's details. Please try again in a moment.
       </p>
-      <p className="mt-4 font-mono text-xs text-gray-400">{state.message}</p>
+      <p className="mt-4 font-mono text-xs text-muted-foreground">{state.message}</p>
     </Centered>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
+    // bg-white deliberately, not a token: this renders before the
+    // clinic's own identity -- or its theme -- has been resolved, so
+    // anything themed here would be a guess.
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
       {children}
     </div>

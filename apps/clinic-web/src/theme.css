@@ -1,194 +1,72 @@
 /*
- * Portal light theme.
+ * The rules tokens cannot express.
  *
- * The portal was built dark-only, with Tailwind utility classes written
- * directly into ~40 components. Rewriting every one of those with `dark:`
- * variants would touch hundreds of lines for a purely visual change and
- * risk breaking working clinical screens.
+ * This file used to be the portal's whole theming mechanism: the app was
+ * written dark-only with Tailwind colours typed into ~24 files, and the
+ * light theme was a table remapping exactly fourteen of those classes
+ * under one root selector. That was a deliberate, contained trick -- it
+ * themed the entire app without touching a component -- but it meant the
+ * palette lived here and had to be kept in step with class names written
+ * elsewhere.
  *
- * Instead: the portal uses a small, bounded palette -- a survey of every
- * .tsx file found just fourteen distinct dark utilities (border-white/10
- * x132, bg-white/5 x101, text-gray-400 x93, and so on). Remapping exactly
- * those under a single root class is a contained change that covers the
- * whole app at once, and leaves every component file untouched.
+ * The portal is now on design tokens (see index.css), so that table is
+ * gone: 834 hardcoded colour classes were replaced by tokens, and a
+ * theme is a set of variables rather than a list of overrides. Deleting
+ * the table rather than leaving it is the point -- rules that no longer
+ * match anything are worse than no rules, because the next person
+ * assumes there are two theming mechanisms and extends the dead one.
  *
- * `!important` is required because these fight Tailwind's own utilities at
- * equal specificity; this file is loaded after the CDN script.
- *
- * Accent colours (emerald/red/amber/blue role badges, status pills) are
- * deliberately NOT remapped -- they carry clinical meaning and already
- * pass contrast on both grounds.
+ * What is left is the set of things a token genuinely cannot do:
+ * OS-drawn controls, a browser's own icons, device-class behaviour, and
+ * animation.
  */
 
 /*
- * Dropdowns, both themes.
+ * Dropdowns.
  *
  * A native <option> does not inherit its parent <select>'s styling in any
- * browser -- it is rendered by the OS using the system palette. So the dark
- * theme's `text-white` applied to the select, while every option fell back
- * to a white system background: white text on white, invisible. The select
- * itself needs an explicit dark ground too, since Tailwind's `bg-white/5`
- * is a translucent overlay that resolves to near-white on the default
- * control background.
+ * browser -- it is drawn by the OS using the system palette. So the dark
+ * theme's text colour applied to the select while every option fell back
+ * to a white system background: white text on white, invisible. This was
+ * a live bug across thirteen selects in eight files.
  *
- * This is set on the base (dark) theme; the light overrides further down
- * flip it back.
+ * A token works here, because a CSS variable resolves on any element; it
+ * is the *inheritance* that does not happen, not the custom property.
  */
 select {
-  background-color: #151a22;
-  color: #ffffff;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
 }
 
 select option,
 select optgroup {
-  background-color: #151a22;
-  color: #ffffff;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
 }
 
 /* A disabled placeholder option ("Select…") should read as secondary
-   rather than as a real choice. */
+   rather than as the same weight as a real choice. */
 select option:disabled {
-  color: #64748b;
-}
-
-html.theme-light select,
-html.theme-light select option,
-html.theme-light select optgroup {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-html.theme-light select option:disabled {
-  color: #94a3b8 !important;
-}
-
-html.theme-light body {
-  background: #f8fafc;
-  color: #0f172a;
-}
-
-/* Page and panel grounds ------------------------------------------------ */
-html.theme-light .bg-\[\#0b0d12\] {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-}
-
-html.theme-light .bg-white\/5 {
-  background-color: rgba(15, 23, 42, 0.04) !important;
-}
-
-html.theme-light .bg-white\/\[0\.02\] {
-  background-color: #ffffff !important;
-}
-
-html.theme-light .bg-white\/10 {
-  background-color: rgba(15, 23, 42, 0.07) !important;
-}
-
-html.theme-light .bg-white\/20 {
-  background-color: rgba(15, 23, 42, 0.12) !important;
-}
-
-html.theme-light .hover\:bg-white\/10:hover {
-  background-color: rgba(15, 23, 42, 0.07) !important;
-}
-
-html.theme-light .hover\:bg-white\/20:hover {
-  background-color: rgba(15, 23, 42, 0.12) !important;
-}
-
-html.theme-light .hover\:bg-white\/\[0\.02\]:hover {
-  background-color: rgba(15, 23, 42, 0.03) !important;
-}
-
-html.theme-light .bg-white\/\[0\.03\] {
-  background-color: rgba(15, 23, 42, 0.04) !important;
-}
-
-/* Borders and dividers -------------------------------------------------- */
-html.theme-light .border-white\/10 {
-  border-color: #e2e8f0 !important;
-}
-
-html.theme-light .border-white\/5 {
-  border-color: #eef2f6 !important;
-}
-
-html.theme-light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #eef2f6 !important;
-}
-
-html.theme-light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e2e8f0 !important;
+  color: hsl(var(--muted-foreground));
 }
 
 /*
- * Text. The dark theme's grey ramp runs light-to-dark as the number
- * increases; on a light ground that has to invert, or "muted" text becomes
- * the most prominent thing on the page. Each level is chosen to clear WCAG
- * AA (4.5:1) on #f8fafc -- gray-600 was the dimmest in the dark theme and
- * must not simply become the palest here.
+ * The browser's own date and time picker icons.
+ *
+ * Drawn by the browser, not by us, and always dark -- which on the dark
+ * theme is a black glyph on a near-black field. `invert` is the only
+ * lever available; there is no property that recolours it.
  */
-html.theme-light .text-white {
-  color: #0f172a !important;
-}
-
-html.theme-light .text-gray-300 {
-  color: #334155 !important;
-}
-
-html.theme-light .text-gray-400 {
-  color: #475569 !important;
-}
-
-html.theme-light .text-gray-500 {
-  color: #64748b !important;
-}
-
-html.theme-light .text-gray-600 {
-  color: #64748b !important;
-}
-
-/* Active nav item: white-on-black inverts to dark-on-white. */
-html.theme-light .bg-white.text-black {
-  background-color: #0f172a !important;
-  color: #ffffff !important;
-}
-
-/* Emerald primary buttons print black text on emerald in the dark theme;
-   that still passes on light, so only the few white-text cases move. */
-html.theme-light .text-black {
-  color: #0f172a;
-}
-
-html.theme-light .bg-emerald-500 {
-  color: #052e16 !important;
-}
-
-/* Form controls need an explicit ground -- a transparent input on a light
-   page renders as an invisible field. */
-html.theme-light input,
-html.theme-light select,
-html.theme-light textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-}
-
-html.theme-light input::placeholder,
-html.theme-light textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* The browser renders date/time picker icons dark-on-dark otherwise. */
-html.theme-light input[type='date']::-webkit-calendar-picker-indicator,
-html.theme-light input[type='time']::-webkit-calendar-picker-indicator {
-  filter: none;
-}
-
 html:not(.theme-light) input[type='date']::-webkit-calendar-picker-indicator,
 html:not(.theme-light) input[type='time']::-webkit-calendar-picker-indicator {
   filter: invert(1);
+  opacity: 0.6;
+}
+
+html.theme-light input[type='date']::-webkit-calendar-picker-indicator,
+html.theme-light input[type='time']::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.6;
 }
 
 /*
@@ -197,8 +75,9 @@ html:not(.theme-light) input[type='time']::-webkit-calendar-picker-indicator {
  * Safari on iOS zooms the whole viewport when you focus an input whose
  * font-size is under 16px, then leaves it zoomed. This app uses 12px and
  * 14px inputs throughout, so every tap on a field at the front desk
- * jolted the layout -- and the fix is not to redesign the desktop density,
- * it is to raise the font size only where a touch keyboard exists.
+ * jolted the layout -- and the fix is not to redesign the desktop
+ * density, it is to raise the font size only where a touch keyboard
+ * exists.
  *
  * Scoped to coarse pointers so the compact desktop sizing is untouched.
  * 16px exactly: the threshold, not a size chosen for looks.
@@ -214,10 +93,10 @@ html:not(.theme-light) input[type='time']::-webkit-calendar-picker-indicator {
 /*
  * Tap targets on touch screens.
  *
- * Deliberately NOT a blanket `button { min-height }` rule. That would also
- * resize inline chip-removes, the star-rating row, and icon buttons inside
- * table cells -- layouts whose result cannot be checked without a browser,
- * so a sweeping change there is a guess dressed up as a fix.
+ * Deliberately NOT a blanket `button { min-height }` rule. That would
+ * also resize inline chip-removes, the star-rating row, and icon buttons
+ * inside table cells -- layouts whose result cannot be checked without a
+ * browser, so a sweeping change there is a guess dressed up as a fix.
  *
  * Instead the two places that are unambiguously standalone actions get an
  * explicit minimum: the nav drawer (set in Layout.tsx) and form submit
@@ -241,64 +120,37 @@ html:not(.theme-light) input[type='time']::-webkit-calendar-picker-indicator {
   }
 }
 
-
-/*
- * Keyboard focus.
- *
- * DESIGN.md called this out as a gap: inputs relied on
- * `focus:border-emerald-400` and buttons on whatever the browser drew,
- * which on a dark ground is often nothing visible at all. A keyboard user
- * could tab through the whole portal without ever seeing where they were.
- *
- * `:focus-visible` rather than `:focus`, so a mouse click never leaves a
- * ring behind -- that is the reason blanket `outline: none` got written
- * into so many codebases in the first place.
- */
-:focus-visible {
-  outline: 2px solid #34d399;
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-
-html.theme-light :focus-visible {
-  outline-color: #047857;
-}
-
-/* An element that scrolls or is programmatically focused (a dialog) should
-   not draw a ring just for being focused by script. */
-[tabindex="-1"]:focus-visible {
+/* An element that scrolls or is programmatically focused (a dialog)
+   should not draw a ring just for being focused by script. The ring
+   itself is defined once, on tokens, in index.css. */
+[tabindex='-1']:focus-visible {
   outline: none;
 }
-
 
 /*
  * Shimmer for skeleton placeholders.
  *
- * A moving highlight rather than a pulse: a pulse reads as "this element is
- * disabled", a sweep reads as "this is filling in". Both themes, because
- * the same grey on a light ground would be invisible.
+ * A moving highlight rather than a pulse: a pulse reads as "this element
+ * is disabled", a sweep reads as "this is filling in". The sweep's
+ * highlight is light on both themes -- a grey sweep on a light ground is
+ * invisible -- so that one value stays explicit rather than tokenised.
  */
 .skeleton {
   position: relative;
   overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: hsl(var(--foreground) / 0.06);
 }
 
 html.theme-light .skeleton {
-  background-color: rgba(15, 23, 42, 0.07);
+  background-color: hsl(var(--foreground) / 0.07);
 }
 
 .skeleton::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.07),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
   animation: skeleton-sweep 1.6s ease-in-out infinite;
 }
 
@@ -335,17 +187,4 @@ html.theme-light .skeleton::after {
   .toast-enter {
     animation: none;
   }
-}
-
-/* Screen-reader-only text, used to announce loading regions. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
 }

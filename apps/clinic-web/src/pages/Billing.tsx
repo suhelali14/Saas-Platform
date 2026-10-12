@@ -73,29 +73,29 @@ export function Billing() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl">
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><IndianRupee size={20} className="text-emerald-400" /> Billing</h1>
-      <p className="text-sm text-gray-400 mb-4">Invoices, payments, and daily cash closing.</p>
+      <p className="text-sm text-muted-foreground mb-4">Invoices, payments, and daily cash closing.</p>
 
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('invoices')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'invoices' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>Invoices</button>
-        <button onClick={() => setTab('closing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'closing' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>Daily Closing</button>
+        <button onClick={() => setTab('invoices')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'invoices' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Invoices</button>
+        <button onClick={() => setTab('closing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'closing' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Daily Closing</button>
       </div>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
       {tab === 'invoices' ? (
         <div className="flex flex-col gap-2">
-          {invoices.length === 0 && <div className="text-center py-10 text-gray-500 text-sm">No invoices yet. Create one from a patient's profile.</div>}
+          {invoices.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No invoices yet. Create one from a patient's profile.</div>}
           {invoices.map((inv) => (
-            <button key={inv.id} onClick={() => openInvoice(inv.id)} className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-left">
+            <button key={inv.id} onClick={() => openInvoice(inv.id)} className="flex items-center justify-between p-3.5 rounded-xl border border-border/10 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-left">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{inv.patient.name}</span>
-                  <span className="text-[10px] text-gray-500 font-mono">{inv.patient.uhid}</span>
+                  <span className="text-[10px] text-muted-foreground/70 font-mono">{inv.patient.uhid}</span>
                 </div>
-                <div className="text-xs text-gray-500">{new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div className="text-xs text-muted-foreground/70">{new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-300">₹{inv.subtotal.toFixed(2)}</span>
+                <span className="text-sm text-foreground/80">₹{inv.subtotal.toFixed(2)}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[inv.status]}`}>{inv.status}</span>
               </div>
             </button>
@@ -168,14 +168,14 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4"><ArrowLeft size={14} /> Back to invoices</button>
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to invoices</button>
 
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Link to={`/patients/${invoice.patient.id}`} className="text-xl font-bold hover:underline">{invoice.patient.name}</Link>
-          <span className="text-xs text-gray-500 font-mono">{invoice.patient.uhid}</span>
+          <span className="text-xs text-muted-foreground/70 font-mono">{invoice.patient.uhid}</span>
         </div>
-        <button onClick={() => openPdf(`/invoices/${invoice.id}/pdf`)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-white">
+        <button onClick={() => openPdf(`/invoices/${invoice.id}/pdf`)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
           <Download size={12} /> Print
         </button>
       </div>
@@ -183,42 +183,42 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] mb-4">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-4">
         <h3 className="text-sm font-semibold mb-2">Line Items</h3>
         <div className="flex flex-col gap-1 mb-3">
           {invoice.items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between text-sm py-1 border-b border-white/5 last:border-0">
-              <span className="text-gray-300">{item.description} <span className="text-gray-600 text-xs">({item.category}) x{item.quantity}</span></span>
+            <div key={item.id} className="flex items-center justify-between text-sm py-1 border-b border-border/5 last:border-0">
+              <span className="text-foreground/80">{item.description} <span className="text-muted-foreground/60 text-xs">({item.category}) x{item.quantity}</span></span>
               <div className="flex items-center gap-2">
                 <span>₹{(Number(item.amount) * item.quantity).toFixed(2)}</span>
                 <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)} aria-label="Remove item">✕</Button>
               </div>
             </div>
           ))}
-          {invoice.items.length === 0 && <p className="text-xs text-gray-500">No items yet.</p>}
+          {invoice.items.length === 0 && <p className="text-xs text-muted-foreground/70">No items yet.</p>}
         </div>
         <form onSubmit={addItem} className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none">
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none">
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
-          <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-          <input placeholder="Qty" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-          <input placeholder="₹" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-          <button type="submit" disabled={saving} className="col-span-2 sm:col-span-6 self-start px-3 py-2 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20 disabled:opacity-50">Add Item</button>
+          <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+          <input placeholder="Qty" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+          <input placeholder="₹" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+          <button type="submit" disabled={saving} className="col-span-2 sm:col-span-6 self-start px-3 py-2 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20 disabled:opacity-50">Add Item</button>
         </form>
       </div>
 
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] mb-4">
-        <div className="flex justify-between text-sm mb-1"><span className="text-gray-400">Subtotal</span><span>₹{invoice.subtotal.toFixed(2)}</span></div>
-        <div className="flex justify-between text-sm mb-1"><span className="text-gray-400">Paid</span><span>₹{invoice.paid.toFixed(2)}</span></div>
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-4">
+        <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">Subtotal</span><span>₹{invoice.subtotal.toFixed(2)}</span></div>
+        <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">Paid</span><span>₹{invoice.paid.toFixed(2)}</span></div>
         <div className="flex justify-between text-sm font-semibold"><span>Balance Due</span><span>₹{invoice.balance.toFixed(2)}</span></div>
       </div>
 
       {invoice.payments.length > 0 && (
-        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] mb-4">
+        <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-4">
           <h3 className="text-sm font-semibold mb-2">Payments</h3>
           {invoice.payments.map((p) => (
-            <div key={p.id} className="flex justify-between text-xs text-gray-400 py-0.5">
+            <div key={p.id} className="flex justify-between text-xs text-muted-foreground py-0.5">
               <span>{new Date(p.paidAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {p.receivedBy.name}</span>
               <span>₹{Number(p.amount).toFixed(2)} ({p.mode})</span>
             </div>
@@ -228,11 +228,11 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
 
       {invoice.balance > 0 && (
         <form onSubmit={recordPayment} className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex gap-2">
-          <input placeholder={`Up to ₹${invoice.balance.toFixed(2)}`} type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="flex-1 px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none" />
-          <select value={payMode} onChange={(e) => setPayMode(e.target.value)} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none">
+          <input placeholder={`Up to ₹${invoice.balance.toFixed(2)}`} type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="flex-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none" />
+          <select value={payMode} onChange={(e) => setPayMode(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none">
             {MODES.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
-          <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">Record Payment</button>
+          <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">Record Payment</button>
         </form>
       )}
     </div>
@@ -252,11 +252,11 @@ function DailyClosing() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]"><div className="text-xs text-gray-500 mb-1">Cash</div><div className="text-lg font-bold">₹{summary.byMode.CASH?.toFixed(2) ?? '0.00'}</div></div>
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]"><div className="text-xs text-gray-500 mb-1">UPI</div><div className="text-lg font-bold">₹{summary.byMode.UPI?.toFixed(2) ?? '0.00'}</div></div>
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]"><div className="text-xs text-gray-500 mb-1">Card</div><div className="text-lg font-bold">₹{summary.byMode.CARD?.toFixed(2) ?? '0.00'}</div></div>
-      <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5"><div className="text-xs text-gray-500 mb-1">Total Today</div><div className="text-lg font-bold text-emerald-400">₹{summary.totalCollected.toFixed(2)}</div></div>
-      <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 col-span-2 md:col-span-4"><div className="text-xs text-gray-500 mb-1">Pending Dues (all time)</div><div className="text-lg font-bold text-amber-400">₹{summary.pendingDues.toFixed(2)}</div></div>
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">Cash</div><div className="text-lg font-bold">₹{summary.byMode.CASH?.toFixed(2) ?? '0.00'}</div></div>
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">UPI</div><div className="text-lg font-bold">₹{summary.byMode.UPI?.toFixed(2) ?? '0.00'}</div></div>
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">Card</div><div className="text-lg font-bold">₹{summary.byMode.CARD?.toFixed(2) ?? '0.00'}</div></div>
+      <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5"><div className="text-xs text-muted-foreground/70 mb-1">Total Today</div><div className="text-lg font-bold text-emerald-400">₹{summary.totalCollected.toFixed(2)}</div></div>
+      <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 col-span-2 md:col-span-4"><div className="text-xs text-muted-foreground/70 mb-1">Pending Dues (all time)</div><div className="text-lg font-bold text-amber-400">₹{summary.pendingDues.toFixed(2)}</div></div>
     </div>
   );
 }

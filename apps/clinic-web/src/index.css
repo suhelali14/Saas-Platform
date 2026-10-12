@@ -1,0 +1,156 @@
+/*
+ * Tailwind, built properly, plus the design tokens.
+ *
+ * This app used to load https://cdn.tailwindcss.com from index.html. That
+ * script compiles CSS in the browser on every single page load, which
+ * means a flash of unstyled content on the front desk's phone, ~120KB of
+ * JavaScript before anything is readable, and -- the part that matters for
+ * software a clinic depends on -- a completely unstyled app if that CDN is
+ * unreachable. Tailwind's own documentation says not to use it in
+ * production. A local build emits one small stylesheet with only the
+ * classes this app actually uses.
+ *
+ * The switch was safe to make because nothing here builds a class name
+ * from a variable. The public site's palettes are written out as whole
+ * class strings for exactly that reason, which is why a scanner-based
+ * build finds them.
+ *
+ * ── Two apps, two visual languages ──────────────────────────────────
+ *
+ * The staff portal is dark: it is a tool used for hours at a time. The
+ * public patient site is light: it is read once, by a stranger deciding
+ * whether to trust this clinic. They are deliberately different and are
+ * not being unified.
+ *
+ * So the tokens below describe the PORTAL, which is what shadcn primitives
+ * are used for. The public site keeps its own explicit light palette, as
+ * documented in DESIGN.md -- a page patients act on should not inherit a
+ * theme change made for a staff screen.
+ *
+ * ── Why dark sits on :root ──────────────────────────────────────────
+ *
+ * The usual shadcn setup puts light on :root and dark under .dark. This
+ * app is inverted because it was dark first: every one of ~40 existing
+ * components is written for the dark ground, and `theme-light` is the
+ * override. Flipping that round would mean no screen rendered correctly
+ * until all of them had been converted.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* The portal. #0b0d12 is the ground every existing screen is written
+       against, kept exactly so a converted component and an unconverted
+       one sit on the same colour. */
+    --background: 220 22% 6%;
+    --foreground: 0 0% 100%;
+
+    --card: 220 18% 9%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 220 20% 8%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Teal, matching the clinic's own default public palette, so the two
+       halves of the product do not look like two products. */
+    --primary: 174 80% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 220 14% 18%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Clinical state. These are the two colours a nurse reads off a
+       screen to decide something, so they are tokens with names rather
+       than a hue chosen per component. */
+    --success: 158 64% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
+
+    --border: 0 0% 100%;  /* used at low opacity, as border-white/10 was */
+    --input: 220 14% 18%;
+    --ring: 174 80% 40%;
+
+    --radius: 0.5rem;
+  }
+
+  /* Reception works in daylight at a front desk, so the portal offers a
+     light theme. Applied by ThemeContext as a class on <html>. */
+  :root.theme-light {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 14%;
+
+    --primary: 174 80% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 222 47% 14%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 42%;
+
+    --accent: 210 40% 92%;
+    --accent-foreground: 222 47% 14%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 158 64% 34%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 92% 40%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 222 47% 14%;
+    --input: 214 32% 88%;
+    --ring: 174 80% 34%;
+  }
+
+  * {
+    border-color: hsl(var(--border) / 0.1);
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * A visible focus ring, both themes.
+   *
+   * :focus-visible rather than :focus, so clicking a button with a mouse
+   * does not leave a ring behind afterwards -- which is precisely why
+   * blanket `outline: none` ends up in codebases, and then keyboard users
+   * cannot see where they are.
+   */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Right-aligned numbers that do not jitter as they change. Used on
+     money and on counts. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

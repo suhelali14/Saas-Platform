@@ -15,10 +15,10 @@ export function Pharmacy() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Pill size={20} className="text-emerald-400" /> Pharmacy</h1>
-      <p className="text-sm text-gray-400 mb-4">Dispensing queue and stock management.</p>
+      <p className="text-sm text-muted-foreground mb-4">Dispensing queue and stock management.</p>
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('dispensing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'dispensing' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>Dispensing</button>
-        <button onClick={() => setTab('inventory')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'inventory' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>Inventory</button>
+        <button onClick={() => setTab('dispensing')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'dispensing' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Dispensing</button>
+        <button onClick={() => setTab('inventory')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'inventory' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>Inventory</button>
       </div>
       {tab === 'dispensing' ? <Dispensing /> : <Inventory />}
     </div>
@@ -63,7 +63,7 @@ function Dispensing() {
 
   return (
     <>
-      <button onClick={() => setShowAll((v) => !v)} className="mb-4 px-3 py-1.5 rounded-lg bg-white/5 text-gray-300 text-xs font-medium hover:bg-white/10">
+      <button onClick={() => setShowAll((v) => !v)} className="mb-4 px-3 py-1.5 rounded-lg bg-foreground/5 text-foreground/80 text-xs font-medium hover:bg-foreground/10">
         {showAll ? 'Show pending only' : 'Show all'}
       </button>
 
@@ -75,13 +75,13 @@ function Dispensing() {
       )}
 
       <div className="flex flex-col gap-3">
-        {prescriptions.length === 0 && <div className="text-center py-10 text-gray-500 text-sm">Nothing to dispense.</div>}
+        {prescriptions.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing to dispense.</div>}
         {prescriptions.map((rx) => (
-          <div key={rx.id} className={`p-4 rounded-xl border bg-white/[0.02] ${rx.dispensed ? 'border-white/10' : 'border-amber-500/30'}`}>
+          <div key={rx.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${rx.dispensed ? 'border-border/10' : 'border-amber-500/30'}`}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <span className="font-medium text-sm">{rx.patient.name}</span>
-                <span className="text-xs text-gray-500 font-mono ml-2">{rx.patient.uhid}</span>
+                <span className="text-xs text-muted-foreground/70 font-mono ml-2">{rx.patient.uhid}</span>
               </div>
               {rx.dispensed ? (
                 <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 size={13} /> Dispensed</span>
@@ -93,9 +93,9 @@ function Dispensing() {
             </div>
             <div className="flex flex-col gap-0.5">
               {rx.items.map((item, i) => (
-                <div key={i} className="text-sm text-gray-300">
-                  <span className="font-medium text-white">{item.drugName}</span> — {item.dosage}, {item.frequency}, {item.duration}
-                  {item.instructions && <span className="text-gray-500"> ({item.instructions})</span>}
+                <div key={i} className="text-sm text-foreground/80">
+                  <span className="font-medium text-foreground">{item.drugName}</span> — {item.dosage}, {item.frequency}, {item.duration}
+                  {item.instructions && <span className="text-muted-foreground/70"> ({item.instructions})</span>}
                 </div>
               ))}
             </div>
@@ -199,20 +199,20 @@ function Inventory() {
         </div>
       )}
 
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Package size={14} /> Add / View Batches</h3>
         <div className="relative mb-3">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSelectedDrug(null); }}
             placeholder="Search a medicine..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
           />
           {drugOptions.length > 0 && !selectedDrug && (
-            <div className="absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-[#14171f] max-h-40 overflow-y-auto">
+            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
               {drugOptions.map((d) => (
-                <button key={d.id} onClick={() => selectDrug(d)} className="block w-full text-left px-3 py-2 text-sm hover:bg-white/5">{d.name}</button>
+                <button key={d.id} onClick={() => selectDrug(d)} className="block w-full text-left px-3 py-2 text-sm hover:bg-foreground/5">{d.name}</button>
               ))}
             </div>
           )}
@@ -223,7 +223,7 @@ function Inventory() {
             {batches.length > 0 && (
               <div className="flex flex-col gap-1 mb-3">
                 {batches.map((b) => (
-                  <div key={b.id} className="flex justify-between text-xs text-gray-400 py-1 border-b border-white/5 last:border-0">
+                  <div key={b.id} className="flex justify-between text-xs text-muted-foreground py-1 border-b border-border/5 last:border-0">
                     <span>Batch {b.batchNumber} · Exp {new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                     <span>{b.quantityInHand} in stock</span>
                   </div>
@@ -231,11 +231,11 @@ function Inventory() {
               </div>
             )}
             <form onSubmit={addBatch} className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <input placeholder="Batch No." value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-              <input type="date" placeholder="Expiry" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-              <input placeholder="Qty" type="number" value={form.quantityInHand} onChange={(e) => setForm({ ...form, quantityInHand: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-              <input placeholder="Reorder at" type="number" value={form.reorderThreshold} onChange={(e) => setForm({ ...form, reorderThreshold: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-              <button type="submit" disabled={saving} className="col-span-2 sm:col-span-4 self-start flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold disabled:opacity-50">
+              <input placeholder="Batch No." value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+              <input type="date" placeholder="Expiry" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+              <input placeholder="Qty" type="number" value={form.quantityInHand} onChange={(e) => setForm({ ...form, quantityInHand: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+              <input placeholder="Reorder at" type="number" value={form.reorderThreshold} onChange={(e) => setForm({ ...form, reorderThreshold: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+              <button type="submit" disabled={saving} className="col-span-2 sm:col-span-4 self-start flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
                 <Plus size={12} /> Add Batch
               </button>
             </form>

@@ -47,27 +47,27 @@ export function Settings() {
   return (
     <div className={`p-4 sm:p-6 md:p-8 ${tab === 'documents' ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><SettingsIcon size={20} className="text-emerald-400" /> Settings</h1>
-      <p className="text-sm text-gray-400 mb-4">Clinic details, your profile, and your password.</p>
+      <p className="text-sm text-muted-foreground mb-4">Clinic details, your profile, and your password.</p>
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {canEditClinic && (
-          <button onClick={() => setTab('clinic')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'clinic' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+          <button onClick={() => setTab('clinic')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'clinic' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
             <Building2 size={13} /> Clinic
           </button>
         )}
-        <button onClick={() => setTab('profile')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'profile' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+        <button onClick={() => setTab('profile')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'profile' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
           <UserCircle size={13} /> My Profile
         </button>
-        <button onClick={() => setTab('security')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'security' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+        <button onClick={() => setTab('security')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'security' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
           <KeyRound size={13} /> Password
         </button>
         {canEditClinic && (
-          <button onClick={() => setTab('documents')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'documents' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+          <button onClick={() => setTab('documents')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'documents' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
             <Printer size={13} /> Documents
           </button>
         )}
         {canEditClinic && (
-          <button onClick={() => setTab('data')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'data' ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+          <button onClick={() => setTab('data')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${tab === 'data' ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
             <Database size={13} /> Data &amp; Backup
           </button>
         )}
@@ -149,7 +149,7 @@ function ClinicSettings() {
     }
   };
 
-  if (!clinic) return error ? <div className="text-gray-500 text-sm">{error}</div> : <SkeletonForm fields={8} label="Loading clinic settings" />;
+  if (!clinic) return error ? <div className="text-muted-foreground/70 text-sm">{error}</div> : <SkeletonForm fields={8} label="Loading clinic settings" />;
 
   const setField = (patch: Partial<Clinic>) => setClinic({ ...clinic, ...patch });
   const timings = clinic.timings ?? [];
@@ -170,8 +170,8 @@ function ClinicSettings() {
           </Field>
           <Field label="Clinic logo">
             <div className="flex items-center gap-2">
-              {clinic.logoPath && <img src={brandingUrl(clinic.logoPath)} alt="" className="h-9 w-9 rounded object-cover border border-white/10" />}
-              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 cursor-pointer">
+              {clinic.logoPath && <img src={brandingUrl(clinic.logoPath)} alt="" className="h-9 w-9 rounded object-cover border border-border/10" />}
+              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 cursor-pointer">
                 <Upload size={11} /> {clinic.logoPath ? 'Replace' : 'Upload'}
                 <input type="file" accept=".png,.jpg,.jpeg" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ''; }} />
               </label>
@@ -201,15 +201,15 @@ function ClinicSettings() {
         </Field>
 
         <div className="mt-3">
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Services offered</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Services offered</label>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {(clinic.services ?? []).map((s, i) => (
-              <span key={i} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 text-xs">
+              <span key={i} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-foreground/10 text-xs">
                 {s}
-                <button type="button" onClick={() => setField({ services: (clinic.services ?? []).filter((_, idx) => idx !== i) })} className="text-gray-500 hover:text-red-400"><X size={10} /></button>
+                <button type="button" onClick={() => setField({ services: (clinic.services ?? []).filter((_, idx) => idx !== i) })} className="text-muted-foreground/70 hover:text-red-400"><X size={10} /></button>
               </span>
             ))}
-            {(clinic.services ?? []).length === 0 && <span className="text-xs text-gray-600">None added yet.</span>}
+            {(clinic.services ?? []).length === 0 && <span className="text-xs text-muted-foreground/60">None added yet.</span>}
           </div>
           <div className="flex gap-2">
             <input
@@ -224,19 +224,19 @@ function ClinicSettings() {
               placeholder="e.g. General Consultation"
               className={`${inputCls} flex-1`}
             />
-            <button type="button" onClick={() => { if (newService.trim()) { setField({ services: [...(clinic.services ?? []), newService.trim()] }); setNewService(''); } }} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+            <button type="button" onClick={() => { if (newService.trim()) { setField({ services: [...(clinic.services ?? []), newService.trim()] }); setNewService(''); } }} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
               <Plus size={12} /> Add
             </button>
           </div>
         </div>
 
         <div className="mt-4">
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Opening hours</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Opening hours</label>
           <div className="flex flex-col gap-1.5">
             {timings.map((t, i) => (
               <div key={t.day} className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 w-20 shrink-0">{t.day}</span>
-                <label className="flex items-center gap-1 text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground w-20 shrink-0">{t.day}</span>
+                <label className="flex items-center gap-1 text-xs text-muted-foreground/70">
                   <input
                     type="checkbox"
                     checked={!t.closed}
@@ -250,9 +250,9 @@ function ClinicSettings() {
                 </label>
                 {!t.closed && (
                   <>
-                    <input type="time" value={t.opensAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, opensAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
-                    <span className="text-xs text-gray-600">to</span>
-                    <input type="time" value={t.closesAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, closesAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs outline-none" />
+                    <input type="time" value={t.opensAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, opensAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+                    <span className="text-xs text-muted-foreground/60">to</span>
+                    <input type="time" value={t.closesAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, closesAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
                   </>
                 )}
               </div>
@@ -261,8 +261,8 @@ function ClinicSettings() {
         </div>
 
         <div className="mt-5">
-          <label className="block text-xs font-medium text-gray-400 mb-0.5">Why patients choose us</label>
-          <p className="text-[11px] text-gray-600 mb-2">Up to 8 genuine strengths — short waiting times, on-site pharmacy, evening hours. Write what's actually true of this clinic.</p>
+          <label className="block text-xs font-medium text-muted-foreground mb-0.5">Why patients choose us</label>
+          <p className="text-[11px] text-muted-foreground/60 mb-2">Up to 8 genuine strengths — short waiting times, on-site pharmacy, evening hours. Write what's actually true of this clinic.</p>
           <div className="flex flex-col gap-2">
             {(clinic.highlights ?? []).map((h, i) => (
               <div key={i} className="flex gap-2 items-start">
@@ -270,20 +270,20 @@ function ClinicSettings() {
                   <input value={h.title} onChange={(e) => setField({ highlights: replaceAt(clinic.highlights ?? [], i, { ...h, title: e.target.value }) })} placeholder="Title" maxLength={100} className={inputCls} />
                   <input value={h.description ?? ''} onChange={(e) => setField({ highlights: replaceAt(clinic.highlights ?? [], i, { ...h, description: e.target.value }) })} placeholder="One line of detail (optional)" maxLength={300} className={inputCls} />
                 </div>
-                <button type="button" onClick={() => setField({ highlights: (clinic.highlights ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-gray-500 hover:text-red-400" aria-label="Remove highlight"><X size={13} /></button>
+                <button type="button" onClick={() => setField({ highlights: (clinic.highlights ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-red-400" aria-label="Remove highlight"><X size={13} /></button>
               </div>
             ))}
           </div>
           {(clinic.highlights ?? []).length < 8 && (
-            <button type="button" onClick={() => setField({ highlights: [...(clinic.highlights ?? []), { title: '', description: '' }] })} className="flex items-center gap-1 px-3 py-1.5 mt-2 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+            <button type="button" onClick={() => setField({ highlights: [...(clinic.highlights ?? []), { title: '', description: '' }] })} className="flex items-center gap-1 px-3 py-1.5 mt-2 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
               <Plus size={12} /> Add point
             </button>
           )}
         </div>
 
         <div className="mt-5">
-          <label className="block text-xs font-medium text-gray-400 mb-0.5">Frequently asked questions</label>
-          <p className="text-[11px] text-gray-600 mb-2">The questions reception answers on the phone all day — do you take walk-ins, is parking available, which insurance.</p>
+          <label className="block text-xs font-medium text-muted-foreground mb-0.5">Frequently asked questions</label>
+          <p className="text-[11px] text-muted-foreground/60 mb-2">The questions reception answers on the phone all day — do you take walk-ins, is parking available, which insurance.</p>
           <div className="flex flex-col gap-2">
             {(clinic.faqs ?? []).map((f, i) => (
               <div key={i} className="flex gap-2 items-start">
@@ -291,12 +291,12 @@ function ClinicSettings() {
                   <input value={f.question} onChange={(e) => setField({ faqs: replaceAt(clinic.faqs ?? [], i, { ...f, question: e.target.value }) })} placeholder="Question" maxLength={200} className={inputCls} />
                   <textarea value={f.answer} onChange={(e) => setField({ faqs: replaceAt(clinic.faqs ?? [], i, { ...f, answer: e.target.value }) })} placeholder="Answer" rows={2} maxLength={1000} className={inputCls} />
                 </div>
-                <button type="button" onClick={() => setField({ faqs: (clinic.faqs ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-gray-500 hover:text-red-400" aria-label="Remove question"><X size={13} /></button>
+                <button type="button" onClick={() => setField({ faqs: (clinic.faqs ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-red-400" aria-label="Remove question"><X size={13} /></button>
               </div>
             ))}
           </div>
           {(clinic.faqs ?? []).length < 12 && (
-            <button type="button" onClick={() => setField({ faqs: [...(clinic.faqs ?? []), { question: '', answer: '' }] })} className="flex items-center gap-1 px-3 py-1.5 mt-2 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+            <button type="button" onClick={() => setField({ faqs: [...(clinic.faqs ?? []), { question: '', answer: '' }] })} className="flex items-center gap-1 px-3 py-1.5 mt-2 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
               <Plus size={12} /> Add question
             </button>
           )}
@@ -307,7 +307,7 @@ function ClinicSettings() {
         </a>
       </Section>
 
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Clinic Settings'}
       </button>
     </form>
@@ -368,7 +368,7 @@ function ProfileSettings() {
     }
   };
 
-  if (!profile) return error ? <div className="text-gray-500 text-sm">{error}</div> : <SkeletonForm fields={6} label="Loading your profile" />;
+  if (!profile) return error ? <div className="text-muted-foreground/70 text-sm">{error}</div> : <SkeletonForm fields={6} label="Loading your profile" />;
   const isDoctor = profile.role === 'DOCTOR';
 
   return (
@@ -402,34 +402,37 @@ function ProfileSettings() {
         <Section title="Signature & Photo" hint="Your signature is stamped onto prescriptions and certificates you generate.">
           <div className="flex flex-wrap gap-6">
             <div>
-              <div className="text-xs text-gray-400 mb-1.5">Signature</div>
+              <div className="text-xs text-muted-foreground mb-1.5">Signature</div>
+              {/* The signature image keeps bg-white deliberately rather than a
+                  token: a signature is black ink on a transparent PNG, and on
+                  the dark ground it would be invisible. */}
               {profile.signatureImagePath
                 ? <img src={brandingUrl(profile.signatureImagePath)} alt="" className="h-12 bg-white rounded px-2 mb-2 object-contain" />
-                : <div className="text-xs text-gray-600 mb-2">Not uploaded — documents print a blank signature line.</div>}
-              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 cursor-pointer w-fit">
+                : <div className="text-xs text-muted-foreground/60 mb-2">Not uploaded — documents print a blank signature line.</div>}
+              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 cursor-pointer w-fit">
                 <Upload size={11} /> {profile.signatureImagePath ? 'Replace' : 'Upload'}
                 <input type="file" accept=".png,.jpg,.jpeg" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload('signature', f); e.target.value = ''; }} />
               </label>
             </div>
             <div>
-              <div className="text-xs text-gray-400 mb-1.5">Photo (public page)</div>
+              <div className="text-xs text-muted-foreground mb-1.5">Photo (public page)</div>
               {profile.photoPath
-                ? <img src={brandingUrl(profile.photoPath)} alt="" className="h-16 w-16 rounded-full object-cover mb-2 border border-white/10" />
-                : <div className="text-xs text-gray-600 mb-2">No photo.</div>}
-              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 cursor-pointer w-fit">
+                ? <img src={brandingUrl(profile.photoPath)} alt="" className="h-16 w-16 rounded-full object-cover mb-2 border border-border/10" />
+                : <div className="text-xs text-muted-foreground/60 mb-2">No photo.</div>}
+              <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 cursor-pointer w-fit">
                 <Upload size={11} /> {profile.photoPath ? 'Replace' : 'Upload'}
                 <input type="file" accept=".png,.jpg,.jpeg" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload('photo', f); e.target.value = ''; }} />
               </label>
             </div>
           </div>
-          <label className="flex items-center gap-2 mt-4 text-xs text-gray-400">
+          <label className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
             <input type="checkbox" checked={profile.showOnPublicPage} onChange={(e) => setProfile({ ...profile, showOnPublicPage: e.target.checked })} />
             Show me on the public clinic page
           </label>
         </Section>
       )}
 
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Profile'}
       </button>
     </form>
@@ -475,7 +478,7 @@ function PasswordSettings() {
           <Field label="Confirm new password"><input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputCls} /></Field>
         </div>
       </Section>
-      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Change Password'}
       </button>
     </form>
@@ -532,13 +535,13 @@ function DataSettings() {
         <button
           onClick={() => download('/export/full', `clinic-backup-${today}.json`, 'full')}
           disabled={busy === 'full'}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
         >
           <FileJson size={15} /> {busy === 'full' ? 'Preparing…' : 'Download Full Backup'}
         </button>
-        <p className="text-[11px] text-gray-600 mt-3 leading-relaxed">
+        <p className="text-[11px] text-muted-foreground/60 mt-3 leading-relaxed">
           Uploaded files — scan attachments, X-rays and lab reports — are stored on the server's disk and are
-          <strong className="text-gray-400"> not</strong> inside this JSON. Back up the server's <code className="text-gray-400">uploads/</code> folder
+          <strong className="text-muted-foreground"> not</strong> inside this JSON. Back up the server's <code className="text-muted-foreground">uploads/</code> folder
           alongside it, or the backup is incomplete.
         </p>
       </Section>
@@ -550,7 +553,7 @@ function DataSettings() {
               key={t.key}
               onClick={() => download(`/export/csv/${t.key}`, `${t.key}-${today}.csv`, t.key)}
               disabled={busy === t.key}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 text-xs hover:bg-white/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 disabled:opacity-50"
             >
               <FileSpreadsheet size={12} /> {busy === t.key ? 'Preparing…' : t.label}
             </button>
@@ -559,11 +562,11 @@ function DataSettings() {
       </Section>
 
       <Section title="Your Data, Your Records" hint="Why this page exists.">
-        <ul className="text-xs text-gray-400 leading-relaxed list-disc pl-4 flex flex-col gap-1.5">
+        <ul className="text-xs text-muted-foreground leading-relaxed list-disc pl-4 flex flex-col gap-1.5">
           <li>These records belong to the clinic, not to this software. You can take them with you at any time.</li>
           <li>
             A patient can ask for a copy of the data held about them. Use{' '}
-            <span className="text-gray-300">Download Report</span> on their patient page for a readable PDF, or the
+            <span className="text-foreground/80">Download Report</span> on their patient page for a readable PDF, or the
             patients CSV above for the raw data.
           </li>
           <li>Every export is itself recorded in the audit log, including who ran it and when.</li>
@@ -672,7 +675,7 @@ function DocumentSettings() {
       <div className="flex flex-col gap-5 min-w-0">
         {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
-        <p className="text-xs text-gray-500 leading-relaxed">
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">
           Applies to every document you print — prescriptions, certificates, invoices and patient reports.
           The preview updates as you change things.
         </p>
@@ -684,11 +687,11 @@ function DocumentSettings() {
               ['compact', 'Compact', 'Smaller logo and clinic name only — leaves more room for content.'],
               ['none', 'Pre-printed stationery', 'Prints nothing at the top. Use this if you already have letterhead paper — otherwise the software prints over it.'],
             ] as const).map(([key, label, hint]) => (
-              <label key={key} className={`flex gap-3 p-3 rounded-lg border cursor-pointer ${template.headerMode === key ? 'border-emerald-400 bg-emerald-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
+              <label key={key} className={`flex gap-3 p-3 rounded-lg border cursor-pointer ${template.headerMode === key ? 'border-emerald-400 bg-emerald-500/5' : 'border-border/10 bg-foreground/[0.02]'}`}>
                 <input type="radio" name="headerMode" checked={template.headerMode === key} onChange={() => set({ headerMode: key })} className="mt-0.5 accent-emerald-500" />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{label}</span>
-                  <span className="block text-[11px] text-gray-500 leading-relaxed">{hint}</span>
+                  <span className="block text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</span>
                 </span>
               </label>
             ))}
@@ -696,8 +699,8 @@ function DocumentSettings() {
 
           {template.headerMode === 'none' && (
             <div className="mt-3">
-              <label className="block text-xs text-gray-400 mb-1">
-                Blank space at the top: <span className="text-gray-200 font-medium">{template.topOffsetMm} mm</span>
+              <label className="block text-xs text-muted-foreground mb-1">
+                Blank space at the top: <span className="text-foreground font-medium">{template.topOffsetMm} mm</span>
               </label>
               <input
                 type="range" min={0} max={120} step={1}
@@ -705,7 +708,7 @@ function DocumentSettings() {
                 onChange={(e) => set({ topOffsetMm: Number(e.target.value) })}
                 className="w-full accent-emerald-500"
               />
-              <p className="text-[11px] text-gray-600 mt-1">
+              <p className="text-[11px] text-muted-foreground/60 mt-1">
                 Measure your printed letterhead from the top of the page to where your content should begin.
               </p>
             </div>
@@ -719,9 +722,9 @@ function DocumentSettings() {
                 key={a.key}
                 type="button"
                 onClick={() => set({ accentColor: a.key })}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${template.accentColor === a.key ? 'border-emerald-400 bg-emerald-500/10' : 'border-white/10 bg-white/[0.02]'}`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${template.accentColor === a.key ? 'border-emerald-400 bg-emerald-500/10' : 'border-border/10 bg-foreground/[0.02]'}`}
               >
-                <span className="h-4 w-4 rounded-full border border-white/20" style={{ background: a.ink }} />
+                <span className="h-4 w-4 rounded-full border border-border/20" style={{ background: a.ink }} />
                 {a.label}
               </button>
             ))}
@@ -729,7 +732,7 @@ function DocumentSettings() {
         </Section>
 
         <Section title="Watermark" hint="Printed faintly behind the page — useful for marking duplicates or drafts.">
-          <label className="flex items-center gap-2 text-sm text-gray-300 mb-3">
+          <label className="flex items-center gap-2 text-sm text-foreground/80 mb-3">
             <input type="checkbox" checked={template.watermarkEnabled} onChange={(e) => set({ watermarkEnabled: e.target.checked })} className="accent-emerald-500" />
             Print a watermark
           </label>
@@ -745,7 +748,7 @@ function DocumentSettings() {
             <Toggle label="Quantity column on prescriptions" hint="A computed estimate. Turn off if your pharmacy dispenses by strip." checked={template.showQty} onChange={(v) => set({ showQty: v })} />
           </div>
           <div className="mt-3">
-            <label className="block text-xs text-gray-400 mb-1">Footer note (optional)</label>
+            <label className="block text-xs text-muted-foreground mb-1">Footer note (optional)</label>
             <input value={template.footerNote} onChange={(e) => set({ footerNote: e.target.value })} maxLength={200} placeholder="e.g. Not valid for medico-legal purposes" className={inputCls} />
           </div>
         </Section>
@@ -754,7 +757,7 @@ function DocumentSettings() {
       {/* ── Live preview ──────────────────────────────────────────────── */}
       <div className="lg:sticky lg:top-6 flex flex-col gap-3 min-w-0">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <FileText size={13} />
             Live preview
             {rendering && <Spinner size={11} className="text-emerald-400" />}
@@ -762,7 +765,7 @@ function DocumentSettings() {
           </div>
           <div className="flex items-center gap-2">
             {previewUrl && (
-              <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+              <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
                 <ExternalLink size={11} /> Full size
               </a>
             )}
@@ -776,10 +779,10 @@ function DocumentSettings() {
             of paper rather than a panel of the app -- this is the one place
             in the portal showing something that will be physically printed,
             and the distinction is worth making. */}
-        <div className="rounded-xl border border-white/10 bg-[#2a2e37] p-4 relative">
+        <div className="rounded-xl border border-border/10 bg-[#2a2e37] p-4 relative">
           {rendering && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <span className="px-2.5 py-1.5 rounded-lg bg-black/70 flex items-center gap-2 text-[11px] text-gray-200">
+              <span className="px-2.5 py-1.5 rounded-lg bg-black/70 flex items-center gap-2 text-[11px] text-foreground">
                 <Spinner size={11} /> Updating
               </span>
             </div>
@@ -798,7 +801,7 @@ function DocumentSettings() {
           )}
         </div>
 
-        <p className="text-[11px] text-gray-600 leading-relaxed">
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           A sample prescription with fictional patient details, rendered by the same code that prints your
           real documents.
         </p>
@@ -812,20 +815,20 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint?: stri
     <label className="flex gap-2.5 cursor-pointer">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 accent-emerald-500" />
       <span className="min-w-0">
-        <span className="block text-sm text-gray-200">{label}</span>
-        {hint && <span className="block text-[11px] text-gray-500 leading-relaxed">{hint}</span>}
+        <span className="block text-sm text-foreground">{label}</span>
+        {hint && <span className="block text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</span>}
       </span>
     </label>
   );
 }
 
-const inputCls = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400';
+const inputCls = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
       <h2 className="text-sm font-semibold">{title}</h2>
-      {hint && <p className="text-xs text-gray-500 mb-3">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground/70 mb-3">{hint}</p>}
       {children}
     </div>
   );
@@ -834,9 +837,9 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 function Field({ label, hint, span, children }: { label: string; hint?: string; span?: boolean; children: React.ReactNode }) {
   return (
     <div className={span ? 'md:col-span-2' : ''}>
-      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-gray-600 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-muted-foreground/60 mt-1">{hint}</p>}
     </div>
   );
 }

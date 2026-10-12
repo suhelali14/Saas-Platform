@@ -37,7 +37,7 @@ export function SkeletonList({ rows = 5, label = 'Loading' }: { rows?: number; l
     <SkeletonRegion label={label}>
       <div className="flex flex-col gap-2">
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="flex items-center gap-3 p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={i} className="flex items-center gap-3 p-3.5 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex-1 min-w-0">
               {/* Varying widths so it reads as content rather than a grid. */}
               <Skeleton className={`h-3.5 mb-2 ${['w-40', 'w-52', 'w-36', 'w-48', 'w-44'][i % 5]}`} />
@@ -55,13 +55,13 @@ export function SkeletonList({ rows = 5, label = 'Loading' }: { rows?: number; l
 export function SkeletonTable({ rows = 6, columns = 5, label = 'Loading' }: { rows?: number; columns?: number; label?: string }) {
   return (
     <SkeletonRegion label={label}>
-      <div className="rounded-xl border border-white/10 overflow-hidden">
-        <div className="bg-white/[0.03] px-3 py-2.5 flex gap-4">
+      <div className="rounded-xl border border-border/10 overflow-hidden">
+        <div className="bg-foreground/[0.03] px-3 py-2.5 flex gap-4">
           {Array.from({ length: columns }, (_, i) => (
             <Skeleton key={i} className="h-2.5 flex-1" />
           ))}
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-border/5">
           {Array.from({ length: rows }, (_, r) => (
             <div key={r} className="px-3 py-3 flex gap-4">
               {Array.from({ length: columns }, (_, c) => (
@@ -81,7 +81,7 @@ export function SkeletonStats({ count = 3, label = 'Loading' }: { count?: number
     <SkeletonRegion label={label}>
       <div className="grid sm:grid-cols-3 gap-3">
         {Array.from({ length: count }, (_, i) => (
-          <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={i} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <Skeleton className="h-2.5 w-24 mb-2.5" />
             <Skeleton className="h-7 w-28" />
           </div>
@@ -95,7 +95,7 @@ export function SkeletonStats({ count = 3, label = 'Loading' }: { count?: number
 export function SkeletonForm({ fields = 6, label = 'Loading' }: { fields?: number; label?: string }) {
   return (
     <SkeletonRegion label={label}>
-      <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <Skeleton className="h-3.5 w-40 mb-1.5" />
         <Skeleton className="h-2.5 w-64 mb-5" />
         <div className="grid md:grid-cols-2 gap-3">
@@ -117,7 +117,7 @@ export function SkeletonPanels({ count = 3, label = 'Loading' }: { count?: numbe
     <SkeletonRegion label={label}>
       <div className="flex flex-col gap-4">
         {Array.from({ length: count }, (_, i) => (
-          <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={i} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <Skeleton className="h-3 w-32 mb-3" />
             <Skeleton className="h-2.5 w-full mb-2" />
             <Skeleton className="h-2.5 w-4/5 mb-2" />

@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
   CHECKED_IN: 'bg-blue-500/15 text-blue-400',
   IN_PROGRESS: 'bg-purple-500/15 text-purple-400',
   COMPLETED: 'bg-emerald-500/15 text-emerald-400',
-  CANCELLED: 'bg-gray-500/15 text-gray-400',
+  CANCELLED: 'bg-gray-500/15 text-muted-foreground',
   NO_SHOW: 'bg-red-500/15 text-red-400',
 };
 
@@ -176,39 +176,39 @@ export function Queue() {
     <div className="p-4 sm:p-6 md:p-8 max-w-[1600px]">
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-xl font-bold">{isToday ? "Today's Queue" : 'Queue'}</h1>
-        <button onClick={() => setShowBook((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-sm font-semibold">
+        <button onClick={() => setShowBook((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           <Plus size={14} /> Book Appointment
         </button>
       </div>
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <button onClick={() => shiftDay(-1)} className="p-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10" title="Previous day">
+        <button onClick={() => shiftDay(-1)} className="p-1.5 rounded-lg bg-foreground/5 text-foreground/80 hover:bg-foreground/10" title="Previous day">
           <ChevronLeft size={14} />
         </button>
         <input
           type="date"
           value={viewDate}
           onChange={(e) => e.target.value && setViewDate(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400"
+          className="px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
         />
-        <button onClick={() => shiftDay(1)} className="p-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10" title="Next day">
+        <button onClick={() => shiftDay(1)} className="p-1.5 rounded-lg bg-foreground/5 text-foreground/80 hover:bg-foreground/10" title="Next day">
           <ChevronRight size={14} />
         </button>
         {!isToday && (
-          <button onClick={() => setViewDate(toDateInput(new Date()))} className="px-2.5 py-1.5 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20">
+          <button onClick={() => setViewDate(toDateInput(new Date()))} className="px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20">
             Today
           </button>
         )}
-        <span className="text-sm text-gray-400 ml-1">
+        <span className="text-sm text-muted-foreground ml-1">
           {new Date(`${viewDate}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
         </span>
       </div>
 
       {doctors.length > 1 && (
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setDoctorFilter('')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${!doctorFilter ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>All Doctors</button>
+          <button onClick={() => setDoctorFilter('')} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${!doctorFilter ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>All Doctors</button>
           {doctors.map((d) => (
-            <button key={d.id} onClick={() => setDoctorFilter(d.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${doctorFilter === d.id ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`}>
+            <button key={d.id} onClick={() => setDoctorFilter(d.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${doctorFilter === d.id ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`}>
               Dr. {d.name}
             </button>
           ))}
@@ -218,31 +218,31 @@ export function Queue() {
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
       {showBook && (
-        <form onSubmit={bookAppointment} className="mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3">
+        <form onSubmit={bookAppointment} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
           <div className="relative">
-            <label className="block text-xs font-medium text-gray-400 mb-1">Patient</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Patient</label>
             <input
               value={patientQuery}
               onChange={(e) => { setPatientQuery(e.target.value); setSelectedPatientId(''); }}
               placeholder="Type patient name, UHID, or phone..."
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
             />
             {patientOptions.length > 0 && !selectedPatientId && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-[#14171f] max-h-48 overflow-y-auto">
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-48 overflow-y-auto">
                 {patientOptions.map((p) => (
                   <button
                     type="button"
                     key={p.id}
                     onClick={() => { setSelectedPatientId(p.id); setPatientQuery(`${p.name} (${p.uhid})`); setPatientOptions([]); }}
-                    className="block w-full text-left px-3 py-2 text-sm hover:bg-white/5"
+                    className="block w-full text-left px-3 py-2 text-sm hover:bg-foreground/5"
                   >
-                    {p.name} <span className="text-gray-500 text-xs">{p.uhid}</span> {p.phone ? `· ${p.phone}` : ''}
+                    {p.name} <span className="text-muted-foreground/70 text-xs">{p.uhid}</span> {p.phone ? `· ${p.phone}` : ''}
                   </button>
                 ))}
               </div>
             )}
             {patientQuery.length >= 2 && patientOptions.length === 0 && !selectedPatientId && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 No match. <Link to="/patients" className="text-emerald-400 underline">Add a new patient</Link> first.
               </p>
             )}
@@ -250,27 +250,27 @@ export function Queue() {
           <div className="flex gap-3">
             {doctors.length > 0 && (
               <div className="flex-[2]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Doctor (optional)</label>
-                <select value={bookDoctorId} onChange={(e) => setBookDoctorId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Doctor (optional)</label>
+                <select value={bookDoctorId} onChange={(e) => setBookDoctorId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400">
                   <option value="">Unassigned</option>
                   {doctors.map((d) => <option key={d.id} value={d.id}>Dr. {d.name}</option>)}
                 </select>
               </div>
             )}
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-400 mb-1">Date</label>
-              <input type="date" value={bookDate} onChange={(e) => setBookDate(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Date</label>
+              <input type="date" value={bookDate} onChange={(e) => setBookDate(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-400 mb-1">Time</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Time</label>
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Reason (optional)</label>
-            <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none focus:border-emerald-400" />
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Reason (optional)</label>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
           </div>
-          <button type="submit" disabled={!selectedPatientId || !time || booking} className="self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+          <button type="submit" disabled={!selectedPatientId || !time || booking} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {booking ? 'Booking...' : 'Confirm Booking'}
           </button>
         </form>
@@ -279,18 +279,18 @@ export function Queue() {
       {vitalsFor && <VitalsPanel appointment={vitalsFor} onClose={() => setVitalsFor(null)} onSaved={() => { setVitalsFor(null); load(); }} />}
 
       <div className="flex flex-col gap-2">
-        {appointments.length === 0 && <div className="text-center py-10 text-gray-500 text-sm">No appointments today.</div>}
+        {appointments.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No appointments today.</div>}
         {appointments.map((appt) => (
-          <div key={appt.id} className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div key={appt.id} className="flex items-center justify-between p-3.5 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 text-xs text-gray-400 w-14 shrink-0">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground w-14 shrink-0">
                 <Clock size={12} />
                 {new Date(appt.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <Link to={`/patients/${appt.patient.id}`} className="font-medium text-sm hover:underline">{appt.patient.name}</Link>
-                  <span className="text-[10px] text-gray-500 font-mono">{appt.patient.uhid}</span>
+                  <span className="text-[10px] text-muted-foreground/70 font-mono">{appt.patient.uhid}</span>
                   {CATEGORY_BADGES[appt.patient.category] && (
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${CATEGORY_BADGES[appt.patient.category].color}`}>
                       {CATEGORY_BADGES[appt.patient.category].label}
@@ -302,7 +302,7 @@ export function Queue() {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                <div className="text-xs text-muted-foreground/70 flex items-center gap-2 flex-wrap">
                   {appt.patient.age != null && <span>{appt.patient.age}y</span>}
                   {appt.patient.gender && <span>{appt.patient.gender}</span>}
                   {appt.patient.phone && <span className="flex items-center gap-1"><Phone size={10} />{appt.patient.phone}</span>}
@@ -321,25 +321,25 @@ export function Queue() {
                   onClick={() => setVitalsFor(appt)}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
                     appt.vitals && Object.values(appt.vitals).some(Boolean)
-                      ? 'bg-white/10 hover:bg-white/20 text-gray-300'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                      ? 'bg-foreground/10 hover:bg-foreground/20 text-foreground/80'
+                      : 'bg-blue-500 hover:bg-blue-600 text-foreground'
                   }`}
                 >
                   <Activity size={11} /> {appt.vitals && Object.values(appt.vitals).some(Boolean) ? 'Edit Vitals' : 'Record Vitals'}
                 </button>
               )}
               {(appt.status === 'CHECKED_IN' || appt.status === 'IN_PROGRESS') && (
-                <button onClick={() => navigate(`/appointments/${appt.id}/encounter`)} className="px-2.5 py-1 rounded-lg bg-emerald-500 text-black text-xs font-semibold">
+                <button onClick={() => navigate(`/appointments/${appt.id}/encounter`)} className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
                   Start Consultation
                 </button>
               )}
               {NEXT_STATUS[appt.status] && appt.status === 'SCHEDULED' && (
-                <button onClick={() => advanceStatus(appt)} className="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20">
+                <button onClick={() => advanceStatus(appt)} className="px-2.5 py-1 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20">
                   Check In
                 </button>
               )}
               {(appt.status === 'SCHEDULED' || appt.status === 'CHECKED_IN') && (
-                <button onClick={() => cancelAppointment(appt)} className="px-2.5 py-1 rounded-lg text-xs text-gray-400 hover:bg-white/10">
+                <button onClick={() => cancelAppointment(appt)} className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground hover:bg-foreground/10">
                   Cancel
                 </button>
               )}
@@ -378,17 +378,17 @@ function VitalsPanel({ appointment, onClose, onSaved }: { appointment: Appointme
       <h3 className="text-sm font-semibold">Record Vitals — {appointment.patient.name}</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold disabled:opacity-50">
+        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-500 text-foreground text-sm font-semibold disabled:opacity-50">
           {saving ? 'Saving...' : 'Save Vitals'}
         </button>
-        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-white/10 text-sm">Cancel</button>
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-foreground/10 text-sm">Cancel</button>
       </div>
     </form>
   );

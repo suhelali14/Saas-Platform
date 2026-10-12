@@ -22,7 +22,7 @@ interface Entry {
 interface Filters { actions: string[]; resources: string[]; users: { id: string; name: string; role: string }[] }
 
 const ACTION_STYLE: Record<string, string> = {
-  VIEW: 'bg-white/10 text-gray-300',
+  VIEW: 'bg-foreground/10 text-foreground/80',
   CREATE: 'bg-emerald-500/15 text-emerald-400',
   UPDATE: 'bg-blue-500/15 text-blue-400',
   DELETE: 'bg-red-500/15 text-red-400',
@@ -97,13 +97,13 @@ export function AuditLog() {
           <ShieldCheck size={20} className="text-emerald-400" /> Audit Log
         </h1>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
             <RefreshCw size={12} /> Refresh
           </button>
           <DownloadCsvButton />
         </div>
       </div>
-      <p className="text-sm text-gray-400 mb-5 max-w-3xl">
+      <p className="text-sm text-muted-foreground mb-5 max-w-3xl">
         Every action taken on a patient record, recorded automatically. This log is append-only — nobody,
         including you, can edit or delete an entry through this system. Required for DPDP Act and NABH audits.
       </p>
@@ -124,8 +124,8 @@ export function AuditLog() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-2 mb-4 p-3 rounded-xl border border-white/10 bg-white/[0.02]">
-        <Filter size={14} className="text-gray-500 mb-2" />
+      <div className="flex flex-wrap items-end gap-2 mb-4 p-3 rounded-xl border border-border/10 bg-foreground/[0.02]">
+        <Filter size={14} className="text-muted-foreground/70 mb-2" />
         <FilterSelect label="Staff member" value={clinicUserId} onChange={setClinicUserId}
           options={(filters?.users ?? []).map((u) => ({ value: u.id, label: `${u.name} (${u.role})` }))} />
         <FilterSelect label="Action" value={action} onChange={setAction}
@@ -133,15 +133,15 @@ export function AuditLog() {
         <FilterSelect label="Record type" value={resource} onChange={setResource}
           options={(filters?.resources ?? []).map((r) => ({ value: r, label: r }))} />
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">From</label>
+          <label className="block text-[11px] text-muted-foreground/70 mb-1">From</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={selectCls} />
         </div>
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">To</label>
+          <label className="block text-[11px] text-muted-foreground/70 mb-1">To</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={selectCls} />
         </div>
         {hasFilters && (
-          <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20">
+          <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
             <X size={11} /> Clear
           </button>
         )}
@@ -149,40 +149,40 @@ export function AuditLog() {
 
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm mb-4">{error}</div>}
 
-      <div className="rounded-xl border border-white/10 overflow-hidden">
+      <div className="rounded-xl border border-border/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[820px]">
-            <thead className="bg-white/[0.03] text-gray-400 text-xs">
+            <thead className="bg-foreground/[0.03] text-muted-foreground text-xs">
               <tr>
                 <Th>When</Th><Th>Who</Th><Th>Action</Th><Th>Record</Th><Th>Result</Th><Th>Request</Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-border/5">
               {entries.map((e) => (
-                <tr key={e.id} className="hover:bg-white/[0.02]">
-                  <Td><span className="text-gray-400 whitespace-nowrap">{formatWhen(e.at)}</span></Td>
+                <tr key={e.id} className="hover:bg-foreground/[0.02]">
+                  <Td><span className="text-muted-foreground whitespace-nowrap">{formatWhen(e.at)}</span></Td>
                   <Td>
                     <div className="font-medium">{e.userName}</div>
-                    <div className="text-[11px] text-gray-500">{e.userRole}</div>
+                    <div className="text-[11px] text-muted-foreground/70">{e.userRole}</div>
                   </Td>
                   <Td>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${ACTION_STYLE[e.action] ?? 'bg-white/10 text-gray-300'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${ACTION_STYLE[e.action] ?? 'bg-foreground/10 text-foreground/80'}`}>
                       {e.action}
                     </span>
                   </Td>
-                  <Td><span className="text-gray-300">{e.resource}</span></Td>
+                  <Td><span className="text-foreground/80">{e.resource}</span></Td>
                   <Td>
-                    <span className={e.statusCode >= 400 ? 'text-red-400' : 'text-gray-500'}>
+                    <span className={e.statusCode >= 400 ? 'text-red-400' : 'text-muted-foreground/70'}>
                       {e.statusCode}{e.statusCode === 403 ? ' denied' : ''}
                     </span>
                   </Td>
                   <Td>
-                    <span className="text-[11px] text-gray-500 font-mono break-all">{e.method} {e.path}</span>
+                    <span className="text-[11px] text-muted-foreground/70 font-mono break-all">{e.method} {e.path}</span>
                   </Td>
                 </tr>
               ))}
               {entries.length === 0 && !loading && (
-                <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-600 text-sm">
+                <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground/60 text-sm">
                   {hasFilters ? 'No entries match these filters.' : 'No activity recorded yet.'}
                 </td></tr>
               )}
@@ -197,7 +197,7 @@ export function AuditLog() {
       </div>
 
       {nextCursor && (
-        <button onClick={loadMore} className="mt-3 px-4 py-2 rounded-lg bg-white/10 text-sm hover:bg-white/20">
+        <button onClick={loadMore} className="mt-3 px-4 py-2 rounded-lg bg-foreground/10 text-sm hover:bg-foreground/20">
           Load older entries
         </button>
       )}
@@ -233,20 +233,20 @@ function DownloadCsvButton() {
   };
 
   return (
-    <button onClick={download} disabled={busy} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 disabled:opacity-50">
+    <button onClick={download} disabled={busy} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 disabled:opacity-50">
       <Download size={12} /> {busy ? 'Exporting…' : 'Export CSV'}
     </button>
   );
 }
 
-const selectCls = 'px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400';
+const selectCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
 
 function FilterSelect({ label, value, onChange, options }: {
   label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
 }) {
   return (
     <div>
-      <label className="block text-[11px] text-gray-500 mb-1">{label}</label>
+      <label className="block text-[11px] text-muted-foreground/70 mb-1">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={selectCls}>
         <option value="">All</option>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

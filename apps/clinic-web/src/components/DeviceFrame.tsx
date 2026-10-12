@@ -70,7 +70,7 @@ export function DeviceFrame({ device, width, height, url, children }: DeviceFram
         {url && (
           <div className="flex-1 min-w-0 mx-2">
             <div className="h-5 rounded-md bg-black/30 flex items-center px-2.5">
-              <span className="text-[10px] text-gray-500 truncate">{url}</span>
+              <span className="text-[10px] text-muted-foreground/70 truncate">{url}</span>
             </div>
           </div>
         )}

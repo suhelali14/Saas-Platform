@@ -41,7 +41,7 @@ export function Expenses() {
       <h1 className="text-xl font-bold flex items-center gap-2 mb-1">
         <Wallet size={20} className="text-emerald-400" /> Expenses
       </h1>
-      <p className="text-sm text-gray-400 mb-4">What the clinic spends, and what it actually earned.</p>
+      <p className="text-sm text-muted-foreground mb-4">What the clinic spends, and what it actually earned.</p>
 
       <div className="flex flex-wrap items-end gap-3 mb-5">
         <div className="flex gap-2">
@@ -50,11 +50,11 @@ export function Expenses() {
         </div>
         <div className="flex items-end gap-2 ml-auto">
           <div>
-            <label className="block text-[11px] text-gray-500 mb-1">From</label>
+            <label className="block text-[11px] text-muted-foreground/70 mb-1">From</label>
             <input type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} className={inputCls} />
           </div>
           <div>
-            <label className="block text-[11px] text-gray-500 mb-1">To</label>
+            <label className="block text-[11px] text-muted-foreground/70 mb-1">To</label>
             <input type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} className={inputCls} />
           </div>
         </div>
@@ -105,9 +105,9 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-bold">₹{(data?.total ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          <span className="text-sm text-gray-500">total in this period</span>
+          <span className="text-sm text-muted-foreground/70">total in this period</span>
         </div>
-        <button onClick={() => setAdding((v) => !v)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold">
+        <button onClick={() => setAdding((v) => !v)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           {adding ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Record Expense</>}
         </button>
       </div>
@@ -117,17 +117,17 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
       {data && data.byCategory.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {data.byCategory.map((c) => (
-            <span key={c.category} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs">
-              {c.category} <span className="text-gray-400">₹{c.amount.toLocaleString('en-IN')}</span>
+            <span key={c.category} className="px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs">
+              {c.category} <span className="text-muted-foreground">₹{c.amount.toLocaleString('en-IN')}</span>
             </span>
           ))}
         </div>
       )}
 
-      <div className="rounded-xl border border-white/10 overflow-hidden">
+      <div className="rounded-xl border border-border/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-white/[0.03] text-gray-400 text-xs">
+            <thead className="bg-foreground/[0.03] text-muted-foreground text-xs">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Date</th>
                 <th className="px-3 py-2 text-left font-medium">Category</th>
@@ -138,17 +138,17 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
                 <th className="px-3 py-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-border/5">
               {(data?.expenses ?? []).map((e) => (
-                <tr key={e.id} className="hover:bg-white/[0.02]">
-                  <td className="px-3 py-2 text-gray-400 whitespace-nowrap">{new Date(e.paidAt).toLocaleDateString()}</td>
+                <tr key={e.id} className="hover:bg-foreground/[0.02]">
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{new Date(e.paidAt).toLocaleDateString()}</td>
                   <td className="px-3 py-2">{e.category}</td>
                   <td className="px-3 py-2">
                     {e.description}
-                    {e.notes && <div className="text-[11px] text-gray-500">{e.notes}</div>}
+                    {e.notes && <div className="text-[11px] text-muted-foreground/70">{e.notes}</div>}
                   </td>
-                  <td className="px-3 py-2 text-gray-400">{e.vendor || '—'}</td>
-                  <td className="px-3 py-2 text-gray-400">{e.paymentMode}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{e.vendor || '—'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{e.paymentMode}</td>
                   <td className="px-3 py-2 text-right font-medium whitespace-nowrap">₹{Number(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                   <td className="px-3 py-2 text-right">
                     {canDelete && (
@@ -160,7 +160,7 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
                 </tr>
               ))}
               {data && data.expenses.length === 0 && (
-                <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-600 text-sm">No expenses recorded in this period.</td></tr>
+                <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground/60 text-sm">No expenses recorded in this period.</td></tr>
               )}
             </tbody>
           </table>
@@ -203,42 +203,42 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
   };
 
   return (
-    <form onSubmit={submit} className="p-4 rounded-xl border border-white/10 bg-white/[0.02] grid md:grid-cols-2 gap-3">
+    <form onSubmit={submit} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] grid md:grid-cols-2 gap-3">
       {error && <div className="md:col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Category</label>
+        <label className="block text-xs text-muted-foreground mb-1">Category</label>
         <select value={category} onChange={(e) => setCategory(e.target.value)} required className={inputCls + ' w-full'}>
           <option value="">Select…</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Amount (₹)</label>
+        <label className="block text-xs text-muted-foreground mb-1">Amount (₹)</label>
         <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className={inputCls + ' w-full'} />
       </div>
       <div className="md:col-span-2">
-        <label className="block text-xs text-gray-400 mb-1">Description</label>
+        <label className="block text-xs text-muted-foreground mb-1">Description</label>
         <input value={description} onChange={(e) => setDescription(e.target.value)} required maxLength={300} placeholder="e.g. September electricity bill" className={inputCls + ' w-full'} />
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Date paid</label>
+        <label className="block text-xs text-muted-foreground mb-1">Date paid</label>
         <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} required className={inputCls + ' w-full'} />
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Paid by</label>
+        <label className="block text-xs text-muted-foreground mb-1">Paid by</label>
         <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)} className={inputCls + ' w-full'}>
           <option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option>
         </select>
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Vendor (optional)</label>
+        <label className="block text-xs text-muted-foreground mb-1">Vendor (optional)</label>
         <input value={vendor} onChange={(e) => setVendor(e.target.value)} maxLength={200} className={inputCls + ' w-full'} />
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Notes (optional)</label>
+        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
         <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} className={inputCls + ' w-full'} />
       </div>
-      <button type="submit" disabled={saving} className="md:col-span-2 justify-self-start px-4 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="md:col-span-2 justify-self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving…' : 'Save Expense'}
       </button>
     </form>
@@ -288,8 +288,8 @@ function ProfitLossView({ range }: { range: { from: string; to: string } }) {
 
 function StatCard({ label, value, icon: Icon, tone }: { label: string; value: number; icon: any; tone: string }) {
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-      <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+    <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
         <Icon size={13} className={tone} /> {label}
       </div>
       <div className={`text-2xl font-bold ${tone}`}>
@@ -303,17 +303,17 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: nu
 function Breakdown({ title, rows, tone }: { title: string; rows: { label: string; amount: number }[]; tone: string }) {
   const max = Math.max(1, ...rows.map((r) => r.amount));
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
       <h2 className="text-sm font-semibold mb-3">{title}</h2>
-      {rows.length === 0 && <p className="text-xs text-gray-600">Nothing recorded in this period.</p>}
+      {rows.length === 0 && <p className="text-xs text-muted-foreground/60">Nothing recorded in this period.</p>}
       <div className="flex flex-col gap-2">
         {rows.map((r) => (
           <div key={r.label}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-300">{r.label}</span>
-              <span className="text-gray-400">₹{r.amount.toLocaleString('en-IN')}</span>
+              <span className="text-foreground/80">{r.label}</span>
+              <span className="text-muted-foreground">₹{r.amount.toLocaleString('en-IN')}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
               <div className={`h-full ${tone} rounded-full`} style={{ width: `${(r.amount / max) * 100}%` }} />
             </div>
           </div>
@@ -323,9 +323,9 @@ function Breakdown({ title, rows, tone }: { title: string; rows: { label: string
   );
 }
 
-const inputCls = 'px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs outline-none focus:border-emerald-400';
+const inputCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
 const tabCls = (active: boolean) =>
-  `px-3 py-1.5 rounded-lg text-xs font-medium ${active ? 'bg-white text-black' : 'bg-white/5 text-gray-300'}`;
+  `px-3 py-1.5 rounded-lg text-xs font-medium ${active ? 'bg-foreground text-background' : 'bg-foreground/5 text-foreground/80'}`;
 
 /** Local date, never toISOString().slice(0,10) -- that shifts to UTC and
  * lands on the wrong day in IST. Same fix as the queue's date picker. */

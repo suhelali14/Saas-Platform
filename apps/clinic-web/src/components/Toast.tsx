@@ -103,7 +103,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 const STYLE: Record<ToastKind, { ring: string; icon: React.ReactNode }> = {
   success: { ring: 'border-emerald-500/30', icon: <CheckCircle2 size={16} className="text-emerald-400" /> },
   error: { ring: 'border-red-500/40', icon: <AlertTriangle size={16} className="text-red-400" /> },
-  info: { ring: 'border-white/15', icon: <Info size={16} className="text-gray-300" /> },
+  info: { ring: 'border-border/15', icon: <Info size={16} className="text-foreground/80" /> },
 };
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
@@ -130,7 +130,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       <p className="flex-1 text-sm text-gray-100 leading-snug">{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 -mr-1 -mt-0.5 p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10"
+        className="shrink-0 -mr-1 -mt-0.5 p-1 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"
         aria-label="Dismiss"
       >
         <X size={13} />

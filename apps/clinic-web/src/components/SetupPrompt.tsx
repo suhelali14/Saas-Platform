@@ -78,19 +78,19 @@ export function SetupPrompt() {
       className={`rounded-lg border p-4 ${
         urgent
           ? 'border-amber-500/40 bg-amber-500/10'
-          : 'border-white/10 bg-white/5'
+          : 'border-border/10 bg-foreground/5'
       }`}
       role="region"
       aria-label="Website setup"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-foreground">
             {urgent
               ? `Your public website is missing ${essential.length} essential ${essential.length === 1 ? 'detail' : 'details'}`
               : 'Your public website could be more complete'}
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-muted-foreground">
             {urgent
               ? 'Patients visiting your page right now cannot see these. Nothing else in the portal is affected — you can keep seeing patients as normal.'
               : 'Everything essential is filled in. These would make the page more useful to a patient deciding whether to come.'}
@@ -99,7 +99,7 @@ export function SetupPrompt() {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             to="/settings"
-            className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20"
+            className="rounded-md bg-foreground/10 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-foreground/20"
           >
             Fill it in
           </Link>
@@ -107,7 +107,7 @@ export function SetupPrompt() {
             href={publicSiteUrl('/')}
             target="_blank"
             rel="noreferrer"
-            className="rounded-md px-3 py-1.5 text-xs text-gray-400 hover:text-white"
+            className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             View page
           </a>
@@ -117,7 +117,7 @@ export function SetupPrompt() {
               try { localStorage.setItem(DISMISS_KEY, String(status.totalRemaining)); } catch { /* private mode */ }
               setHidden(true);
             }}
-            className="rounded-md px-2 py-1.5 text-xs text-gray-500 hover:text-white"
+            className="rounded-md px-2 py-1.5 text-xs text-muted-foreground/70 hover:text-foreground"
             aria-label="Hide this for now"
           >
             Not now
@@ -128,14 +128,14 @@ export function SetupPrompt() {
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="mt-2 text-xs text-gray-400 underline-offset-2 hover:text-white hover:underline"
+        className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         aria-expanded={expanded}
       >
         {expanded ? 'Hide the list' : `Show what's missing (${remaining.length})`}
       </button>
 
       {expanded && (
-        <ul className="mt-3 space-y-2 border-t border-white/10 pt-3">
+        <ul className="mt-3 space-y-2 border-t border-border/10 pt-3">
           {remaining.map((item) => (
             <li key={item.key} className="text-xs">
               <div className="flex items-start gap-2">
@@ -146,14 +146,14 @@ export function SetupPrompt() {
                   aria-hidden="true"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium text-white">
+                  <p className="font-medium text-foreground">
                     {item.label}
-                    {!item.essential && <span className="ml-1.5 font-normal text-gray-500">optional</span>}
+                    {!item.essential && <span className="ml-1.5 font-normal text-muted-foreground/70">optional</span>}
                   </p>
                   {/* The reason, not just the field name. "Add the
                       address" is an instruction; "a patient cannot visit
                       without it" is why anyone would follow it. */}
-                  <p className="text-gray-400">{item.why}</p>
+                  <p className="text-muted-foreground">{item.why}</p>
                 </div>
               </div>
             </li>
