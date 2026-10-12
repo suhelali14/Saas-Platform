@@ -1,0 +1,14 @@
+# Polls for jobs. Fifteen seconds is well inside the time an operator
+# will sit watching the console after clicking Provision, and the runner
+# exits immediately when there is nothing to do.
+[Unit]
+Description=Poll for clinic provisioning jobs
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=15
+AccuracySec=5
+Unit=clinic-runner.service
+
+[Install]
+WantedBy=timers.target

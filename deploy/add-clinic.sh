@@ -4,6 +4,17 @@
 #
 #   sudo /srv/clinic/repo/deploy/add-clinic.sh <slug> [--plan STANDARD]
 #
+# Interactive by default. Every prompt also reads an environment
+# variable, so the job runner can drive it without a terminal:
+#
+#   CLINIC_DATABASE_URL=...  CLINIC_NAME="Acme Clinic"
+#   CLINIC_DOCTOR_NAME="Dr. A. Khan"  CLINIC_DOCTOR_EMAIL=a@b.c
+#   NON_INTERACTIVE=1 add-clinic.sh acme --plan STANDARD
+#
+# With NON_INTERACTIVE set, a missing value is an error rather than a
+# prompt -- a script that blocks forever on a hidden prompt is worse
+# than one that fails.
+#
 # Picks a free port, writes the clinic's env file with a FRESH JWT secret,
 # creates its data directory, runs its migrations and seed, configures
 # nginx with TLS, and starts the service.
@@ -88,8 +99,15 @@ cat <<PROMPT
     database would see each other's patients.
 
 PROMPT
-read -rsp "    DATABASE_URL: " DB_URL
-echo
+if [ -n "${CLINIC_DATABASE_URL:-}" ]; then
+  DB_URL="$CLINIC_DATABASE_URL"
+  info "connection string supplied by the caller"
+elif [ -n "${NON_INTERACTIVE:-}" ]; then
+  die "CLINIC_DATABASE_URL is required when NON_INTERACTIVE is set"
+else
+  read -rsp "    DATABASE_URL: " DB_URL
+  echo
+fi
 [ -n "$DB_URL" ] || die "No connection string given"
 case "$DB_URL" in
   postgres://*|postgresql://*) ;;
@@ -159,12 +177,23 @@ docker run --rm --env-file "$ENV_DIR/$SLUG.env" -w /app/apps/clinic-api \
   || die "migration failed -- $ENV_DIR/$SLUG.env was written, so fix the connection string and re-run"
 
 log "Seeding the clinic record and first login"
-read -rp "    Clinic name (e.g. Acme Clinic): " CLINIC_NAME
+ask() {  # ask <var-name> <env-value> <prompt>
+  local __var="$1" __env="$2" __prompt="$3"
+  if [ -n "$__env" ]; then
+    printf -v "$__var" '%s' "$__env"
+  elif [ -n "${NON_INTERACTIVE:-}" ]; then
+    die "$__var is required when NON_INTERACTIVE is set"
+  else
+    read -rp "$__prompt" "$__var"
+  fi
+}
+
+ask CLINIC_NAME "${CLINIC_NAME:-}" "    Clinic name (e.g. Acme Clinic): "
 # Printed at the top of every prescription and certificate, so it wants
 # the honorific the clinic actually uses. The app adds "Dr." only when it
 # is absent, so either form is safe.
-read -rp "    Doctor's name as it should print (e.g. Dr. Asif Khan): " DOCTOR_NAME
-read -rp "    Doctor's login email: " DOCTOR_EMAIL
+ask DOCTOR_NAME "${CLINIC_DOCTOR_NAME:-}" "    Doctor's name as it should print (e.g. Dr. Asif Khan): "
+ask DOCTOR_EMAIL "${CLINIC_DOCTOR_EMAIL:-}" "    Doctor's login email: "
 DOCTOR_PASS="$(openssl rand -base64 12 | tr -d '/+=' | cut -c1-14)"
 
 docker run --rm \
@@ -233,6 +262,16 @@ done
 info "health 200"
 
 # ── Done ──────────────────────────────────────────────────────────────
+# A line the job runner can parse. The password is generated here and
+# stored nowhere, so this is the only chance to hand it back; the runner
+# writes it to a root-only status file and the console shows it once.
+if [ -n "${NON_INTERACTIVE:-}" ]; then
+  printf 'RESULT_EMAIL=%s\n' "$DOCTOR_EMAIL"
+  printf 'RESULT_PASSWORD=%s\n' "$DOCTOR_PASS"
+  printf 'RESULT_API_HOST=%s\n' "$API_HOST"
+  printf 'RESULT_PORT=%s\n' "$PORT"
+fi
+
 cat <<DONE
 
 $(printf '\033[1m')$CLINIC_NAME is live.$(printf '\033[0m')

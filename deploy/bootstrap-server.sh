@@ -213,8 +213,21 @@ chown -R "$DEPLOY_USER:$DEPLOY_USER" "$ROOT/data"
 log "Installing systemd units"
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-api@.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/provider-api.service" /etc/systemd/system/
+install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.service" /etc/systemd/system/
+install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.timer" /etc/systemd/system/
 systemctl daemon-reload
-info "clinic-api@.service (template), provider-api.service"
+systemctl enable --now clinic-runner.timer > /dev/null 2>&1 || true
+info "clinic-api@.service (template), provider-api.service, clinic-runner.timer"
+
+# Where the console asks for clinics to be created. Owned by the deploy
+# user because the API container writes here as that uid; read and acted
+# on by the root runner. 0700 because a pending job briefly holds a
+# database connection string.
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "$ROOT/jobs"
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "$ROOT/jobs/pending"
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "$ROOT/jobs/status"
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "$ROOT/jobs/done"
+info "jobs/ ready -- the console can queue provisioning without host access"
 
 # ── Nightly backups ───────────────────────────────────────────────────
 # A database dump alone is NOT a backup here: patient scans live on this

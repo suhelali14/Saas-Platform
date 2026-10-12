@@ -17,6 +17,7 @@ set -euo pipefail
 ROOT="${CLINIC_ROOT:-/srv/clinic}"
 ENV_DIR="$ROOT/env"
 DATA_DIR="$ROOT/data"
+JOBS_DIR="$ROOT/jobs"
 OUT="$ROOT/compose.yml"
 
 # The image tag to run. deploy-image.sh writes this after a successful
@@ -125,9 +126,15 @@ for env_file in "${ENV_FILES[@]}"; do
   if [ "$slug" = "provider" ]; then
     service="provider-api"
     command='["node", "apps/provider-api/dist/server.js"]'
+    # The console writes provisioning jobs here for the host runner to
+    # carry out. This is the ONLY way it can affect the host, and it can
+    # ask for exactly one thing -- a clinic -- because nothing on the
+    # other side takes a command from the file.
+    extra_volume="      - $JOBS_DIR:/srv/clinic/jobs"
   else
     service="clinic-$slug"
     command='["node", "apps/clinic-api/dist/index.js"]'
+    extra_volume=""
   fi
 
   mkdir -p "$DATA_DIR/$slug/uploads"
@@ -150,6 +157,7 @@ for env_file in "${ENV_FILES[@]}"; do
       # its working directory (/app), so this mount is what makes them
       # survive a deploy instead of dying with the container.
       - $DATA_DIR/$slug/uploads:/app/uploads
+$extra_volume
     restart: unless-stopped
     stop_grace_period: 20s
     logging:

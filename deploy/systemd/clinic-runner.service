@@ -1,0 +1,19 @@
+# Processes provisioning jobs written by the console API.
+#
+# Runs as root because it creates system users' files, configures nginx
+# and starts containers. The console API has none of that: it only writes
+# a job file into a directory this watches, so a compromise of the API
+# can ask for a clinic and nothing else.
+[Unit]
+Description=Clinic provisioning job runner
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/clinic/repo/deploy/clinic-runner.sh
+# Provisioning waits on Neon, Let's Encrypt and a container start.
+TimeoutStartSec=900
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clinic-runner

@@ -6,6 +6,7 @@ import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/accounts.js";
 import { healthRoutes } from "./routes/health.js";
 import { publicTenantRoutes } from "./routes/public-tenant.js";
+import { provisionRoutes } from "./routes/provision.js";
 import { env } from "./config/env.js";
 import { isPlatformSubdomain } from "./lib/subdomain.js";
 
@@ -77,6 +78,7 @@ export function buildApp() {
   app.register(healthRoutes);
   app.register(authRoutes);
   app.register(accountRoutes);
+  app.register(provisionRoutes);
   // Public and unauthenticated: every clinic site calls this to boot.
   app.register(publicTenantRoutes);
 
