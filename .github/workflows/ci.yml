@@ -72,16 +72,52 @@ jobs:
 
       # A build that is clean but accidentally bundles a secret is worse
       # than a failing one, because it ships.
-      - name: Check no secrets in the frontend bundles
+      # A production bundle is public: anything in it is readable by
+      # anyone who opens the site. This looks for the SHAPES credentials
+      # take, not for their variable names -- the first version matched
+      # the name and failed the build when the console displayed
+      # "NEON_API_KEY is not set" in a warning telling the operator what
+      # to configure. A check that fires on documentation gets ignored.
+      - name: Check no secret values in the frontend bundles
         run: |
           fail=0
+
+          # Provider token prefixes, a Postgres URL carrying a password,
+          # and a PEM private key. Each is a value, never a label.
+          patterns='
+            napi_[A-Za-z0-9]{24,}
+            vcp_[A-Za-z0-9]{24,}
+            (ghp|gho|ghs|ghu)_[A-Za-z0-9]{30,}
+            github_pat_[A-Za-z0-9_]{30,}
+            postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@
+            # No spaces in these patterns: the loop below word-splits
+            # on whitespace, so a pattern containing one is silently torn
+            # into fragments that match the wrong things.
+            -----BEGIN.{0,24}PRIVATE
+          '
+
           for dir in apps/clinic-web/dist apps/provider-console/dist; do
-            for pattern in "JWT_SECRET" "NEON_API_KEY" "VERCEL_TOKEN" "postgresql://" "DATABASE_URL"; do
-              if grep -rqF "$pattern" "$dir" 2>/dev/null; then
-                echo "::error::$pattern found in $dir -- a server secret reached a browser bundle"
+            [ -d "$dir" ] || continue
+            for pattern in $patterns; do
+              if grep -rqE "$pattern" "$dir" 2>/dev/null; then
+                echo "::error::A credential matching /$pattern/ is present in $dir"
+                # Show only where, never the value itself -- a CI log is
+                # retained and often shared.
+                grep -rlE "$pattern" "$dir" | sed 's/^/  /'
+                fail=1
+              fi
+            done
+
+            # An inlined secret also looks like NAME=value. The name
+            # alone is fine; the name followed by something substantial
+            # is not.
+            for name in JWT_SECRET NEON_API_KEY VERCEL_TOKEN DATABASE_URL; do
+              if grep -rqE "$name[\"']?[:=][\"']?[A-Za-z0-9+/_-]{16,}" "$dir" 2>/dev/null; then
+                echo "::error::$name appears with a value attached in $dir"
                 fail=1
               fi
             done
           done
-          [ "$fail" = "0" ] && echo "clean: no server secrets in either bundle"
+
+          [ "$fail" = "0" ] && echo "clean: no credential values in either bundle"
           exit $fail
