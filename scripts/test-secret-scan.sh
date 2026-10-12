@@ -11,15 +11,19 @@ cd "$REPO" || exit 1
 
 scan() {   # scan <dir>
   local dir="$1" fail=0
-  local patterns='
-    napi_[A-Za-z0-9]{24,}
-    vcp_[A-Za-z0-9]{24,}
-    (ghp|gho|ghs|ghu)_[A-Za-z0-9]{30,}
-    github_pat_[A-Za-z0-9_]{30,}
-    postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@
-    -----BEGIN.{0,24}PRIVATE
-  '
-  for pattern in $patterns; do
+  # Credential shapes, not variable names. Each element is quoted
+  # individually, so a pattern may contain spaces and comments may
+  # sit between them -- unlike a whitespace-split string, where
+  # both become patterns of their own.
+  local patterns=(
+  'napi_[A-Za-z0-9]{24,}'                                  # Neon
+  'vcp_[A-Za-z0-9]{24,}'                                   # Vercel
+  '(ghp|gho|ghs|ghu)_[A-Za-z0-9]{30,}'                     # GitHub
+  'github_pat_[A-Za-z0-9_]{30,}'
+  'postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@'       # URL with a password
+  '-----BEGIN[A-Z ]*PRIVATE KEY-----'                      # PEM
+  )
+  for pattern in "${patterns[@]}"; do
     if grep -rqE -e "$pattern" "$dir" 2>/dev/null; then
       echo "        caught: /$pattern/"
       fail=1

@@ -84,21 +84,22 @@ jobs:
 
           # Provider token prefixes, a Postgres URL carrying a password,
           # and a PEM private key. Each is a value, never a label.
-          patterns='
-            napi_[A-Za-z0-9]{24,}
-            vcp_[A-Za-z0-9]{24,}
-            (ghp|gho|ghs|ghu)_[A-Za-z0-9]{30,}
-            github_pat_[A-Za-z0-9_]{30,}
-            postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@
-            # No spaces in these patterns: the loop below word-splits
-            # on whitespace, so a pattern containing one is silently torn
-            # into fragments that match the wrong things.
-            -----BEGIN.{0,24}PRIVATE
-          '
+          # Credential shapes, not variable names. Each element is quoted
+          # individually, so a pattern may contain spaces and comments may
+          # sit between them -- unlike a whitespace-split string, where
+          # both become patterns of their own.
+          patterns=(
+            'napi_[A-Za-z0-9]{24,}'                                  # Neon
+            'vcp_[A-Za-z0-9]{24,}'                                   # Vercel
+            '(ghp|gho|ghs|ghu)_[A-Za-z0-9]{30,}'                     # GitHub
+            'github_pat_[A-Za-z0-9_]{30,}'
+            'postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@'       # URL with a password
+            '-----BEGIN[A-Z ]*PRIVATE KEY-----'                      # PEM
+          )
 
           for dir in apps/clinic-web/dist apps/provider-console/dist; do
             [ -d "$dir" ] || continue
-            for pattern in $patterns; do
+            for pattern in "${patterns[@]}"; do
               if grep -rqE -e "$pattern" "$dir" 2>/dev/null; then
                 echo "::error::A credential matching /$pattern/ is present in $dir"
                 # Show only where, never the value itself -- a CI log is
