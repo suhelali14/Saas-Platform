@@ -37,6 +37,17 @@ chmod 700 "$PENDING" "$STATUS" "$ARCHIVE"
 exec 9>"$JOBS/.lock"
 flock -n 9 || { log "another run is in progress"; exit 0; }
 
+# Proof of life, written on every run whether or not there is work.
+#
+# Without it the console cannot tell a queue nobody is watching from one
+# that is simply idle -- and a job dropped into an unwatched directory
+# sits at "Queued" forever while the UI polls a status file that will
+# never change. The timestamp is also how the API knows the directory it
+# writes to is the same one this reads from: if it were not, the API
+# would never see this file at all.
+date -u +%s > "$JOBS/.runner-heartbeat"
+chmod 644 "$JOBS/.runner-heartbeat" 2>/dev/null || true
+
 shopt -s nullglob
 JOB_FILES=("$PENDING"/*.json)
 shopt -u nullglob

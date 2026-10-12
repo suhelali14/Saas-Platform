@@ -9,6 +9,7 @@ import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from 
 import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
 import { validateSlug } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
+import { queueHealth } from "../lib/provision-jobs.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -69,6 +70,9 @@ export async function accountRoutes(app: FastifyInstance) {
       // So the console can show a clinic's real hostnames instead of a
       // placeholder. Not a secret, and this route is authenticated.
       platformDomain: env.PLATFORM_DOMAIN,
+      // So the console can say why provisioning is unavailable before
+      // the operator clicks, rather than after a Neon project exists.
+      queue: queueHealth(),
     };
   });
 

@@ -222,6 +222,11 @@ function Provisioning({
   };
 
   const provisioningOff = meta?.provisioning && !meta.provisioning.neon;
+  // The runner lives on the host, outside this API. If it is not there,
+  // a job can still be written and will simply never be picked up --
+  // so this is checked before the button is offered, not after.
+  const queueDown = meta?.queue && !meta.queue.ok ? meta.queue.reason : null;
+  const blocked = Boolean(provisioningOff) || Boolean(queueDown);
   const running = job?.state === "queued" || job?.state === "running";
 
   if (account.provisionedAt && !job) {
@@ -249,7 +254,13 @@ function Provisioning({
           {provisioningOff && (
             <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>NEON_API_KEY is not set on the server, so a database cannot be created.</span>
+              <span>No Neon API key is set on the server, so a database cannot be created.</span>
+            </div>
+          )}
+          {queueDown && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>{queueDown}</span>
             </div>
           )}
           {error && (
@@ -257,7 +268,7 @@ function Provisioning({
               {error}
             </div>
           )}
-          <Button className="mt-4" onClick={() => setOpen(true)} disabled={provisioningOff || running}>
+          <Button className="mt-4" onClick={() => setOpen(true)} disabled={blocked || running}>
             <Rocket />
             Provision this clinic
           </Button>

@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
-import { enqueueProvision, readJobStatus, jobsAvailable } from "../lib/provision-jobs.js";
+import { enqueueProvision, readJobStatus, queueHealth } from "../lib/provision-jobs.js";
 import { createNeonProjectForClinic, neonConfigured } from "../lib/neon.js";
 import { validateSlug } from "../lib/subdomain.js";
 
@@ -28,11 +28,13 @@ export async function provisionRoutes(app: FastifyInstance) {
       const auth = requireOwnerAuth(request, reply);
       if (!auth) return;
 
-      if (!jobsAvailable()) {
-        return reply.status(503).send({
-          error:
-            "This console cannot provision: the job directory is not mounted. See deploy/README.md.",
-        });
+      // Refuse before creating anything. Queuing a job nobody will pick
+      // up leaves the operator watching "Queued" forever -- and in this
+      // case a Neon project would already have been created and paid
+      // for by the time they gave up.
+      const queue = queueHealth();
+      if (!queue.ok) {
+        return reply.status(503).send({ error: queue.reason });
       }
       if (!neonConfigured()) {
         return reply.status(503).send({

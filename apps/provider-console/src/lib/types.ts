@@ -89,6 +89,10 @@ export interface Meta {
   provisioning: { neon: boolean; vercel: boolean; dryRun: boolean };
   /** The domain clinic subdomains hang off, e.g. "yourco.in". */
   platformDomain?: string;
+  /** Whether a queued provisioning job would actually be picked up.
+   *  False means the host runner is missing or not sharing the queue,
+   *  in which case provisioning would hang at "Queued" forever. */
+  queue?: { ok: true } | { ok: false; reason: string };
 }
 
 export interface ProvisionStep {

@@ -44,17 +44,73 @@ export type ProvisionRequest = {
   databaseUrl: string;
 };
 
-/** True when the jobs directory is mounted, i.e. this deployment can
- *  provision at all. A console without it still works for everything
- *  else, and says so rather than failing at the moment of use. */
-export function jobsAvailable(): boolean {
+/** The runner must have checked in this recently for the queue to be
+ *  considered live. Its timer fires every 15s, so two minutes allows
+ *  for a slow provisioning run holding the lock. */
+const HEARTBEAT_MAX_AGE_MS = 2 * 60 * 1000;
+
+export type QueueHealth =
+  | { ok: true }
+  | { ok: false; reason: string };
+
+/**
+ * Whether a queued job would actually be picked up.
+ *
+ * Being able to create the directory is not enough. If the jobs
+ * directory is not the same one the host runner watches -- because the
+ * bind mount is missing -- then writing a job succeeds, the status file
+ * is written into the container's own filesystem, and the console polls
+ * it until the container restarts and it disappears. The operator sees
+ * "Queued" forever and then 404s, with nothing anywhere saying why.
+ *
+ * So the test is not "can I write here" but "has the runner been here".
+ * The runner touches a heartbeat on every run, including when idle, and
+ * seeing that file proves both that it is alive and that it shares this
+ * directory.
+ */
+export function queueHealth(): QueueHealth {
   try {
     mkdirSync(PENDING, { recursive: true });
     mkdirSync(STATUS, { recursive: true });
-    return true;
   } catch {
-    return false;
+    return { ok: false, reason: "The provisioning job directory is not writable." };
   }
+
+  const beat = path.join(JOBS_ROOT, ".runner-heartbeat");
+  if (!existsSync(beat)) {
+    return {
+      ok: false,
+      reason:
+        "The provisioning runner has never checked in. Either it is not installed " +
+        "(systemctl enable --now clinic-runner.timer) or the jobs directory is not " +
+        "shared with the host, in which case a queued job would never be seen.",
+    };
+  }
+
+  let age = Infinity;
+  try {
+    const seconds = Number(readFileSync(beat, "utf8").trim());
+    if (Number.isFinite(seconds)) age = Date.now() - seconds * 1000;
+  } catch {
+    /* Treated as stale below. */
+  }
+
+  if (age > HEARTBEAT_MAX_AGE_MS) {
+    const mins = Math.round(age / 60000);
+    return {
+      ok: false,
+      reason: `The provisioning runner last checked in ${
+        Number.isFinite(mins) ? `${mins} minute(s) ago` : "an unknown time ago"
+      }. Check: systemctl status clinic-runner.timer`,
+    };
+  }
+
+  return { ok: true };
+}
+
+/** Kept for callers that only need a yes or no. */
+export function jobsAvailable(): boolean {
+  return queueHealth().ok;
 }
 
 export function enqueueProvision(req: ProvisionRequest): string {
