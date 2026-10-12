@@ -152,10 +152,25 @@ export function readJobStatus(id: string): JobStatus | null {
 
   const file = path.join(STATUS, `${id}.json`);
   if (!existsSync(file)) return null;
+
   try {
     return JSON.parse(readFileSync(file, "utf8")) as JobStatus;
-  } catch {
-    // A partially written file; the next poll will find it complete.
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+
+    // A file that exists but cannot be read is a permissions fault, not
+    // a missing job. Reporting it as missing sent a real ownership bug
+    // to the console as a 404 and wasted the time it takes to tell
+    // those apart.
+    if (code === "EACCES" || code === "EPERM") {
+      throw new Error(
+        `Job ${id} exists but is not readable by this process. The runner must hand ` +
+          `status files to the queue's owner -- check ownership of ${STATUS}.`,
+      );
+    }
+
+    // Anything else is most likely a half-written file; the next poll
+    // will find it complete.
     return null;
   }
 }

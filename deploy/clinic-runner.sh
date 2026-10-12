@@ -67,6 +67,15 @@ write_status() {  # write_status <id> <state> <message> [extra-json]
     printf '}\n'
   } > "$tmp"
   chmod 600 "$tmp"
+  # Owned by whoever owns the queue -- the API container runs as that
+  # uid and has to read this back. Written by root and left root-owned,
+  # a 0600 status file is unreadable by the API, which then reports the
+  # job as missing: the console showed 200s from its own queued status,
+  # then 404s the moment this overwrote it.
+  #
+  # Still 0600, not world-readable: on success this file carries the
+  # clinic's one-time password.
+  chown --reference="$JOBS" "$tmp" 2>/dev/null || true
   mv -f "$tmp" "$STATUS/$id.json"
 }
 

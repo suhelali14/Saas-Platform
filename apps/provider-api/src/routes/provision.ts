@@ -128,7 +128,20 @@ export async function provisionRoutes(app: FastifyInstance) {
       const auth = requireProviderAuth(request, reply);
       if (!auth) return;
 
-      const status = readJobStatus(request.params.jobId);
+      let status;
+      try {
+        status = readJobStatus(request.params.jobId);
+      } catch (error) {
+        // A readable-but-forbidden status file is a server
+        // misconfiguration. Returned as 503 rather than thrown, because
+        // the global handler makes every 5xx generic and this message
+        // is the entire diagnosis.
+        request.log.error({ err: error }, "job status unreadable");
+        return reply.status(503).send({
+          error: error instanceof Error ? error.message : "Job status is unreadable.",
+        });
+      }
+
       if (!status) return reply.status(404).send({ error: "Unknown job" });
       return status;
     },
