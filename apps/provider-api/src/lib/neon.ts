@@ -13,9 +13,20 @@ import { env } from "../config/env.js";
 
 const NEON_API = "https://console.neon.tech/api/v2";
 
-/** Indian clinics. Mumbai is the closest Neon region, and every patient
- *  lookup crosses this link. */
-const REGION = "aws-ap-south-1";
+/**
+ * Where a clinic's database is created.
+ *
+ * Configurable because region availability is per-organisation, not
+ * universal: this was hardcoded to Mumbai (aws-ap-south-1), which Neon
+ * rejected with "requested region not found" for an account that simply
+ * is not enabled for it. Singapore is the nearest region generally
+ * available to Indian accounts and is the default.
+ *
+ * Set NEON_REGION to something closer if your organisation has it --
+ * every patient lookup crosses this link, so a nearer region is worth
+ * having when you can get one.
+ */
+const REGION = env.NEON_REGION;
 
 export function neonConfigured(): boolean {
   return Boolean(env.NEON_API_KEY);
@@ -40,6 +51,17 @@ async function neonFetch(path: string, init: RequestInit = {}): Promise<unknown>
     // header rather than the body, but the message is still trimmed --
     // this reaches an HTTP response and a log.
     const brief = text.slice(0, 300).replace(/\s+/g, " ");
+
+    // The most likely 404 here is a region this organisation cannot
+    // use, and Neon's message does not say which region was asked for.
+    if (response.status === 404 && /region/i.test(brief)) {
+      throw new Error(
+        `Neon rejected the region "${REGION}". Region availability differs by organisation. ` +
+          `Set NEON_REGION in the provider API's environment to one your account has -- ` +
+          `the region of an existing project is a safe choice.`,
+      );
+    }
+
     throw new Error(`Neon ${response.status}: ${brief}`);
   }
   return text ? JSON.parse(text) : {};

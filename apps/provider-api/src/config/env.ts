@@ -10,6 +10,11 @@ const envSchema = z.object({
   // which is the correct default for code that creates billable
   // infrastructure and writes DNS.
   NEON_API_KEY: z.string().optional(),
+  // Where clinic databases are created. Availability is per-account:
+  // aws-ap-south-1 (Mumbai) is not enabled for every organisation, and
+  // Neon answers 404 rather than naming the problem. Defaults to
+  // Singapore, the nearest region generally available from India.
+  NEON_REGION: z.string().default("aws-ap-southeast-1"),
   NEON_ORG_ID: z.string().optional(),
   VERCEL_TOKEN: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
