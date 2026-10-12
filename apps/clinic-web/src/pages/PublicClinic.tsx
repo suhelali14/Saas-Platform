@@ -73,6 +73,13 @@ interface Doctor {
 
 const DEFAULT_ORDER: SectionKey[] = ['about', 'services', 'highlights', 'doctors', 'gallery', 'blog', 'feedback', 'queue', 'faq', 'contact'];
 
+/** Carries which of the three causes a rejected load was. */
+class PageProblem extends Error {
+  constructor(public cause: 'unpublished' | 'unreachable' | 'failing') {
+    super(cause);
+  }
+}
+
 export function PublicClinic() {
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -80,13 +87,22 @@ export function PublicClinic() {
   const [posts, setPosts] = useState<PublicPost[]>([]);
   const [feedback, setFeedback] = useState<PublicFeedback[]>([]);
   const [availableLocales, setAvailableLocales] = useState<string[]>([]);
-  const [notFound, setNotFound] = useState(false);
+  // Why the page could not be shown, when it cannot. Not a boolean: the
+  // three causes are not the same thing and must not read as if they
+  // were. "unpublished" is the clinic's own doing; the other two are a
+  // fault nobody looking at the page can act on.
+  const [problem, setProblem] = useState<'unpublished' | 'unreachable' | 'failing' | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [locale, setLocale] = useState<string>(() => readPreferredLocale());
 
   useEffect(() => {
     fetch(`${PUBLIC_API_BASE}/public/clinic?lang=${encodeURIComponent(locale)}`)
-      .then((res) => { if (!res.ok) throw new Error('not configured'); return res.json(); })
+      .then((res) => {
+        // A 404 is the only status that means what the old message said.
+        if (res.status === 404) throw new PageProblem('unpublished');
+        if (!res.ok) throw new PageProblem('failing');
+        return res.json();
+      })
       .then((data) => {
         setClinic(data.clinic);
         setDoctors(data.doctors ?? []);
@@ -98,7 +114,15 @@ export function PublicClinic() {
         // rather than forcing English on a neighbourhood that doesn't read it.
         if (!hasStoredLocale() && data.locale && data.locale !== locale) setLocale(data.locale);
       })
-      .catch(() => setNotFound(true));
+      .catch((error: unknown) => {
+        // A rejected fetch with no response is the browser refusing to
+        // make or complete the request: DNS, TLS, CORS, or the server
+        // not answering. It is indistinguishable between those from
+        // here -- deliberately, since a page may not learn why a
+        // cross-origin request was blocked -- but it is firmly NOT the
+        // clinic having left its details blank.
+        setProblem(error instanceof PageProblem ? error.cause : 'unreachable');
+      });
   }, [locale]);
 
   const t = strings(locale);
@@ -146,10 +170,31 @@ export function PublicClinic() {
 
   useEffect(() => { if (clinic?.name) document.title = clinic.name; }, [clinic?.name]);
 
-  if (notFound) {
+  if (problem) {
+    const t0 = strings(readPreferredLocale());
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-600 flex items-center justify-center p-8 text-center">
-        {strings(readPreferredLocale())('notPublished')}
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <p className="text-base font-semibold text-slate-900">
+            {problem === 'unpublished' ? t0('notPublished') : t0('temporarilyUnavailable')}
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            {problem === 'unpublished'
+              ? t0('notPublishedHelp')
+              : problem === 'failing'
+                ? t0('failingHelp')
+                : t0('unreachableHelp')}
+          </p>
+          {problem !== 'unpublished' && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              {t0('tryAgain')}
+            </button>
+          )}
+        </div>
       </div>
     );
   }

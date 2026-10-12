@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth, requireAdminAuth } from "../plugins/auth.js";
 import { saveUploadedFile, readStoredFile, mimeFromPath, FileValidationError } from "../lib/file-storage.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
+import { getSetupStatus } from "../lib/setup-status.js";
 
 // Clinic settings + per-doctor profile (Phase 5). Before this, the clinic's
 // address/phone/registration number/consultation fee could only be set by
@@ -59,6 +60,23 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
     const clinic = await prisma.clinic.findFirst();
     if (!clinic) return reply.status(404).send({ error: "Clinic not configured" });
     return clinic;
+  });
+
+  /**
+   * What is still missing from this clinic's public page.
+   *
+   * Readable by any signed-in staff member, not just an admin: reception
+   * is who fields "I could not find your timings online", and being able
+   * to see why is more useful than being told it is not their screen.
+   * Nothing here is patient data, and nothing here is a secret.
+   */
+  app.get("/api/clinic/setup-status", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const status = await getSetupStatus();
+    if (!status) return reply.status(404).send({ error: "Clinic not configured" });
+    return status;
   });
 
   // Clinic-wide branding/config -- doctor or admin only. Reception editing

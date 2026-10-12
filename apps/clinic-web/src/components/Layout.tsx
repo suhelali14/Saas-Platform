@@ -9,6 +9,7 @@ import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { apiFetch } from '../lib/api';
+import { SetupPrompt } from './SetupPrompt';
 
 const ROLE_COLORS: Record<string, string> = {
   DOCTOR: 'bg-emerald-500/15 text-emerald-400',
@@ -178,6 +179,9 @@ export function Layout() {
       {/* min-w-0 stops a wide table inside from stretching the flex row and
           pushing the sidebar off screen. */}
       <main className="flex-1 min-w-0">
+        {/* Above every portal screen, because the person who can fill in
+            the clinic's website did not come here to look at it. */}
+        <SetupPrompt />
         <Outlet />
       </main>
     </div>

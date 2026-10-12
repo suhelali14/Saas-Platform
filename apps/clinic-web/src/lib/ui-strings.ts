@@ -49,9 +49,16 @@ type StringKey =
   | 'yourNameOptional' | 'anythingToTell' | 'sendFeedback' | 'sending'
   | 'thankYou' | 'feedbackThanks' | 'feedbackPrivate' | 'chooseRating'
   | 'feedbackFailed' | 'language' | 'loading' | 'notPublished'
-  | 'medicalDisclaimer' | 'backToClinic' | 'anonymous';
+  | 'medicalDisclaimer' | 'backToClinic' | 'anonymous'
+  | 'notPublishedHelp' | 'temporarilyUnavailable' | 'unreachableHelp'
+  | 'failingHelp' | 'tryAgain';
 
 const en: Record<StringKey, string> = {
+  notPublishedHelp: 'The clinic has not added its details to this page yet. If you are from the clinic, sign in to the staff portal and fill in Settings.',
+  temporarilyUnavailable: 'This page is temporarily unavailable',
+  unreachableHelp: "We could not reach this clinic's server. The problem is not with your connection to this page -- the clinic's own system is not answering. Please call the clinic directly.",
+  failingHelp: "The clinic's server answered but could not provide its details. Please try again shortly, or call the clinic directly.",
+  tryAgain: 'Try again',
   callClinic: 'Call Clinic', bookAppointment: 'Book an Appointment', checkLiveQueue: 'Check Live Queue',
   openingHours: 'Opening Hours', closed: 'Closed', closedToday: 'Closed today', openNow: 'Open now',
   opensAt: 'Closed · opens', until: 'until', today: 'Today', emergency: 'Emergency',
@@ -77,6 +84,11 @@ const en: Record<StringKey, string> = {
 };
 
 const hi: Partial<Record<StringKey, string>> = {
+  notPublishedHelp: 'क्लिनिक ने अभी इस पेज पर अपनी जानकारी नहीं जोड़ी है। अगर आप क्लिनिक से हैं, तो स्टाफ़ पोर्टल में साइन इन करके सेटिंग्स भरें।',
+  temporarilyUnavailable: 'यह पेज अभी उपलब्ध नहीं है',
+  unreachableHelp: 'हम इस क्लिनिक के सर्वर तक नहीं पहुँच सके। दिक्कत आपके इंटरनेट में नहीं है — क्लिनिक का सिस्टम जवाब नहीं दे रहा। कृपया क्लिनिक को सीधे फ़ोन करें।',
+  failingHelp: 'क्लिनिक के सर्वर ने जवाब दिया लेकिन जानकारी नहीं दे सका। कृपया थोड़ी देर बाद कोशिश करें, या क्लिनिक को सीधे फ़ोन करें।',
+  tryAgain: 'दोबारा कोशिश करें',
   callClinic: 'क्लिनिक को कॉल करें', bookAppointment: 'अपॉइंटमेंट बुक करें', checkLiveQueue: 'लाइव कतार देखें',
   openingHours: 'खुलने का समय', closed: 'बंद', closedToday: 'आज बंद है', openNow: 'अभी खुला है',
   opensAt: 'बंद · खुलेगा', until: 'तक', today: 'आज', emergency: 'आपातकाल',
@@ -102,6 +114,11 @@ const hi: Partial<Record<StringKey, string>> = {
 };
 
 const mr: Partial<Record<StringKey, string>> = {
+  notPublishedHelp: 'क्लिनिकने अद्याप या पेजवर आपली माहिती भरलेली नाही. तुम्ही क्लिनिकमधून असाल, तर स्टाफ पोर्टलमध्ये साइन इन करून सेटिंग्ज भरा.',
+  temporarilyUnavailable: 'हे पेज सध्या उपलब्ध नाही',
+  unreachableHelp: 'आम्ही या क्लिनिकच्या सर्व्हरपर्यंत पोहोचू शकलो नाही. अडचण तुमच्या इंटरनेटमध्ये नाही — क्लिनिकची प्रणाली उत्तर देत नाही. कृपया क्लिनिकला थेट फोन करा.',
+  failingHelp: 'क्लिनिकच्या सर्व्हरने उत्तर दिले पण माहिती देऊ शकला नाही. कृपया थोड्या वेळाने प्रयत्न करा, किंवा क्लिनिकला थेट फोन करा.',
+  tryAgain: 'पुन्हा प्रयत्न करा',
   callClinic: 'क्लिनिकला फोन करा', bookAppointment: 'अपॉइंटमेंट बुक करा', checkLiveQueue: 'लाईव्ह रांग पाहा',
   openingHours: 'उघडण्याची वेळ', closed: 'बंद', closedToday: 'आज बंद', openNow: 'आता उघडे आहे',
   opensAt: 'बंद · उघडेल', until: 'पर्यंत', today: 'आज', emergency: 'आणीबाणी',
