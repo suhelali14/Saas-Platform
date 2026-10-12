@@ -62,11 +62,25 @@ esac
 for r in $RESERVED; do
   [ "$SLUG" = "$r" ] && die "'$SLUG' is reserved by the platform. Try '${SLUG}-clinic'."
 done
-[ -f "$ENV_DIR/$SLUG.env" ] && die "'$SLUG' already exists at $ENV_DIR/$SLUG.env"
+# Resume rather than refuse. Everything below checks whether its own
+# step is already done, so a run that failed partway can be repeated
+# and will only do what is left.
+RESUMING=0
+if [ -f "$ENV_DIR/$SLUG.env" ]; then
+  RESUMING=1
+  log "Resuming '$SLUG'"
+  info "$ENV_DIR/$SLUG.env already exists -- finishing what is left"
+fi
 
 # ── Pick a free port ──────────────────────────────────────────────────
 # Reads the ports already assigned rather than counting files, so removing
 # a clinic does not cause the next one to collide with a live service.
+if [ "$RESUMING" = "1" ]; then
+  PORT="$(sed -n 's/^PORT=//p' "$ENV_DIR/$SLUG.env" | head -1)"
+  [ -n "$PORT" ] || die "$ENV_DIR/$SLUG.env has no PORT; remove the file and start again"
+  log "Port"
+  info "reusing $PORT"
+else
 log "Assigning a port"
 USED="$(grep -hoP '^PORT=\K[0-9]+' "$ENV_DIR"/*.env 2>/dev/null | sort -n || true)"
 PORT=$PORT_BASE
@@ -75,6 +89,7 @@ while printf '%s\n' "$USED" | grep -qx "$PORT" || ss -ltn "sport = :$PORT" 2>/de
   [ "$PORT" -gt 4999 ] && die "No free port below 5000 -- something is wrong"
 done
 info "port $PORT"
+fi
 
 # ── Platform domain ───────────────────────────────────────────────────
 PLATFORM_DOMAIN="$(grep -hoP '^PLATFORM_DOMAIN=\K.*' "$ENV_DIR/provider.env" 2>/dev/null | tr -d '"' || true)"
@@ -89,9 +104,15 @@ API_HOST="$SLUG.api.$PLATFORM_DOMAIN"
 info "api hostname: $API_HOST"
 
 # ── The database ──────────────────────────────────────────────────────
+if [ "$RESUMING" = "1" ]; then
+  DB_URL="$(sed -n 's/^DATABASE_URL=//p' "$ENV_DIR/$SLUG.env" | head -1)"
+  [ -n "$DB_URL" ] || die "$ENV_DIR/$SLUG.env has no DATABASE_URL"
+  log "Database"
+  info "reusing the database already recorded for this clinic"
+else
 log "This clinic's database"
 cat <<PROMPT
-    Create a NEW Neon project (region aws-ap-southeast-1 / Mumbai) for this
+    Create a NEW Neon project (region aws-ap-southeast-1 / Singapore) for this
     clinic and paste its connection string below.
 
     Each clinic has its own database. Do NOT reuse another clinic's --
@@ -125,6 +146,16 @@ for existing in "$ENV_DIR"/*.env; do
 done
 
 # ── Write the env file ────────────────────────────────────────────────
+fi
+
+if [ "$RESUMING" = "1" ]; then
+  log "Configuration"
+  # Deliberately untouched. A regenerated JWT_SECRET would sign out
+  # every user of this clinic, and a regenerated DATABASE_URL would
+  # point the container at an empty database while the patients stayed
+  # in the old one.
+  info "keeping the existing env file, secrets included"
+else
 log "Writing $ENV_DIR/$SLUG.env"
 JWT="$(openssl rand -base64 32)"
 install -o deploy -g deploy -m 600 /dev/null "$ENV_DIR/$SLUG.env"
@@ -153,6 +184,7 @@ ENVFILE
 chmod 600 "$ENV_DIR/$SLUG.env"
 chown deploy:deploy "$ENV_DIR/$SLUG.env"
 info "plan $PLAN, own JWT secret, 0600"
+fi
 
 # ── Data directory ────────────────────────────────────────────────────
 log "Creating $DATA_DIR/$SLUG"
@@ -235,12 +267,19 @@ nginx -t > /dev/null 2>&1 || die "nginx config is invalid"
 systemctl reload nginx
 info "proxying to 127.0.0.1:$PORT"
 
-log "Requesting a certificate"
-if certbot --nginx -d "$API_HOST" --non-interactive --agree-tos \
-     --register-unsafely-without-email --redirect > /tmp/certbot-$SLUG.log 2>&1; then
-  info "TLS active"
+# Let's Encrypt rate-limits certificates per hostname per week, so a
+# resumed run must not ask again for one it already has.
+if [ -d "/etc/letsencrypt/live/$API_HOST" ]; then
+  log "Certificate"
+  info "already issued for $API_HOST -- not requesting another"
 else
-  info "certbot failed -- check /tmp/certbot-$SLUG.log and that $API_HOST resolves to this server"
+  log "Requesting a certificate"
+  if certbot --nginx -d "$API_HOST" --non-interactive --agree-tos \
+       --register-unsafely-without-email --redirect > /tmp/certbot-$SLUG.log 2>&1; then
+    info "TLS active"
+  else
+    info "certbot failed -- check /tmp/certbot-$SLUG.log and that $API_HOST resolves to this server"
+  fi
 fi
 
 # ── Start ─────────────────────────────────────────────────────────────

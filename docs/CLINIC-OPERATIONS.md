@@ -192,7 +192,8 @@ Enter them on the clinic's page. They are normalised on save, so pasting
 **Deploy this clinic.** With credentials configured this runs, in order:
 
 1. **Create the database** — a dedicated Neon project in `aws-ap-southeast-1`
-   (Mumbai; these are Indian clinics and latency matters at a front desk).
+   (Singapore, the nearest Neon offers to India — it has no Mumbai region,
+   so this costs roughly 40-60 ms per query and there is no way around it).
 2. **Create the API deployment** — with `DATABASE_URL`, a freshly generated
    `JWT_SECRET`, and `CLINIC_PLAN` from the plan you chose.
 3. **Create the web deployment** — with `VITE_API_URL`, and both the
