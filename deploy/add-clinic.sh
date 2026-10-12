@@ -278,7 +278,15 @@ else
        --register-unsafely-without-email --redirect > /tmp/certbot-$SLUG.log 2>&1; then
     info "TLS active"
   else
-    info "certbot failed -- check /tmp/certbot-$SLUG.log and that $API_HOST resolves to this server"
+    # Recorded, not swallowed. Without a certificate for this hostname
+    # nginx serves whichever one it has, the browser rejects it with
+    # ERR_CERT_COMMON_NAME_INVALID, and nobody can sign in -- so a run
+    # reporting "live" after this failed is reporting a clinic that
+    # does not work.
+    TLS_FAILED=1
+    info "CERTIFICATE FAILED -- the clinic cannot be used until this is fixed"
+    info "  log: /tmp/certbot-$SLUG.log"
+    tail -5 "/tmp/certbot-$SLUG.log" 2>/dev/null | sed 's/^/      /'
   fi
 fi
 
@@ -309,6 +317,7 @@ if [ -n "${NON_INTERACTIVE:-}" ]; then
   printf 'RESULT_PASSWORD=%s\n' "$DOCTOR_PASS"
   printf 'RESULT_API_HOST=%s\n' "$API_HOST"
   printf 'RESULT_PORT=%s\n' "$PORT"
+  printf 'RESULT_TLS=%s\n' "$([ "${TLS_FAILED:-0}" = "1" ] && echo failed || echo ok)"
 fi
 
 cat <<DONE

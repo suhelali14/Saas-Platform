@@ -147,10 +147,21 @@ for job in "${JOB_FILES[@]}"; do
 
     password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"
     apihost="$(grep -m1 '^RESULT_API_HOST=' "$out" | cut -d= -f2-)"
-    extra="$(printf '"apiHost":%s,"loginEmail":%s,"password":%s' \
-             "$(json_str "$apihost")" "$(json_str "$email")" "$(json_str "$password")")"
-    write_status "$id" succeeded "$name is live" "$extra"
-    log "  succeeded: $slug -> $apihost"
+    extra="$(printf '"apiHost":%s,"loginEmail":%s,"password":%s,"tls":%s' \
+             "$(json_str "$apihost")" "$(json_str "$email")" "$(json_str "$password")" \
+             "$(json_str "${tls:-unknown}")")"
+
+    # A clinic without a certificate is not usable: the browser rejects
+    # its API with ERR_CERT_COMMON_NAME_INVALID and nobody can sign in.
+    # Calling that "live" is how a broken clinic gets handed to a doctor.
+    if [ "$tls" = "failed" ]; then
+      write_status "$id" succeeded \
+        "$name is set up, but has NO TLS CERTIFICATE -- nobody can sign in until that is fixed" "$extra"
+      log "  succeeded WITHOUT TLS: $slug"
+    else
+      write_status "$id" succeeded "$name is live" "$extra"
+      log "  succeeded: $slug -> $apihost"
+    fi
   else
     # Last few lines only, redacted. A full log would put the connection
     # string into a file the API can read.
