@@ -6,7 +6,7 @@ import {
   Star, FileText, Send, Languages,
 } from 'lucide-react';
 import {
-  PUBLIC_API_BASE, publicAsset, palette,
+  publicApiBase, publicAsset, palette,
   type Palette, type PublicPost, type PublicFeedback, type GalleryItem,
 } from '../lib/public-site';
 import { publicSiteUrl } from '../lib/site-mode';
@@ -96,7 +96,7 @@ export function PublicClinic() {
   const [locale, setLocale] = useState<string>(() => readPreferredLocale());
 
   useEffect(() => {
-    fetch(`${PUBLIC_API_BASE}/public/clinic?lang=${encodeURIComponent(locale)}`)
+    fetch(`${publicApiBase()}/public/clinic?lang=${encodeURIComponent(locale)}`)
       .then((res) => {
         // A 404 is the only status that means what the old message said.
         if (res.status === 404) throw new PageProblem('unpublished');
@@ -654,7 +654,7 @@ function FeedbackSection({ p, published }: { p: Palette; published: PublicFeedba
     setSending(true);
     setError(null);
     try {
-      const res = await fetch(`${PUBLIC_API_BASE}/public/feedback`, {
+      const res = await fetch(`${publicApiBase()}/public/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating, patientName: name || undefined, comment: comment || undefined }),

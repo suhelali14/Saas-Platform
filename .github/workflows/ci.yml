@@ -70,6 +70,12 @@ jobs:
         # chmod.
         run: python3 scripts/check-script-modes.py
 
+      - name: Only lib/api.ts knows where the API is
+        # One bundle serves every clinic, so a build-time API base is
+        # always wrong on the platform -- and its localhost fallback
+        # sends the visitor's browser to their own machine.
+        run: python3 scripts/check-api-base.py
+
       - name: Build everything
         run: |
           for app in clinic-api provider-api clinic-web provider-console; do

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
-import { PUBLIC_API_BASE, publicAsset, type PublicPost } from '../lib/public-site';
+import { publicApiBase, publicAsset, type PublicPost } from '../lib/public-site';
 
 export function PublicBlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -10,7 +10,7 @@ export function PublicBlogPost() {
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`${PUBLIC_API_BASE}/public/posts/${encodeURIComponent(slug)}`)
+    fetch(`${publicApiBase()}/public/posts/${encodeURIComponent(slug)}`)
       .then((r) => { if (!r.ok) throw new Error('not found'); return r.json(); })
       .then(setPost)
       .catch(() => setNotFound(true));

@@ -6,12 +6,26 @@
  * should ever send one. These are plain unauthenticated fetches.
  */
 
-export const PUBLIC_API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+/**
+ * Where this clinic's API answers.
+ *
+ * A function, not a constant. One static bundle serves every clinic, so
+ * the base URL is resolved at boot by the tenant directory -- and a
+ * constant evaluated when this module is first imported would have been
+ * read before any of that happened. It was, and it held the localhost
+ * default: every image on the public site, and the page's own fetch,
+ * asked the visitor's own machine for the clinic's data.
+ */
+import { getApiBaseUrl } from './api';
+
+export function publicApiBase(): string {
+  return getApiBaseUrl();
+}
 
 /** A stored branding file (logo, doctor photo, gallery image, blog cover)
  * served through the API's single public file route. */
 export function publicAsset(storagePath: string): string {
-  return `${PUBLIC_API_BASE}/public/${storagePath}`;
+  return `${publicApiBase()}/public/${storagePath}`;
 }
 
 export interface PublicPost {

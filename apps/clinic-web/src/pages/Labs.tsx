@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FlaskConical, CheckCircle2, Download, Upload } from 'lucide-react';
 import { Button } from '../components/Button';
-import { apiFetch, openPdf, ApiError } from '../lib/api';
+import { apiFetch, openPdf, ApiError, getApiBaseUrl } from '../lib/api';
 
 interface LabItem { id: string; testName: string; resultText: string | null; resultFilePath: string | null; resultFileName: string | null; completedAt: string | null }
 interface LabOrderRow {
@@ -53,7 +53,7 @@ export function Labs() {
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const body = new FormData();
       body.append('file', file);
       const res = await fetch(`${apiBase}/lab-orders/items/${itemId}/result-file`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });

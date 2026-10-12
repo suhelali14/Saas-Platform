@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, Download, Filter, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
-import { apiFetch, ApiError } from '../lib/api';
+import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { Pick } from '../components/Field';
 
 /**
@@ -215,7 +215,7 @@ function DownloadCsvButton() {
     setBusy(true);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}/export/csv/audit`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();

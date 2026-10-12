@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
-import { apiFetch, ApiError } from '../lib/api';
+import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
@@ -134,7 +134,7 @@ function ClinicSettings() {
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const body = new FormData();
       body.append('file', file);
       const res = await fetch(`${apiBase}/settings/logo`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });
@@ -353,7 +353,7 @@ function ProfileSettings() {
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const body = new FormData();
       body.append('file', file);
       const res = await fetch(`${apiBase}/profile/${kind}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });
@@ -498,7 +498,7 @@ function DataSettings() {
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (!res.ok) throw new Error('Export failed. You may not have permission.');
       const blob = await res.blob();
@@ -622,7 +622,7 @@ function DocumentSettings() {
       setRendering(true);
       try {
         const token = localStorage.getItem('clinicAccessToken');
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+        const apiBase = getApiBaseUrl();
         const res = await fetch(`${apiBase}/document-template/preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -842,7 +842,7 @@ function Field({ label, hint, span, children }: { label: string; hint?: string; 
 }
 
 export function brandingUrl(storagePath: string): string {
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+  const apiBase = getApiBaseUrl();
   return `${apiBase}/public/${storagePath}`;
 }
 

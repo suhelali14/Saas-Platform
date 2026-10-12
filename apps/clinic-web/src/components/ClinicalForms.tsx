@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiFetch, ApiError } from '../lib/api';
+import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { Button } from './Button';
 import { Pick } from './Field';
 import { SegmentedControl } from './SegmentedControl';
@@ -71,7 +71,7 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const body = new FormData();
       body.append('file', file);
       const res = await fetch(`${apiBase}/case-sheets/${createdId}/attachments`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Stethoscope, Clock } from 'lucide-react';
+import { getApiBaseUrl } from '../lib/api';
 
 // Public, no login -- the "innovative" feature from the plan's research:
 // real token/queue-transparency displays measurably cut perceived wait time
@@ -8,7 +9,10 @@ import { Stethoscope, Clock } from 'lucide-react';
 // last-4-of-UHID label -- never a name or phone number, since this page has
 // no authentication at all.
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic').replace(/\/clinic$/, '/clinic/public');
+/** Resolved per request, not once at import: this page is served on
+ *  every clinic's hostname from one bundle, and which clinic it is is
+ *  not known until the tenant directory has answered. */
+const publicQueueBase = () => getApiBaseUrl().replace(/\/clinic$/, '/clinic/public');
 const REFRESH_MS = 20_000;
 
 interface QueueEntry { position: number; status: string; doctorName: string | null; patientLabel: string }
@@ -27,7 +31,7 @@ export function PublicQueue() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/queue`);
+        const res = await fetch(`${publicQueueBase()}/queue`);
         const data = await res.json();
         setClinicName(data.clinicName);
         setQueue(data.queue);

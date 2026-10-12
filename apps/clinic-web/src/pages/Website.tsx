@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Upload, Trash2, Plus, X, FileText, Star, AlertTriangle, Check, Sparkles,
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
-import { apiFetch, ApiError } from '../lib/api';
+import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { brandingUrl } from './Settings';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
@@ -918,7 +918,7 @@ function GalleryManager() {
     setError(null);
     try {
       const token = localStorage.getItem('clinicAccessToken');
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+      const apiBase = getApiBaseUrl();
       const body = new FormData();
       // Caption must be appended BEFORE the file: @fastify/multipart streams
       // fields in order, and a field after the file isn't parsed by the time
@@ -1098,7 +1098,7 @@ function Panel({ title, hint, children }: { title: string; hint?: string; childr
 
 async function uploadFile(path: string, file: File): Promise<any> {
   const token = localStorage.getItem('clinicAccessToken');
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4100/api/clinic';
+  const apiBase = getApiBaseUrl();
   const body = new FormData();
   body.append('file', file);
   const res = await fetch(`${apiBase}${path}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body });

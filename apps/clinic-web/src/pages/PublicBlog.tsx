@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Calendar } from 'lucide-react';
-import { PUBLIC_API_BASE, publicAsset, type PublicPost } from '../lib/public-site';
+import { publicApiBase, publicAsset, type PublicPost } from '../lib/public-site';
 
 /** The clinic's health library index. Light theme, like the rest of the
  * public site -- the portal's dark theme is for staff, not patients. */
@@ -10,7 +10,7 @@ export function PublicBlog() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${PUBLIC_API_BASE}/public/posts`)
+    fetch(`${publicApiBase()}/public/posts`)
       .then((r) => r.json())
       .then((d) => setPosts(d.posts ?? []))
       .catch(() => setPosts([]))
