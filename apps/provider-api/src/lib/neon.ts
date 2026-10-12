@@ -110,3 +110,24 @@ export async function createNeonProjectForClinic(slug: string): Promise<NeonProj
 export async function deleteNeonProject(projectId: string): Promise<void> {
   await neonFetch(`/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
 }
+
+/**
+ * The connection string for a project that already exists.
+ *
+ * Neon returns connection_uris on creation but not on a plain project
+ * read, so this asks for the project's endpoints and branch role
+ * password explicitly.
+ */
+export async function connectionUriFor(projectId: string): Promise<string> {
+  const data = (await neonFetch(
+    `/projects/${encodeURIComponent(projectId)}/connection_uri?database_name=neondb&role_name=neondb_owner`,
+  )) as { uri?: string };
+
+  if (!data.uri) {
+    throw new Error(
+      `Neon did not return a connection string for project ${projectId}. ` +
+        `It may have been deleted -- clear neonProjectId on the account and provision again.`,
+    );
+  }
+  return data.uri;
+}

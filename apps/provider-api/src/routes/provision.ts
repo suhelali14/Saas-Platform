@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
 import { enqueueProvision, readJobStatus, queueHealth } from "../lib/provision-jobs.js";
-import { createNeonProjectForClinic, neonConfigured } from "../lib/neon.js";
+import { reconcileJob } from "../lib/reconcile.js";
+import { createNeonProjectForClinic, connectionUriFor, neonConfigured } from "../lib/neon.js";
 import { validateSlug } from "../lib/subdomain.js";
 
 /**
@@ -77,9 +78,19 @@ export async function provisionRoutes(app: FastifyInstance) {
       let databaseUrl: string;
       let neonProjectId: string;
       try {
-        const project = await createNeonProjectForClinic(account.slug);
-        databaseUrl = project.connectionUri;
-        neonProjectId = project.projectId;
+        // Reuse the project a previous attempt created rather than
+        // making another. Without this, each retry made a fresh
+        // database before the host refused the duplicate slug -- three
+        // attempts left three projects, two of them orphans.
+        if (account.neonProjectId) {
+          databaseUrl = await connectionUriFor(account.neonProjectId);
+          neonProjectId = account.neonProjectId;
+          request.log.info({ neonProjectId }, "reusing the database from a previous attempt");
+        } else {
+          const project = await createNeonProjectForClinic(account.slug);
+          databaseUrl = project.connectionUri;
+          neonProjectId = project.projectId;
+        }
       } catch (error) {
         request.log.error({ err: error }, "neon project creation failed");
         return reply.status(502).send({
@@ -120,7 +131,7 @@ export async function provisionRoutes(app: FastifyInstance) {
     },
   );
 
-  app.get<{ Params: { jobId: string } }>(
+  app.get<{ Params: { jobId: string; accountId?: string } }>(
     "/api/provider/provision-jobs/:jobId",
     async (request, reply) => {
       // Any signed-in console user may watch a job they can see the
@@ -128,9 +139,16 @@ export async function provisionRoutes(app: FastifyInstance) {
       const auth = requireProviderAuth(request, reply);
       if (!auth) return;
 
+      // The account id lets a finished job be written back onto the
+      // record. Without it this is a read, which is why a closed tab
+      // used to leave a provisioned clinic looking un-provisioned.
+      const accountId = (request.query as { accountId?: string } | undefined)?.accountId;
+
       let status;
       try {
-        status = readJobStatus(request.params.jobId);
+        status = accountId
+          ? await reconcileJob(accountId, request.params.jobId)
+          : readJobStatus(request.params.jobId);
       } catch (error) {
         // A readable-but-forbidden status file is a server
         // misconfiguration. Returned as 503 rather than thrown, because

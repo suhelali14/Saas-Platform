@@ -188,7 +188,12 @@ function Provisioning({
   const poll = useCallback(
     async (jobId: string) => {
       try {
-        const status = await apiFetch<JobStatus>(`/provision-jobs/${jobId}`);
+        // accountId lets the API write a finished job back onto the
+        // record, so closing this tab cannot leave a provisioned
+        // clinic looking un-provisioned.
+        const status = await apiFetch<JobStatus>(
+          `/provision-jobs/${jobId}?accountId=${encodeURIComponent(account.id)}`,
+        );
         setJob(status);
         if (status.state === "queued" || status.state === "running") {
           timer.current = window.setTimeout(() => void poll(jobId), 2500);

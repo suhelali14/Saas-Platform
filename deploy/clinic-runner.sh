@@ -28,6 +28,12 @@ ARCHIVE="$JOBS/done"
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 redact() { sed -E 's#(postgres(ql)?://)[^@[:space:]]*@#\1***:***@#g'; }
 
+# add-clinic.sh colours its output for a terminal. Those escape codes
+# travel into the status file and reach the browser as a literal
+# \u001b[31m wrapped around the message, so they are stripped here
+# rather than left for the console to render as noise.
+strip_ansi() { sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
+
 [ "$(id -u)" = "0" ] || { echo "Must run as root." >&2; exit 1; }
 mkdir -p "$PENDING" "$STATUS" "$ARCHIVE"
 chmod 700 "$PENDING" "$STATUS" "$ARCHIVE"
@@ -148,7 +154,7 @@ for job in "${JOB_FILES[@]}"; do
   else
     # Last few lines only, redacted. A full log would put the connection
     # string into a file the API can read.
-    tail="$(redact < "$out" | tail -8 | tr '\n' ' ')"
+    tail="$(redact < "$out" | strip_ansi | tail -8 | tr '\n' ' ' | sed 's/  */ /g')"
     write_status "$id" failed "$tail"
     log "  FAILED: $slug"
     redact < "$out" | tail -15 | sed 's/^/      /'
