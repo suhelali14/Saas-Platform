@@ -63,6 +63,13 @@ jobs:
       - name: Check the Dockerfile against the build context
         run: python3 scripts/check-dockerfile.py
 
+      - name: Deploy scripts are executable
+        # A deploy script committed non-executable fails on the server
+        # with "permission denied" and nowhere useful to look. Windows
+        # does not track the exec bit, so this cannot be left to a local
+        # chmod.
+        run: python3 scripts/check-script-modes.py
+
       - name: Build everything
         run: |
           for app in clinic-api provider-api clinic-web provider-console; do
