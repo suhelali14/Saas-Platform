@@ -272,11 +272,40 @@ info "proxying to 127.0.0.1:$PORT"
 if [ -d "/etc/letsencrypt/live/$API_HOST" ]; then
   log "Certificate"
   info "already issued for $API_HOST -- not requesting another"
+  # On disk is not the same as being served. This clinic spent an hour
+  # with a valid certificate sitting in /etc/letsencrypt while nginx
+  # served a different one, so the resume path must check the handshake
+  # rather than trust the directory's existence.
+  if curl -fsS --max-time 15 "https://$API_HOST/health" > /dev/null 2>&1; then
+    info "and it is being served correctly"
+  else
+    TLS_FAILED=1
+    info "BUT IT IS NOT BEING SERVED -- https://$API_HOST does not validate"
+    info "  the certificate exists but nginx is not using it. Fix with:"
+    info "    sudo certbot --nginx -d $API_HOST"
+  fi
 else
   log "Requesting a certificate"
   if certbot --nginx -d "$API_HOST" --non-interactive --agree-tos \
        --register-unsafely-without-email --redirect > /tmp/certbot-$SLUG.log 2>&1; then
-    info "TLS active"
+    # certbot exiting 0 means it OBTAINED a certificate, not that nginx
+    # is serving it. Here it did exactly that: the certificate was
+    # written to /etc/letsencrypt/live but never installed, the log had
+    # no "Deploying certificate" line, and nginx went on serving the one
+    # certificate it already had -- which the browser rejected with
+    # ERR_CERT_COMMON_NAME_INVALID.
+    #
+    # So the test is the handshake, not the exit code: ask the hostname
+    # for something over HTTPS and see whether it validates.
+    if curl -fsS --max-time 15 "https://$API_HOST/health" > /dev/null 2>&1; then
+      info "TLS verified -- https://$API_HOST validates"
+    else
+      TLS_FAILED=1
+      info "CERTIFICATE OBTAINED BUT NOT SERVED"
+      info "  certbot reported success, but https://$API_HOST does not validate."
+      info "  Usually it did not install into nginx. Fix with:"
+      info "    sudo certbot --nginx -d $API_HOST"
+    fi
   else
     # Recorded, not swallowed. Without a certificate for this hostname
     # nginx serves whichever one it has, the browser rejects it with
