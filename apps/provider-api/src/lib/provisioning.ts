@@ -133,7 +133,7 @@ async function createNeonProject(input: ProvisionInput): Promise<{ projectId: st
     body: JSON.stringify({
       project: {
         name: `clinic-${input.slug}`,
-        region_id: "aws-ap-south-1", // Mumbai: these are Indian clinics
+        region_id: "aws-ap-southeast-1", // Singapore: Neon has no India region
         ...(env.NEON_ORG_ID ? { org_id: env.NEON_ORG_ID } : {}),
       },
     }),
@@ -250,7 +250,7 @@ export async function provisionClinic(input: ProvisionInput): Promise<ProvisionO
   const dbOk = await run(
     "database",
     "Create the clinic's database",
-    `POST https://console.neon.tech/api/v2/projects  { name: "clinic-${input.slug}", region: aws-ap-south-1 }`,
+    `POST https://console.neon.tech/api/v2/projects  { name: "clinic-${input.slug}", region: aws-ap-southeast-1 }`,
     async () => {
       if (input.neonProjectId) {
         connectionUri = await fetchNeonConnectionUri(input.neonProjectId);
@@ -260,7 +260,7 @@ export async function provisionClinic(input: ProvisionInput): Promise<ProvisionO
       const created = await createNeonProject(input);
       connectionUri = created.connectionUri;
       outcome.neonProjectId = created.projectId;
-      return `Created Neon project ${created.projectId} in ap-south-1.`;
+      return `Created Neon project ${created.projectId} in ap-southeast-1.`;
     },
   );
   if (!dbOk) return outcome;

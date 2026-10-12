@@ -191,7 +191,7 @@ Enter them on the clinic's page. They are normalised on save, so pasting
 
 **Deploy this clinic.** With credentials configured this runs, in order:
 
-1. **Create the database** — a dedicated Neon project in `ap-south-1`
+1. **Create the database** — a dedicated Neon project in `aws-ap-southeast-1`
    (Mumbai; these are Indian clinics and latency matters at a front desk).
 2. **Create the API deployment** — with `DATABASE_URL`, a freshly generated
    `JWT_SECRET`, and `CLINIC_PLAN` from the plan you chose.

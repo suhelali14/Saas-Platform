@@ -268,7 +268,13 @@ nothing. One project per clinic, plus one for the console.
 
 - [ ] **New Project**
 - [ ] Name: `provider-console`
-- [ ] Region: **AWS ap-south-1 (Mumbai)**
+- [ ] Region: **AWS Singapore (`aws-ap-southeast-1`)**
+
+> **Neon has no India region.** Its AWS list is us-east-1/2,
+> us-west-2, eu-central-1, eu-west-2, ap-southeast-1 (Singapore),
+> ap-southeast-2 and sa-east-1. Singapore is the nearest to India,
+> and adds roughly 40-60 ms to each query from here.
+
 - [ ] **Create**
 - [ ] Copy the **connection string** (`postgresql://...`) — keep it safe
 
@@ -276,7 +282,7 @@ nothing. One project per clinic, plus one for the console.
 
 - [ ] **New Project** again
 - [ ] Name: `clinic-acme` (use the real clinic's name)
-- [ ] Region: **ap-south-1 (Mumbai)**
+- [ ] Region: **Singapore (`aws-ap-southeast-1`)**
 - [ ] Copy that connection string too, separately
 
 > Never reuse one connection string for two clinics. There is no
@@ -510,7 +516,7 @@ Now check:
 
 Only two steps, about 10 minutes:
 
-1. **neon.com** → New Project → ap-south-1 → copy the string
+1. **neon.com** → New Project → aws-ap-southeast-1 → copy the string
 2. `sudo /srv/clinic/repo/deploy/add-clinic.sh <slug>`
 3. Console → **Onboard a clinic** → set the **Subdomain** to the same
    slug → set `apiDomain` → status **LIVE**

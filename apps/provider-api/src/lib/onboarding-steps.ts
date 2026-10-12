@@ -34,7 +34,7 @@ export const ONBOARDING_TEMPLATE: StepTemplate[] = [
     key: "database",
     label: "Database created",
     automated: true,
-    hint: "A dedicated Neon project in ap-south-1. Never shared with another clinic.",
+    hint: "A dedicated Neon project in ap-southeast-1 (Singapore). Never shared with another clinic.",
   },
   {
     key: "api-project",

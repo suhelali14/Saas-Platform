@@ -10,10 +10,16 @@ const envSchema = z.object({
   // which is the correct default for code that creates billable
   // infrastructure and writes DNS.
   NEON_API_KEY: z.string().optional(),
-  // Where clinic databases are created. Availability is per-account:
-  // aws-ap-south-1 (Mumbai) is not enabled for every organisation, and
-  // Neon answers 404 rather than naming the problem. Defaults to
-  // Singapore, the nearest region generally available from India.
+  // Where clinic databases are created.
+  //
+  // Neon has NO India region -- checked against its own regions page,
+  // not inferred from one account. The AWS list is us-east-1/2,
+  // us-west-2, eu-central-1, eu-west-2, ap-southeast-1, ap-southeast-2
+  // and sa-east-1, and Azure is closed to new projects. Singapore is
+  // the nearest to India and adds roughly 40-60 ms per query.
+  //
+  // Settable so a deployment elsewhere can pick its own, and so this
+  // does not need a code change if Neon ever adds Mumbai.
   NEON_REGION: z.string().default("aws-ap-southeast-1"),
   NEON_ORG_ID: z.string().optional(),
   VERCEL_TOKEN: z.string().optional(),

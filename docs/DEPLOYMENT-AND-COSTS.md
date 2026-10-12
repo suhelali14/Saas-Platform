@@ -378,7 +378,7 @@ sudo certbot --nginx -d api.yourco.in
 **Once per clinic.** Each gets its own port, own `.env`, own database, own
 uploads directory.
 
-1. **Neon** → new project, region **ap-south-1 (Mumbai)** → copy the
+1. **Neon** → new project, region **Singapore (`aws-ap-southeast-1`)** → copy the
    connection string.
 
 2. `/home/deploy/clinics/acme/.env`:

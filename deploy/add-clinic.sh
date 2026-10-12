@@ -91,7 +91,7 @@ info "api hostname: $API_HOST"
 # ── The database ──────────────────────────────────────────────────────
 log "This clinic's database"
 cat <<PROMPT
-    Create a NEW Neon project (region ap-south-1 / Mumbai) for this
+    Create a NEW Neon project (region aws-ap-southeast-1 / Mumbai) for this
     clinic and paste its connection string below.
 
     Each clinic has its own database. Do NOT reuse another clinic's --
