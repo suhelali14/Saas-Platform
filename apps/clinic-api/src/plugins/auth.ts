@@ -160,6 +160,26 @@ const LAB_RESULT_ROLES = new Set(["RECEPTIONIST", "NURSE", "DOCTOR", "ADMIN"]);
 
 /** Entering/uploading a lab result -- whoever actually handles the report
  * coming back from an external lab in a small clinic (often reception). */
+/**
+ * Who may rewrite who a patient is.
+ *
+ * Merging two records is irreversible and combines two people's medical
+ * histories, so it is not something every signed-in user should be able
+ * to do. Reception is included deliberately: they create the duplicates
+ * and are usually the ones who recognise one -- often with the patient
+ * standing there to confirm. A nurse or pharmacist has no business
+ * deciding that two patients are one person.
+ */
+export function requirePatientAdminAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
+  const auth = requireClinicAuth(request, reply);
+  if (!auth) return null;
+  if (!["DOCTOR", "ADMIN", "RECEPTIONIST"].includes(auth.role)) {
+    reply.status(403).send({ error: "Only a doctor, admin or receptionist can merge patient records." });
+    return null;
+  }
+  return auth;
+}
+
 export function requireLabResultAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
   const auth = requireClinicAuth(request, reply);
   if (!auth) return null;

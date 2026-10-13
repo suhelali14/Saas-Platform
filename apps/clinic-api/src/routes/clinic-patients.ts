@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { PatientCategory } from "../generated/prisma-client/index.js";
 import { prisma } from "../lib/prisma.js";
-import { requireClinicAuth } from "../plugins/auth.js";
+import { requireClinicAuth, requirePatientAdminAuth } from "../plugins/auth.js";
 import { generatePatientUhid } from "../lib/uhid.js";
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
@@ -11,6 +11,7 @@ import {
 } from "../lib/pdf.js";
 import { resolveTemplate } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
+import { findDuplicatesOf, mergePatients } from "../lib/patient-duplicates.js";
 
 /** One consistent date format across every document. The report was
  * printing "21/9/2026" while the letterhead beside it printed
@@ -34,6 +35,20 @@ const patientSchema = z.object({
   phone: z.string().max(30).optional(),
   address: z.string().max(500).optional(),
   bloodGroup: z.string().max(10).optional(),
+  email: z.string().email().max(200).optional().or(z.literal("")),
+  // The question every clinic asks at the counter and this could not
+  // record. Without it, an unconscious patient's family is reached by
+  // going through their phone.
+  emergencyContactName: z.string().max(200).optional(),
+  emergencyContactPhone: z.string().max(30).optional(),
+  emergencyContactRelation: z.string().max(60).optional(),
+  insuranceProvider: z.string().max(200).optional(),
+  insurancePolicyNumber: z.string().max(100).optional(),
+  referredBy: z.string().max(200).optional(),
+  // For whoever next meets this person at the desk. Never clinical --
+  // the case sheet is where clinical notes belong, and this field is
+  // visible to reception.
+  deskNote: z.string().max(1000).optional(),
   allergies: z.string().max(1000).optional(),
   chronicConditions: z.string().max(1000).optional(),
   category: z.nativeEnum(PatientCategory).optional(),
@@ -84,21 +99,49 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     // `search` is a single quick-search box -- matches name OR uhid OR phone,
     // since a front-desk lookup is typically "one of these", not all three
     // at once. Real receptionists search by whichever they have on hand.
-    const { search } = request.query as { search?: string };
+    const { search, category, sort } = request.query as {
+      search?: string; category?: string; sort?: string;
+    };
+
     const patients = await prisma.patient.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { uhid: { contains: search, mode: "insensitive" } },
-              { phone: { contains: search } },
-            ],
-          }
-        : undefined,
-      orderBy: { createdAt: "desc" },
+      where: {
+        // A record merged away as a duplicate is kept so its UHID still
+        // resolves, but it must never appear in a list again -- two rows
+        // for one person is the problem this was fixing.
+        mergedIntoId: null,
+        ...(category ? { category: category as never } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { uhid: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search } },
+                // Searching by the person who referred them is how a
+                // clinic answers "who did Dr Mehta send us".
+                { referredBy: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: sort === "name" ? { name: "asc" } : { createdAt: "desc" },
       take: 100,
     });
-    return { data: patients };
+
+    // When each was last here. Fetched in one grouped query rather than
+    // one per row: a hundred patients would otherwise be a hundred round
+    // trips to a database that may be in another country.
+    const lastVisits = patients.length
+      ? await prisma.appointment.groupBy({
+          by: ["patientId"],
+          where: { patientId: { in: patients.map((p) => p.id) } },
+          _max: { scheduledAt: true },
+        })
+      : [];
+    const lastSeen = new Map(lastVisits.map((v) => [v.patientId, v._max.scheduledAt]));
+
+    return {
+      data: patients.map((p) => ({ ...p, lastSeen: lastSeen.get(p.id) ?? null })),
+    };
   });
 
   app.post("/api/clinic/patients", async (request, reply) => {
@@ -299,4 +342,179 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     finalizeDocument(doc, branding, meta);
     return reply.send(doc);
   });
+
+  /**
+   * Patients who look like duplicates of this one.
+   *
+   * Suggested, never applied. A master patient index queues uncertain
+   * pairs for human review, and here the reason is blunter: a wrong
+   * merge is irreversible and mixes two people's medical histories, so
+   * a false positive is a clinical risk rather than an inconvenience.
+   */
+  app.get("/api/clinic/patients/:id/duplicates", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const { id } = request.params as { id: string };
+    const patient = await prisma.patient.findUnique({ where: { id }, select: { id: true } });
+    if (!patient) return reply.status(404).send({ error: "Not found" });
+
+    return { candidates: await findDuplicatesOf(id) };
+  });
+
+  /**
+   * Merges a duplicate into this patient.
+   *
+   * Irreversible, and gated to the roles that own the patient record.
+   * Reception creates duplicates and is best placed to recognise one, so
+   * it is not doctor-only -- but a nurse or pharmacist has no business
+   * rewriting who a patient is.
+   */
+  app.post("/api/clinic/patients/:id/merge", async (request, reply) => {
+    const auth = requirePatientAdminAuth(request, reply);
+    if (!auth) return;
+
+    const { id } = request.params as { id: string };
+    const parsed = z.object({ duplicateId: z.string().min(1) }).safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+    try {
+      const result = await mergePatients(id, parsed.data.duplicateId, auth.clinicUserId);
+      return result;
+    } catch (error) {
+      // These are all "the operator needs to know what happened"
+      // conditions -- already merged, gone, the same record twice -- not
+      // server faults.
+      return reply.status(400).send({
+        error: error instanceof Error ? error.message : "Could not merge these records.",
+      });
+    }
+  });
+
+  /**
+   * Who is overdue to come back.
+   *
+   * Two different questions, answered together because a front desk
+   * treats them as one list of people to ring:
+   *
+   * - A follow-up the doctor asked for, whose date has passed with no
+   *   visit since. This is continuity of care, and it is currently
+   *   invisible unless the doctor ticked the reminder box for
+   *   themselves.
+   * - A patient with a chronic condition who has not been seen in a
+   *   long time. Nothing in the system notices this today.
+   *
+   * Deliberately not a messaging feature. There is no SMS or WhatsApp
+   * integration in this deployment, and generating a list somebody has
+   * to act on is honest; claiming to have sent reminders would not be.
+   */
+  app.get("/api/clinic/patients-recall", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const { months } = request.query as { months?: string };
+    const quietMonths = Math.min(36, Math.max(1, Number(months) || 6));
+
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - quietMonths);
+
+    // ── Follow-ups whose date has passed ─────────────────────────────
+    const dueFollowUps = await prisma.caseSheet.findMany({
+      where: { followUpDate: { lt: now, gte: cutoff } },
+      select: {
+        id: true, followUpDate: true, diagnosis: true,
+        patient: {
+          select: {
+            id: true, uhid: true, name: true, phone: true, category: true,
+            chronicConditions: true, mergedIntoId: true,
+          },
+        },
+      },
+      orderBy: { followUpDate: "asc" },
+      take: 300,
+    });
+
+    // Did they actually come back after the follow-up was set? Checked
+    // rather than assumed: a list that keeps naming people who already
+    // returned is a list nobody uses twice.
+    const patientIds = [...new Set(dueFollowUps.map((c) => c.patient.id))];
+    const visitsSince = patientIds.length
+      ? await prisma.appointment.groupBy({
+          by: ["patientId"],
+          where: { patientId: { in: patientIds }, status: { in: ["COMPLETED", "IN_PROGRESS"] } },
+          _max: { scheduledAt: true },
+        })
+      : [];
+    const lastVisit = new Map(visitsSince.map((v) => [v.patientId, v._max.scheduledAt]));
+
+    const overdue = dueFollowUps
+      .filter((c) => {
+        if (c.patient.mergedIntoId) return false;
+        const seen = lastVisit.get(c.patient.id);
+        return !seen || !c.followUpDate || seen < c.followUpDate;
+      })
+      .map((c) => ({
+        patientId: c.patient.id,
+        uhid: c.patient.uhid,
+        name: c.patient.name,
+        phone: c.patient.phone,
+        category: c.patient.category,
+        reason: "follow-up" as const,
+        dueOn: c.followUpDate,
+        detail: c.diagnosis,
+        lastSeen: lastVisit.get(c.patient.id) ?? null,
+      }));
+
+    // ── Chronic patients who have gone quiet ─────────────────────────
+    //
+    // Only chronic conditions. Somebody who came once with a cold and
+    // has not been back is not overdue for anything, and putting them on
+    // this list would make it a marketing list rather than a clinical
+    // one.
+    const chronic = await prisma.patient.findMany({
+      where: {
+        mergedIntoId: null,
+        chronicConditions: { not: null },
+        NOT: { chronicConditions: "" },
+      },
+      select: { id: true, uhid: true, name: true, phone: true, category: true, chronicConditions: true },
+      take: 500,
+    });
+    const chronicVisits = chronic.length
+      ? await prisma.appointment.groupBy({
+          by: ["patientId"],
+          where: { patientId: { in: chronic.map((p) => p.id) } },
+          _max: { scheduledAt: true },
+        })
+      : [];
+    const chronicLast = new Map(chronicVisits.map((v) => [v.patientId, v._max.scheduledAt]));
+
+    const alreadyListed = new Set(overdue.map((o) => o.patientId));
+    const quiet = chronic
+      .filter((p) => {
+        if (alreadyListed.has(p.id)) return false;
+        const seen = chronicLast.get(p.id);
+        return seen != null && seen < cutoff;
+      })
+      .map((p) => ({
+        patientId: p.id,
+        uhid: p.uhid,
+        name: p.name,
+        phone: p.phone,
+        category: p.category,
+        reason: "chronic-quiet" as const,
+        dueOn: null,
+        detail: p.chronicConditions,
+        lastSeen: chronicLast.get(p.id) ?? null,
+      }));
+
+    return {
+      quietMonths,
+      generatedAt: now.toISOString(),
+      overdue,
+      quiet: quiet.sort((a, b) => (a.lastSeen?.getTime() ?? 0) - (b.lastSeen?.getTime() ?? 0)),
+    };
+  });
+
 }

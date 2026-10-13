@@ -195,6 +195,37 @@ model Patient {
   allergies         String?
   chronicConditions String?
   category          PatientCategory @default(GENERAL)
+
+  // Contact and identity. All nullable: a patient is registered at a
+  // counter with a queue behind them, so only the name is ever required
+  // and everything else must be addable later.
+  email                    String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  insuranceProvider        String?
+  insurancePolicyNumber    String?
+  /// How they came to the clinic -- a referring doctor, a neighbour, a
+  /// search. Clinically useful on a referral, and the only honest answer
+  /// to "is anything we do bringing patients in".
+  referredBy               String?
+  /// For whoever next meets this person at the desk: "prefers Marathi",
+  /// "hard of hearing", "comes with her son". Never clinical -- the case
+  /// sheet is where clinical notes belong.
+  deskNote                 String?
+
+  /// Set when this record was merged into another as a duplicate.
+  ///
+  /// The row is kept rather than deleted: a prescription printed last
+  /// year carries this UHID and somebody will arrive holding it, so it
+  /// has to still resolve to the surviving patient. A merge is
+  /// irreversible, which is why the UI says so before doing it.
+  mergedIntoId      String?
+  mergedInto        Patient?  @relation("PatientMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFrom        Patient[] @relation("PatientMerge")
+  mergedAt          DateTime?
+  mergedById        String?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -207,6 +238,10 @@ model Patient {
 
   @@index([name])
   @@index([phone])
+  @@index([mergedIntoId])
+  // Duplicate detection matches on phone first: it is the field two
+  // registrations of the same person most often share exactly.
+  @@index([phone, name])
 }
 
 model Appointment {
