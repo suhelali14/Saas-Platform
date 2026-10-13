@@ -6,6 +6,7 @@ import { SkeletonPage } from './components/Skeleton';
 import { siteMode } from './lib/site-mode';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
 import { Queue } from './pages/Queue';
 import { Patients } from './pages/Patients';
 import { PatientDetail } from './pages/PatientDetail';
@@ -112,7 +113,10 @@ function portalRoutes() {
         </ProtectedRoute>
       }
     >
-      <Route index path="/" element={<Navigate to="/queue" replace />} />
+      {/* Lands here rather than on the queue. The queue answers "who is
+          next" and nothing else; between patients the question is
+          usually something else entirely. */}
+      <Route index path="/" element={<Dashboard />} />
       <Route path="/queue" element={<Queue />} />
       <Route path="/patients" element={<Patients />} />
       <Route path="/patients/:id" element={<PatientDetail />} />

@@ -36,7 +36,7 @@ const APPOINTMENT_INCLUDE = {
 // queues give configurable priority to emergencies, pregnant women, and
 // senior citizens layered on the main FIFO queue, not a full re-sort).
 // Lower number = seen sooner.
-const PRIORITY_TIER: Record<string, number> = {
+export const PRIORITY_TIER: Record<string, number> = {
   EMERGENCY: 0,
   PREGNANT: 1,
   SENIOR_CITIZEN: 1,

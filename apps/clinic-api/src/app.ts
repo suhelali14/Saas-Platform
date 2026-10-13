@@ -14,6 +14,7 @@ import { clinicCertificateRoutes } from "./routes/clinic-certificates.js";
 import { clinicStaffRoutes } from "./routes/clinic-staff.js";
 import { clinicReminderRoutes } from "./routes/clinic-reminders.js";
 import { clinicAnalyticsRoutes } from "./routes/clinic-analytics.js";
+import { clinicDashboardRoutes } from "./routes/clinic-dashboard.js";
 import { clinicBillingRoutes } from "./routes/clinic-billing.js";
 import { clinicInventoryRoutes } from "./routes/clinic-inventory.js";
 import { clinicVitalsTrendRoutes } from "./routes/clinic-vitals-trend.js";
@@ -151,6 +152,7 @@ export function buildApp() {
   app.register(clinicCertificateRoutes);
   app.register(clinicReminderRoutes);
   app.register(clinicAnalyticsRoutes);
+  app.register(clinicDashboardRoutes);
   app.register(clinicBillingRoutes);
   app.register(clinicInventoryRoutes);
   app.register(clinicVitalsTrendRoutes);

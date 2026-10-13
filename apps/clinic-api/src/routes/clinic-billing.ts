@@ -43,7 +43,15 @@ const INVOICE_INCLUDE = {
 // Status is computed here, not stored -- one source of truth (see the
 // Phase 2 lesson about a stored Clinic.plan column drifting from its real
 // enforcement source; same reasoning applies to money).
-function summarize(items: { amount: any; quantity: number }[], payments: { amount: any }[]) {
+/**
+ * An invoice's money, computed.
+ *
+ * Status is deliberately never stored: it is a function of the payments
+ * against the total, and a stored copy would be one more thing that can
+ * disagree with the rows it summarises. Exported so every screen that
+ * needs a balance gets the same arithmetic.
+ */
+export function summarize(items: { amount: any; quantity: number }[], payments: { amount: any }[]) {
   const subtotal = items.reduce((sum, i) => sum + Number(i.amount) * i.quantity, 0);
   const paid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = Math.max(0, subtotal - paid);

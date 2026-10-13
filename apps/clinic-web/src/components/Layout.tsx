@@ -3,8 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   CalendarClock, Users, UserCog, LogOut, Stethoscope, BarChart3, Pill, Bell,
   IndianRupee, FlaskConical, Radio, Settings as SettingsIcon, Globe, Wallet,
-  ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink,
-} from 'lucide-react';
+  ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink, LayoutDashboard} from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
@@ -82,6 +81,7 @@ export function Layout() {
 
   const navItems = (
     <>
+      <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
       <NavItem to="/queue" icon={CalendarClock} label="Today&rsquo;s Queue" />
       <NavItem to="/patients" icon={Users} label="Patients" />
       <NavItem to="/reminders" icon={Bell} label="Reminders" badge={dueReminders} />
@@ -224,6 +224,11 @@ function NavItem({ to, icon: Icon, label, badge }: { to: string; icon: any; labe
   return (
     <NavLink
       to={to}
+      // `end` for the dashboard only. Without it a link to "/" is active
+      // on every route, because react-router treats it as a prefix match
+      // -- so the whole nav would look like the dashboard was open while
+      // you were on Billing.
+      end={to === '/'}
       className={({ isActive }) =>
         `flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium transition-colors ${
           isActive ? 'bg-foreground text-background' : 'text-foreground/80 hover:bg-foreground/10'
