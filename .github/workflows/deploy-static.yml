@@ -111,6 +111,9 @@ jobs:
           VITE_PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
           VITE_PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
           VITE_API_URL: ${{ matrix.app == 'provider-console' && format('{0}/api/provider', vars.PROVIDER_API_URL) || '' }}
+          # A served build must have a directory URL. CI builds to prove
+          # the code compiles and sets this nowhere, so write-shell warns there.
+          SEO_REQUIRE_DIRECTORY: "1"
         run: npm run --workspace "apps/${{ matrix.app }}" build
 
       - name: Deploy to Vercel
@@ -123,6 +126,7 @@ jobs:
           VITE_PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
           VITE_PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
           VITE_API_URL: ${{ matrix.app == 'provider-console' && format('{0}/api/provider', vars.PROVIDER_API_URL) || '' }}
+          SEO_REQUIRE_DIRECTORY: "1"
           # The same names read as variables, to tell "not set at all"
           # apart from "set in the wrong place".
           VAR_TOKEN: ${{ vars.VERCEL_TOKEN }}

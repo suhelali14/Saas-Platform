@@ -51,3 +51,8 @@ Thumbs.db
 
 # Vercel CLI link state -- contains project/org ids.
 .vercel
+
+# TypeScript's incremental cache. Two of these were committed, so every
+# checkout went dirty the moment anyone ran a typecheck -- and a cache
+# keyed to one machine's absolute paths is never useful on another.
+*.tsbuildinfo

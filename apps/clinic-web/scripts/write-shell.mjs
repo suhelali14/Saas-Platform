@@ -59,18 +59,35 @@ if (!html.includes('</head>')) {
 const provider = readEnv(['VITE_PROVIDER_API_URL', 'PROVIDER_API_URL']);
 const providerApi = provider.value;
 
+// Whether a missing directory URL is fatal depends on what the build is
+// FOR, and only the caller knows that.
+//
+// A deploy must never ship a shell with no directory: the functions
+// would serve the generic head on every page, which from the outside is
+// indistinguishable from the feature not existing. So deploy-static.yml
+// sets SEO_REQUIRE_DIRECTORY=1 and this stops at the build step, naming
+// the cause -- rather than three steps later as a grep for
+// `PROVIDER_API = ""`, which is the backstop and not the explanation.
+//
+// CI is the other case, and making this unconditionally fatal broke it.
+// The verify job builds every app to prove it compiles and bundles;
+// nothing it produces is served, and a checkout has no .env.production
+// because the deploy workflow writes that. Demanding a production URL
+// there failed a build that was correct.
+const required = process.env.SEO_REQUIRE_DIRECTORY === '1';
+
 if (!providerApi) {
-  // Fatal, not a warning. The whole point of the SEO functions is the
-  // markup in the response, and without a directory to ask they return
-  // the generic shell -- which is indistinguishable, from the outside,
-  // from the feature not existing. A warning scrolls past; this does
-  // not.
-  console.error('write-shell: no VITE_PROVIDER_API_URL or PROVIDER_API_URL found.');
-  console.error('             Looked in the environment and in .env.production / .env.');
-  console.error('             The SEO functions would have no directory to ask, so every page');
-  console.error('             would serve the generic head with nothing reporting a problem.');
-  console.error('             Set it as a repository VARIABLE -- see docs/WHERE-ENV-GOES.md.');
-  process.exit(1);
+  const say = required ? console.error : console.warn;
+  say('write-shell: no VITE_PROVIDER_API_URL or PROVIDER_API_URL found.');
+  say('             Looked in the environment and in .env.production / .env.');
+  say('             The SEO functions have no directory to ask, so every page');
+  say('             would serve the generic head.');
+  if (required) {
+    say('             Set it as a repository VARIABLE -- see docs/WHERE-ENV-GOES.md.');
+    process.exit(1);
+  }
+  say('             Continuing: SEO_REQUIRE_DIRECTORY is not set, so this build');
+  say('             is not one that gets served. A deploy sets it and fails here.');
 }
 
 writeShellModule({
@@ -81,4 +98,4 @@ writeShellModule({
 
 const assets = (html.match(/(?:src|href)="\/assets\/[^"]+"/g) ?? []).length;
 console.log(`write-shell: inlined dist/index.html (${html.length} bytes, ${assets} asset refs)`);
-console.log(`write-shell: directory ${providerApi} (from the ${provider.from})`);
+console.log(`write-shell: directory ${providerApi || '(none)'} (from the ${provider.from})`);
