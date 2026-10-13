@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { env } from "../config/env.js";
 import { publicHostFor, portalHostFor, validateSlug } from "../lib/subdomain.js";
+import { buildClinicSeo } from "../lib/clinic-seo.js";
 
 /**
  * The tenant directory: the one thing a browser needs before it can boot a
@@ -98,48 +99,168 @@ export async function publicTenantRoutes(app: FastifyInstance) {
     "/api/provider/public/tenant-by-host/:host",
     { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
     async (request, reply) => {
-      const host = (request.params.host ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/^https?:\/\//, "")
-        .replace(/[:/].*$/, "")
-        .replace(/\.$/, "");
+      // The same rules as the SEO endpoint, from one place. A second
+      // copy would drift, and the way that drift shows is a clinic
+      // resolving for one caller and not the other.
+      const resolved = await resolveLiveHost(request.params.host);
 
-      // Must look like a hostname before it reaches a query.
-      if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9-]+)+$/.test(host) || host.length > 253) {
-        return reply.status(404).send({ error: "Unknown clinic." });
-      }
-
-      const account = await prisma.clinicAccount.findFirst({
-        where: { OR: [{ publicDomain: host }, { portalDomain: host }] },
-        select: {
-          slug: true, name: true, status: true,
-          apiDomain: true, publicDomain: true, portalDomain: true,
-        },
-      });
-
-      if (!account || account.status === "LEAD" || account.status === "ONBOARDING" || account.status === "CHURNED") {
+      if (!resolved) {
         reply.header("Cache-Control", "public, max-age=60");
         return reply.status(404).send({ error: "Unknown clinic." });
       }
 
-      const suspended = account.status === "SUSPENDED";
       reply.header("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
 
       return {
-        slug: account.slug,
-        name: account.name,
-        status: account.status,
-        suspended,
-        apiBaseUrl: suspended ? null : clinicApiBaseUrl(account.slug, account.apiDomain),
-        publicHost: account.publicDomain ?? publicHostFor(account.slug, env.PLATFORM_DOMAIN),
-        portalHost: account.portalDomain ?? portalHostFor(account.slug, env.PLATFORM_DOMAIN),
+        slug: resolved.slug,
+        name: resolved.name,
+        status: resolved.status,
+        suspended: resolved.suspended,
+        apiBaseUrl: resolved.apiBaseUrl,
+        // The clinic's own domain wins over the platform template, as
+        // before. Extracting the lookup had quietly dropped this, which
+        // would have told a clinic on its own domain that its address
+        // was a platform subdomain.
+        publicHost: resolved.publicDomain ?? publicHostFor(resolved.slug, env.PLATFORM_DOMAIN),
+        portalHost: resolved.portalDomain ?? portalHostFor(resolved.slug, env.PLATFORM_DOMAIN),
         // Which of the two this hostname is, so the bundle does not have
         // to guess from a name it was not given.
-        siteMode: account.portalDomain === host ? "portal" : "public",
+        siteMode: resolved.isPortal ? "portal" : "public",
       };
     },
   );
+
+  /**
+   * Everything a crawler or a share preview needs, for one hostname.
+   *
+   * Exists because one static bundle serves every clinic, so the HTML on
+   * disk carries one title and no description for all of them. The app
+   * fills those in once it boots, which satisfies Google -- it executes
+   * JavaScript -- and is no use at all to WhatsApp, Facebook, LinkedIn
+   * or Slack, which read the served HTML and run nothing. A forwarded
+   * WhatsApp link is how a clinic spreads here, and it was arriving as a
+   * bare URL.
+   *
+   * Whatever puts the markup into the response -- an edge function now,
+   * a prerender step later -- makes one call here and gets the title,
+   * the description, the share image, the structured data and the
+   * sitemap, already joined across the directory and the clinic's own
+   * database.
+   *
+   * Cached hard, and `stale-while-revalidate` for a day: the answer is
+   * identical for every visitor, and a crawler arriving while this
+   * service is slow should get the last good copy rather than nothing.
+   */
+  app.get<{ Params: { host: string } }>(
+    "/api/provider/public/seo/:host",
+    { config: { rateLimit: { max: 120, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const resolved = await resolveLiveHost(request.params.host);
+
+      // Nothing to index. 404 rather than an empty bundle, so a caller
+      // can tell "no such clinic" from "a clinic with no content".
+      if (!resolved || !resolved.apiBaseUrl) {
+        reply.header("Cache-Control", "public, max-age=60");
+        return reply.status(404).send({ error: "Unknown clinic." });
+      }
+
+      // The staff portal must never be indexed. It is not secret --
+      // every route behind it needs a token -- but a clinic's login page
+      // has no business ranking for the clinic's name.
+      if (resolved.isPortal) {
+        reply.header("Cache-Control", "public, max-age=300");
+        return reply.status(404).send({ error: "Not a public site." });
+      }
+
+      const seo = await buildClinicSeo({
+        host: resolved.host,
+        slug: resolved.slug,
+        name: resolved.name,
+        apiBaseUrl: resolved.apiBaseUrl,
+      });
+
+      // A complete bundle is the same for every visitor and caches for
+      // hours. A degraded one -- the clinic's API was waking up -- is
+      // retried in seconds, because caching it would turn one slow cold
+      // start into ten minutes of crawlers seeing a clinic with no
+      // address, no hours and no services.
+      reply.header(
+        "Cache-Control",
+        seo.complete
+          ? "public, max-age=600, stale-while-revalidate=86400"
+          : "public, max-age=15",
+      );
+      return seo;
+    },
+  );
+}
+
+/**
+ * Resolves a hostname to a clinic that is actually live.
+ *
+ * Shared by the browser's tenant lookup and the SEO endpoint, because
+ * both need exactly the same rules and a second copy would drift. The
+ * way that drift would show is a clinic becoming crawlable before it is
+ * live, which is the opposite of what the status check is for.
+ *
+ * Returns null for anything that is not a live clinic -- an unparseable
+ * host, an unknown one, or one still being set up. Which clinics are
+ * mid-deal is commercially sensitive, and there is nothing for a visitor
+ * or a crawler to see either way.
+ */
+export async function resolveLiveHost(rawHost: string): Promise<{
+  host: string;
+  slug: string;
+  name: string;
+  status: string;
+  suspended: boolean;
+  apiBaseUrl: string | null;
+  isPortal: boolean;
+  /** The clinic's own domains, when it has them. The caller prefers
+   *  these over the platform template -- a clinic on drasif.in should be
+   *  told its address is drasif.in, not acme.yourco.in. */
+  publicDomain: string | null;
+  portalDomain: string | null;
+} | null> {
+  const host = (rawHost ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/[:/].*$/, "")
+    .replace(/\.$/, "");
+
+  // Must look like a hostname before it reaches a query, so a scan of
+  // random strings costs no database time.
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9-]+)+$/.test(host) || host.length > 253) {
+    return null;
+  }
+
+  const account = await prisma.clinicAccount.findFirst({
+    where: { OR: [{ publicDomain: host }, { portalDomain: host }] },
+    select: {
+      slug: true, name: true, status: true,
+      apiDomain: true, publicDomain: true, portalDomain: true,
+    },
+  });
+
+  if (!account) return null;
+  if (account.status === "LEAD" || account.status === "ONBOARDING" || account.status === "CHURNED") {
+    return null;
+  }
+
+  const suspended = account.status === "SUSPENDED";
+
+  return {
+    host,
+    slug: account.slug,
+    name: account.name,
+    status: account.status,
+    suspended,
+    apiBaseUrl: suspended ? null : clinicApiBaseUrl(account.slug, account.apiDomain),
+    isPortal: account.portalDomain === host,
+    publicDomain: account.publicDomain,
+    portalDomain: account.portalDomain,
+  };
 }
 
 /**

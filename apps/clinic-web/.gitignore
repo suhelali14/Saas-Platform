@@ -5,3 +5,9 @@
 # one env file that belongs in git -- it is how anyone setting this up
 # knows which variables exist.
 !.env.example
+
+# Generated from the build output by scripts/write-shell.mjs.
+# Not committed: every build rewrites it, and a tracked copy would
+# leave the tree permanently dirty. scripts/ensure-shell.mjs writes a
+# placeholder when it is missing, so a clean checkout still typechecks.
+api/_shell.ts

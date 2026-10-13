@@ -220,16 +220,28 @@ export function applySeo(seo: PageSeo): void {
 
   setLink('canonical', seo.canonical ?? null);
 
-  // One structured-data block, replaced wholesale. Two would make the
-  // clinic look like two businesses at the same address.
-  const existing = document.getElementById(JSON_LD_ID);
-  if (!seo.jsonLd) {
-    existing?.remove();
-    return;
+  /*
+   * Structured data, replaced wholesale.
+   *
+   * EVERY ld+json block is removed first, not just the one this function
+   * wrote. The page is now server-rendered with its own blocks, and
+   * those carry no id -- so replacing only this function's would leave
+   * the server's in place alongside it, and the clinic would appear
+   * twice. Google reads that as two businesses at one address.
+   *
+   * The server's markup and this agree, because both are built from the
+   * same ladder over the same fields; whichever runs last is correct.
+   * This one runs last, and on a client-side navigation it is the only
+   * one that runs at all.
+   */
+  for (const stale of document.head.querySelectorAll('script[type="application/ld+json"]')) {
+    stale.remove();
   }
-  const script = (existing as HTMLScriptElement | null) ?? document.createElement('script');
+  if (!seo.jsonLd) return;
+
+  const script = document.createElement('script');
   script.id = JSON_LD_ID;
-  (script as HTMLScriptElement).type = 'application/ld+json';
+  script.type = 'application/ld+json';
   script.textContent = JSON.stringify(seo.jsonLd);
-  if (!existing) document.head.appendChild(script);
+  document.head.appendChild(script);
 }
