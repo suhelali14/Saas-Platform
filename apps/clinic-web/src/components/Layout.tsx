@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { apiFetch } from '../lib/api';
 import { SetupPrompt } from './SetupPrompt';
+import { QuickSwitcher } from './QuickSwitcher';
 
 const ROLE_COLORS: Record<string, string> = {
   DOCTOR: 'bg-emerald-500/15 text-emerald-400',
@@ -184,6 +185,10 @@ export function Layout() {
         <SetupPrompt />
         <Outlet />
       </main>
+
+      {/* Overlays everything, so it is mounted on the shell rather than
+          inside a page. Ctrl+K from any screen. */}
+      <QuickSwitcher />
     </div>
   );
 }

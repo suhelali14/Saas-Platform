@@ -3,6 +3,7 @@ import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { Button } from './Button';
 import { Pick } from './Field';
 import { SegmentedControl } from './SegmentedControl';
+import { RotateCcw, AlertTriangle } from 'lucide-react';
 
 export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface Drug { id: string; name: string; composition: string | null; manufacturer: string | null }
@@ -148,6 +149,17 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
   );
 }
 
+type LastPrescription = {
+  id: string;
+  issuedAt: string;
+  doctorName: string;
+  daysAgo: number;
+  /** Older than six months. Flagged, not blocked: a doctor looking at
+   *  the patient is better placed to judge than a cutoff is. */
+  stale: boolean;
+  items: PrescriptionItem[];
+};
+
 export function PrescriptionForm({ patientId, appointmentId, onDone }: { patientId: string; onDone: () => void } & EncounterBinding) {
   const [items, setItems] = useState<PrescriptionItem[]>([{ drugName: '', dosage: '', frequency: 'OD', duration: '', instructions: '' }]);
   const [suggestions, setSuggestions] = useState<Record<number, Drug[]>>({});
@@ -157,6 +169,27 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveAsTemplateName, setSaveAsTemplateName] = useState('');
+  // What this patient is already on. Fetched once when the form opens,
+  // because the answer decides whether the most useful control on this
+  // screen is even shown.
+  const [lastRx, setLastRx] = useState<LastPrescription | null>(null);
+
+  useEffect(() => {
+
+    // Null when they have never been prescribed anything here, which
+
+    // is most first visits -- the button is simply absent then
+
+    // rather than present and inert.
+
+    apiFetch<{ prescription: LastPrescription | null }>(`/patients/${patientId}/last-prescription`)
+
+      .then((r) => setLastRx(r.prescription))
+
+      .catch(() => { /* a missing repeat must never block writing a new one */ });
+
+  }, [patientId]);
+
 
   useEffect(() => {
     apiFetch<{ data: Template[] }>('/prescription-templates').then((res) => setTemplates(res.data)).catch(() => {});
@@ -232,18 +265,53 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
 
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">New Prescription</h3>
-        {templates.length > 0 && (
-          <Pick
-            value=""
-            placeholder="Load template…"
-            onChange={(id) => { if (id) loadTemplate(id); }}
-            options={templates.map((t) => ({ value: t.id, label: t.name }))}
-            triggerClassName="h-8 text-xs"
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {/* The most useful control on this screen for a returning
+              patient, so it sits before the template picker: templates
+              answer "what do I usually give for this", and this answers
+              "what is this person already on". */}
+          {lastRx && lastRx.items.length > 0 && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              icon={<RotateCcw size={12} />}
+              onClick={() => {
+                setItems(lastRx.items.map((i) => ({ ...i })));
+                setSuggestions({});
+                setSearchedEmpty({});
+              }}
+              title={`${lastRx.items.length} medicine${lastRx.items.length === 1 ? '' : 's'} from ${describeAge(lastRx.daysAgo)}, prescribed by Dr ${lastRx.doctorName}`}
+            >
+              Repeat last ({lastRx.items.length})
+            </Button>
+          )}
+          {templates.length > 0 && (
+            <Pick
+              value=""
+              placeholder="Load template…"
+              onChange={(id) => { if (id) loadTemplate(id); }}
+              options={templates.map((t) => ({ value: t.id, label: t.name }))}
+              triggerClassName="h-8 text-xs"
+            />
+          )}
+        </div>
       </div>
+
+      {/* Said before the click, not after. A prescription repeated from
+          two years ago without a fresh look is a real risk, and the
+          person best placed to judge needs the date in front of them. */}
+      {lastRx?.stale && (
+        <p className="flex items-start gap-1.5 text-[11px] text-warning">
+          <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            Their last prescription was {describeAge(lastRx.daysAgo)}. Worth confirming it still
+            suits them before repeating it.
+          </span>
+        </p>
+      )}
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
       {items.map((item, i) => (
@@ -429,4 +497,15 @@ export function LabOrderForm({ patientId, appointmentId, onDone }: { patientId: 
       </button>
     </form>
   );
+}
+
+/** "3 weeks ago", "8 months ago" -- a day count is arithmetic the reader
+ *  should not have to do. */
+function describeAge(days: number): string {
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  if (days < 730) return `${Math.round(days / 30)} months ago`;
+  return `${Math.round(days / 365)} years ago`;
 }

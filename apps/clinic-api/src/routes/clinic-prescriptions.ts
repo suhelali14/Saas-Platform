@@ -318,6 +318,66 @@ export async function clinicPrescriptionRoutes(app: FastifyInstance) {
     const templates = await prisma.prescriptionTemplate.findMany({ orderBy: { name: "asc" } });
     return { data: templates };
   });
+
+  /**
+   * What this patient was last prescribed, ready to be re-issued.
+   *
+   * The single biggest time saving available in a consultation with a
+   * returning patient: a chronic patient on four drugs is four drug
+   * lookups, four dosages, four frequencies and four durations, all of
+   * it information already in the record.
+   *
+   * Different from a named template, which answers "what do I usually
+   * give for a throat infection". This answers "what is this person
+   * already taking", which is the question for the half of a list that
+   * is coming back.
+   *
+   * Returns the items for the form to prefill -- it does not issue
+   * anything. The doctor reviews and saves, which is what stops a
+   * repeat becoming an unexamined one.
+   */
+  app.get("/api/clinic/patients/:id/last-prescription", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const { id } = request.params as { id: string };
+
+    const last = await prisma.prescription.findFirst({
+      where: { patientId: id },
+      include: {
+        items: { orderBy: { id: "asc" } },
+        doctor: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!last) return { prescription: null };
+
+    const days = Math.floor((Date.now() - last.createdAt.getTime()) / 86_400_000);
+
+    return {
+      prescription: {
+        id: last.id,
+        issuedAt: last.createdAt,
+        doctorName: last.doctor.name,
+        daysAgo: days,
+        // Flagged rather than blocked. Six months is long enough that a
+        // repeat should be a deliberate decision about a patient whose
+        // condition may have changed, and the form says so -- but a
+        // doctor looking at the patient is better placed to judge than
+        // a cutoff is.
+        stale: days > 180,
+        items: last.items.map((i) => ({
+          drugId: i.drugId,
+          drugName: i.drugName,
+          dosage: i.dosage,
+          frequency: i.frequency,
+          duration: i.duration,
+          instructions: i.instructions,
+        })),
+      },
+    };
+  });
 }
 
 /** A vitals value as a printable string, or "" when it was never recorded. */
@@ -325,4 +385,6 @@ function str(v: unknown): string {
   if (v === null || v === undefined) return "";
   const s = String(v).trim();
   return s === "null" || s === "undefined" ? "" : s;
+
+
 }
