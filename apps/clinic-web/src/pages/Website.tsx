@@ -10,6 +10,8 @@ import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { describeClinic } from '../lib/seo';
+import { Label, Textarea } from '../components/ui';
 
 /**
  * The clinic admin's control over their own public website: which sections
@@ -435,6 +437,13 @@ function LayoutBuilder() {
   const [theme, setTheme] = useState('teal');
   const [heroImagePath, setHeroImagePath] = useState<string | null>(null);
   const [mapEmbedUrl, setMapEmbedUrl] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  // Only to show what the fallback would be, so a clinic leaving the
+  // box empty can see what it is getting rather than nothing.
+  const [clinicFacts, setClinicFacts] = useState<{
+    name: string; tagline: string | null; about: string | null;
+    address: string | null; services: string[] | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -445,6 +454,14 @@ function LayoutBuilder() {
         setTheme(c.publicTheme || 'teal');
         setHeroImagePath(c.heroImagePath ?? null);
         setMapEmbedUrl(c.mapEmbedUrl ?? '');
+        setMetaDescription(c.metaDescription ?? '');
+        setClinicFacts({
+          name: c.name ?? '',
+          tagline: c.tagline ?? null,
+          about: c.about ?? null,
+          address: c.address ?? null,
+          services: c.services ?? null,
+        });
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load site settings.'));
   }, []);
@@ -465,6 +482,10 @@ function LayoutBuilder() {
     setError(null);
     try {
       await apiFetch('/site', { method: 'PUT', data: { publicSections: sections, publicTheme: theme, mapEmbedUrl: mapEmbedUrl || undefined } });
+      // Saved through /settings rather than /site: it is clinic
+      // information, not page layout, and /settings is the route that
+      // already owns the clinic's own text.
+      await apiFetch('/settings', { method: 'PUT', data: { metaDescription } });
       toast.success('Website layout saved.');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not save.');
@@ -571,6 +592,18 @@ function LayoutBuilder() {
             <input type="file" accept=".png,.jpg,.jpeg" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.target.value = ''; }} />
           </label>
         </div>
+      </Panel>
+
+      <Panel
+        title="How you appear in search and when shared"
+        hint="This is the line under your clinic's name in Google, and the card a patient sees when they forward your link on WhatsApp."
+      >
+        <SearchPreview
+          metaDescription={metaDescription}
+          onChange={setMetaDescription}
+          facts={clinicFacts}
+          heroImagePath={heroImagePath}
+        />
       </Panel>
 
       <Panel title="Map embed" hint="Paste the embed link from Google Maps (Share → Embed a map → copy the src URL). Leave blank to just show a 'Get directions' link instead.">
@@ -1115,4 +1148,86 @@ function normalizeSections(saved: Section[] | null | undefined): Section[] {
   const known = savedList.filter((s) => ALL_KEYS.includes(s.key));
   const missing = ALL_KEYS.filter((k) => !known.some((s) => s.key === k)).map((key) => ({ key, enabled: true }));
   return [...known, ...missing];
+}
+
+/**
+ * What a search result and a shared link will look like.
+ *
+ * Shown as a mock of the real thing rather than as a labelled text box.
+ * "Meta description" is a field a clinic leaves blank; "this is the line
+ * Google puts under your name" is one it fills in.
+ *
+ * The fallback is computed by the same function the page itself uses, so
+ * what is previewed here is what will actually be emitted — the one
+ * property a preview has to have.
+ */
+function SearchPreview({
+  metaDescription, onChange, facts, heroImagePath,
+}: {
+  metaDescription: string;
+  onChange: (v: string) => void;
+  facts: { name: string; tagline: string | null; about: string | null; address: string | null; services: string[] | null } | null;
+  heroImagePath: string | null;
+}) {
+  const effective = describeClinic({
+    name: facts?.name ?? '',
+    tagline: facts?.tagline,
+    about: facts?.about,
+    address: facts?.address,
+    services: facts?.services,
+    metaDescription: metaDescription || null,
+  });
+  const usingFallback = !metaDescription.trim();
+  const title = facts?.tagline?.trim() ? `${facts.name} — ${facts.tagline.trim()}` : (facts?.name ?? '');
+
+  return (
+    <div className="space-y-4">
+      {/* A search result. The colours are Google's, not the portal's,
+          because the point is to look like the thing being previewed. */}
+      <div className="rounded-lg bg-white p-4">
+        <p className="truncate text-[11px] text-[#5f6368]">{window.location.host}</p>
+        <p className="mt-0.5 truncate text-[17px] leading-snug text-[#1a0dab]">{title || 'Your clinic'}</p>
+        <p className="mt-0.5 text-[12.5px] leading-[1.45] text-[#4d5156]">{effective}</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="metaDescription">Your description</Label>
+        <Textarea
+          id="metaDescription"
+          value={metaDescription}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={effective}
+          maxLength={300}
+          className="min-h-[64px] text-xs"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          {usingFallback ? (
+            <>
+              Left blank, so the line above is built from your tagline and details. Writing your own
+              is better — this is what decides whether someone searching your area clicks.
+            </>
+          ) : (
+            <>
+              {metaDescription.length} characters.{' '}
+              {metaDescription.length > 160
+                ? 'Google usually shows about 160, so the rest may be cut.'
+                : 'Within the length a search result shows.'}
+            </>
+          )}
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-border/10 bg-foreground/[0.02] p-3">
+        <p className="text-[11px] font-medium">The card when your link is shared</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Uses your hero image{heroImagePath ? '' : ', which you have not uploaded yet — without one the card is a grey box'}.
+        </p>
+        {/* Said plainly rather than left to be discovered. */}
+        <p className="mt-2 text-[11px] text-warning">
+          WhatsApp and Facebook read the page without running it, so the card needs one more
+          deployment step before it shows. Search engines already see everything above.
+        </p>
+      </div>
+    </div>
+  );
 }

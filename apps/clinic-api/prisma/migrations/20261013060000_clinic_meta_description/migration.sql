@@ -1,0 +1,12 @@
+-- What a search engine shows under the clinic's name.
+--
+-- Without it the description is derived: the tagline, or the opening of
+-- the About text, or a factual sentence built from the services and the
+-- locality. That is a reasonable default and better than the fragment
+-- Google would pick on its own, but it is not what a clinic would write
+-- if asked -- and this is the single line that decides whether somebody
+-- searching the neighbourhood clicks.
+--
+-- Nullable, so every existing clinic keeps the derived description until
+-- it chooses to write one.
+ALTER TABLE "Clinic" ADD COLUMN IF NOT EXISTS "metaDescription" TEXT;

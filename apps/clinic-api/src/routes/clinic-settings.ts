@@ -20,6 +20,9 @@ const timingSchema = z.object({
 });
 
 const clinicSchema = z.object({
+  // 160 characters because that is roughly what a search result
+  // shows; longer is not an error, it is just invisible.
+  metaDescription: z.string().max(300).optional(),
   name: z.string().min(1).max(200).optional(),
   address: z.string().max(500).optional(),
   phone: z.string().max(30).optional(),

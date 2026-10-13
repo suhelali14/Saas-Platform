@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { publicApiBase, publicAsset, type PublicPost } from '../lib/public-site';
+import { applySeo } from '../lib/seo';
 
 export function PublicBlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -16,7 +17,36 @@ export function PublicBlogPost() {
       .catch(() => setNotFound(true));
   }, [slug]);
 
-  useEffect(() => { if (post?.title) document.title = post.title; }, [post?.title]);
+  /**
+   * An article is the one thing on a clinic's site worth sharing, so it
+   * gets its own card rather than inheriting the clinic's.
+   *
+   * Marked up as an Article, not a MedicalWebPage: these are general
+   * health information written by the clinic, and every one of them
+   * already carries a notice saying it is not a diagnosis. Claiming more
+   * than that in the markup would be claiming more than the page does.
+   */
+  useEffect(() => {
+    if (!post) return;
+    const image = post.coverImagePath ? publicAsset(post.coverImagePath) : null;
+    const description = (post.excerpt?.trim() || post.content?.replace(/\s+/g, ' ').trim() || '').slice(0, 300);
+    applySeo({
+      title: post.title,
+      description: description || post.title,
+      imageUrl: image,
+      canonical: window.location.origin + window.location.pathname,
+      type: 'article',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: post.title,
+        ...(description ? { description } : {}),
+        ...(image ? { image } : {}),
+        ...(post.publishedAt ? { datePublished: post.publishedAt } : {}),
+        ...(post.author?.name ? { author: { '@type': 'Person', name: `Dr. ${post.author.name}` } } : {}),
+      },
+    });
+  }, [post]);
 
   if (notFound) {
     return (

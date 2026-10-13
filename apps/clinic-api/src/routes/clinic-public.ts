@@ -59,6 +59,7 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
         tagline: true, establishedYear: true, highlights: true, faqs: true,
         emergencyPhone: true, mapUrl: true,
         publicSections: true, publicTheme: true, heroImagePath: true, mapEmbedUrl: true,
+        metaDescription: true,
         defaultLocale: true, enabledLocales: true,
       },
     });

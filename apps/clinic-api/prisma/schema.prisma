@@ -136,6 +136,11 @@ model Clinic {
   publicTheme        String?
   heroImagePath      String?
   mapEmbedUrl        String?
+  // The one line a search engine shows under the clinic's name. Derived
+  // from the tagline or the About text when blank -- see lib/seo.ts --
+  // because a generic "Welcome to our clinic" is worse in a search
+  // result than the fragment Google would have picked itself.
+  metaDescription    String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }

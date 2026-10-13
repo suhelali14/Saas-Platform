@@ -11,6 +11,7 @@ import {
 } from '../lib/public-site';
 import { publicSiteUrl } from '../lib/site-mode';
 import { strings, localeMeta, LOCALES, type StringKey } from '../lib/ui-strings';
+import { applySeo, describeClinic, clinicJsonLd } from '../lib/seo';
 
 const LOCALE_STORAGE_KEY = 'clinicPublicLocale';
 
@@ -65,6 +66,7 @@ interface Clinic {
   emergencyPhone: string | null; mapUrl: string | null;
   publicSections: { key: SectionKey; enabled: boolean }[] | null;
   publicTheme: string | null; heroImagePath: string | null; mapEmbedUrl: string | null;
+  metaDescription: string | null;
 }
 interface Doctor {
   id: string; name: string; qualifications: string | null; specialization: string | null;
@@ -168,7 +170,51 @@ export function PublicClinic() {
     setLocale(next);
   };
 
-  useEffect(() => { if (clinic?.name) document.title = clinic.name; }, [clinic?.name]);
+  /**
+   * Everything a search engine, a browser tab and a shared link read.
+   *
+   * This replaced `document.title = clinic.name`, which fixed the tab
+   * and nothing else: the page still had no description, no share card
+   * and no structured data, so the clinic was invisible in local search
+   * and arrived on WhatsApp as a bare URL.
+   *
+   * Only what the page actually renders is described — Google's policy
+   * prohibits marking up content a page does not show, and a clinic that
+   * has entered no address should have none in its markup.
+   */
+  useEffect(() => {
+    if (!clinic) return;
+    const title = clinic.tagline?.trim()
+      ? `${clinic.name} — ${clinic.tagline.trim()}`
+      : clinic.name;
+    const seoClinic = {
+      name: clinic.name,
+      tagline: clinic.tagline,
+      about: clinic.about,
+      address: clinic.address,
+      phone: clinic.phone,
+      email: clinic.email,
+      services: clinic.services,
+      timings: clinic.timings,
+      metaDescription: clinic.metaDescription,
+      logoUrl: clinic.logoPath ? publicAsset(clinic.logoPath) : null,
+      // The hero is the one image a clinic has chosen to represent
+      // itself; the logo is the fallback because a share card with no
+      // image is a grey box.
+      imageUrl: clinic.heroImagePath
+        ? publicAsset(clinic.heroImagePath)
+        : clinic.logoPath ? publicAsset(clinic.logoPath) : null,
+      doctorNames: doctors.map((d) => d.name),
+    };
+    applySeo({
+      title,
+      description: describeClinic(seoClinic),
+      imageUrl: seoClinic.imageUrl,
+      canonical: window.location.origin + window.location.pathname,
+      jsonLd: clinicJsonLd(seoClinic, window.location.origin),
+      type: 'website',
+    });
+  }, [clinic, doctors]);
 
   if (problem) {
     const t0 = strings(readPreferredLocale());
