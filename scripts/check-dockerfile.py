@@ -145,36 +145,95 @@ for m in members:
     if not ok:
         problems.append('LOCKFILE  %s is a workspace member but is never copied' % m)
 
-# Every workspace whose postinstall runs `prisma generate` needs its
-# schema in the build context. `npm ci` runs postinstall for the WHOLE
-# workspace, so one app's missing schema fails the entire install -- even
-# an app this image never runs. Checking manifests alone missed this and
-# the build died 33 seconds in.
-print('\nWorkspaces whose postinstall needs a Prisma schema:')
+# THE RULE: `npm ci` runs postinstall for EVERY workspace member, so
+# whatever a postinstall READS has to be in the build context before the
+# install line -- not merely present in the repository, and not supplied
+# by the `COPY . .` that comes afterwards. One member's missing input
+# fails the whole install, including for an app this image never runs.
+#
+# This started life checking only Prisma schemas, after a missing schema
+# killed a build 33 seconds in. That was too specific: clinic-web's
+# postinstall is `node scripts/ensure-shell.mjs`, its scripts/ directory
+# was not copied, and npm ci died with ERR_MODULE_NOT_FOUND 42 seconds
+# in -- having passed this guard. So it now derives what each postinstall
+# needs rather than knowing about one tool, and checks ORDER, which the
+# schema version never did.
+print('\nPostinstall inputs reaching the context before `npm ci`:')
 import json
+
+lines = src.split('\n')
+
+# Everything a postinstall needs must be copied above this line.
+npm_ci_at = None
+for i, raw in enumerate(lines):
+    s = raw.strip()
+    if s.upper().startswith('RUN ') and re.search(r'\bnpm ci\b', s):
+        npm_ci_at = i
+        break
+
+if npm_ci_at is None:
+    problems.append('DOCKERFILE no `RUN npm ci` line found, so postinstall inputs cannot be checked')
+    npm_ci_at = len(lines)
+
+# COPY sources that land in the image before the install runs.
+early = []
+for raw in lines[:npm_ci_at]:
+    s = raw.strip()
+    if not s.upper().startswith('COPY ') or '--from=' in s:
+        continue
+    toks = [t for t in s[5:].split() if not t.startswith('--')]
+    if len(toks) < 2:
+        continue
+    for t in toks[:-1]:
+        if t != '.':
+            early.append(t.rstrip('/'))
+
+
+def copied_early(rel):
+    """Is this repo-relative path inside something COPYed before npm ci?"""
+    rel = rel.replace(os.sep, '/')
+    for s in early:
+        if rel == s or rel.startswith(s + '/'):
+            return True
+    return False
+
+
+# What a postinstall reads: any path-shaped token it names, plus a Prisma
+# schema when it shells out to prisma without naming one.
+PATHISH = re.compile(r'[A-Za-z0-9_.\-/]+\.(?:mjs|cjs|js|ts|sh|json|prisma)')
+
 for mf in members:
     d = os.path.dirname(mf)
-    manifest = os.path.join(ROOT, mf.replace('/', os.sep))
     try:
-        pkg = json.load(io.open(manifest, encoding='utf-8'))
+        pkg = json.load(io.open(os.path.join(ROOT, mf.replace('/', os.sep)), encoding='utf-8'))
     except Exception:
         continue
     postinstall = (pkg.get('scripts') or {}).get('postinstall') or ''
-    if 'prisma' not in postinstall:
+    if not postinstall.strip():
         continue
 
-    schema_rel = '%s/prisma/schema.prisma' % d
-    on_disk = os.path.exists(os.path.join(ROOT, schema_rel.replace('/', os.sep)))
-    if not on_disk:
-        print('  %-28s postinstall needs prisma, but no schema on disk' % d)
+    needs = ['%s/%s' % (d, t.lstrip('./')) for t in PATHISH.findall(postinstall)]
+    if 'prisma' in postinstall and not any(n.endswith('.prisma') for n in needs):
+        needs.append('%s/prisma/schema.prisma' % d)
+
+    if not needs:
+        print('  %-26s reads nothing local  (%s)' % (d, postinstall))
         continue
 
-    # Reaches the build if it is not ignored, whether via an explicit
-    # COPY of the directory or via `COPY . .`.
-    ignored = is_ignored(schema_rel, rules) and is_ignored('%s/prisma' % d, rules)
-    print('  %-28s %s' % (d, 'reaches the build' if not ignored else '*** EXCLUDED -> npm ci will fail ***'))
-    if ignored:
-        problems.append('POSTINSTALL %s runs `prisma generate` but %s is excluded' % (d, schema_rel))
+    for rel in needs:
+        if not os.path.exists(os.path.join(ROOT, rel.replace('/', os.sep))):
+            print('  %-26s %-40s *** NOT ON DISK ***' % (d, rel))
+            problems.append('POSTINSTALL %s runs `%s` but %s does not exist' % (d, postinstall, rel))
+        elif not copied_early(rel):
+            print('  %-26s %-40s *** NOT COPIED BEFORE npm ci ***' % (d, rel))
+            problems.append(
+                'POSTINSTALL %s runs `%s`, which reads %s -- not in the context before `npm ci`, so the install fails'
+                % (d, postinstall, rel))
+        elif is_ignored(rel, rules):
+            print('  %-26s %-40s *** .dockerignored ***' % (d, rel))
+            problems.append('POSTINSTALL %s needs %s but .dockerignore excludes it' % (d, rel))
+        else:
+            print('  %-26s %-40s ok' % (d, rel))
 
 if problems:
     print('\n%d PROBLEM(S):' % len(problems))

@@ -34,18 +34,33 @@ COPY apps/provider-api/package.json       apps/provider-api/
 COPY apps/provider-console/package.json   apps/provider-console/
 COPY packages/shared-types/package.json   packages/shared-types/
 
-# Every workspace whose postinstall runs `prisma generate` needs its
-# schema here, not just the two apps this image actually runs: `npm ci`
-# executes postinstall for the whole workspace, and a missing schema
-# fails the install outright with "Could not find Prisma Schema".
+# THE RULE: `npm ci` runs postinstall for every workspace member, so
+# whatever any member's postinstall READS has to be in the context
+# before the install -- not just the two apps this image actually runs.
+# One member's missing input fails the whole install.
+#
+# It has now bitten twice, in two different shapes, so the rule is
+# stated once here rather than per-app:
+#
+#   - a Prisma schema, missing which gives "Could not find Prisma
+#     Schema" (died 33s in), and
+#   - a script file, missing which gives ERR_MODULE_NOT_FOUND from
+#     clinic-web's `node scripts/ensure-shell.mjs` (died 42s in, and is
+#     why this image failed to build at all for one commit).
 #
 # apps/api is not deployed from this image and its client is never used.
 # Its schema is copied anyway because that is cheaper and far less
 # fragile than --ignore-scripts, which would also skip esbuild's
 # postinstall and leave tsx unable to run the clinic seed scripts.
+#
+# scripts/check-dockerfile.py enforces the rule generally: it reads every
+# member's postinstall, works out which local files it needs, and fails
+# if one is not copied BEFORE the npm ci below. That check is a second or
+# two in CI instead of 42 seconds into a Docker build.
 COPY apps/api/prisma/          apps/api/prisma/
 COPY apps/clinic-api/prisma/   apps/clinic-api/prisma/
 COPY apps/provider-api/prisma/ apps/provider-api/prisma/
+COPY apps/clinic-web/scripts/  apps/clinic-web/scripts/
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
