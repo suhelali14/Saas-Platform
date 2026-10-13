@@ -219,6 +219,33 @@ jobs:
             fi
           fi
 
+          # The bundle is not the only thing shipped now. clinic-web's SEO
+          # functions read a generated module, and if it was built without
+          # a directory URL every page serves the generic head -- the
+          # markup in the response is the entire feature, so that failure
+          # is invisible from the outside. Checked here because the bundle
+          # already is, and the functions deserve the same.
+          if [ "${{ matrix.app }}" = "clinic-web" ]; then
+            if [ ! -f api/_shell.js ]; then
+              echo "::error::api/_shell.js was not generated. The SEO functions cannot serve a head."
+              fail=1
+            else
+              if grep -q 'PROVIDER_API = ""' api/_shell.js; then
+                echo "::error::The SEO functions have no directory URL, so every page would serve a generic head."
+                echo "::error::PROVIDER_API_URL (a repository VARIABLE) was not visible to scripts/write-shell.mjs."
+                fail=1
+              fi
+              if grep -q 'SHELL = ""' api/_shell.js; then
+                echo "::error::api/_shell.js still holds the placeholder shell -- the build did not replace it."
+                fail=1
+              fi
+              if ! grep -q '/assets/' api/_shell.js; then
+                echo "::error::The inlined shell references no built assets, so the app would not boot from it."
+                fail=1
+              fi
+            fi
+          fi
+
           [ "$fail" = "0" ] && echo "${{ matrix.app }}: built with the right configuration"
           exit $fail
 

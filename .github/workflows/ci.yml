@@ -37,6 +37,14 @@ jobs:
             ( cd "apps/$app" && npx prisma generate )
           done
 
+      # clinic-web's SEO functions import a module generated from the
+      # build output, which is gitignored for the same reason the Prisma
+      # clients are. The postinstall above writes a placeholder; this
+      # fails by name if that is ever removed, rather than as two
+      # "cannot find module ./_shell.js" errors in a file nobody edited.
+      - name: Generate the SEO shell placeholder
+        run: ( cd apps/clinic-web && node scripts/ensure-shell.mjs )
+
       - name: Typecheck
         run: |
           for app in clinic-api provider-api; do

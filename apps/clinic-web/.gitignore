@@ -10,4 +10,5 @@
 # Not committed: every build rewrites it, and a tracked copy would
 # leave the tree permanently dirty. scripts/ensure-shell.mjs writes a
 # placeholder when it is missing, so a clean checkout still typechecks.
-api/_shell.ts
+api/_shell.js
+api/_shell.d.ts
