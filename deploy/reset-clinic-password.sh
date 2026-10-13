@@ -45,6 +45,13 @@ ENV_FILE="$ENV_DIR/$SLUG.env"
 IMAGE="$(cat "$ROOT/.image" 2>/dev/null || true)"
 [ -n "$IMAGE" ] || die "No image deployed yet."
 
+# Mounted from the repository rather than taken from the image -- see the
+# note in reset-console-password.sh. A `git pull` brings this shell
+# script but not the TypeScript it runs, and needing a rebuild to recover
+# a password is the wrong shape for a break-glass tool.
+SCRIPT="$ROOT/repo/apps/clinic-api/prisma/reset-password.ts"
+[ -f "$SCRIPT" ] || die "Missing $SCRIPT -- run: sudo -u deploy git -C $ROOT/repo pull"
+
 log "Resetting a password in $SLUG"
 info "account: $EMAIL"
 
@@ -64,6 +71,7 @@ docker run --rm \
   --env-file "$ENV_FILE" \
   -e CLINIC_RESET_EMAIL="$EMAIL" \
   -e CLINIC_RESET_PASSWORD="$PASSWORD" \
+  -v "$SCRIPT:/app/apps/clinic-api/prisma/reset-password.ts:ro" \
   -w /app/apps/clinic-api \
   "$IMAGE" \
   npx tsx prisma/reset-password.ts \

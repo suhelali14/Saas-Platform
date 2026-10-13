@@ -29,6 +29,21 @@ IMAGE="$(cat "$ROOT/.image" 2>/dev/null || true)"
 [ -n "$IMAGE" ] || die "No image deployed yet."
 [ -f "$ROOT/env/provider.env" ] || die "Missing $ROOT/env/provider.env"
 
+# The TypeScript is mounted from the repository rather than taken from
+# the image.
+#
+# `git pull` updates /srv/clinic/repo, which is where this shell script
+# lives -- but the script it runs has to exist inside the container, and
+# the deployed image was built before that file did. The first attempt at
+# this failed with ERR_MODULE_NOT_FOUND for exactly that reason.
+#
+# Requiring a rebuild and a green CI run to get back into your own
+# console is the wrong shape for a break-glass tool: the moment you need
+# it is the moment you may not be able to deploy. Mounting one file makes
+# it work against whatever image is already running.
+SCRIPT="$ROOT/repo/apps/provider-api/prisma/reset-password.ts"
+[ -f "$SCRIPT" ] || die "Missing $SCRIPT -- run: sudo -u deploy git -C $ROOT/repo pull"
+
 log "Resetting the console password"
 info "account: $EMAIL"
 
@@ -49,6 +64,7 @@ docker run --rm \
   --env-file "$ROOT/env/provider.env" \
   -e PROVIDER_RESET_EMAIL="$EMAIL" \
   -e PROVIDER_RESET_PASSWORD="$PASSWORD" \
+  -v "$SCRIPT:/app/apps/provider-api/prisma/reset-password.ts:ro" \
   -w /app/apps/provider-api \
   "$IMAGE" \
   npx tsx prisma/reset-password.ts \
