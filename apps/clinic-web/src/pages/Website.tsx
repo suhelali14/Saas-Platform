@@ -12,6 +12,7 @@ import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { describeClinic } from '../lib/seo';
 import { Label, Textarea } from '../components/ui';
+import { SiteDesigner } from '../components/SiteDesigner';
 
 /**
  * The clinic admin's control over their own public website: which sections
@@ -438,6 +439,16 @@ function LayoutBuilder() {
   const [heroImagePath, setHeroImagePath] = useState<string | null>(null);
   const [mapEmbedUrl, setMapEmbedUrl] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
+  /**
+   * Remounts the preview after the designer saves.
+   *
+   * The live preview posts its unsaved sections and theme into the
+   * frame, but the design -- typeface, hero shape, spacing -- arrives
+   * with the page's own payload instead. So a saved design only shows
+   * once the frame refetches, and changing its key is what makes it.
+   */
+  const [previewNonce, setPreviewNonce] = useState(0);
+  const reloadPreview = () => setPreviewNonce((n) => n + 1);
   // Only to show what the fallback would be, so a clinic leaving the
   // box empty can see what it is getting rather than nothing.
   const [clinicFacts, setClinicFacts] = useState<{
@@ -568,6 +579,13 @@ function LayoutBuilder() {
         </div>
       </Panel>
 
+      <Panel
+        title="How it looks"
+        hint="Typeface, the shape of the top of the page, spacing, corners, and what the main button does. The preview updates as you change things."
+      >
+        <SiteDesigner onSaved={reloadPreview} />
+      </Panel>
+
       <Panel title="Colour theme" hint="A small set of tested palettes. Each one is contrast-checked so text stays readable — that matters more on a page patients rely on than an exact brand colour.">
         <div className="flex flex-wrap gap-2">
           {THEMES.map((t) => (
@@ -620,7 +638,7 @@ function LayoutBuilder() {
       </Button>
       </div>
 
-      <SitePreview sections={sections} theme={theme} heroImagePath={heroImagePath} />
+      <SitePreview key={previewNonce} sections={sections} theme={theme} heroImagePath={heroImagePath} />
     </div>
   );
 }
