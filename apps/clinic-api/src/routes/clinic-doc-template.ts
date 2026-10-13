@@ -9,6 +9,7 @@ import {
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
   drawTable, drawFieldList, drawSignature, finalizeDocument,
+  renderBlocks, tableColumns, shownColumnKeys,
 } from "../lib/pdf.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 
@@ -150,11 +151,13 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
       registrationNumber: clinic?.registrationNumber,
       logoPath: clinic?.logoPath ? resolveStoredPath(clinic.logoPath) : null,
     };
+    const layout = layoutFor(template, "prescription");
     const meta = {
-      title: "Prescription",
+      title: layout.title || "Prescription",
       reference: "SAMPLE-0001",
       date: new Date(),
       footerNote: "Sample document — not a real prescription.",
+      kind: "prescription" as const,
     };
 
     reply.header("Content-Type", "application/pdf");
@@ -162,46 +165,92 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
 
     const doc = createDocument(branding, meta, template);
 
-    drawInfoGrid(doc, [
-      { label: "Patient", value: "Sample Patient" },
-      { label: "UHID", value: "SAMPLE-0001" },
-      { label: "Age / Sex", value: "42 yrs / Female" },
-      { label: "Consulting Doctor", value: "Dr. Sample" },
-      { label: "Blood Group", value: "O+" },
-      { label: "Phone", value: "+91 90000 00000" },
-    ]);
-
-    drawAlertBanner(doc, [
-      { label: "Allergies", text: "Penicillin (sample)" },
-      { label: "Chronic conditions", text: "Type 2 Diabetes (sample)" },
-    ]);
-
-    drawFieldList(doc, [{ label: "Diagnosis", value: "Acute pharyngitis (sample)" }]);
-
-    drawSectionHeading(doc, "Rx  ·  Medicines Advised");
-    const columns = [
-      { header: "#", width: 0.06, align: "center" as const },
-      { header: "Medicine", width: template.showQty ? 0.34 : 0.42 },
-      { header: "Dosage", width: 0.17, align: "center" as const },
-      { header: "Frequency", width: 0.14, align: "center" as const },
-      { header: "Duration", width: 0.16, align: "center" as const },
-      ...(template.showQty ? [{ header: "Qty", width: 0.13, align: "right" as const }] : []),
+    // Obviously fictional, deliberately: a preview built from a real
+    // patient would put PHI into a file generated for a settings screen.
+    const SAMPLE = [
+      { name: "Amoxicillin 500mg Capsule", composition: "Amoxicillin (500mg)", dosage: "1-0-1", frequency: "BD", duration: "5 days", qty: "10", instructions: "After food. Complete the full course." },
+      { name: "Paracetamol 650mg Tablet", composition: "Paracetamol (650mg)", dosage: "1-1-1", frequency: "TDS", duration: "3 days", qty: "9", instructions: "Only if fever above 100°F." },
+      { name: "Cetirizine 10mg Tablet", composition: "Cetirizine (10mg)", dosage: "0-0-1", frequency: "OD", duration: "5 days", qty: "5", instructions: "" },
     ];
-    const rows = [
-      ["1", "Amoxicillin 500mg Capsule", "1-0-1", "BD", "5 days", "10"],
-      ["2", "Paracetamol 650mg Tablet", "1-1-1", "TDS", "3 days", "9"],
-      ["3", "Cetirizine 10mg Tablet", "0-0-1", "OD", "5 days", "5"],
-    ].map((r) => (template.showQty ? r : r.slice(0, 5)));
 
-    drawTable(doc, columns, rows, {
-      subRows: ["After food. Complete the full course.", "Only if fever above 100°F.", null],
-    });
+    const COLUMN_SPEC: Record<string, { label: string; align?: "left" | "center" | "right" }> = {
+      index: { label: "#", align: "center" },
+      name: { label: "Medicine" },
+      composition: { label: "Composition" },
+      dosage: { label: "Dosage", align: "center" },
+      frequency: { label: "Frequency", align: "center" },
+      duration: { label: "Duration", align: "center" },
+      qty: { label: "Qty", align: "right" },
+      instructions: { label: "Instructions" },
+    };
 
-    drawFieldList(doc, [{ label: "Follow-up advised on", value: "Monday, 06 October 2026" }]);
+    // The same walk as the real prescription route, so what is previewed
+    // is what will be printed.
+    renderBlocks(doc, template, "prescription", {
+      patientInfo: () => drawInfoGrid(doc, [
+        { label: "Patient", value: "Sample Patient" },
+        { label: "UHID", value: "SAMPLE-0001" },
+        { label: "Age / Sex", value: "42 yrs / Female" },
+        { label: "Consulting Doctor", value: "Dr. Sample" },
+        { label: "Blood Group", value: "O+" },
+        { label: "Phone", value: "+91 90000 00000" },
+      ]),
 
-    drawSignature(doc, "Dr. Sample", {
-      qualifications: "MBBS, MD (General Medicine)",
-      registrationNumber: clinic?.registrationNumber,
+      allergyBanner: () => drawAlertBanner(doc, [
+        { label: "Allergies", text: "Penicillin (sample)" },
+        { label: "Chronic conditions", text: "Type 2 Diabetes (sample)" },
+      ]),
+
+      diagnosis: (label) => {
+        drawFieldList(doc, [{ label: label || "Diagnosis", value: "Acute pharyngitis (sample)" }]);
+        doc.moveDown(0.3);
+      },
+
+      vitals: (label) => {
+        drawSectionHeading(doc, label || "Vitals");
+        drawFieldList(doc, [
+          { label: "BP", value: "118/76" },
+          { label: "Pulse", value: "76" },
+          { label: "Temp", value: "99.1F" },
+          { label: "SpO2", value: "98%" },
+          { label: "Weight", value: "64kg" },
+        ]);
+        doc.moveDown(0.3);
+      },
+
+      medicines: (label) => {
+        drawSectionHeading(doc, label || "Rx  ·  Medicines Advised");
+        const keys = shownColumnKeys(layout.columns ?? [], COLUMN_SPEC);
+        drawTable(
+          doc,
+          tableColumns(layout.columns ?? [], COLUMN_SPEC),
+          SAMPLE.map((item, i) => keys.map((key) =>
+            key === "index" ? String(i + 1) : (item as Record<string, string>)[key] ?? "",
+          )),
+          {
+            subRows: keys.includes("instructions")
+              ? undefined
+              : SAMPLE.map((item) => item.instructions || null),
+          },
+        );
+      },
+
+      advice: (label) => {
+        drawSectionHeading(doc, label || "Advice");
+        drawFieldList(doc, SAMPLE.filter((s) => s.instructions).map((s, i) => ({
+          label: `${i + 1}`, value: s.instructions,
+        })));
+        doc.moveDown(0.3);
+      },
+
+      followUp: (label) => drawFieldList(doc, [
+        { label: label || "Follow-up advised on", value: "Monday, 06 October 2026" },
+      ]),
+
+      signature: () => drawSignature(doc, "Dr. Sample", {
+        qualifications: "MBBS, MD (General Medicine)",
+        registrationNumber: clinic?.registrationNumber,
+      }),
     });
 
     finalizeDocument(doc, branding, meta);

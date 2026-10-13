@@ -7,6 +7,10 @@ import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { SegmentedControl } from '../components/SegmentedControl';
+import {
+  DocumentComposer,
+  type Vocabulary, type KindTemplate, type LetterheadField,
+} from '../components/DocumentComposer';
 
 interface Timing { day: string; opensAt?: string; closesAt?: string; closed?: boolean }
 interface Highlight { title: string; description?: string }
@@ -29,6 +33,8 @@ interface DocTemplate {
   footerNote: string;
   showQty: boolean;
   showTints: boolean;
+  letterhead: LetterheadField[];
+  kinds: Record<string, KindTemplate>;
 }
 interface Profile {
   id: string; name: string; email: string; role: string;
@@ -590,14 +596,22 @@ function DocumentSettings() {
   const toast = useToast();
   const [template, setTemplate] = useState<DocTemplate | null>(null);
   const [accents, setAccents] = useState<{ key: string; label: string; ink: string }[]>([]);
+  // What the renderer can actually draw. Served by the API rather than
+  // duplicated here: a block this frontend offers but the renderer does
+  // not know would be a setting that silently does nothing.
+  const [vocabulary, setVocabulary] = useState<Vocabulary | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    apiFetch<{ template: DocTemplate; accents: { key: string; label: string; ink: string }[] }>('/document-template')
-      .then((r) => { setTemplate(r.template); setAccents(r.accents); })
+    apiFetch<{
+      template: DocTemplate;
+      accents: { key: string; label: string; ink: string }[];
+      vocabulary: Vocabulary;
+    }>('/document-template')
+      .then((r) => { setTemplate(r.template); setAccents(r.accents); setVocabulary(r.vocabulary ?? null); })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load the document template.'));
   }, []);
 
@@ -676,6 +690,20 @@ function DocumentSettings() {
           Applies to every document you print — prescriptions, certificates, invoices and patient reports.
           The preview updates as you change things.
         </p>
+
+        {vocabulary && (
+          <Section
+            title="What each document contains"
+            hint="Reorder, rename or hide any section; add your own. The preview updates as you go."
+          >
+            <DocumentComposer
+              letterhead={template.letterhead ?? []}
+              kinds={template.kinds ?? {}}
+              vocabulary={vocabulary}
+              onChange={(patch) => set(patch)}
+            />
+          </Section>
+        )}
 
         <Section title="Letterhead" hint="How the top of each page is printed.">
           <div className="flex flex-col gap-2">
