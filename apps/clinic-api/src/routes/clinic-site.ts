@@ -3,6 +3,10 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth, requireClinicAuth } from "../plugins/auth.js";
 import { saveUploadedFile, FileValidationError } from "../lib/file-storage.js";
+import {
+  resolveDesign, resolveSections, DEFAULT_DESIGN,
+  SECTION_VARIANTS, FONT_PAIRINGS, DENSITIES, CORNERS, CTA_ACTIONS, defaultCtaLabel,
+} from "../lib/site-design.js";
 
 /**
  * Phase 8 -- the clinic controls its own public website: which sections
@@ -43,13 +47,43 @@ export const PUBLIC_THEMES = ["teal", "blue", "green", "indigo", "rose", "slate"
 export const DEFAULT_SECTIONS = SECTION_KEYS.map((key) => ({ key, enabled: true }));
 
 const sectionsSchema = z
-  .array(z.object({ key: z.enum(SECTION_KEYS), enabled: z.boolean() }))
+  .array(
+    z.object({
+      key: z.enum(SECTION_KEYS),
+      enabled: z.boolean(),
+      // What the clinic calls this section, and which layout it is drawn
+      // in. Both optional: a section the clinic has not customised keeps
+      // the built-in heading and the default layout.
+      heading: z.string().max(100).optional(),
+      variant: z.string().max(40).optional(),
+    }),
+  )
   .max(SECTION_KEYS.length);
 
 const siteSchema = z.object({
   publicSections: sectionsSchema.optional(),
   publicTheme: z.enum(PUBLIC_THEMES).optional(),
   mapEmbedUrl: z.string().max(1000).optional(),
+  // Shapes only. resolveDesign decides which fonts, variants and
+  // actions exist -- validating the semantics in both places is how the
+  // two drift, and the page reads the resolved value.
+  publicDesign: z
+    .object({
+      font: z.string().max(40).optional(),
+      density: z.string().max(40).optional(),
+      corners: z.string().max(40).optional(),
+      heroVariant: z.string().max(40).optional(),
+      heroHeadline: z.string().max(200).optional(),
+      secondaryCta: z.boolean().optional(),
+      cta: z
+        .object({
+          action: z.string().max(40).optional(),
+          label: z.string().max(60).optional(),
+          message: z.string().max(400).optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 /** A URL-safe slug. Stripped to ASCII word characters so the resulting
@@ -89,8 +123,70 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
     const existing = await prisma.clinic.findFirst();
     if (!existing) return reply.status(404).send({ error: "Clinic not configured" });
 
-    const clinic = await prisma.clinic.update({ where: { id: existing.id }, data: parsed.data });
-    return clinic;
+    const { publicDesign, publicSections, ...rest } = parsed.data;
+
+    const clinic = await prisma.clinic.update({
+      where: { id: existing.id },
+      data: {
+        ...rest,
+        // Resolved before storing, then round-tripped. Resolving first
+        // means a hand-edited body cannot store a layout the page does
+        // not have; the round trip means the column holds valid JSON
+        // with no undefined holes in it.
+        ...(publicSections !== undefined
+          ? { publicSections: JSON.parse(JSON.stringify(resolveSections(publicSections))) }
+          : {}),
+        ...(publicDesign !== undefined
+          ? { publicDesign: JSON.parse(JSON.stringify(resolveDesign(publicDesign))) }
+          : {}),
+      },
+    });
+
+    return {
+      ...clinic,
+      // Returned resolved, so the editor is holding the same values the
+      // page will render rather than what it happened to send.
+      publicSections: resolveSections(clinic.publicSections),
+      publicDesign: resolveDesign(clinic.publicDesign),
+    };
+  });
+
+  /**
+   * The site's current design, plus what it may be changed to.
+   *
+   * The vocabulary is served rather than duplicated in the frontend, for
+   * the same reason the document composer's is: a layout the editor
+   * offers but the page cannot draw would be a setting that silently
+   * does nothing.
+   */
+  app.get("/api/clinic/site-design", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+
+    const clinic = await prisma.clinic.findFirst({
+      select: { publicDesign: true, publicSections: true, publicTheme: true, heroImagePath: true, tagline: true, phone: true, mapUrl: true },
+    });
+
+    return {
+      design: resolveDesign(clinic?.publicDesign),
+      sections: resolveSections(clinic?.publicSections),
+      defaults: DEFAULT_DESIGN,
+      vocabulary: {
+        sectionVariants: SECTION_VARIANTS,
+        fonts: FONT_PAIRINGS,
+        densities: DENSITIES,
+        corners: CORNERS,
+        ctaActions: CTA_ACTIONS.map((a) => ({ ...a, defaultLabel: defaultCtaLabel(a.key) })),
+      },
+      // What each choice depends on, so the editor can say why an option
+      // will not do anything yet rather than letting it quietly fail.
+      available: {
+        heroImage: Boolean(clinic?.heroImagePath),
+        phone: Boolean(clinic?.phone),
+        mapUrl: Boolean(clinic?.mapUrl),
+        tagline: Boolean(clinic?.tagline),
+      },
+    };
   });
 
   app.post("/api/clinic/site/hero", async (request, reply) => {

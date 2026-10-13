@@ -12,6 +12,10 @@ import {
 import { publicSiteUrl } from '../lib/site-mode';
 import { strings, localeMeta, LOCALES, type StringKey } from '../lib/ui-strings';
 import { applySeo, describeClinic, clinicJsonLd } from '../lib/seo';
+import {
+  FALLBACK_DESIGN, styling, useWebFont, sectionHeading, sectionVariant, ctaTarget,
+  type SiteDesign, type SectionConfig, type Styling,
+} from '../lib/site-design';
 
 const LOCALE_STORAGE_KEY = 'clinicPublicLocale';
 
@@ -64,9 +68,11 @@ interface Clinic {
   tagline: string | null; establishedYear: number | null;
   highlights: Highlight[] | null; faqs: Faq[] | null;
   emergencyPhone: string | null; mapUrl: string | null;
-  publicSections: { key: SectionKey; enabled: boolean }[] | null;
   publicTheme: string | null; heroImagePath: string | null; mapEmbedUrl: string | null;
   metaDescription: string | null;
+  publicDesign?: SiteDesign | null;
+  /// Carries a per-section heading and layout now, not just on/off.
+  publicSections?: SectionConfig[] | null;
 }
 interface Doctor {
   id: string; name: string; qualifications: string | null; specialization: string | null;
@@ -129,6 +135,17 @@ export function PublicClinic() {
 
   const t = strings(locale);
   const meta = localeMeta(locale);
+
+  // Always a complete design: the API resolves it, so the page never has
+  // to interpret a missing or half-written row, and the defaults are the
+  // layout every clinic was already being served.
+  const design = clinic?.publicDesign ?? FALLBACK_DESIGN;
+  const sections = clinic?.publicSections ?? [];
+  const style = styling(design);
+  useWebFont(style.fontHref);
+
+  /** This section's own heading, or the built-in one. */
+  const heading = (key: string, fallback: string) => sectionHeading(sections, key, fallback);
 
   // Screen readers and hyphenation need the real language; Urdu also needs
   // the whole page flipped to right-to-left.
@@ -279,7 +296,12 @@ export function PublicClinic() {
     .map((k) => ({ id: k, label: t(NAV_KEYS[k]) }));
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 antialiased">
+    <div
+      className="min-h-screen bg-white text-slate-800 antialiased"
+      // The body face on the root and the heading face as a variable, so
+      // every heading picks it up without each one having to name it.
+      style={{ fontFamily: style.bodyFont, ['--heading-font' as string]: style.headingFont }}
+    >
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
@@ -331,13 +353,13 @@ export function PublicClinic() {
       </header>
 
       <main id="top">
-        <Hero clinic={clinic} p={p} status={status} timings={timings} doctors={doctors} yearsServing={yearsServing} t={t} />
+        <Hero clinic={clinic} p={p} status={status} timings={timings} doctors={doctors} yearsServing={yearsServing} t={t} design={design} style={style} />
 
         {visible.map((key) => {
           switch (key) {
             case 'about':
               return (
-                <Section key={key}>
+                <Section rhythm={style.section} key={key}>
                   <div className="max-w-3xl">
                     <Label p={p}>{t('about')}</Label>
                     <p className="mt-4 text-lg text-slate-700 leading-relaxed whitespace-pre-line">{clinic.about}</p>
@@ -347,19 +369,54 @@ export function PublicClinic() {
 
             case 'services':
               return (
-                <Section key={key} id="services" tinted>
+                <Section rhythm={style.section} key={key} id="services" tinted>
                   <Label p={p}>{t('services')}</Label>
-                  <Title>{t('whatWeTreat')}</Title>
-                  <ul className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {services.map((s, i) => (
-                      <li key={i} className={`flex items-start gap-3 bg-white rounded-xl border border-slate-200 p-4 ${p.border} hover:shadow-sm transition-all`}>
-                        <span className={`h-8 w-8 rounded-lg ${p.soft} flex items-center justify-center shrink-0`}>
-                          <CheckCircle2 size={16} className={p.ring} aria-hidden="true" />
-                        </span>
-                        <span className="text-slate-800 font-medium pt-1.5">{s}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <Title>{heading('services', t('whatWeTreat'))}</Title>
+                  {/* Three layouts, because the right one depends on how
+                      many services there are and how long their names
+                      run -- twelve two-word treatments want chips, four
+                      long ones want cards. */}
+                  {(() => {
+                    const variant = sectionVariant(sections, 'services', 'grid');
+
+                    if (variant === 'chips') {
+                      return (
+                        <ul className="mt-8 flex flex-wrap gap-2">
+                          {services.map((s, i) => (
+                            <li key={i} className={`${style.chip} border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-800`}>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }
+
+                    if (variant === 'list') {
+                      return (
+                        <ul className="mt-8 divide-y divide-slate-100">
+                          {services.map((s, i) => (
+                            <li key={i} className="flex items-center gap-3 py-3">
+                              <CheckCircle2 size={16} className={`${p.ring} shrink-0`} aria-hidden="true" />
+                              <span className="font-medium text-slate-800">{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }
+
+                    return (
+                      <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {services.map((s, i) => (
+                          <li key={i} className={`flex items-start gap-3 bg-white ${style.card} border border-slate-200 p-4 ${p.border} hover:shadow-sm transition-all`}>
+                            <span className={`h-8 w-8 ${style.chip} ${p.soft} flex items-center justify-center shrink-0`}>
+                              <CheckCircle2 size={16} className={p.ring} aria-hidden="true" />
+                            </span>
+                            <span className="pt-1.5 font-medium text-slate-800">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </Section>
               );
 
@@ -367,12 +424,16 @@ export function PublicClinic() {
               // id must match the section key -- the nav builds its anchors
               // from the key, so any other id would be a dead link.
               return (
-                <Section key={key} id="highlights">
+                <Section rhythm={style.section} key={key} id="highlights">
                   <Label p={p}>{t('whyUs')}</Label>
-                  <Title>{t('whatMakesUsDifferent')}</Title>
-                  <div className="mt-8 grid md:grid-cols-2 gap-5">
+                  <Title>{heading('highlights', t('whatMakesUsDifferent'))}</Title>
+                  {/* Stacked gives a long reason the full width, which a
+                      two-column grid does not. */}
+                  <div className={sectionVariant(sections, 'highlights', 'grid') === 'stacked'
+                    ? 'mt-8 flex flex-col gap-4'
+                    : 'mt-8 grid gap-5 md:grid-cols-2'}>
                     {highlights.map((h, i) => (
-                      <div key={i} className="flex gap-4 p-5 rounded-2xl border border-slate-200 bg-white">
+                      <div key={i} className={`flex gap-4 p-5 ${style.card} border border-slate-200 bg-white`}>
                         <span className={`h-10 w-10 rounded-xl ${p.solid} text-white flex items-center justify-center font-bold shrink-0`} aria-hidden="true">{i + 1}</span>
                         <div>
                           <h3 className="font-semibold text-slate-900">{h.title}</h3>
@@ -386,12 +447,22 @@ export function PublicClinic() {
 
             case 'doctors':
               return (
-                <Section key={key} id="doctors" tinted>
+                <Section rhythm={style.section} key={key} id="doctors" tinted>
                   <Label p={p}>{t('ourTeam')}</Label>
-                  <Title>{doctors.length === 1 ? t('meetDoctor') : t('meetDoctors')}</Title>
-                  <div className="mt-8 grid md:grid-cols-2 gap-5">
+                  <Title>{heading('doctors', doctors.length === 1 ? t('meetDoctor') : t('meetDoctors'))}</Title>
+                  {/* Cards stop working past three or four doctors: each
+                      one is tall, and a visitor scrolls past the person
+                      they came to read about. Rows stay scannable. */}
+                  <div className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
+                    ? 'mt-8 divide-y divide-slate-100'
+                    : 'mt-8 grid gap-5 md:grid-cols-2'}>
                     {doctors.map((d) => (
-                      <article key={d.id} className="bg-white rounded-2xl border border-slate-200 p-6 flex gap-5">
+                      <article
+                        key={d.id}
+                        className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
+                          ? 'flex gap-5 bg-transparent py-5'
+                          : `flex gap-5 bg-white ${style.card} border border-slate-200 p-6`}
+                      >
                         {d.photoPath ? (
                           <img src={publicAsset(d.photoPath)} alt={`Dr. ${d.name}`} className="h-20 w-20 rounded-2xl object-cover shrink-0" />
                         ) : (
@@ -417,9 +488,9 @@ export function PublicClinic() {
 
             case 'gallery':
               return (
-                <Section key={key} id="gallery">
+                <Section rhythm={style.section} key={key} id="gallery">
                   <Label p={p}>{t('ourClinic')}</Label>
-                  <Title>{t('lookInside')}</Title>
+                  <Title>{heading('gallery', t('lookInside'))}</Title>
                   <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {gallery.map((g) => (
                       <figure key={g.id} className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
@@ -433,11 +504,11 @@ export function PublicClinic() {
 
             case 'blog':
               return (
-                <Section key={key} id="blog" tinted>
+                <Section rhythm={style.section} key={key} id="blog" tinted>
                   <div className="flex items-end justify-between gap-4 flex-wrap">
                     <div>
                       <Label p={p}>{t('healthLibrary')}</Label>
-                      <Title>{t('articlesFromDoctors')}</Title>
+                      <Title>{heading('blog', t('articlesFromDoctors'))}</Title>
                     </div>
                     <Link to="/blog" className={`inline-flex items-center gap-1.5 text-sm font-medium ${p.ring} hover:underline`}>
                       {t('allArticles')} <ArrowRight size={15} aria-hidden="true" />
@@ -469,7 +540,7 @@ export function PublicClinic() {
 
             case 'queue':
               return (
-                <Section key={key}>
+                <Section rhythm={style.section} key={key}>
                   <a href={publicSiteUrl('/live-queue')} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-5 p-7 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-colors">
                     <div className="flex items-start gap-4">
                       <span className="h-11 w-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
@@ -491,9 +562,9 @@ export function PublicClinic() {
 
             case 'faq':
               return (
-                <Section key={key} id="faq" tinted>
+                <Section rhythm={style.section} key={key} id="faq" tinted>
                   <Label p={p}>{t('questions')}</Label>
-                  <Title>{t('faq')}</Title>
+                  <Title>{heading('faq', t('faq'))}</Title>
                   <div className="mt-8 max-w-3xl divide-y divide-slate-200 border-y border-slate-200">
                     {faqs.map((f, i) => (
                       <details key={i} className="group py-4">
@@ -510,9 +581,9 @@ export function PublicClinic() {
 
             case 'contact':
               return (
-                <Section key={key} id="contact">
+                <Section rhythm={style.section} key={key} id="contact">
                   <Label p={p}>{t('visitUs')}</Label>
-                  <Title>{t('getInTouch')}</Title>
+                  <Title>{heading('contact', t('getInTouch'))}</Title>
                   <div className="mt-8 grid md:grid-cols-3 gap-4">
                     {clinic.address && (
                       <ContactCard icon={MapPin} label={t('address')} p={p}>
@@ -578,26 +649,50 @@ export function PublicClinic() {
 
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 
-function Hero({ clinic, p, status, timings, doctors, yearsServing, t }: {
+function Hero({ clinic, p, status, timings, doctors, yearsServing, t, design, style }: {
   clinic: Clinic; p: Palette; status: { open: boolean; label: string } | null;
   timings: Timing[]; doctors: Doctor[]; yearsServing: number | null;
   t: (k: StringKey) => string;
+  design: SiteDesign; style: Styling;
 }) {
   const hasHeroImage = Boolean(clinic.heroImagePath);
 
+  // A layout asking for a photo it does not have falls back rather than
+  // rendering an empty column. The editor says which layouts need one,
+  // but the page must not depend on the editor having been read.
+  const requested = design.heroVariant;
+  const variant = (requested === 'split' || requested === 'banner') && !hasHeroImage
+    ? 'centred'
+    : requested;
+
+  // The clinic's own sentence, then its tagline. Plain language in one
+  // line is what the research is clearest about.
+  const headline = design.heroHeadline?.trim() || clinic.tagline || null;
+
+  const cta = ctaTarget(design, clinic, publicSiteUrl('/live-queue'));
+  const centred = variant === 'centred' || variant === 'minimal';
+
   return (
-    <section className={`relative overflow-hidden border-b border-slate-100 ${hasHeroImage ? '' : `bg-gradient-to-b ${p.gradient} via-slate-50 to-white`}`}>
-      {hasHeroImage && (
+    <section className={`relative overflow-hidden border-b border-slate-100 ${hasHeroImage && variant === 'banner' ? '' : hasHeroImage && variant === 'split' ? 'bg-white' : `bg-gradient-to-b ${p.gradient} via-slate-50 to-white`}`}>
+      {hasHeroImage && variant === 'banner' && (
         <>
           <img src={publicAsset(clinic.heroImagePath!)} alt="" className="absolute inset-0 w-full h-full object-cover" />
           {/* A photo behind text needs a scrim, or the headline becomes
-              unreadable the moment someone uploads a bright image. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/70" />
+              unreadable the moment someone uploads a bright image. The
+              scrim is centred when the text is, or the words sit on the
+              clear half of the picture. */}
+          <div className={`absolute inset-0 ${centred ? 'bg-white/85' : 'bg-gradient-to-r from-white via-white/95 to-white/70'}`} />
         </>
       )}
 
-      <div className="relative max-w-6xl mx-auto px-5 py-16 md:py-24 grid md:grid-cols-[1.15fr_1fr] gap-12 items-center">
-        <div>
+      <div className={`relative max-w-6xl mx-auto px-5 ${variant === 'minimal' ? 'py-14 md:py-20' : 'py-16 md:py-24'} ${
+        variant === 'split' && hasHeroImage
+          ? 'grid md:grid-cols-2 gap-12 items-center'
+          : centred
+            ? 'flex flex-col items-center text-center'
+            : 'grid md:grid-cols-[1.15fr_1fr] gap-12 items-center'
+      }`}>
+        <div className={centred ? 'max-w-2xl' : undefined}>
           {status && (
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-5 ${status.open ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${status.open ? 'bg-emerald-600' : 'bg-slate-500'}`} aria-hidden="true" />
@@ -605,28 +700,48 @@ function Hero({ clinic, p, status, timings, doctors, yearsServing, t }: {
             </span>
           )}
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 leading-[1.1]">{clinic.name}</h1>
-          {clinic.tagline && <p className="mt-4 text-lg md:text-xl text-slate-600 leading-relaxed max-w-xl">{clinic.tagline}</p>}
+          <h1
+            className={`font-bold tracking-tight text-slate-900 leading-[1.1] ${variant === 'minimal' ? 'text-3xl md:text-4xl' : 'text-4xl md:text-5xl'}`}
+            style={{ fontFamily: 'var(--heading-font)' }}
+          >
+            {clinic.name}
+          </h1>
+          {headline && (
+            <p className={`mt-4 text-lg md:text-xl text-slate-600 leading-relaxed ${centred ? 'mx-auto max-w-xl' : 'max-w-xl'}`}>
+              {headline}
+            </p>
+          )}
 
-          {clinic.address && (
-            <p className="mt-4 flex items-start gap-2 text-slate-600">
+          {/* Minimal means minimal: the address belongs further down the
+              page, and the whole point of this layout is one screenful. */}
+          {clinic.address && variant !== 'minimal' && (
+            <p className={`mt-4 flex items-start gap-2 text-slate-600 ${centred ? 'justify-center' : ''}`}>
               <MapPin size={17} className={`${p.ring} shrink-0 mt-0.5`} aria-hidden="true" />
               <span>{clinic.address}</span>
             </p>
           )}
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            {clinic.phone && (
-              <a href={`tel:${clinic.phone}`} className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl ${p.solid} ${p.solidHover} text-white font-medium transition-colors shadow-sm`}>
-                <CalendarCheck size={17} aria-hidden="true" /> {t('bookAppointment')}
+          {/* One prominent action, which is the most repeated advice in
+              every review of practice sites. The second button is quieter
+              and optional, and neither renders if it would be dead. */}
+          <div className={`mt-8 flex flex-wrap gap-3 ${centred ? 'justify-center' : ''}`}>
+            {cta && (
+              <a
+                href={cta.href}
+                {...(cta.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className={`inline-flex items-center gap-2 px-5 py-3 ${style.button} ${p.solid} ${p.solidHover} text-white font-medium transition-colors shadow-sm`}
+              >
+                <CalendarCheck size={17} aria-hidden="true" /> {cta.label}
               </a>
             )}
-            <a href={publicSiteUrl('/live-queue')} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-800 font-medium border border-slate-300 hover:border-slate-400 transition-colors">
-              <Radio size={17} className={p.ring} aria-hidden="true" /> {t('checkLiveQueue')}
-            </a>
+            {design.secondaryCta && variant !== 'minimal' && (
+              <a href={publicSiteUrl('/live-queue')} className={`inline-flex items-center gap-2 px-5 py-3 ${style.button} bg-white text-slate-800 font-medium border border-slate-300 hover:border-slate-400 transition-colors`}>
+                <Radio size={17} className={p.ring} aria-hidden="true" /> {t('checkLiveQueue')}
+              </a>
+            )}
           </div>
 
-          {(yearsServing !== null || clinic.registrationNumber || doctors.length > 0) && (
+          {variant !== 'minimal' && (yearsServing !== null || clinic.registrationNumber || doctors.length > 0) && (
             <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
               {yearsServing !== null && yearsServing > 0 && (
                 <div>
@@ -653,8 +768,23 @@ function Hero({ clinic, p, status, timings, doctors, yearsServing, t }: {
           )}
         </div>
 
-        {timings.length > 0 && (
-          <aside className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        {/* Split puts the photo here, where the hours card otherwise
+            goes. The hours have their own section further down the page,
+            so nothing is lost -- and a photo of the actual clinic is the
+            single most useful thing a stranger can see first. */}
+        {variant === 'split' && hasHeroImage && (
+          <img
+            src={publicAsset(clinic.heroImagePath!)}
+            alt={`Inside ${clinic.name}`}
+            className={`${style.card} w-full object-cover shadow-sm aspect-[4/3] md:aspect-[5/4]`}
+          />
+        )}
+
+        {/* Centred and minimal are one column, so the card would sit
+            under the text rather than beside it; the hours have their
+            own section either way. */}
+        {variant !== 'split' && !centred && timings.length > 0 && (
+          <aside className={`bg-white ${style.card} border border-slate-200 shadow-sm p-6`}>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-4">
               <Clock size={16} className={p.ring} aria-hidden="true" /> {t('openingHours')}
             </h2>
@@ -857,10 +987,15 @@ const NAV_KEYS: Record<SectionKey, StringKey> = {
 
 /** Anchor ids differ from section keys in two places, so the nav has to use
  * the id the section actually renders with. */
-function Section({ id, tinted, children }: { id?: string; tinted?: boolean; children: React.ReactNode }) {
+function Section({ id, tinted, rhythm, children }: {
+  id?: string; tinted?: boolean;
+  /** The clinic's chosen vertical spacing. Most of how a page feels. */
+  rhythm?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section id={id} className={`${tinted ? 'bg-slate-50 border-y border-slate-100' : ''} scroll-mt-16`}>
-      <div className="max-w-6xl mx-auto px-5 py-14 md:py-20">{children}</div>
+      <div className={`max-w-6xl mx-auto px-5 ${rhythm ?? 'py-14 md:py-20'}`}>{children}</div>
     </section>
   );
 }
@@ -870,7 +1005,17 @@ function Label({ p, children }: { p: Palette; children: React.ReactNode }) {
 }
 
 function Title({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-slate-900">{children}</h2>;
+  return (
+    <h2
+      className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+      // Inherited from the root rather than passed down through every
+      // call site. A heading face set on four screens and missed on the
+      // fifth is the usual way this goes wrong.
+      style={{ fontFamily: 'var(--heading-font)' }}
+    >
+      {children}
+    </h2>
+  );
 }
 
 function ContactCard({ icon: Icon, label, p, children }: { icon: any; label: string; p: Palette; children: React.ReactNode }) {
@@ -890,10 +1035,10 @@ function ContactCard({ icon: Icon, label, p, children }: { icon: any; label: str
  * newly-added section appended. A key the app doesn't recognise is dropped
  * rather than trusted -- config comes from the database, and the page
  * should never try to render something arbitrary. */
-function resolveOrder(saved: { key: SectionKey; enabled: boolean }[] | null): SectionKey[] {
+function resolveOrder(saved: SectionConfig[] | null | undefined): SectionKey[] {
   if (!Array.isArray(saved) || saved.length === 0) return DEFAULT_ORDER;
-  const known = saved.filter((s) => DEFAULT_ORDER.includes(s.key));
-  const enabled = known.filter((s) => s.enabled).map((s) => s.key);
+  const known = saved.filter((s) => DEFAULT_ORDER.includes(s.key as SectionKey));
+  const enabled = known.filter((s) => s.enabled).map((s) => s.key as SectionKey);
   const unlisted = DEFAULT_ORDER.filter((k) => !known.some((s) => s.key === k));
   return [...enabled, ...unlisted];
 }

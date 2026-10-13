@@ -134,6 +134,12 @@ model Clinic {
   documentTemplate   Json?
   publicSections     Json?
   publicTheme        String?
+  /// Typeface, hero shape, spacing, corners, and what the main button
+  /// says and does. See lib/site-design.ts -- a vocabulary of layouts
+  /// the page can actually draw, not a free canvas, for the same reason
+  /// the palette is curated: this page is read once by a stranger
+  /// deciding whether to trust a doctor.
+  publicDesign       Json?
   heroImagePath      String?
   mapEmbedUrl        String?
   // The one line a search engine shows under the clinic's name. Derived

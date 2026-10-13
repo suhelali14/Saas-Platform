@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
+import { resolveDesign, resolveSections } from "../lib/site-design.js";
 
 // Public, unauthenticated -- the "innovative" feature from the plan's Phase 4
 // research: real-world token/queue-transparency displays measurably cut
@@ -60,10 +61,17 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
         emergencyPhone: true, mapUrl: true,
         publicSections: true, publicTheme: true, heroImagePath: true, mapEmbedUrl: true,
         metaDescription: true,
+        publicDesign: true,
         defaultLocale: true, enabledLocales: true,
       },
     });
     if (!clinic) return reply.status(404).send({ error: "Clinic not configured" });
+
+    // Resolved here so the page never has to interpret a missing or
+    // half-written design row -- it always receives a complete one, and
+    // the defaults are the layout every clinic is already served.
+    const design = resolveDesign(clinic.publicDesign);
+    const sections = resolveSections(clinic.publicSections);
 
     const [doctors, gallery, posts, feedback] = await Promise.all([
       prisma.clinicUser.findMany({
@@ -129,7 +137,14 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
     }));
 
     return {
-      clinic: localized,
+      clinic: {
+        ...localized,
+        // Always complete, so the page never has to interpret a missing
+        // or half-written design row. The defaults are the layout every
+        // clinic is already being served.
+        publicDesign: design,
+        publicSections: sections,
+      },
       doctors,
       gallery,
       posts: localizedPosts,
