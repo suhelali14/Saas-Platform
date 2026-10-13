@@ -2,7 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth } from "../plugins/auth.js";
-import { ACCENTS, DEFAULT_TEMPLATE, resolveTemplate } from "../lib/document-template.js";
+import {
+  ACCENTS, DEFAULT_TEMPLATE, resolveTemplate, layoutFor,
+  DOC_KINDS, BLOCK_TYPES, LETTERHEAD_FIELDS, MEDICINE_COLUMNS,
+} from "../lib/document-template.js";
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
   drawTable, drawFieldList, drawSignature, finalizeDocument,
@@ -20,6 +23,36 @@ import { resolveStoredPath } from "../lib/file-storage.js";
  * reality, which is the one thing a preview must never do.
  */
 
+/**
+ * Deliberately permissive about shape and strict about meaning.
+ *
+ * Zod checks that a block list is a list of objects with string keys;
+ * resolveTemplate then decides which keys exist, which are required,
+ * what the widths may be and what order survives. Validating the
+ * semantics twice, in two places, is how the two drift -- and the
+ * renderer reads the resolved value, not this one.
+ */
+const blockSchema = z.object({
+  key: z.string().max(40),
+  label: z.string().max(80).optional(),
+  show: z.boolean().optional(),
+  text: z.string().max(2000).optional(),
+});
+
+const columnSchema = z.object({
+  key: z.string().max(40),
+  label: z.string().max(40).optional(),
+  show: z.boolean().optional(),
+  width: z.coerce.number().optional(),
+});
+
+const kindSchema = z.object({
+  title: z.string().max(80).optional(),
+  footerNote: z.string().max(300).optional(),
+  blocks: z.array(blockSchema).max(40).optional(),
+  columns: z.array(columnSchema).max(20).optional(),
+});
+
 const templateSchema = z.object({
   headerMode: z.enum(["full", "compact", "none"]).optional(),
   topOffsetMm: z.coerce.number().min(0).max(120).optional(),
@@ -27,9 +60,15 @@ const templateSchema = z.object({
   watermarkEnabled: z.boolean().optional(),
   watermarkText: z.string().max(40).optional(),
   showFooter: z.boolean().optional(),
-  footerNote: z.string().max(200).optional(),
+  footerNote: z.string().max(300).optional(),
   showQty: z.boolean().optional(),
   showTints: z.boolean().optional(),
+  letterhead: z.array(z.object({
+    key: z.string().max(40),
+    label: z.string().max(60).optional(),
+    show: z.boolean().optional(),
+  })).max(20).optional(),
+  kinds: z.record(z.string(), kindSchema).optional(),
 });
 
 export async function clinicDocTemplateRoutes(app: FastifyInstance) {
@@ -42,6 +81,23 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
       template: resolveTemplate(clinic?.documentTemplate),
       defaults: DEFAULT_TEMPLATE,
       accents: Object.entries(ACCENTS).map(([key, v]) => ({ key, label: v.label, ink: v.ink })),
+      // The vocabulary the editor may compose from. Served rather than
+      // duplicated in the frontend: a block the renderer cannot draw must
+      // never be offerable, and two copies of this list would drift the
+      // first time one is added.
+      vocabulary: {
+        kinds: DOC_KINDS.map((kind) => ({
+          kind,
+          blocks: BLOCK_TYPES[kind].map((b) => ({
+            key: b.key,
+            label: b.label,
+            required: "required" in b ? b.required : false,
+            critical: "critical" in b ? b.critical : false,
+          })),
+        })),
+        letterhead: LETTERHEAD_FIELDS.map((f) => ({ key: f.key, label: f.label, always: f.always ?? false })),
+        medicineColumns: MEDICINE_COLUMNS.map((c) => ({ key: c.key, label: c.label, defaultWidth: c.defaultWidth })),
+      },
     };
   });
 
@@ -58,7 +114,13 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
     // Merged over what is stored, then re-resolved, so a partial save can
     // never leave a half-written template in the database.
     const merged = resolveTemplate({ ...resolveTemplate(existing.documentTemplate), ...parsed.data });
-    await prisma.clinic.update({ where: { id: existing.id }, data: { documentTemplate: { ...merged } } });
+    // Round-tripped rather than cast: it satisfies Prisma's JSON input
+    // type and, more usefully, guarantees the column holds valid JSON
+    // with no undefined holes in it.
+    await prisma.clinic.update({
+      where: { id: existing.id },
+      data: { documentTemplate: JSON.parse(JSON.stringify(merged)) },
+    });
     return { template: merged };
   });
 

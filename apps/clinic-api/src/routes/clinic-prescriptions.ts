@@ -6,8 +6,9 @@ import { requireClinicAuth, requireClinicalWriteAuth, requirePharmacyAuth } from
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
   drawTable, drawFieldList, drawSignature, finalizeDocument,
+  renderBlocks, tableColumns, shownColumnKeys,
 } from "../lib/pdf.js";
-import { resolveTemplate } from "../lib/document-template.js";
+import { resolveTemplate, layoutFor } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 import { parseQuantityFromDosage, decrementStockFEFO } from "../lib/inventory.js";
 
@@ -133,13 +134,17 @@ export async function clinicPrescriptionRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const prescription = await prisma.prescription.findUnique({
       where: { id },
-      include: { items: true, doctor: true, patient: true },
+      include: {
+        items: { include: { drug: { select: { composition: true } } } },
+        doctor: true,
+        patient: true,
+      },
     });
     if (!prescription) return reply.status(404).send({ error: "Not found" });
 
     const clinic = await prisma.clinic.findFirst();
     const caseSheet = prescription.caseSheetId
-      ? await prisma.caseSheet.findUnique({ where: { id: prescription.caseSheetId }, select: { diagnosis: true, followUpDate: true } })
+      ? await prisma.caseSheet.findUnique({ where: { id: prescription.caseSheetId }, select: { diagnosis: true, followUpDate: true, vitals: true } })
       : null;
 
     reply.header("Content-Type", "application/pdf");
@@ -157,77 +162,134 @@ export async function clinicPrescriptionRoutes(app: FastifyInstance) {
       title: "Prescription",
       reference: prescription.patient.uhid,
       date: prescription.createdAt,
+      // The fallback, used when neither this kind nor the clinic has set
+      // a note of its own. finalizeDocument decides between them.
       footerNote: "This is a computer-generated prescription.",
+      kind: "prescription" as const,
     };
 
     const template = resolveTemplate(clinic?.documentTemplate);
+    const layout = layoutFor(template, "prescription");
+
+    // The clinic may rename the document itself -- a practice that calls
+    // this a "Treatment Advice" rather than a "Prescription" can say so --
+    // and give it its own footer, which differs by document far more than
+    // the clinic's name does.
+    if (layout.title) meta.title = layout.title;
+
     const doc = createDocument(branding, meta, template);
 
-    drawInfoGrid(doc, [
-      { label: "Patient", value: prescription.patient.name },
-      { label: "UHID", value: prescription.patient.uhid },
-      { label: "Age / Sex", value: ageSex(prescription.patient) },
-      { label: "Consulting Doctor", value: `Dr. ${prescription.doctor.name}` },
-      { label: "Blood Group", value: prescription.patient.bloodGroup ?? "" },
-      { label: "Phone", value: prescription.patient.phone ?? "" },
-    ]);
+    // One routine per block. Which of these run, in what order, and under
+    // what heading is the template's decision, not this function's.
+    const COLUMN_SPEC: Record<string, { label: string; align?: "left" | "center" | "right" }> = {
+      index: { label: "#", align: "center" },
+      name: { label: "Medicine" },
+      composition: { label: "Composition" },
+      dosage: { label: "Dosage", align: "center" },
+      frequency: { label: "Frequency", align: "center" },
+      duration: { label: "Duration", align: "center" },
+      qty: { label: "Qty", align: "right" },
+      instructions: { label: "Instructions" },
+    };
 
-    // Before the medicines, deliberately: a pharmacist reading top-to-bottom
-    // must hit a penicillin allergy before they read what to dispense.
-    drawAlertBanner(doc, [
-      { label: "Allergies", text: prescription.patient.allergies ?? "" },
-      { label: "Chronic conditions", text: prescription.patient.chronicConditions ?? "" },
-    ]);
+    renderBlocks(doc, template, "prescription", {
+      patientInfo: () => drawInfoGrid(doc, [
+        { label: "Patient", value: prescription.patient.name },
+        { label: "UHID", value: prescription.patient.uhid },
+        { label: "Age / Sex", value: ageSex(prescription.patient) },
+        { label: "Consulting Doctor", value: `Dr. ${prescription.doctor.name}` },
+        { label: "Blood Group", value: prescription.patient.bloodGroup ?? "" },
+        { label: "Phone", value: prescription.patient.phone ?? "" },
+      ]),
 
-    if (caseSheet?.diagnosis) {
-      drawFieldList(doc, [{ label: "Diagnosis", value: caseSheet.diagnosis }]);
-      doc.moveDown(0.3);
-    }
+      // Default order puts this before the medicines, deliberately: a
+      // pharmacist reading top to bottom must hit a penicillin allergy
+      // before they read what to dispense. A clinic can move it, but it
+      // starts where it does for a reason.
+      allergyBanner: () => drawAlertBanner(doc, [
+        { label: "Allergies", text: prescription.patient.allergies ?? "" },
+        { label: "Chronic conditions", text: prescription.patient.chronicConditions ?? "" },
+      ]),
 
-    drawSectionHeading(doc, "Rx  ·  Medicines Advised");
-    // The quantity column is optional: it is a computed estimate, and a
-    // clinic that dispenses by strip rather than by tablet does not want a
-    // number on the sheet that its own pharmacy will contradict. Widths are
-    // redistributed rather than leaving a gap when it is off.
-    drawTable(
-      doc,
-      [
-        { header: "#", width: 0.06, align: "center" },
-        { header: "Medicine", width: template.showQty ? 0.34 : 0.42 },
-        { header: "Dosage", width: 0.17, align: "center" },
-        { header: "Frequency", width: 0.14, align: "center" },
-        { header: "Duration", width: 0.16, align: "center" },
-        ...(template.showQty ? [{ header: "Qty", width: 0.13, align: "right" as const }] : []),
-      ],
-      prescription.items.map((item, i) => {
-        const row = [
-          String(i + 1),
-          item.drugName,
-          item.dosage,
-          item.frequency,
-          item.duration,
-        ];
-        if (template.showQty) {
-          row.push(String(parseQuantityFromDosage(item.dosage, item.duration) ?? "—"));
-        }
-        return row;
+      diagnosis: (label) => {
+        if (!caseSheet?.diagnosis) return;
+        drawFieldList(doc, [{ label: label || "Diagnosis", value: caseSheet.diagnosis }]);
+        doc.moveDown(0.3);
+      },
+
+      vitals: (label) => {
+        const v = caseSheet?.vitals as Record<string, unknown> | null | undefined;
+        if (!v) return;
+        const fields = [
+          { label: "BP", value: str(v.bp) },
+          { label: "Pulse", value: str(v.pulse) },
+          { label: "Temp", value: str(v.temp) },
+          { label: "SpO2", value: str(v.spo2) },
+          { label: "Weight", value: str(v.weight) },
+        ].filter((f) => f.value);
+        if (!fields.length) return;
+        drawSectionHeading(doc, label || "Vitals");
+        drawFieldList(doc, fields);
+        doc.moveDown(0.3);
+      },
+
+      medicines: (label) => {
+        drawSectionHeading(doc, label || "Rx  ·  Medicines Advised");
+        const keys = shownColumnKeys(layout.columns ?? [], COLUMN_SPEC);
+        drawTable(
+          doc,
+          tableColumns(layout.columns ?? [], COLUMN_SPEC),
+          prescription.items.map((item, i) => keys.map((key) => {
+            switch (key) {
+              case "index": return String(i + 1);
+              case "name": return item.drugName;
+              case "composition": return item.drug?.composition ?? "—";
+              case "dosage": return item.dosage;
+              case "frequency": return item.frequency;
+              case "duration": return item.duration;
+              // A computed estimate, which is why it is optional: a clinic
+              // dispensing by strip does not want a number on the sheet
+              // that its own pharmacy will contradict.
+              case "qty": return String(parseQuantityFromDosage(item.dosage, item.duration) ?? "—");
+              case "instructions": return item.instructions ?? "";
+              default: return "";
+            }
+          })),
+          {
+            // Instructions go under the row only when they are not already
+            // a column of their own; printing both is just repetition.
+            subRows: keys.includes("instructions")
+              ? undefined
+              : prescription.items.map((item) => item.instructions ?? null),
+          },
+        );
+      },
+
+      advice: (label) => {
+        const advice = prescription.items.map((i) => i.instructions).filter(Boolean);
+        if (!advice.length) return;
+        drawSectionHeading(doc, label || "Advice");
+        drawFieldList(doc, advice.map((text, i) => ({ label: `${i + 1}`, value: text as string })));
+        doc.moveDown(0.3);
+      },
+
+      followUp: (label) => {
+        if (!caseSheet?.followUpDate) return;
+        drawFieldList(doc, [{
+          label: label || "Follow-up advised on",
+          value: caseSheet.followUpDate.toLocaleDateString("en-IN", {
+            weekday: "long", day: "2-digit", month: "long", year: "numeric",
+          }),
+        }]);
+      },
+
+      signature: () => drawSignature(doc, `Dr. ${prescription.doctor.name}`, {
+        signatureImagePath: prescription.doctor.signatureImagePath
+          ? resolveStoredPath(prescription.doctor.signatureImagePath)
+          : null,
+        qualifications: prescription.doctor.qualifications,
+        registrationNumber: clinic?.registrationNumber,
       }),
-      { subRows: prescription.items.map((item) => item.instructions ?? null) },
-    );
-
-    if (caseSheet?.followUpDate) {
-      drawFieldList(doc, [
-        {
-          label: "Follow-up advised on",
-          value: caseSheet.followUpDate.toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
-        },
-      ]);
-    }
-
-    drawSignature(doc, `Dr. ${prescription.doctor.name}`, {
-      signatureImagePath: prescription.doctor.signatureImagePath ? resolveStoredPath(prescription.doctor.signatureImagePath) : null,
-      qualifications: prescription.doctor.qualifications,
-      registrationNumber: clinic?.registrationNumber,
     });
 
     finalizeDocument(doc, branding, meta);
@@ -256,4 +318,11 @@ export async function clinicPrescriptionRoutes(app: FastifyInstance) {
     const templates = await prisma.prescriptionTemplate.findMany({ orderBy: { name: "asc" } });
     return { data: templates };
   });
+}
+
+/** A vitals value as a printable string, or "" when it was never recorded. */
+function str(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = String(v).trim();
+  return s === "null" || s === "undefined" ? "" : s;
 }

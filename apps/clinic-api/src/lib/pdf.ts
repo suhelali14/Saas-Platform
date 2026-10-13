@@ -1,5 +1,8 @@
 import PDFDocument from "pdfkit";
-import { ACCENTS, DEFAULT_TEMPLATE, mmToPt, type DocumentTemplate } from "./document-template.js";
+import {
+  ACCENTS, DEFAULT_TEMPLATE, mmToPt, layoutFor,
+  type DocumentTemplate, type DocKind, type ColumnConfig,
+} from "./document-template.js";
 
 /**
  * Document toolkit for every PDF this clinic issues: prescriptions,
@@ -95,6 +98,10 @@ export interface ClinicBranding {
   registrationNumber?: string | null;
   /** Absolute path on disk, already resolved by the caller. */
   logoPath?: string | null;
+  /** Optional letterhead line; printed only if the clinic asked for it. */
+  tagline?: string | null;
+  /** Optional letterhead line; printed only if the clinic asked for it. */
+  qualifications?: string | null;
 }
 
 export interface DocumentMeta {
@@ -105,6 +112,9 @@ export interface DocumentMeta {
   date?: Date;
   /** Footer note, e.g. "Not valid for legal purposes". */
   footerNote?: string | null;
+  /** Which kind of document this is, so the footer and the title can be
+   *  resolved against the clinic's per-kind template. */
+  kind?: DocKind;
 }
 
 /**
@@ -191,18 +201,68 @@ function drawLetterhead(
   const textWidth = CONTENT.right - textLeft;
   const align: "left" | "center" = logoDrawn ? "left" : "center";
 
+  // The clinic's name is always first and always printed: it is the
+  // issuer, and resolveTemplate refuses to let it be hidden.
   doc.fillColor(COLOR.ink).font("Helvetica-Bold").fontSize(compact ? 13 : logoDrawn ? 17 : 19);
   doc.text(clinic.name, textLeft, top + (logoDrawn ? 2 : 0), { width: textWidth, align });
 
+  // Everything else is whatever the clinic asked for, in its order. The
+  // phone and email are gathered onto one line when both are wanted and
+  // adjacent, because two separate lines for two short values wastes the
+  // header's most valuable space.
   doc.font("Helvetica").fontSize(8.5).fillColor(COLOR.muted);
-  if (clinic.address && !compact) {
-    doc.text(clinic.address, textLeft, doc.y + 1, { width: textWidth, align });
+
+  const value = (key: string): string | null => {
+    switch (key) {
+      case "tagline": return clinic.tagline ?? null;
+      case "doctorName": return clinic.doctorName ? doctorName(clinic.doctorName) : null;
+      case "qualifications": return clinic.qualifications ?? null;
+      case "registrationNumber":
+        return clinic.registrationNumber ? `Regn. No. ${clinic.registrationNumber}` : null;
+      case "address": return clinic.address ?? null;
+      case "phone": return clinic.phone ?? null;
+      case "email": return clinic.email ?? null;
+      default: return null;
+    }
+  };
+
+  // Compact means "one line of identity, no block of detail". The long
+  // fields are the ones that make it two or three lines.
+  const LONG = new Set(["address", "tagline", "qualifications"]);
+  const wanted = template.letterhead
+    .filter((f) => f.show && f.key !== "name")
+    .filter((f) => !(compact && LONG.has(f.key)));
+
+  let pending: string[] = [];
+  const flush = (faint = false) => {
+    if (!pending.length) return;
+    doc.fillColor(faint ? COLOR.faint : COLOR.muted);
+    doc.text(pending.join("   ·   "), textLeft, doc.y + 0.5, { width: textWidth, align });
+    pending = [];
+  };
+
+  for (const field of wanted) {
+    const text = value(field.key);
+    if (!text) continue;
+    const label = field.label?.trim();
+    const line = label ? `${label}: ${text}` : text;
+
+    // Short values run together; a long one gets its own line, and ends
+    // any run that was being gathered.
+    if (LONG.has(field.key)) {
+      flush();
+      doc.fillColor(COLOR.muted).text(line, textLeft, doc.y + 1, { width: textWidth, align });
+    } else if (field.key === "registrationNumber") {
+      // Quieter than the contact details, as before: it is there to be
+      // found when needed rather than read every time.
+      flush();
+      pending.push(line);
+      flush(true);
+    } else {
+      pending.push(line);
+    }
   }
-  const contact = [clinic.phone, clinic.email].filter(Boolean).join("   ·   ");
-  if (contact) doc.text(contact, textLeft, doc.y + 0.5, { width: textWidth, align });
-  if (clinic.registrationNumber && !compact) {
-    doc.fillColor(COLOR.faint).text(`Regn. No. ${clinic.registrationNumber}`, textLeft, doc.y + 0.5, { width: textWidth, align });
-  }
+  flush();
 
   // The rule sits below whichever is taller -- the logo or the text column.
   const ruleY = Math.max(doc.y + 8, logoDrawn ? top + LOGO + 8 : doc.y + 8);
@@ -331,6 +391,32 @@ export function drawSectionHeading(doc: PDFKit.PDFDocument, label: string) {
   doc.fillColor(COLOR.body);
 }
 
+/**
+ * A heading shortened to fit its column, by measurement.
+ *
+ * pdfkit's own `ellipsis` did not hold: "FREQUENCY" in a 59pt column
+ * printed as "FREQUENC" on the header row with a lone "Y" wrapped onto
+ * the line above, sitting over the data. Its behaviour depends on how
+ * `width`, `lineBreak` and `ellipsis` interact, and a header that
+ * silently escapes its cell is exactly the class of fault that shipped
+ * once already.
+ *
+ * So the width is measured in the font and size actually in use --
+ * including the character spacing, which is 9% of the width at this size
+ * and is what made the original estimate wrong -- and the string is cut
+ * until it fits. Truncating without an ellipsis: a column is labelled,
+ * not read, and "FREQUEN" is clearer in 59pt than "FREQU…".
+ */
+function fitHeading(doc: PDFKit.PDFDocument, text: string, room: number): string {
+  const SPACING = 0.7;
+  const measure = (t: string) => doc.widthOfString(t, { characterSpacing: SPACING });
+  if (room <= 0) return "";
+  if (measure(text) <= room) return text;
+  let cut = text;
+  while (cut.length > 1 && measure(cut) > room) cut = cut.slice(0, -1);
+  return cut;
+}
+
 export interface TableColumn {
   header: string;
   /** Fraction of the content width, 0-1. Must sum to ~1 across columns. */
@@ -376,11 +462,12 @@ export function drawTable(
     doc.rect(CONTENT.left, top, CONTENT_WIDTH, 20).fill(pal(doc).accentSoft);
     doc.font("Helvetica-Bold").fontSize(8).fillColor(pal(doc).accent);
     columns.forEach((c, i) => {
-      doc.text(c.header.toUpperCase(), xs[i]! + PAD_X, top + 6.5, {
-        width: widths[i]! - PAD_X * 2,
+      const room = widths[i]! - PAD_X * 2;
+      doc.text(fitHeading(doc, c.header.toUpperCase(), room), xs[i]! + PAD_X, top + 6.5, {
+        width: room,
         align: c.align ?? "left",
         lineBreak: false,
-        ellipsis: true,
+        ellipsis: false,
       });
     });
     doc.moveTo(CONTENT.left, top + 20).lineTo(CONTENT.right, top + 20).lineWidth(0.6).strokeColor(COLOR.rule).stroke();
@@ -585,7 +672,16 @@ export function finalizeDocument(doc: PDFKit.PDFDocument, clinic: ClinicBranding
     doc.moveTo(CONTENT.left, y - 8).lineTo(CONTENT.right, y - 8).lineWidth(0.4).strokeColor(COLOR.ruleLight).stroke();
 
     doc.font("Helvetica").fontSize(7).fillColor(COLOR.faint);
-    const leftText = [clinic.name, tpl(doc).footerNote || meta.footerNote].filter(Boolean).join("  ·  ");
+    // Precedence, most specific first: this document kind's own note,
+    // then the clinic-wide one, then the route's built-in default.
+    //
+    // It used to read `tpl(doc).footerNote || meta.footerNote`, which put
+    // the clinic-wide note above everything -- so a per-kind note, which
+    // is the one that matters (a certificate's wording is a legal matter
+    // and an invoice's is a tax one), was silently ignored.
+    const layout = meta.kind ? layoutFor(tpl(doc), meta.kind) : null;
+    const note = layout?.footerNote || tpl(doc).footerNote || meta.footerNote;
+    const leftText = [clinic.name, note].filter(Boolean).join("  ·  ");
     doc.text(leftText, CONTENT.left, y, { width: CONTENT_WIDTH * 0.62, lineBreak: false, ellipsis: true });
     doc.text(
       `Generated ${generated}    Page ${i - range.start + 1} of ${range.count}`,
@@ -604,6 +700,89 @@ export function finalizeDocument(doc: PDFKit.PDFDocument, clinic: ClinicBranding
  * never sits alone at the bottom of a sheet. */
 export function ensureSpace(doc: PDFKit.PDFDocument, needed: number) {
   if (doc.y + needed > BODY_BOTTOM) doc.addPage();
+}
+
+
+/**
+ * Draws a document's blocks in the order the clinic configured.
+ *
+ * The order used to be the order of statements in the route: clear to
+ * read, but it meant a clinic could not move its diagnosis above the
+ * patient grid, drop the vitals, or rename "Rx · Medicines Advised"
+ * without a deploy.
+ *
+ * `draw` maps a block key to the routine that draws it, and is handed the
+ * block's effective heading so a renamed section renames everywhere it
+ * appears. A key with no routine is skipped silently rather than throwing
+ * -- stored config can name a block this version does not draw, and a
+ * prescription must not fail to print because of a setting.
+ *
+ * A block whose data is absent simply draws nothing; that is the
+ * routine's own decision, and it is why a new clinic with no diagnosis
+ * recorded gets a clean sheet rather than an empty heading.
+ */
+export function renderBlocks(
+  doc: PDFKit.PDFDocument,
+  template: DocumentTemplate,
+  kind: DocKind,
+  draw: Record<string, (label: string) => void>,
+): void {
+  const layout = layoutFor(template, kind);
+  for (const block of layout.blocks) {
+    if (!block.show) continue;
+    if (block.key === "custom") {
+      drawCustomBlock(doc, block.label, block.text);
+      continue;
+    }
+    const routine = draw[block.key];
+    if (routine) routine(block.label?.trim() || "");
+  }
+}
+
+/**
+ * A clinic-authored heading and paragraph.
+ *
+ * The escape hatch that keeps the rest of the vocabulary closed. It
+ * covers the long tail -- "bring your previous reports", consent wording,
+ * a pharmacy's address, a seasonal notice -- without letting anyone
+ * position anything, which is what would make an unreadable prescription
+ * possible.
+ */
+export function drawCustomBlock(doc: PDFKit.PDFDocument, label?: string, text?: string): void {
+  const body = (text ?? "").trim();
+  if (!body && !label?.trim()) return;
+  ensureSpace(doc, 48);
+  if (label?.trim()) drawSectionHeading(doc, label.trim());
+  if (body) drawParagraph(doc, body);
+  doc.moveDown(0.3);
+}
+
+/**
+ * The clinic's column list as the fractional widths drawTable wants.
+ *
+ * Configured in points, because that is what a person thinks in when
+ * deciding how much room "Frequency" needs, and normalised here so the
+ * table always fills the content width exactly. That normalisation is
+ * also what makes hiding a column redistribute its space instead of
+ * leaving a gap -- a bug worth remembering, since the first version of
+ * the optional quantity column did exactly that.
+ */
+export function tableColumns(
+  columns: ColumnConfig[],
+  spec: Record<string, { label: string; align?: "left" | "center" | "right" }>,
+): { header: string; width: number; align?: "left" | "center" | "right" }[] {
+  const shown = columns.filter((c) => c.show && spec[c.key]);
+  const total = shown.reduce((sum, c) => sum + (c.width ?? 60), 0) || 1;
+  return shown.map((c) => ({
+    header: c.label?.trim() || spec[c.key]!.label,
+    width: (c.width ?? 60) / total,
+    align: spec[c.key]!.align,
+  }));
+}
+
+/** Which of the configured columns print, in order. */
+export function shownColumnKeys(columns: ColumnConfig[], spec: Record<string, unknown>): string[] {
+  return columns.filter((c) => c.show && spec[c.key]).map((c) => c.key);
 }
 
 export const PDF_LAYOUT = { PAGE, MARGIN, CONTENT, CONTENT_WIDTH, BODY_BOTTOM, COLOR };
