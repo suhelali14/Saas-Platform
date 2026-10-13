@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Phone, X } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
+import { RecallList } from '../components/RecallList';
+import { SegmentedControl } from '../components/SegmentedControl';
 
 interface Reminder {
   id: string;
@@ -18,6 +20,7 @@ export function Reminders() {
   const [upcoming, setUpcoming] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dismissing, setDismissing] = useState<string | null>(null);
+  const [tab, setTab] = useState<'mine' | 'recall'>('mine');
 
   useEffect(() => {
     load();
@@ -50,9 +53,25 @@ export function Reminders() {
   const now = new Date();
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Bell size={20} className="text-emerald-400" /> Follow-up Reminders</h1>
-      <p className="text-sm text-muted-foreground mb-1">Patients whose follow-up you flagged to be reminded about.</p>
+    <div className={`p-4 sm:p-6 md:p-8 ${tab === 'recall' ? 'max-w-4xl' : 'max-w-2xl'}`}>
+      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Bell size={20} className="text-emerald-400" /> Who to chase</h1>
+      <p className="text-sm text-muted-foreground mb-4">
+        Follow-ups you flagged for yourself, and everyone else who is overdue to come back.
+      </p>
+
+      <SegmentedControl
+        label="Which list"
+        className="mb-5"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'mine', label: 'Flagged by me' },
+          { value: 'recall', label: 'Overdue to return' },
+        ]}
+      />
+
+      {tab === 'recall' ? <RecallList /> : <>
+
       <p className="text-xs text-muted-foreground/60 mb-6">Shown here while you're using the portal -- not a phone or SMS notification.</p>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
@@ -90,6 +109,7 @@ export function Reminders() {
           );
         })}
       </div>
+      </>}
     </div>
   );
 }

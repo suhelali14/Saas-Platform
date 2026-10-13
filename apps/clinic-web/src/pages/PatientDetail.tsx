@@ -7,10 +7,22 @@ import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CaseSheetForm, PrescriptionForm, CertificateForm } from '../components/ClinicalForms';
 import { PATIENT_CATEGORIES, CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
+import { DuplicatePanel } from '../components/DuplicatePanel';
 
 interface Patient {
   id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
   bloodGroup: string | null; allergies: string | null; chronicConditions: string | null; category: string;
+  dob?: string | null; address?: string | null;
+  email?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelation?: string | null;
+  insuranceProvider?: string | null;
+  insurancePolicyNumber?: string | null;
+  referredBy?: string | null;
+  deskNote?: string | null;
+  /// Set when this record was merged into another as a duplicate.
+  mergedIntoId?: string | null;
 }
 interface Doctor { name: string }
 interface CaseSheet {
@@ -81,7 +93,12 @@ export function PatientDetail() {
 
   if (!patient) return error
     ? <div className="p-8 text-muted-foreground">{error}</div>
-    : <div className="p-4 sm:p-6 md:p-8 max-w-3xl"><SkeletonPanels count={4} label="Loading the patient record" /></div>;
+    : <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
+      {/* Above the record itself. Somebody looking at this patient is
+          the only person who can tell whether another record is the
+          same human -- often with the patient standing there. */}
+      {patient && <DuplicatePanel patient={patient} onMerged={load} />}
+<SkeletonPanels count={4} label="Loading the patient record" /></div>;
 
   type TimelineEntry = { date: string; kind: 'caseSheet' | 'prescription' | 'certificate' | 'appointment'; data: any };
   const timeline: TimelineEntry[] = [
@@ -271,6 +288,14 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
     allergies: patient.allergies ?? '',
     chronicConditions: patient.chronicConditions ?? '',
     category: patient.category,
+    email: patient.email ?? '',
+    emergencyContactName: patient.emergencyContactName ?? '',
+    emergencyContactPhone: patient.emergencyContactPhone ?? '',
+    emergencyContactRelation: patient.emergencyContactRelation ?? '',
+    insuranceProvider: patient.insuranceProvider ?? '',
+    insurancePolicyNumber: patient.insurancePolicyNumber ?? '',
+    referredBy: patient.referredBy ?? '',
+    deskNote: patient.deskNote ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -291,6 +316,14 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
           allergies: form.allergies || undefined,
           chronicConditions: form.chronicConditions || undefined,
           category: form.category,
+          email: form.email || undefined,
+          emergencyContactName: form.emergencyContactName || undefined,
+          emergencyContactPhone: form.emergencyContactPhone || undefined,
+          emergencyContactRelation: form.emergencyContactRelation || undefined,
+          insuranceProvider: form.insuranceProvider || undefined,
+          insurancePolicyNumber: form.insurancePolicyNumber || undefined,
+          referredBy: form.referredBy || undefined,
+          deskNote: form.deskNote || undefined,
         },
       });
       onSaved();
@@ -326,6 +359,39 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
       </div>
       <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+
+      {/* Behind a disclosure on purpose. Registration happens at a
+          counter with a queue behind the patient, so the fields that
+          have to be fast stay above -- these are here for whenever
+          somebody has a moment. */}
+      <details className="col-span-2 rounded-lg border border-border/10 bg-foreground/[0.02]">
+        <summary className="cursor-pointer px-3 py-2 text-xs text-muted-foreground">
+          Emergency contact, insurance, referral and desk notes
+        </summary>
+        <div className="grid grid-cols-2 gap-3 border-t border-border/10 p-3">
+          <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+
+          <p className="col-span-2 -mb-1 text-[11px] text-muted-foreground">
+            Emergency contact — who to ring if this patient cannot answer for themselves.
+          </p>
+          <input placeholder="Contact name" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Contact phone" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Relationship (son, wife, neighbour…)" value={form.emergencyContactRelation} onChange={(e) => setForm({ ...form, emergencyContactRelation: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+
+          <p className="col-span-2 -mb-1 text-[11px] text-muted-foreground">
+            Insurance, for a cashless claim.
+          </p>
+          <input placeholder="Insurer / TPA" value={form.insuranceProvider} onChange={(e) => setForm({ ...form, insuranceProvider: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Policy number" value={form.insurancePolicyNumber} onChange={(e) => setForm({ ...form, insurancePolicyNumber: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+
+          <input placeholder="Referred by (doctor, neighbour, search…)" value={form.referredBy} onChange={(e) => setForm({ ...form, referredBy: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+
+          <textarea placeholder="Desk note — prefers Marathi, hard of hearing, comes with her son" value={form.deskNote} onChange={(e) => setForm({ ...form, deskNote: e.target.value })} rows={2} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <p className="col-span-2 text-[11px] text-muted-foreground/70">
+            The desk note is visible to reception. Anything clinical belongs in the case sheet.
+          </p>
+        </div>
+      </details>
       <div className="col-span-2 flex gap-2">
         <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
           {saving ? 'Saving...' : 'Save Changes'}
