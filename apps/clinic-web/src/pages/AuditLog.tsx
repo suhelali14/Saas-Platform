@@ -3,6 +3,8 @@ import { ShieldCheck, Download, Filter, X, AlertTriangle, RefreshCw } from 'luci
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { Pick } from '../components/Field';
+import { DatePicker } from '../components/DatePicker';
+import { todayInput } from '../lib/date';
 
 /**
  * The clinic's PHI access log, required by India's DPDP Act 2023 and NABH:
@@ -135,11 +137,11 @@ export function AuditLog() {
           options={(filters?.resources ?? []).map((r) => ({ value: r, label: r }))} />
         <div>
           <label className="block text-[11px] text-muted-foreground/70 mb-1">From</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={selectCls} />
+          <DatePicker value={from} onChange={setFrom} label="From date" quickDays={false} clearable />
         </div>
         <div>
           <label className="block text-[11px] text-muted-foreground/70 mb-1">To</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={selectCls} />
+          <DatePicker value={to} onChange={setTo} label="To date" min={from || undefined} quickDays={false} clearable />
         </div>
         {hasFilters && (
           <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
@@ -222,7 +224,7 @@ function DownloadCsvButton() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `audit-log-${todayInput()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {

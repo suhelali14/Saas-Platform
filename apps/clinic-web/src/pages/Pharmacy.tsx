@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Pill, CheckCircle2, AlertTriangle, Search, Plus, Package } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
+import { DatePicker } from '../components/DatePicker';
 import { SegmentedControl } from '../components/SegmentedControl';
 
 interface Item { drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
@@ -239,7 +240,10 @@ function Inventory() {
             )}
             <form onSubmit={addBatch} className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <input placeholder="Batch No." value={form.batchNumber} onChange={(e) => setForm({ ...form, batchNumber: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
-              <input type="date" placeholder="Expiry" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
+              {/* No "Today"/"Tomorrow" here: an expiry is months or years out,
+                  and no min date either -- receiving a batch that is already
+                  expired is a real case the FEFO logic has to see. */}
+              <DatePicker value={form.expiryDate} onChange={(iso) => setForm({ ...form, expiryDate: iso })} label="Batch expiry date" placeholder="Expiry" quickDays={false} />
               <input placeholder="Qty" type="number" value={form.quantityInHand} onChange={(e) => setForm({ ...form, quantityInHand: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
               <input placeholder="Reorder at" type="number" value={form.reorderThreshold} onChange={(e) => setForm({ ...form, reorderThreshold: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
               <button type="submit" disabled={saving} className="col-span-2 sm:col-span-4 self-start flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">

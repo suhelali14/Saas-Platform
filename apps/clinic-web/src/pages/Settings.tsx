@@ -3,6 +3,7 @@ import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus
 import { useToast } from '../components/Toast';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
+import { todayInput } from '../lib/date';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
@@ -521,7 +522,9 @@ function DataSettings() {
     }
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Local, not UTC: an export taken before 5:30am IST was named with
+  // yesterday's date, which is a confusing thing to find on a backup.
+  const today = todayInput();
   const tables = [
     { key: 'patients', label: 'Patients' },
     { key: 'appointments', label: 'Appointments' },

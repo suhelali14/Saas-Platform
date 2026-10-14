@@ -3,6 +3,10 @@ import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { Button } from './Button';
 import { Pick } from './Field';
 import { SegmentedControl } from './SegmentedControl';
+import { DoseInput } from './DoseInput';
+import { DatePicker } from './DatePicker';
+import { todayInput } from '../lib/date';
+import { doseConflict, frequencyFromDose, parseDose, shouldDeriveFrequency } from '../lib/dose';
 import { RotateCcw, AlertTriangle } from 'lucide-react';
 
 export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
@@ -134,7 +138,7 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
       <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">Follow-up date (optional)</label>
-        <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+        <DatePicker value={form.followUpDate} onChange={(iso) => setForm({ ...form, followUpDate: iso })} label="Follow-up date" placeholder="No follow-up" min={todayInput()} clearable />
         {form.followUpDate && (
           <label className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <input type="checkbox" checked={form.remindDoctor} onChange={(e) => setForm({ ...form, remindDoctor: e.target.checked })} />
@@ -231,6 +235,36 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
 
   const updateItem = (index: number, field: keyof PrescriptionItem, value: string) => {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [field]: value } : it)));
+  };
+
+  /**
+   * The dose and the frequency are the same fact, so only one gets typed.
+   *
+   * "1-0-1" and "BD" both mean twice a day. Asking for both was duplicate
+   * work on the highest-volume screen here, and let a row be saved saying
+   * "1-1-1" and "BD" at once -- a prescription that contradicts itself in
+   * two adjacent printed columns.
+   *
+   * The pattern now sets the frequency. Two deliberate limits:
+   *
+   *   - SOS and STAT are never overwritten. They are not times-per-day;
+   *     a doctor who chose "as needed" alongside "1-0-1" is describing
+   *     the dose to take when needed, and rewriting that to BD would
+   *     change the instruction.
+   *   - The frequency stays editable, and a disagreement only warns. A
+   *     doctor may have a reason, and refusing to save a prescription
+   *     over this would be far worse than printing it.
+   */
+  const updateDose = (index: number, dosage: string) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== index) return it;
+        const slots = parseDose(dosage);
+        const implied = slots ? frequencyFromDose(slots) : null;
+        const takeIt = implied && shouldDeriveFrequency(it.frequency);
+        return { ...it, dosage, frequency: takeIt ? implied : it.frequency };
+      }),
+    );
   };
 
   const addRow = () => setItems((prev) => [...prev, { drugName: '', dosage: '', frequency: 'OD', duration: '', instructions: '' }]);
@@ -349,7 +383,16 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               </div>
             )}
           </div>
-          <input placeholder="Dosage (1-0-1)" value={item.dosage} onChange={(e) => updateItem(i, 'dosage', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+          {/* Three columns, not two: the grid needs room for three cells
+              and the dashes between them. Paid for by moving
+              instructions to its own row below, where it was never
+              usable at one twelfth of the width anyway. */}
+          <DoseInput
+            className="col-span-2 sm:col-span-3"
+            label={item.drugName ? `Dose for ${item.drugName}` : 'Dose'}
+            value={item.dosage}
+            onChange={(d) => updateDose(i, d)}
+          />
           <Pick
             className="col-span-1 sm:col-span-2"
             value={item.frequency}
@@ -357,8 +400,25 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
             options={FREQUENCIES.map((f) => ({ value: f, label: f }))}
           />
           <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-          <input placeholder="Instructions" value={item.instructions ?? ''} onChange={(e) => updateItem(i, 'instructions', e.target.value)} className="col-span-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>
+          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} aria-label="Remove this medicine" className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>
+
+          {/* Instructions print as a sub-row beneath the medicine on the
+              prescription, so they get a full row here too. "After food,
+              with plenty of water" never fitted in a 1/12 box. */}
+          <input
+            placeholder="Instructions (optional) — e.g. after food, with plenty of water"
+            value={item.instructions ?? ''}
+            onChange={(e) => updateItem(i, 'instructions', e.target.value)}
+            className="col-span-2 sm:col-span-11 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
+          />
+
+          {/* Warned, never blocked -- see updateDose. */}
+          {doseConflict(item.dosage, item.frequency) && (
+            <p className="col-span-2 sm:col-span-12 flex items-start gap-1.5 text-[11px] text-warning">
+              <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>{doseConflict(item.dosage, item.frequency)}</span>
+            </p>
+          )}
         </div>
       ))}
       <button type="button" onClick={addRow} className="self-start text-xs text-emerald-400 hover:underline">+ Add drug</button>
@@ -418,11 +478,11 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+            <DatePicker value={fromDate} onChange={setFromDate} label="Certificate valid from" className="w-full" />
           </div>
           <div className="flex-1">
             <label className="block text-xs font-medium text-muted-foreground mb-1">To</label>
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+            <DatePicker value={toDate} onChange={setToDate} label="Certificate valid to" min={fromDate || undefined} className="w-full" />
           </div>
         </div>
       )}

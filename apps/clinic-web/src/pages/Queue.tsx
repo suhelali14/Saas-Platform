@@ -7,12 +7,12 @@ import { CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
 
-/** Local YYYY-MM-DD for `<input type="date">` -- deliberately not
- * toISOString().slice(0,10), which shifts to UTC and lands on the wrong day
- * for anyone east of Greenwich (including IST, this clinic's timezone). */
-function toDateInput(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { DatePicker } from '../components/DatePicker';
+// The local-vs-UTC rule used to live here as a private helper, with the
+// same explanation copy-pasted into Expenses.tsx. One copy now, in
+// lib/date, so the next screen cannot reach a different answer -- which
+// Analytics.tsx already had.
+import { toDateInput, todayInput } from '../lib/date';
 
 interface Patient {
   id: string;
@@ -125,7 +125,22 @@ export function Queue() {
 
   const bookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPatientId || !time || !bookDate) return;
+    // Said, not silent. This used to `return` with no message, so a
+    // missing time looked like a broken button -- and now that the date
+    // is a custom control rather than a native input, nothing else
+    // enforces it either.
+    if (!selectedPatientId) {
+      setError('Choose a patient first.');
+      return;
+    }
+    if (!bookDate) {
+      setError('Pick a date for the appointment.');
+      return;
+    }
+    if (!time) {
+      setError('Pick a time for the appointment.');
+      return;
+    }
     setBooking(true);
     setError(null);
     try {
@@ -187,11 +202,11 @@ export function Queue() {
         <button onClick={() => shiftDay(-1)} className="p-1.5 rounded-lg bg-foreground/5 text-foreground/80 hover:bg-foreground/10" title="Previous day">
           <ChevronLeft size={14} />
         </button>
-        <input
-          type="date"
+        <DatePicker
           value={viewDate}
-          onChange={(e) => e.target.value && setViewDate(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
+          onChange={(iso) => iso && setViewDate(iso)}
+          label="Show the queue for this day"
+          className="min-w-[9.5rem]"
         />
         <button onClick={() => shiftDay(1)} className="p-1.5 rounded-lg bg-foreground/5 text-foreground/80 hover:bg-foreground/10" title="Next day">
           <ChevronRight size={14} />
@@ -269,7 +284,11 @@ export function Queue() {
             )}
             <div className="flex-1">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Date</label>
-              <input type="date" value={bookDate} onChange={(e) => setBookDate(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+              {/* The native input's `required` does not survive a custom
+                  control, so bookAppointment validates it explicitly and
+                  says so -- a hidden required attribute is how a form
+                  becomes a button that does nothing. */}
+              <DatePicker value={bookDate} onChange={setBookDate} label="Appointment date" className="w-full" />
             </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Time</label>

@@ -12,7 +12,7 @@
  * One button, one import path.
  */
 export { Badge, badgeVariants } from './badge';
-export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
+export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardStat, CardTitle, cardVariants } from './card';
 export {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from './dialog';
@@ -23,3 +23,6 @@ export { Separator } from './separator';
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export { Textarea } from './textarea';
+export { Calendar } from './calendar';
+export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './popover';
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';

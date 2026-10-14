@@ -7,6 +7,8 @@ import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { DatePicker } from '../components/DatePicker';
+import { toDateInput } from '../lib/date';
 
 /**
  * Expense ledger and profit & loss -- the other half of the SRS's billing
@@ -62,11 +64,11 @@ export function Expenses() {
         <div className="flex items-end gap-2 ml-auto">
           <div>
             <label className="block text-[11px] text-muted-foreground/70 mb-1">From</label>
-            <input type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} className={inputCls} />
+            <DatePicker value={range.from} onChange={(iso) => setRange({ ...range, from: iso })} label="From date" quickDays={false} />
           </div>
           <div>
             <label className="block text-[11px] text-muted-foreground/70 mb-1">To</label>
-            <input type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} className={inputCls} />
+            <DatePicker value={range.to} onChange={(iso) => setRange({ ...range, to: iso })} label="To date" quickDays={false} />
           </div>
         </div>
       </div>
@@ -204,6 +206,12 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
       setError('Choose a category. Expenses are summed by category, so one without it cannot be reported on.');
       return;
     }
+    // Same reasoning, same trap: the date was a native input carrying
+    // `required`, and a custom control does not enforce it.
+    if (!paidAt) {
+      setError('Pick the date this was paid. The ledger and the P&L are both grouped by date.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -245,7 +253,7 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Date paid</label>
-        <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} required className={inputCls + ' w-full'} />
+        <DatePicker value={paidAt} onChange={setPaidAt} label="Date paid" className="w-full" />
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Paid by</label>
@@ -354,11 +362,8 @@ function Breakdown({ title, rows, tone }: { title: string; rows: { label: string
 
 const inputCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
 
-/** Local date, never toISOString().slice(0,10) -- that shifts to UTC and
- * lands on the wrong day in IST. Same fix as the queue's date picker. */
-function toDateInput(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+// `toDateInput` was a second copy of the queue's, with the same comment.
+// It lives in lib/date now.
 
 /** Defaults to the current calendar month, which is how a clinic thinks
  * about rent, salaries and bills. */

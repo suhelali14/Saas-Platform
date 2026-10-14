@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Users, UserPlus, Repeat, Stethoscope, ClipboardList } from 'lucide-react';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError } from '../lib/api';
+import { shiftDateInput, todayInput } from '../lib/date';
 import { SegmentedControl } from '../components/SegmentedControl';
 
 interface DailyVisit { date: string; count: number }
@@ -33,9 +34,13 @@ export function Analytics() {
 
   const load = async () => {
     try {
-      const to = new Date();
-      const from = new Date(to.getTime() - rangeDays * 24 * 60 * 60 * 1000);
-      const res = await apiFetch<Overview>(`/analytics/overview?from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`);
+      // toISOString() was the bug here: it serialises in UTC, so before
+      // about 5:30am IST both ends of the range landed on the previous
+      // day and the chart reported the wrong days. A clinic's day
+      // boundary is local midnight. lib/date is the one place that knows.
+      const to = todayInput();
+      const from = shiftDateInput(to, -rangeDays);
+      const res = await apiFetch<Overview>(`/analytics/overview?from=${from}&to=${to}`);
       setData(res);
       setError(null);
     } catch (e) {
