@@ -53,6 +53,53 @@ for app, rule in APPS.items():
             problems.append(f"{app}/{rel}:{lineno}  {m.group(0)}   in: {line[:92]}")
 
 print(f"scanned {scanned} files")
+
+# ── A caller must not repeat the prefix its base URL already carries ──
+#
+# provider-console's base is VITE_API_URL, which the deploy workflow sets
+# to "<PROVIDER_API_URL>/api/provider". A call written as
+# apiFetch("/api/provider/accounts/...") therefore requests
+#
+#     https://api.nayaverse.in/api/provider/api/provider/accounts/...
+#
+# which 404s. Two calls in one file had this -- changing a clinic's domain
+# and polling a provisioning job -- while a third call to the SAME job
+# endpoint, twenty lines away, had it right. Nothing failed at build time
+# and the typecheck cannot see it: it is a string.
+PREFIX_APPS = {
+    "provider-console": "/api/provider",
+    "clinic-web": "/api/clinic",
+}
+
+prefix_problems = []
+for app, prefix in PREFIX_APPS.items():
+    src = ROOT / "apps" / app / "src"
+    if not src.is_dir():
+        continue
+    pattern = re.compile(r"""apiFetch\s*(?:<[^>]*>)?\s*\(\s*[`'"]""" + re.escape(prefix) + r"\b")
+    for path in sorted(src.rglob("*")):
+        if path.suffix not in (".ts", ".tsx"):
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        lines = text.split("\n")
+        for m in pattern.finditer(text):
+            lineno = text[: m.start()].count("\n") + 1
+            prefix_problems.append(
+                f"{app}/{path.relative_to(ROOT / 'apps' / app).as_posix()}:{lineno}  {lines[lineno - 1].strip()[:96]}"
+            )
+
+if prefix_problems:
+    print("\nThese repeat a prefix the API base URL already ends with, so the")
+    print("request path is doubled and the server returns 404:")
+    for p in prefix_problems:
+        print(f"  {p}")
+    print(
+        "\nDrop the prefix. The base already carries it, so the path is the part\n"
+        "AFTER it -- `/accounts/:id/domains`, not `/api/provider/accounts/:id/domains`."
+    )
+    sys.exit(1)
+print("no caller repeats its API base's prefix")
+
 if problems:
     print("\nThese read the build-time API base instead of asking lib/api.ts:")
     for p in problems:

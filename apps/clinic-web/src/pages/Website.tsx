@@ -447,6 +447,15 @@ function LayoutBuilder() {
    * with the page's own payload instead. So a saved design only shows
    * once the frame refetches, and changing its key is what makes it.
    */
+  /**
+   * Which block the inspector on the right is editing.
+   *
+   * Set either by clicking a row in the list or by clicking the block
+   * itself in the preview -- the two are the same selection, which is
+   * what makes the page feel like one tool instead of a form next to a
+   * picture.
+   */
+  const [selected, setSelected] = useState<string | null>(null);
   const [previewNonce, setPreviewNonce] = useState(0);
   const reloadPreview = () => setPreviewNonce((n) => n + 1);
   // Only to show what the fallback would be, so a clinic leaving the
@@ -516,7 +525,7 @@ function LayoutBuilder() {
   };
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] gap-6 items-start">
+    <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)] gap-5 items-start">
       <div className="flex flex-col gap-5 min-w-0">
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
@@ -525,8 +534,16 @@ function LayoutBuilder() {
           {sections.map((s, i) => (
             <div
               key={s.key}
-              className={`group flex items-center gap-2 pl-1 pr-2 py-1.5 rounded-lg border transition-colors ${
-                s.enabled ? 'border-border/10 bg-foreground/[0.02] hover:bg-foreground/[0.04]' : 'border-border/5 bg-transparent'
+              // Selecting from the list and selecting from the preview are
+              // the same selection, so the inspector is never showing one
+              // block while the page highlights another.
+              onClick={() => setSelected(s.key)}
+              className={`group flex items-center gap-2 pl-1 pr-2 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                selected === s.key
+                  ? 'border-primary/50 bg-primary/5'
+                  : s.enabled
+                    ? 'border-border/10 bg-foreground/[0.02] hover:bg-foreground/[0.04]'
+                    : 'border-border/5 bg-transparent'
               }`}
             >
               {/* Reorder targets are 20x16 rather than a 13px glyph: these
@@ -638,8 +655,146 @@ function LayoutBuilder() {
       </Button>
       </div>
 
-      <SitePreview key={previewNonce} sections={sections} theme={theme} heroImagePath={heroImagePath} />
+      <SitePreview
+        key={previewNonce}
+        sections={sections}
+        theme={theme}
+        heroImagePath={heroImagePath}
+        selected={selected}
+        onSelect={setSelected}
+      />
+
+      {/* The inspector. Its own column at xl; below the preview on a
+          narrower screen, because three columns under about 1280px gives
+          each of them too little to be usable. */}
+      <div className="lg:col-span-2 xl:col-span-1 lg:sticky lg:top-6 min-w-0">
+        <SectionInspector
+          selected={selected}
+          sections={sections}
+          onClose={() => setSelected(null)}
+          onToggle={(key) => setSections((prev) => prev.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s)))}
+          onMove={(key, delta) => {
+            const i = sections.findIndex((s) => s.key === key);
+            if (i >= 0) move(i, delta);
+          }}
+        />
+      </div>
     </div>
+  );
+}
+
+/**
+ * The properties of whatever block is selected.
+ *
+ * ── Why this is a fixed vocabulary and not a canvas ──────────────────
+ *
+ * The reference designs for this are block builders, and so is this:
+ * each block has a named set of choices, and the page is a list of
+ * blocks. What is deliberately NOT here is a free canvas with arbitrary
+ * positions, sizes and colours.
+ *
+ * That is not a shortcut. Every layout in the vocabulary is responsive
+ * and contrast-checked, so whatever a clinic builds works on a phone and
+ * is readable. A free canvas hands the clinic the ability to produce a
+ * site that is unreadable on the device most of their patients will open
+ * it on -- and they will not find out, because they built it on a
+ * desktop. The same reasoning already keeps arbitrary fonts and a free
+ * colour picker out of the design settings.
+ */
+function SectionInspector({ selected, sections, onClose, onToggle, onMove }: {
+  selected: string | null;
+  sections: Section[];
+  onClose: () => void;
+  onToggle: (key: SectionKey) => void;
+  onMove: (key: SectionKey, delta: number) => void;
+}) {
+  if (!selected) {
+    return (
+      <Panel title="Block settings">
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">
+          Click a block in the preview, or a row in the list, to edit it here.
+        </p>
+      </Panel>
+    );
+  }
+
+  // The hero is configurable but is not one of the page's sections -- it
+  // always renders -- so it has no row in the list and no on/off.
+  if (selected === 'hero') {
+    return (
+      <Panel title="Hero">
+        <p className="text-xs text-muted-foreground/70 leading-relaxed mb-3">
+          The top of the page. It always shows. Its shape, photo and button are in
+          <strong className="text-foreground/80"> Design</strong>.
+        </p>
+        <button onClick={onClose} className="text-[11px] text-muted-foreground/70 hover:text-primary">
+          Clear selection
+        </button>
+      </Panel>
+    );
+  }
+
+  const key = selected as SectionKey;
+  const meta = SECTION_LABELS[key];
+  const index = sections.findIndex((s) => s.key === key);
+  const section = sections[index];
+
+  if (!meta || !section) {
+    return (
+      <Panel title="Block settings">
+        <p className="text-xs text-muted-foreground/70">
+          That part of the page is not a configurable block.
+        </p>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title={meta.label}>
+      <p className="text-xs text-muted-foreground/70 leading-relaxed mb-3">{meta.hint}</p>
+
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center justify-between gap-3 text-xs">
+          <span>Shown on the page</span>
+          <input
+            type="checkbox"
+            checked={section.enabled}
+            onChange={() => onToggle(key)}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+        </label>
+
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <span className="text-muted-foreground/70">Position {index + 1} of {sections.length}</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onMove(key, -1)}
+              disabled={index === 0}
+              className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 hover:border-border/30 disabled:opacity-30"
+            >
+              Up
+            </button>
+            <button
+              onClick={() => onMove(key, 1)}
+              disabled={index === sections.length - 1}
+              className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 hover:border-border/30 disabled:opacity-30"
+            >
+              Down
+            </button>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed pt-1">
+          How this block is laid out, and the page's typeface, spacing and colours, are in
+          <strong className="text-foreground/80"> Design</strong>. They apply to the whole site
+          rather than to one block, which is what keeps the page looking like one page.
+        </p>
+
+        <button onClick={onClose} className="self-start text-[11px] text-muted-foreground/70 hover:text-primary">
+          Clear selection
+        </button>
+      </div>
+    </Panel>
   );
 }
 
@@ -657,8 +812,12 @@ const DESKTOP_VIEWPORT = 1280;
 const PHONE_VIEWPORT = 390; // iPhone 14, the handset most patients use.
 const PREVIEW_HEIGHT = 720;
 
-function SitePreview({ sections, theme, heroImagePath }: {
+function SitePreview({ sections, theme, heroImagePath, selected, onSelect }: {
   sections: Section[]; theme: string; heroImagePath: string | null;
+  /** The block the inspector is editing, outlined in the frame. */
+  selected: string | null;
+  /** Clicking a block in the page selects it here. */
+  onSelect: (key: string | null) => void;
 }) {
   const frame = useRef<HTMLIFrameElement | null>(null);
   const shell = useRef<HTMLDivElement | null>(null);
@@ -695,11 +854,16 @@ function SitePreview({ sections, theme, heroImagePath }: {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      if ((event.data as { type?: string })?.type === 'clinic-preview-ready') setReady(true);
+      const data = event.data as { type?: string; key?: string } | null;
+      if (data?.type === 'clinic-preview-ready') setReady(true);
+      // Point at a block in the page and the inspector becomes its
+      // settings. The frame knows which block was clicked because every
+      // one renders as <section id="{its key}">.
+      if (data?.type === 'clinic-preview-select' && data.key) onSelect(data.key);
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [onSelect]);
 
   useEffect(() => {
     if (!ready) return;
@@ -707,10 +871,11 @@ function SitePreview({ sections, theme, heroImagePath }: {
       {
         type: 'clinic-preview',
         config: { publicSections: sections, publicTheme: theme, heroImagePath },
+        selected,
       },
       window.location.origin,
     );
-  }, [ready, sections, theme, heroImagePath]);
+  }, [ready, sections, theme, heroImagePath, selected]);
 
   return (
     <div className="lg:sticky lg:top-6 flex flex-col gap-3 min-w-0">
@@ -764,8 +929,9 @@ function SitePreview({ sections, theme, heroImagePath }: {
 
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
         {width === 'desktop' ? `${DESKTOP_VIEWPORT}px desktop` : `${PHONE_VIEWPORT}px phone`}
-        {scale < 1 && `, shown at ${Math.round(scale * 100)}%`}. Section order and theme update as you
-        change them; text and photos come from what is saved.
+        {scale < 1 && `, shown at ${Math.round(scale * 100)}%`}. Click any block to edit it on the
+        right. Section order and theme update as you change them; text and photos come from what is
+        saved.
       </p>
     </div>
   );

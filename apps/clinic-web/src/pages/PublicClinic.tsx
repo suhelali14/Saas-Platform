@@ -90,6 +90,8 @@ class PageProblem extends Error {
 
 export function PublicClinic() {
   const [clinic, setClinic] = useState<Clinic | null>(null);
+  /** Which block the builder has selected. Always null for a real visitor. */
+  const [previewSelection, setPreviewSelection] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [posts, setPosts] = useState<PublicPost[]>([]);
@@ -169,8 +171,15 @@ export function PublicClinic() {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { type?: string; config?: Partial<Clinic> } | null;
-      if (!data || data.type !== 'clinic-preview' || !data.config) return;
+      const data = event.data as
+        | { type?: string; config?: Partial<Clinic>; selected?: string | null }
+        | null;
+      if (!data || data.type !== 'clinic-preview') return;
+      // The selection travels with the config so the builder stays the one
+      // source of truth for what is highlighted, rather than this frame
+      // keeping its own idea of it.
+      if ('selected' in data) setPreviewSelection(data.selected ?? null);
+      if (!data.config) return;
       setClinic((current) => (current ? { ...current, ...data.config } : current));
     };
     window.addEventListener('message', onMessage);
@@ -181,6 +190,76 @@ export function PublicClinic() {
     }
     return () => window.removeEventListener('message', onMessage);
   }, []);
+
+  /**
+   * Click a block in the preview to select it in the builder.
+   *
+   * This is the half that makes the builder feel like a design tool
+   * rather than a form beside a picture: you point at the thing on the
+   * page, and the panel on the right becomes that thing's settings.
+   *
+   * Every configurable block already renders as `<section id="...">`
+   * whose id IS its section key, so there is nothing to thread through
+   * the render tree -- the DOM already carries the identity, and the one
+   * block that lacked an id (the hero) now has one.
+   *
+   * ── Only ever inside the builder ─────────────────────────────────────
+   *
+   * Guarded on `window.parent !== window`, so none of it exists for a
+   * patient: no click interception, no outline, no listener. A visitor's
+   * page behaves exactly as before.
+   *
+   * Clicks are taken in the CAPTURE phase and cancelled, because the
+   * page is full of real links and buttons -- "Book an appointment"
+   * would otherwise navigate the frame away from the page being edited,
+   * and a half-filled feedback form would submit.
+   */
+  useEffect(() => {
+    if (window.parent === window) return;
+
+    const onClickCapture = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const block = target?.closest?.('section[id]') as HTMLElement | null;
+      // A click on the page's own chrome rather than a block: let it be.
+      if (!block?.id) return;
+      event.preventDefault();
+      event.stopPropagation();
+      window.parent.postMessage(
+        { type: 'clinic-preview-select', key: block.id },
+        window.location.origin,
+      );
+    };
+
+    document.addEventListener('click', onClickCapture, true);
+    // Submitting is a second way to leave the page, and a capture-phase
+    // click handler does not stop a form submitted by the Enter key.
+    const onSubmitCapture = (event: Event) => event.preventDefault();
+    document.addEventListener('submit', onSubmitCapture, true);
+
+    return () => {
+      document.removeEventListener('click', onClickCapture, true);
+      document.removeEventListener('submit', onSubmitCapture, true);
+    };
+  }, []);
+
+  /**
+   * Draw the selection, imperatively.
+   *
+   * Done by toggling an attribute on the matching <section> rather than
+   * by passing a `selected` prop down through every block, because the
+   * identity is already in the DOM and threading it would touch every
+   * one of them for something only the builder ever sees.
+   */
+  useEffect(() => {
+    if (window.parent === window) return;
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>('section[id]'))) {
+      const on = el.id === previewSelection;
+      el.toggleAttribute('data-preview-selected', on);
+      el.style.outline = on ? '2px solid hsl(203 85% 50%)' : '';
+      el.style.outlineOffset = on ? '-2px' : '';
+      el.style.cursor = 'pointer';
+    }
+  }, [previewSelection, clinic]);
 
   const changeLocale = (next: string) => {
     try { localStorage.setItem(LOCALE_STORAGE_KEY, next); } catch { /* private mode */ }
@@ -359,7 +438,7 @@ export function PublicClinic() {
           switch (key) {
             case 'about':
               return (
-                <Section rhythm={style.section} key={key}>
+                <Section rhythm={style.section} key={key} id="about">
                   <div className="max-w-3xl">
                     <Label p={p}>{t('about')}</Label>
                     <p className="mt-4 text-lg text-slate-700 leading-relaxed whitespace-pre-line">{clinic.about}</p>
@@ -540,7 +619,7 @@ export function PublicClinic() {
 
             case 'queue':
               return (
-                <Section rhythm={style.section} key={key}>
+                <Section rhythm={style.section} key={key} id="queue">
                   <a href={publicSiteUrl('/live-queue')} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-5 p-7 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-colors">
                     <div className="flex items-start gap-4">
                       <span className="h-11 w-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
@@ -673,7 +752,7 @@ function Hero({ clinic, p, status, timings, doctors, yearsServing, t, design, st
   const centred = variant === 'centred' || variant === 'minimal';
 
   return (
-    <section className={`relative overflow-hidden border-b border-slate-100 ${hasHeroImage && variant === 'banner' ? '' : hasHeroImage && variant === 'split' ? 'bg-white' : `bg-gradient-to-b ${p.gradient} via-slate-50 to-white`}`}>
+    <section id="hero" className={`relative overflow-hidden border-b border-slate-100 ${hasHeroImage && variant === 'banner' ? '' : hasHeroImage && variant === 'split' ? 'bg-white' : `bg-gradient-to-b ${p.gradient} via-slate-50 to-white`}`}>
       {hasHeroImage && variant === 'banner' && (
         <>
           <img src={publicAsset(clinic.heroImagePath!)} alt="" className="absolute inset-0 w-full h-full object-cover" />

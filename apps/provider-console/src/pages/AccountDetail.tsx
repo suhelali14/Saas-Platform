@@ -539,7 +539,7 @@ function Addresses({
     setError(null);
     setResult(null);
     try {
-      const body = await apiFetch<DomainResult>(`/api/provider/accounts/${account.id}/domains`, {
+      const body = await apiFetch<DomainResult>(`/accounts/${account.id}/domains`, {
         method: "PUT",
         body: JSON.stringify({
           slug,
@@ -713,7 +713,7 @@ function DomainOutcome({ result }: { result: DomainResult }) {
     let stop = false;
     const poll = async () => {
       try {
-        const s = await apiFetch<JobStatus>(`/api/provider/provision-jobs/${result.jobId}`);
+        const s = await apiFetch<JobStatus>(`/provision-jobs/${result.jobId}`);
         if (stop) return;
         setJob(s);
         if (s.state === "queued" || s.state === "running") setTimeout(poll, 2000);

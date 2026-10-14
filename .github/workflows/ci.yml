@@ -87,6 +87,14 @@ jobs:
         # chmod.
         run: python3 scripts/check-script-modes.py
 
+      - name: Every section renders under its own id
+        # The public page's nav anchors and the website builder's
+        # click-to-select both look a section up by an id that must equal
+        # its key. The keys are in the API and the ids are JSX string
+        # literals, so nothing but this connects them -- and it has broken
+        # twice, once as a menu item that scrolled nowhere.
+        run: python3 scripts/check-section-ids.py
+
       - name: Only lib/api.ts knows where the API is
         # One bundle serves every clinic, so a build-time API base is
         # always wrong on the platform -- and its localhost fallback
