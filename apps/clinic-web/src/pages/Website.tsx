@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LayoutTemplate, Eye, EyeOff, ChevronUp, ChevronDown, ExternalLink, Palette,
-  Image as ImageIcon, Upload, Trash2, Plus, X, FileText, Star, AlertTriangle, Check, Sparkles,
-} from 'lucide-react';
+  Image as ImageIcon, Upload, Trash2, Plus, X, FileText, Star, AlertTriangle, Check, Sparkles, GripVertical } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { brandingUrl } from './Settings';
@@ -10,6 +9,8 @@ import { publicSiteUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { CanvasOverlay, type BlockRect, type DragState } from '../components/CanvasOverlay';
+import { applyDrop, visibleKeys } from '../lib/canvas-order';
 import { describeClinic } from '../lib/seo';
 import { Label, Textarea } from '../components/ui';
 import { SiteDesigner } from '../components/SiteDesigner';
@@ -456,6 +457,10 @@ function LayoutBuilder() {
    * picture.
    */
   const [selected, setSelected] = useState<string | null>(null);
+  /** A drag in progress, from the canvas or from the palette. */
+  const [drag, setDrag] = useState<DragState | null>(null);
+  /** Where it would land, counted among the blocks currently on the page. */
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [previewNonce, setPreviewNonce] = useState(0);
   const reloadPreview = () => setPreviewNonce((n) => n + 1);
   // Only to show what the fallback would be, so a clinic leaving the
@@ -524,6 +529,32 @@ function LayoutBuilder() {
     }
   };
 
+  /**
+   * Finish a drag by editing the DATA, never the DOM.
+   *
+   * All of the ordering lives in lib/canvas-order, tested on its own,
+   * because the index the canvas reports counts only the blocks it drew
+   * -- not the hidden ones in the data -- and the dragged block is itself
+   * one of them. Getting that correction wrong puts a block one slot out
+   * in one drag direction only, which reads as jitter rather than a bug.
+   */
+  const commitDrag = () => {
+    const d = drag;
+    const at = dropIndex;
+    setDrag(null);
+    setDropIndex(null);
+    if (!d || at === null) return;
+
+    setSections((prev) => applyDrop(prev, d.key, at, d.source));
+    if (d.source === 'palette') {
+      setSelected(d.key);
+      toast.success(`${SECTION_LABELS[d.key as SectionKey]?.label ?? d.key} added. Save to publish it.`);
+    }
+  };
+
+  const visibleOrder = visibleKeys(sections);
+  const hiddenKeys = new Set(sections.filter((s) => !s.enabled).map((s) => s.key));
+
   return (
     <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)] gap-5 items-start">
       <div className="flex flex-col gap-5 min-w-0">
@@ -548,6 +579,25 @@ function LayoutBuilder() {
             >
               {/* Reorder targets are 20x16 rather than a 13px glyph: these
                   are clicked repeatedly while arranging a page. */}
+              {/* Drag a row onto the canvas to place it. A row that is off
+                  the page is a PALETTE drag -- dropping it switches it on
+                  where it landed -- and a row already on the page is the
+                  same move as dragging the block itself. One handle, two
+                  meanings, because to the person doing it they are the
+                  same gesture. */}
+              <span
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelected(s.key);
+                  setDrag({ source: s.enabled ? 'canvas' : 'palette', key: s.key });
+                }}
+                title={s.enabled ? `Drag ${SECTION_LABELS[s.key].label} to move it` : `Drag ${SECTION_LABELS[s.key].label} onto the page`}
+                className="shrink-0 px-0.5 text-muted-foreground/40 hover:text-primary cursor-grab active:cursor-grabbing"
+              >
+                <GripVertical size={12} />
+              </span>
+
               <div className="flex flex-col shrink-0">
                 <button
                   onClick={() => move(i, -1)}
@@ -662,6 +712,15 @@ function LayoutBuilder() {
         heroImagePath={heroImagePath}
         selected={selected}
         onSelect={setSelected}
+        order={visibleOrder}
+        hidden={hiddenKeys}
+        labelFor={(k) => (k === 'hero' ? 'Hero' : SECTION_LABELS[k as SectionKey]?.label ?? k)}
+        drag={drag}
+        dropIndex={dropIndex}
+        onStartDrag={setDrag}
+        onDropIndexChange={setDropIndex}
+        onCommit={commitDrag}
+        onToggleHidden={(k) => setSections((prev) => prev.map((s) => (s.key === k ? { ...s, enabled: !s.enabled } : s)))}
       />
 
       {/* The inspector. Its own column at xl; below the preview on a
@@ -812,16 +871,31 @@ const DESKTOP_VIEWPORT = 1280;
 const PHONE_VIEWPORT = 390; // iPhone 14, the handset most patients use.
 const PREVIEW_HEIGHT = 720;
 
-function SitePreview({ sections, theme, heroImagePath, selected, onSelect }: {
+function SitePreview({
+  sections, theme, heroImagePath, selected, onSelect,
+  order, hidden, labelFor, drag, dropIndex, onStartDrag, onDropIndexChange, onCommit, onToggleHidden,
+}: {
   sections: Section[]; theme: string; heroImagePath: string | null;
   /** The block the inspector is editing, outlined in the frame. */
   selected: string | null;
   /** Clicking a block in the page selects it here. */
   onSelect: (key: string | null) => void;
+  order: string[];
+  hidden: Set<string>;
+  labelFor: (key: string) => string;
+  drag: DragState | null;
+  dropIndex: number | null;
+  onStartDrag: (drag: DragState) => void;
+  onDropIndexChange: (index: number | null) => void;
+  onCommit: () => void;
+  onToggleHidden: (key: string) => void;
 }) {
   const frame = useRef<HTMLIFrameElement | null>(null);
   const shell = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
+  /** Where each block is inside the frame, and how far it is scrolled. */
+  const [blocks, setBlocks] = useState<BlockRect[]>([]);
+  const [frameScrollY, setFrameScrollY] = useState(0);
   const [width, setWidth] = useState<'desktop' | 'phone'>('desktop');
   const [shellWidth, setShellWidth] = useState(0);
 
@@ -860,6 +934,14 @@ function SitePreview({ sections, theme, heroImagePath, selected, onSelect }: {
       // settings. The frame knows which block was clicked because every
       // one renders as <section id="{its key}">.
       if (data?.type === 'clinic-preview-select' && data.key) onSelect(data.key);
+      // The geometry behind the canvas overlay. Republished by the frame
+      // on scroll, resize and whenever the rendered page changes, so the
+      // overlay tracks images and fonts landing after first paint.
+      if (data?.type === 'clinic-preview-layout') {
+        const layout = event.data as { blocks?: BlockRect[]; scrollY?: number };
+        if (layout.blocks) setBlocks(layout.blocks);
+        setFrameScrollY(layout.scrollY ?? 0);
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -917,13 +999,36 @@ function SitePreview({ sections, theme, heroImagePath, selected, onSelect }: {
           height={PREVIEW_HEIGHT * scale}
           url={typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') + '/clinic' : undefined}
         >
-          <iframe
-            ref={frame}
-            src={publicSiteUrl('/')}
-            title="Website preview"
-            className="border-0 origin-top-left"
-            style={{ width: viewport, height: PREVIEW_HEIGHT, transform: `scale(${scale})` }}
-          />
+          {/* The iframe draws the real page; the overlay draws the editing
+              surface at the same coordinates. They are siblings in one
+              positioned box so the two cannot drift apart. */}
+          <div className="relative" style={{ width: viewport * scale, height: PREVIEW_HEIGHT * scale }}>
+            <iframe
+              ref={frame}
+              src={publicSiteUrl('/')}
+              title="Website preview"
+              className="border-0 origin-top-left absolute top-0 left-0"
+              style={{ width: viewport, height: PREVIEW_HEIGHT, transform: `scale(${scale})` }}
+            />
+            <CanvasOverlay
+              blocks={blocks}
+              scrollY={frameScrollY}
+              scale={scale}
+              width={viewport * scale}
+              height={PREVIEW_HEIGHT * scale}
+              order={order}
+              selected={selected}
+              hidden={hidden}
+              labelFor={labelFor}
+              drag={drag}
+              dropIndex={dropIndex}
+              onSelect={(k) => onSelect(k || null)}
+              onStartDrag={onStartDrag}
+              onDropIndexChange={onDropIndexChange}
+              onCommit={onCommit}
+              onToggleHidden={onToggleHidden}
+            />
+          </div>
         </DeviceFrame>
       </div>
 

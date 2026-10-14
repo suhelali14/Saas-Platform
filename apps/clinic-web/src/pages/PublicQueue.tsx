@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Stethoscope, Clock } from 'lucide-react';
+import { Clock, ArrowLeft } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/api';
+import { palette, publicAsset } from '../lib/public-site';
 
 // Public, no login -- the "innovative" feature from the plan's research:
 // real token/queue-transparency displays measurably cut perceived wait time
@@ -8,6 +9,21 @@ import { getApiBaseUrl } from '../lib/api';
 // Deliberately shows only position/status/doctor and a privacy-safe
 // last-4-of-UHID label -- never a name or phone number, since this page has
 // no authentication at all.
+//
+// ── Part of the clinic's website, not a separate screen ──────────────
+//
+// This used to be painted in the STAFF PORTAL's tokens -- bg-background,
+// border-border/10, an emerald accent. A patient who followed "Check the
+// live queue" from the clinic's own site arrived somewhere that plainly
+// belonged to a different product, and once the portal's palette changed
+// this page silently changed with it, for people who never see the
+// portal.
+//
+// It is a patient-facing page, so it is dressed like the rest of the
+// clinic's public site: the same light ground, the clinic's own chosen
+// colour, its logo, and a way back to the site it came from. The palette
+// arrives with the queue payload rather than from a second request,
+// because this page polls.
 
 /** Resolved per request, not once at import: this page is served on
  *  every clinic's hostname from one bundle, and which clinic it is is
@@ -25,6 +41,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function PublicQueue() {
   const [clinicName, setClinicName] = useState('Clinic');
+  const [theme, setTheme] = useState<string | null>(null);
+  const [logoPath, setLogoPath] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
@@ -34,6 +52,8 @@ export function PublicQueue() {
         const res = await fetch(`${publicQueueBase()}/queue`);
         const data = await res.json();
         setClinicName(data.clinicName);
+        setTheme(data.theme ?? null);
+        setLogoPath(data.logoPath ?? null);
         setQueue(data.queue);
         setUpdatedAt(data.updatedAt);
       } catch {
@@ -45,51 +65,113 @@ export function PublicQueue() {
     return () => clearInterval(interval);
   }, []);
 
+  const p = palette(theme);
   const nowServing = queue.find((q) => q.status === 'IN_PROGRESS');
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center">
-      <div className="flex items-center gap-2 mb-8">
-        <Stethoscope size={28} className="text-emerald-400" />
-        <h1 className="text-2xl font-bold">{clinicName}</h1>
-      </div>
-
-      {nowServing && (
-        <div className="mb-10 text-center">
-          <div className="text-sm text-muted-foreground uppercase tracking-widest mb-2">Now Serving</div>
-          <div className="text-7xl font-black text-emerald-400">{nowServing.patientLabel}</div>
-          {nowServing.doctorName && <div className="text-lg text-muted-foreground mt-2">Dr. {nowServing.doctorName}</div>}
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col">
+      {/* The same header shape as the rest of the site, so arriving here
+          from it does not feel like leaving it. */}
+      <header className="border-b border-slate-100">
+        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {logoPath ? (
+              <img src={publicAsset(logoPath)} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+            ) : (
+              <span className={`h-8 w-8 rounded-lg ${p.soft} ${p.ring} grid place-items-center text-sm font-bold shrink-0`}>
+                {clinicName.charAt(0)}
+              </span>
+            )}
+            <span className="font-semibold truncate">{clinicName}</span>
+          </div>
+          <a
+            href="/"
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 shrink-0"
+          >
+            <ArrowLeft size={14} aria-hidden /> Back to the website
+          </a>
         </div>
-      )}
+      </header>
 
-      <div className="w-full max-w-2xl">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70 mb-3 justify-center">
-          <Clock size={11} /> Updates every {REFRESH_MS / 1000}s
-          {updatedAt && <span>· Last: {new Date(updatedAt).toLocaleTimeString()}</span>}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-5 py-10 md:py-14">
+        <div className="text-center mb-10">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Today at the clinic</h1>
+          <p className="mt-1.5 text-sm text-slate-600">
+            Who is being seen now, and who is waiting. No names are shown.
+          </p>
         </div>
-        <div className="flex flex-col gap-2">
-          {queue.length === 0 && <div className="text-center text-muted-foreground/70 py-10">No one in the queue right now.</div>}
-          {queue.map((entry) => (
-            <div
-              key={entry.position}
-              className={`flex items-center justify-between px-5 py-3 rounded-xl border ${
-                entry.status === 'IN_PROGRESS' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-border/10 bg-foreground/[0.02]'
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <span className="text-2xl font-bold text-muted-foreground/70 w-8">{entry.position}</span>
-                <span className="text-lg font-mono">{entry.patientLabel}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                {entry.doctorName && <span className="text-sm text-muted-foreground">Dr. {entry.doctorName}</span>}
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${entry.status === 'IN_PROGRESS' ? 'bg-primary text-primary-foreground' : 'bg-foreground/10 text-foreground/80'}`}>
-                  {STATUS_LABELS[entry.status] ?? entry.status}
-                </span>
-              </div>
+
+        {nowServing ? (
+          <div className={`mb-10 rounded-2xl ${p.soft} px-6 py-8 text-center`}>
+            <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Now serving</div>
+            <div className={`mt-2 text-6xl md:text-7xl font-black tabular-nums ${p.ring}`}>
+              {nowServing.patientLabel}
             </div>
-          ))}
+            {nowServing.doctorName && (
+              <div className="mt-2 text-slate-600">with Dr. {nowServing.doctorName}</div>
+            )}
+          </div>
+        ) : (
+          queue.length > 0 && (
+            <div className="mb-10 rounded-2xl bg-slate-50 px-6 py-6 text-center text-slate-600">
+              Nobody is in with the doctor at the moment.
+            </div>
+          )
+        )}
+
+        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mb-4">
+          <Clock size={11} aria-hidden /> Updates every {REFRESH_MS / 1000} seconds
+          {updatedAt && <span>· last checked {new Date(updatedAt).toLocaleTimeString()}</span>}
         </div>
-      </div>
+
+        {queue.length === 0 ? (
+          /* An empty queue is good news for whoever is reading this, so it
+             says so rather than reporting an absence of data. */
+          <div className="rounded-2xl border border-slate-200 px-6 py-12 text-center">
+            <p className="font-medium">There is no queue right now.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Come in and you will be seen shortly.
+            </p>
+          </div>
+        ) : (
+          <ol className="flex flex-col gap-2">
+            {queue.map((entry) => {
+              const serving = entry.status === 'IN_PROGRESS';
+              return (
+                <li
+                  key={entry.position}
+                  className={`flex items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-xl border ${
+                    serving ? `${p.soft} border-transparent` : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <span className="text-xl font-bold tabular-nums text-slate-400 w-7 shrink-0">
+                      {entry.position}
+                    </span>
+                    <span className="text-base font-mono truncate">{entry.patientLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {entry.doctorName && (
+                      <span className="hidden sm:inline text-sm text-slate-600">Dr. {entry.doctorName}</span>
+                    )}
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                        serving ? `${p.solid} text-white` : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {STATUS_LABELS[entry.status] ?? entry.status}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <p className="mt-8 text-center text-xs text-slate-500">
+          Patients are shown by file number, never by name.
+        </p>
+      </main>
     </div>
   );
 }

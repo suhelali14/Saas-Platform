@@ -243,6 +243,84 @@ export function PublicClinic() {
   }, []);
 
   /**
+   * Publish where every block is, so the builder can draw a canvas over it.
+   *
+   * ── Why geometry rather than drag handling in here ───────────────────
+   *
+   * Dragging cannot happen inside the frame. A pointer that starts in an
+   * iframe keeps sending its events to that frame's document, so a drag
+   * begun on a block and finished over the builder's left panel would be
+   * lost halfway; HTML5 drag-and-drop across a frame boundary is worse
+   * still. So the frame does the one thing only it can do -- say where
+   * things are -- and the builder draws its own interaction layer on top
+   * at the same coordinates.
+   *
+   * That is also the pattern the established builders use: the canvas is
+   * an iframe showing the real page, the editor overlays it, and a drag
+   * edits the DATA. The DOM here is never reordered by a drag. It changes
+   * only because the config changed and this page re-rendered -- so the
+   * preview cannot drift from what will actually be published.
+   *
+   * Coordinates are relative to this document, with the scroll offset
+   * sent alongside, so the builder can place its overlay correctly
+   * whatever the frame is scrolled to.
+   */
+  useEffect(() => {
+    if (window.parent === window) return;
+
+    let frame = 0;
+    const publish = () => {
+      const blocks = Array.from(document.querySelectorAll<HTMLElement>('section[id]')).map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          key: el.id,
+          top: r.top + window.scrollY,
+          left: r.left + window.scrollX,
+          width: r.width,
+          height: r.height,
+        };
+      });
+      window.parent.postMessage(
+        {
+          type: 'clinic-preview-layout',
+          blocks,
+          scrollY: window.scrollY,
+          docHeight: document.documentElement.scrollHeight,
+        },
+        window.location.origin,
+      );
+    };
+
+    // Coalesced to one publish per frame: a scroll fires far more often
+    // than the overlay can usefully be redrawn, and each publish walks
+    // every block and forces layout.
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        publish();
+      });
+    };
+
+    schedule();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    // Images and fonts land after first paint and change every height
+    // below them, so a one-shot measurement would be wrong within a
+    // second of being taken.
+    const observer = new ResizeObserver(schedule);
+    observer.observe(document.body);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      observer.disconnect();
+    };
+    // Re-measured whenever the rendered page changes, not only on mount.
+  }, [clinic, previewSelection]);
+
+  /**
    * Draw the selection, imperatively.
    *
    * Done by toggling an attribute on the matching <section> rather than

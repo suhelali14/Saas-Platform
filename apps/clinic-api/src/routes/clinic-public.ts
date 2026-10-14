@@ -191,7 +191,13 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/clinic/public/queue", async () => {
-    const clinic = await prisma.clinic.findFirst({ select: { name: true } });
+    // The theme comes back with the queue so the waiting-room display can
+    // be the clinic's own page rather than a differently-coloured one.
+    // Carried here rather than fetched separately because this endpoint is
+    // polled every 20 seconds and the clinic's palette is one short string.
+    const clinic = await prisma.clinic.findFirst({
+      select: { name: true, publicTheme: true, logoPath: true },
+    });
 
     const now = new Date();
     const startOfDay = new Date(now);
@@ -221,6 +227,12 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
       patientLabel: `···${appt.patient.uhid.slice(-4)}`,
     }));
 
-    return { clinicName: clinic?.name ?? "Clinic", updatedAt: now.toISOString(), queue };
+    return {
+      clinicName: clinic?.name ?? "Clinic",
+      theme: clinic?.publicTheme ?? null,
+      logoPath: clinic?.logoPath ?? null,
+      updatedAt: now.toISOString(),
+      queue,
+    };
   });
 }
