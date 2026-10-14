@@ -55,6 +55,15 @@ jobs:
             echo "--- $app ---"
             ( cd "apps/$app" && npx tsc -b )
           done
+          # The seed and password-reset scripts live outside src/, so the
+          # configs above do not include them, and they run through tsx,
+          # which strips types without checking them. They were the only
+          # code here that nothing compiled -- and they are what writes to
+          # an established clinic's database.
+          for app in clinic-api provider-api; do
+            echo "--- $app scripts ---"
+            ( cd "apps/$app" && npx tsc -p tsconfig.scripts.json )
+          done
 
       # Subdomain routing, the CORS origin check and slug validation all
       # fail OPEN if they regress: a wrong hostname match would point one

@@ -3,7 +3,10 @@ import { FlaskConical, CheckCircle2, Download, Upload } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, openPdf, ApiError, getApiBaseUrl } from '../lib/api';
 
-interface LabItem { id: string; testName: string; resultText: string | null; resultFilePath: string | null; resultFileName: string | null; completedAt: string | null }
+// `normalRange` comes from the clinic's test catalogue, joined by name on
+// the server. Null when the test was typed in free-hand and matches no
+// catalogue entry, so every use of it has to tolerate that.
+interface LabItem { id: string; testName: string; normalRange: string | null; resultText: string | null; resultFilePath: string | null; resultFileName: string | null; completedAt: string | null }
 interface LabOrderRow {
   id: string; createdAt: string; status: string;
   patient: { id: string; name: string; uhid: string };
@@ -97,7 +100,18 @@ export function Labs() {
               {order.items.map((item) => (
                 <div key={item.id} className="p-2.5 rounded-lg bg-foreground/[0.02] border border-border/5">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">{item.testName}</span>
+                    <span className="text-sm font-medium">
+                      {item.testName}
+                      {/* Shown beside the name rather than only in the input,
+                          so it is still there when someone reads the result
+                          back weeks later -- which is when the reference
+                          actually gets used. */}
+                      {item.normalRange && (
+                        <span className="ml-2 font-normal text-[11px] text-muted-foreground/70" title="Indicative adult reference range. Intervals vary by laboratory and method -- the range printed on the lab's own report governs.">
+                          ref {item.normalRange}
+                        </span>
+                      )}
+                    </span>
                     {item.completedAt && <span className="text-[10px] text-emerald-400">Done</span>}
                   </div>
                   {item.resultText && <p className="text-xs text-foreground/80 mb-1">{item.resultText}</p>}
@@ -109,7 +123,7 @@ export function Labs() {
                   {!item.completedAt && (
                     <div className="flex items-center gap-2 mt-1">
                       <input
-                        placeholder="Enter result..."
+                        placeholder={item.normalRange ? `Enter result  (ref ${item.normalRange})` : 'Enter result...'}
                         value={resultDrafts[item.id] || ''}
                         onChange={(e) => setResultDrafts({ ...resultDrafts, [item.id]: e.target.value })}
                         className="flex-1 px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none"

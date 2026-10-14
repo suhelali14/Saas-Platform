@@ -20,6 +20,51 @@ const LAB_ORDER_INCLUDE = {
   items: true,
 };
 
+/**
+ * Attaches each test's reference range to an order's items.
+ *
+ * The catalogue has carried a `normalRange` for every seeded test since
+ * it was created -- "70-100 mg/dL", "<5.7%" -- and nothing ever read it.
+ * So whoever typed a result in saw a bare input box, and a doctor reading
+ * "HbA1c 14.2" later had nothing beside it to say that is badly out of
+ * range. The data was already there; only the join was missing.
+ *
+ * Looked up by name rather than through a foreign key because
+ * `LabOrderItem.testName` is deliberately a denormalized string:
+ * renaming a catalogue entry must not rewrite what an already-issued
+ * order says it tested. One query for the whole catalogue (~25 rows),
+ * then a map, so this costs the same whether an order has one item or
+ * twenty.
+ *
+ * ── The range is shown and never judged ──────────────────────────────
+ *
+ * No out-of-range flag is computed. Deciding that reliably would mean
+ * parsing "70-100 mg/dL", "<140 mg/dL" and "<5.7%" against a free-text
+ * result, and a wrong abnormal flag on a clinical value is worse than no
+ * flag at all: the first false alarm teaches the reader to ignore it, and
+ * a missed one reads as reassurance. The clinician gets the reference
+ * beside the number and makes the call.
+ */
+async function rangeByTestName(): Promise<Map<string, string | null>> {
+  const tests = await prisma.labTest.findMany({ select: { name: true, normalRange: true } });
+  // Case-insensitively, so a test recorded with different capitalisation
+  // than the catalogue still finds its range.
+  return new Map(tests.map((t) => [t.name.trim().toLowerCase(), t.normalRange]));
+}
+
+function withRanges<T extends { items: { testName: string }[] }>(
+  order: T,
+  ranges: Map<string, string | null>,
+) {
+  return {
+    ...order,
+    items: order.items.map((item) => ({
+      ...item,
+      normalRange: ranges.get(item.testName.trim().toLowerCase()) ?? null,
+    })),
+  };
+}
+
 export async function clinicLabRoutes(app: FastifyInstance) {
   // Small seeded catalog for the "order tests during consult" picker --
   // nothing like the 250k-row drug dataset's scale, ~20-30 common OPD tests.
@@ -42,7 +87,8 @@ export async function clinicLabRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
-    return { data: orders };
+    const ranges = await rangeByTestName();
+    return { data: orders.map((order) => withRanges(order, ranges)) };
   });
 
   app.get("/api/clinic/lab-orders/:id", async (request, reply) => {
@@ -52,7 +98,7 @@ export async function clinicLabRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const order = await prisma.labOrder.findUnique({ where: { id }, include: LAB_ORDER_INCLUDE });
     if (!order) return reply.status(404).send({ error: "Not found" });
-    return order;
+    return withRanges(order, await rangeByTestName());
   });
 
   // Doctor orders tests during a consult -- same clinical-write gate as
@@ -77,7 +123,7 @@ export async function clinicLabRoutes(app: FastifyInstance) {
       },
       include: LAB_ORDER_INCLUDE,
     });
-    return reply.status(201).send(order);
+    return reply.status(201).send(withRanges(order, await rangeByTestName()));
   });
 
   async function maybeCompleteOrder(labOrderId: string) {

@@ -24,7 +24,7 @@ interface CaseSheet {
 interface PrescriptionItemT { drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface Prescription { id: string; createdAt: string; doctor: Doctor; items: PrescriptionItemT[] }
 interface Certificate { id: string; type: string; content: string; createdAt: string; doctor: Doctor }
-interface LabOrderItemT { id: string; testName: string; resultText: string | null; completedAt: string | null }
+interface LabOrderItemT { id: string; testName: string; normalRange: string | null; resultText: string | null; completedAt: string | null }
 interface LabOrder { id: string; status: string; createdAt: string; doctor: Doctor; items: LabOrderItemT[] }
 interface PreviousVisit { createdAt: string; diagnosis: string | null; chiefComplaint: string | null; followUpDate: string | null }
 
@@ -214,6 +214,9 @@ export function Encounter() {
             {order.items.map((item) => (
               <div key={item.id} className="text-sm flex items-center gap-2">
                 <span>{item.testName}</span>
+                {/* The doctor reading a result mid-consultation is exactly
+                    who needs the reference beside it. */}
+                {item.normalRange && <span className="text-[11px] text-muted-foreground/70">ref {item.normalRange}</span>}
                 {item.completedAt ? <span className="text-emerald-400 text-xs">Result: {item.resultText || 'file uploaded'}</span> : <span className="text-amber-400 text-xs">Pending</span>}
               </div>
             ))}

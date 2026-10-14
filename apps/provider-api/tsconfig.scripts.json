@@ -1,0 +1,24 @@
+{
+  // The provisioning scripts -- seed and password reset.
+  //
+  // tsconfig.json cannot cover these: it sets rootDir to "src" so dist/
+  // has a stable shape, and adding prisma/ to it would move the build
+  // output. They run through tsx, which strips types without checking
+  // them, so without this file they are the only code in the repository
+  // that nothing ever compiles.
+  //
+  // They are also the code that writes to an ESTABLISHED clinic's
+  // database. A seed that silently reset the doctor's password, renamed
+  // the clinic and re-derived its UHID prefix survived several phases
+  // partly because no tool ever read this file.
+  //
+  // Typecheck only, never emit -- tsx is what runs them.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["prisma"]
+}
