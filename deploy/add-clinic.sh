@@ -42,6 +42,9 @@ done
 log()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
 die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
+# Something went wrong but the deployment is still usable. Yellow, on
+# stderr, and it does NOT exit -- see the catalogue import.
+warn() { printf '\033[33m    %s\033[0m\n' "$*" >&2; }
 
 [ "$(id -u)" = "0" ] || die "Run as root (sudo $0 <slug>)"
 [ -n "$SLUG" ] || die "Usage: sudo $0 <slug> [--plan BASIC|STANDARD|PREMIUM]"
@@ -253,6 +256,46 @@ docker run --rm \
   -w /app/apps/clinic-api \
   "$IMAGE" npx tsx prisma/seed-clinic.ts \
   || die "seed failed"
+
+# ── The medicine catalogue ────────────────────────────────────────────
+#
+# This step did not exist, and its absence is why the first clinic could
+# not search for a medicine. seed-clinic.ts creates the clinic, the first
+# login and the lab-test list, then prints "Drug table is empty -- run
+# npm run seed:drugs" and carries on. Nothing ever ran it. So the
+# prescription screen -- the core of the product -- had an autocomplete
+# over nothing, on a table the dev database had 246,069 rows in.
+#
+# It is ~246,000 rows from a 32MB download, inserted in batches of 5,000,
+# so it is bound by round trips to the database rather than by CPU. Expect
+# SEVERAL MINUTES, and longer the further the database is from the host --
+# a run from a laptop to Neon took over ten. From this VPS to a Neon
+# project in the same region it is considerably quicker, but do not stand
+# over it expecting a minute.
+#
+# Idempotent: import-drugs.ts replaces only the rows it imported
+# (addedManually = false), so a resumed provision does not duplicate
+# anything and never touches a medicine a doctor added by hand. Verified:
+# a re-import left the one hand-added drug untouched, same id, and the
+# script's own count check reported 246,069 against 246,068 imported.
+#
+# A failure here does NOT abort. Everything above it is already correct
+# and the clinic is usable -- a doctor can still type a medicine name
+# freely, the field has never required a catalogue match. Losing a
+# working deployment over a failed download would be the wrong trade. But
+# it is reported loudly, with the exact command to re-run, because a
+# clinic that silently has no medicines is what started this.
+log "Importing the medicine catalogue (~246k rows -- several minutes)"
+if docker run --rm --env-file "$ENV_DIR/$SLUG.env" -w /app/apps/clinic-api \
+     "$IMAGE" npx tsx prisma/seed-data/import-drugs.ts; then
+  info "medicine catalogue imported"
+else
+  warn "MEDICINE CATALOGUE NOT IMPORTED."
+  warn "  The clinic works, but the prescription autocomplete will find nothing"
+  warn "  until this is run. Re-run it any time with:"
+  warn "    docker run --rm --env-file $ENV_DIR/$SLUG.env -w /app/apps/clinic-api \\"
+  warn "      \$(cat $ROOT/.image) npx tsx prisma/seed-data/import-drugs.ts"
+fi
 
 # ── nginx + TLS ───────────────────────────────────────────────────────
 log "Configuring nginx for $API_HOST"

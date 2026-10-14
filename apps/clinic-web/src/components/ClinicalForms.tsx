@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
+import { cn } from '@/lib/utils';
 import { Button } from './Button';
 import { Pick } from './Field';
 import { SegmentedControl } from './SegmentedControl';
@@ -10,7 +11,13 @@ import { doseConflict, frequencyFromDose, parseDose, shouldDeriveFrequency } fro
 import { RotateCcw, AlertTriangle } from 'lucide-react';
 
 export interface PrescriptionItem { drugId?: string; drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
-interface Drug { id: string; name: string; composition: string | null; manufacturer: string | null }
+interface Drug {
+  id: string; name: string; composition: string | null; manufacturer: string | null;
+  /** Why the server matched this -- 'composition' means it matched the salt. */
+  matchedOn?: 'name' | 'composition';
+  /** A spelling-tolerant match, not what was typed. Always shown as such. */
+  approximate?: boolean;
+}
 interface Template { id: string; name: string; items: PrescriptionItem[] }
 
 const FREQUENCIES = ['OD', 'BD', 'TDS', 'QID', 'SOS', 'STAT'];
@@ -199,23 +206,65 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
     apiFetch<{ data: Template[] }>('/prescription-templates').then((res) => setTemplates(res.data)).catch(() => {});
   }, []);
 
-  const searchDrug = async (index: number, query: string) => {
+  /**
+   * Autocomplete, debounced and cancellable, per row.
+   *
+   * It used to fire on every keystroke with nothing cancelling anything:
+   * typing "paracetamol" was eleven searches of a 246,000-row catalogue,
+   * and because the responses could land in any order, a slow early one
+   * could arrive last and replace the list with results for "par". The
+   * dropdown then disagreed with the box above it -- and the next click
+   * attached a drugId for a medicine the doctor had not searched for,
+   * which is what the pharmacy decrements stock against.
+   *
+   * So: one request per pause, and the previous one is aborted. Eleven
+   * keystrokes now cost one query.
+   */
+  const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const inflight = useRef<Record<number, AbortController>>({});
+
+  // Nothing should be left running after this form closes.
+  useEffect(
+    () => () => {
+      Object.values(timers.current).forEach(clearTimeout);
+      Object.values(inflight.current).forEach((c) => c.abort());
+    },
+    [],
+  );
+
+  const searchDrug = (index: number, query: string) => {
     // Typing away from a previously-matched suggestion clears drugId -- the
     // link should only survive an exact pick, never a free-text edit,
     // otherwise stock could get decremented against the wrong medicine.
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, drugName: query, drugId: undefined } : it)));
-    if (query.length < 2) {
+
+    clearTimeout(timers.current[index]);
+    inflight.current[index]?.abort();
+
+    if (query.trim().length < 2) {
       setSuggestions((s) => ({ ...s, [index]: [] }));
       setSearchedEmpty((s) => ({ ...s, [index]: false }));
       return;
     }
-    try {
-      const res = await apiFetch<{ data: Drug[] }>(`/drugs?search=${encodeURIComponent(query)}`);
-      setSuggestions((s) => ({ ...s, [index]: res.data }));
-      setSearchedEmpty((s) => ({ ...s, [index]: res.data.length === 0 }));
-    } catch {
-      // ignore
-    }
+
+    // 180ms: below the gap between keystrokes in ordinary typing, so a
+    // request is only sent once someone has actually stopped.
+    timers.current[index] = setTimeout(async () => {
+      const controller = new AbortController();
+      inflight.current[index] = controller;
+      try {
+        const res = await apiFetch<{ data: Drug[] }>(
+          `/drugs?search=${encodeURIComponent(query.trim())}`,
+          { signal: controller.signal },
+        );
+        setSuggestions((s) => ({ ...s, [index]: res.data }));
+        setSearchedEmpty((s) => ({ ...s, [index]: res.data.length === 0 }));
+      } catch {
+        // An abort is the expected path here, not a failure worth showing.
+      } finally {
+        if (inflight.current[index] === controller) delete inflight.current[index];
+      }
+    }, 180);
   };
 
   const addNewMedicine = async (index: number, name: string) => {
@@ -361,8 +410,23 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
                 {suggestions[i].map((d) => (
                   <button type="button" key={d.id} onClick={() => { setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, drugName: d.name, drugId: d.id } : it))); setSuggestions((s) => ({ ...s, [i]: [] })); }} className="block w-full text-left px-2 py-1.5 text-xs hover:bg-foreground/5">
-                    <div>{d.name}</div>
-                    {d.composition && <div className="text-[10px] text-muted-foreground/70 truncate">{d.composition}</div>}
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate">{d.name}</span>
+                      {/* Never silent. The catalogue spells it "Amoxycillin",
+                          so a doctor typing "amoxicillin" is shown a near
+                          match -- and told that is what it is, because the
+                          alternative is reading it as an exact hit. */}
+                      {d.approximate && (
+                        <span className="shrink-0 px-1 py-px rounded text-[9px] uppercase tracking-wide bg-warning/15 text-warning" title="A close spelling match, not what you typed. Check the composition.">
+                          similar
+                        </span>
+                      )}
+                    </div>
+                    {d.composition && (
+                      <div className={cn('text-[10px] truncate', d.matchedOn === 'composition' ? 'text-emerald-400/80' : 'text-muted-foreground/70')}>
+                        {d.composition}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>

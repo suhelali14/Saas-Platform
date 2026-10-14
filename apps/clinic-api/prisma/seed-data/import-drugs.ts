@@ -81,6 +81,24 @@ async function main() {
     process.stdout.write(`\rImported ${imported}/${active.length}...`);
   }
   console.log(`\nDone. ${imported} medicines imported.`);
+
+  // An exit code says the script ran, not that the catalogue is usable.
+  //
+  // `createMany({ skipDuplicates: true })` returns a count of rows it
+  // actually inserted, so a run that skipped everything reports a small
+  // number and still exits 0 -- and the clinic gets a prescription
+  // screen whose autocomplete finds nothing. That is precisely the
+  // failure this import existed to prevent and did not, because nothing
+  // ever checked the table afterwards.
+  const inTable = await prisma.drug.count({ where: { isDiscontinued: false } });
+  console.log(`Catalogue now holds ${inTable} searchable medicines.`);
+  if (inTable < 1000) {
+    throw new Error(
+      `Only ${inTable} medicines are in the table after importing. Tens of thousands ` +
+        `were expected, so the prescription autocomplete would find almost nothing. ` +
+        `Refusing to report this as success.`,
+    );
+  }
 }
 
 main()
