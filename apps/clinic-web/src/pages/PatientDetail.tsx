@@ -338,8 +338,8 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
       <h3 className="col-span-2 text-sm font-semibold">Edit Patient</h3>
       {error && <div className="col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+      <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <Pick
         value={form.gender}
         onChange={(gender) => setForm({ ...form, gender })}
@@ -347,8 +347,8 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
         placeholder="Gender"
         options={GENDERS}
       />
-      <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+      <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <div className="col-span-2">
         <label className="block text-xs font-medium text-muted-foreground mb-1">OPD Priority Category</label>
         <Pick
@@ -357,8 +357,8 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
           options={PATIENT_CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
         />
       </div>
-      <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+      <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
       {/* Behind a disclosure on purpose. Registration happens at a
           counter with a queue behind the patient, so the fields that
@@ -369,24 +369,24 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
           Emergency contact, insurance, referral and desk notes
         </summary>
         <div className="grid grid-cols-2 gap-3 border-t border-border/10 p-3">
-          <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
           <p className="col-span-2 -mb-1 text-[11px] text-muted-foreground">
             Emergency contact — who to ring if this patient cannot answer for themselves.
           </p>
-          <input placeholder="Contact name" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Contact phone" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Relationship (son, wife, neighbour…)" value={form.emergencyContactRelation} onChange={(e) => setForm({ ...form, emergencyContactRelation: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Contact name" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Contact phone" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Relationship (son, wife, neighbour…)" value={form.emergencyContactRelation} onChange={(e) => setForm({ ...form, emergencyContactRelation: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
           <p className="col-span-2 -mb-1 text-[11px] text-muted-foreground">
             Insurance, for a cashless claim.
           </p>
-          <input placeholder="Insurer / TPA" value={form.insuranceProvider} onChange={(e) => setForm({ ...form, insuranceProvider: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Policy number" value={form.insurancePolicyNumber} onChange={(e) => setForm({ ...form, insurancePolicyNumber: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Insurer / TPA" value={form.insuranceProvider} onChange={(e) => setForm({ ...form, insuranceProvider: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Policy number" value={form.insurancePolicyNumber} onChange={(e) => setForm({ ...form, insurancePolicyNumber: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
-          <input placeholder="Referred by (doctor, neighbour, search…)" value={form.referredBy} onChange={(e) => setForm({ ...form, referredBy: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Referred by (doctor, neighbour, search…)" value={form.referredBy} onChange={(e) => setForm({ ...form, referredBy: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
-          <textarea placeholder="Desk note — prefers Marathi, hard of hearing, comes with her son" value={form.deskNote} onChange={(e) => setForm({ ...form, deskNote: e.target.value })} rows={2} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <textarea placeholder="Desk note — prefers Marathi, hard of hearing, comes with her son" value={form.deskNote} onChange={(e) => setForm({ ...form, deskNote: e.target.value })} rows={2} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           <p className="col-span-2 text-[11px] text-muted-foreground/70">
             The desk note is visible to reception. Anything clinical belongs in the case sheet.
           </p>

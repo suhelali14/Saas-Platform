@@ -37,7 +37,11 @@ import { cn } from "@/lib/utils";
 const cardVariants = cva("rounded-xl text-card-foreground", {
   variants: {
     variant: {
-      panel: "border border-border bg-card",
+      // A soft, wide shadow rather than a hard border is what makes a
+      // card read as floating on the blue-grey ground, which is the whole
+      // look of the reference design. Kept very low opacity: on a dense
+      // clinical screen a heavy shadow under every panel turns into mud.
+      panel: "border border-border/10 bg-card shadow-[0_2px_12px_-4px_hsl(215_55%_18%_/_0.10)]",
       subtle: "border border-border/10 bg-foreground/[0.02]",
       ghost: "border border-border/10",
       stat: "border border-border/10 bg-foreground/[0.02]",
@@ -45,7 +49,7 @@ const cardVariants = cva("rounded-xl text-card-foreground", {
     interactive: {
       // A real focus ring, because these become buttons and links and a
       // keyboard user has to be able to see where they are.
-      true: "transition-colors cursor-pointer hover:border-border/30 hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60",
+      true: "transition-colors cursor-pointer hover:border-border/30 hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
       false: "",
     },
   },

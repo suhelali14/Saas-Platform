@@ -120,14 +120,14 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Case Sheet</h3>
       {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+      <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
       </div>
       {initialVitals && Object.values(initialVitals).some(Boolean) && (
         <p className="text-xs text-emerald-400">Pre-filled from the nurse's pre-consult vitals.</p>
@@ -141,8 +141,8 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
           ))}
         </div>
       )}
-      <input placeholder="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-      <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+      <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">Follow-up date (optional)</label>
         <DatePicker value={form.followUpDate} onChange={(iso) => setForm({ ...form, followUpDate: iso })} label="Follow-up date" placeholder="No follow-up" min={todayInput()} clearable />
@@ -404,7 +404,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               placeholder="Drug name"
               value={item.drugName}
               onChange={(e) => searchDrug(i, e.target.value)}
-              className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
+              className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary"
             />
             {(suggestions[i]?.length ?? 0) > 0 && (
               <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
@@ -463,7 +463,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
             onChange={(f) => updateItem(i, 'frequency', f)}
             options={FREQUENCIES.map((f) => ({ value: f, label: f }))}
           />
-          <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400" />
+          <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
           <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} aria-label="Remove this medicine" className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>
 
           {/* Instructions print as a sub-row beneath the medicine on the
@@ -473,7 +473,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
             placeholder="Instructions (optional) — e.g. after food, with plenty of water"
             value={item.instructions ?? ''}
             onChange={(e) => updateItem(i, 'instructions', e.target.value)}
-            className="col-span-2 sm:col-span-11 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
+            className="col-span-2 sm:col-span-11 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary"
           />
 
           {/* Warned, never blocked -- see updateDose. */}
@@ -487,7 +487,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
       ))}
       <button type="button" onClick={addRow} className="self-start text-xs text-emerald-400 hover:underline">+ Add drug</button>
 
-      <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+      <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
       <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Prescription'}
@@ -552,7 +552,7 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
       )}
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">Content (leave blank to auto-generate)</label>
-        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       </div>
       <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Issuing...' : 'Issue Certificate'}

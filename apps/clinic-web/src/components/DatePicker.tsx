@@ -75,7 +75,7 @@ export function DatePicker({
           className={cn(
             'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs',
             'bg-foreground/5 border border-border/10 outline-none transition-colors',
-            'hover:border-border/30 focus-visible:border-emerald-400',
+            'hover:border-border/30 focus-visible:border-primary',
             'disabled:opacity-40 disabled:pointer-events-none',
             className,
           )}
@@ -126,7 +126,7 @@ export function DatePicker({
                   key={q.label}
                   type="button"
                   onClick={() => pick(q.iso)}
-                  className="px-2 py-1 rounded-lg text-[11px] bg-foreground/5 border border-border/10 hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
+                  className="px-2 py-1 rounded-lg text-[11px] bg-foreground/5 border border-border/10 hover:border-primary/50 hover:text-primary transition-colors"
                 >
                   {q.label}
                 </button>

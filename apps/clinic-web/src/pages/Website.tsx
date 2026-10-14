@@ -629,7 +629,7 @@ function LayoutBuilder() {
           value={mapEmbedUrl}
           onChange={(e) => setMapEmbedUrl(e.target.value)}
           placeholder="https://www.google.com/maps/embed?pb=..."
-          className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
+          className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
         />
       </Panel>
 
@@ -1131,7 +1131,7 @@ function FeedbackManager() {
 
 /* ── Shared ────────────────────────────────────────────────────────────── */
 
-const fieldCls = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400';
+const fieldCls = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary';
 
 function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (

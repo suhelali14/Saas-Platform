@@ -242,7 +242,7 @@ function DownloadCsvButton() {
   );
 }
 
-const selectCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
+const selectCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary';
 
 function FilterSelect({ label, value, onChange, options }: {
   label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];

@@ -94,8 +94,8 @@ export function Patients() {
 
       {showNew && (
         <form onSubmit={createPatient} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           <Pick
             value={form.gender}
             onChange={(gender) => setForm({ ...form, gender })}
@@ -103,8 +103,8 @@ export function Patients() {
             placeholder="Gender"
             options={GENDERS}
           />
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Blood group" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           <div className="col-span-2">
             <label className="block text-xs font-medium text-muted-foreground mb-1">OPD Priority Category</label>
             <Pick
@@ -113,8 +113,8 @@ export function Patients() {
               options={PATIENT_CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
             />
           </div>
-          <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
-          <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+          <input placeholder="Known allergies" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+          <input placeholder="Chronic conditions" value={form.chronicConditions} onChange={(e) => setForm({ ...form, chronicConditions: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           <button type="submit" disabled={creating} className="col-span-2 self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {creating ? 'Adding...' : 'Add Patient'}
           </button>
@@ -127,7 +127,7 @@ export function Patients() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, UHID (file no.), or phone..."
-          className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
         />
       </div>
 

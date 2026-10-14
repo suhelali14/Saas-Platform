@@ -53,10 +53,13 @@
     --popover: 220 20% 8%;
     --popover-foreground: 0 0% 100%;
 
-    /* Teal, matching the clinic's own default public palette, so the two
-       halves of the product do not look like two products. */
-    --primary: 174 80% 36%;
-    --primary-foreground: 0 0% 100%;
+    /* Sky blue. Both halves of the product share it, so the staff portal
+       and the clinic's public site do not look like two products.
+       Brighter here than in the light theme: the same hue at the same
+       lightness reads muddy on a dark ground and washed out on a white
+       one, so each theme carries its own value. */
+    --primary: 199 85% 55%;
+    --primary-foreground: 210 60% 12%;
 
     --secondary: 220 14% 16%;
     --secondary-foreground: 0 0% 100%;
@@ -80,34 +83,41 @@
 
     --border: 0 0% 100%;  /* used at low opacity, as border-white/10 was */
     --input: 220 14% 18%;
-    --ring: 174 80% 40%;
+    --ring: 199 85% 58%;
 
-    --radius: 0.5rem;
+    /* 12px. The reference design's cards are noticeably rounder than
+       shadcn's 8px default, and the portal is mostly cards. */
+    --radius: 0.75rem;
   }
 
   /* Reception works in daylight at a front desk, so the portal offers a
      light theme. Applied by ThemeContext as a class on <html>. */
   :root.theme-light {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 14%;
+    /* A soft blue-grey page with white cards floating on it, rather than
+       white-on-white. That separation is what makes a dense screen
+       readable without drawing a border around everything. */
+    --background: 225 45% 96%;
+    --foreground: 215 55% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 14%;
+    --card-foreground: 215 55% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 14%;
+    --popover-foreground: 215 55% 18%;
 
-    --primary: 174 80% 30%;
+    /* Deeper than the dark theme's blue: the same sky blue that reads
+       bright on near-black fails contrast as a link on white. */
+    --primary: 203 85% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 94%;
-    --secondary-foreground: 222 47% 14%;
+    --secondary: 225 40% 93%;
+    --secondary-foreground: 215 55% 18%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 42%;
+    --muted: 225 40% 95%;
+    --muted-foreground: 215 20% 48%;
 
-    --accent: 210 40% 92%;
-    --accent-foreground: 222 47% 14%;
+    --accent: 225 40% 91%;
+    --accent-foreground: 215 55% 18%;
 
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
@@ -117,9 +127,9 @@
     --warning: 32 92% 40%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 222 47% 14%;
-    --input: 214 32% 88%;
-    --ring: 174 80% 34%;
+    --border: 215 55% 18%;
+    --input: 220 30% 88%;
+    --ring: 203 85% 48%;
   }
 
   * {

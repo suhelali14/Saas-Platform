@@ -215,7 +215,7 @@ function Inventory() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSelectedDrug(null); }}
             placeholder="Search a medicine..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
           />
           {drugOptions.length > 0 && !selectedDrug && (
             <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">

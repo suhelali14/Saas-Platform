@@ -850,7 +850,7 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint?: stri
   );
 }
 
-const inputCls = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400';
+const inputCls = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (

@@ -248,7 +248,7 @@ export function Queue() {
               value={patientQuery}
               onChange={(e) => { setPatientQuery(e.target.value); setSelectedPatientId(''); }}
               placeholder="Type patient name, UHID, or phone..."
-              className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
             />
             {patientOptions.length > 0 && !selectedPatientId && (
               <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-48 overflow-y-auto">
@@ -292,12 +292,12 @@ export function Queue() {
             </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Time</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Reason (optional)</label>
-            <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-emerald-400" />
+            <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           </div>
           <button type="submit" disabled={!selectedPatientId || !time || booking} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {booking ? 'Booking...' : 'Confirm Booking'}

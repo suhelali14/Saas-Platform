@@ -134,7 +134,7 @@ export function DoseInput({ value, onChange, label = 'Dose', className }: Props)
           placeholder="Dose, e.g. 5 ml"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400"
+          className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary"
         />
         <button
           type="button"
@@ -148,7 +148,7 @@ export function DoseInput({ value, onChange, label = 'Dose', className }: Props)
               onChange('');
             }
           }}
-          className="self-start text-[11px] text-muted-foreground/70 hover:text-emerald-400"
+          className="self-start text-[11px] text-muted-foreground/70 hover:text-primary"
         >
           Use 1-0-1 grid
         </button>
@@ -179,7 +179,7 @@ export function DoseInput({ value, onChange, label = 'Dose', className }: Props)
               placeholder="0"
               className={cn(
                 'w-9 py-2 rounded-lg bg-foreground/5 border border-border/10',
-                'text-center text-xs tabular-nums outline-none focus:border-emerald-400',
+                'text-center text-xs tabular-nums outline-none focus:border-primary',
                 'placeholder:text-muted-foreground/30',
               )}
             />
@@ -189,7 +189,7 @@ export function DoseInput({ value, onChange, label = 'Dose', className }: Props)
           type="button"
           onClick={() => setForceText(true)}
           title="Enter a dose that is not a morning-afternoon-night pattern, like 5 ml"
-          className="ml-0.5 p-1 rounded text-muted-foreground/50 hover:text-emerald-400"
+          className="ml-0.5 p-1 rounded text-muted-foreground/50 hover:text-primary"
         >
           <Pencil size={11} />
         </button>
@@ -209,7 +209,7 @@ export function DoseInput({ value, onChange, label = 'Dose', className }: Props)
               className={cn(
                 'px-1.5 py-0.5 rounded text-[11px] tabular-nums border transition-colors',
                 active
-                  ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-300'
+                  ? 'border-primary/60 bg-primary/10 text-primary'
                   : 'border-border/10 bg-foreground/5 text-muted-foreground/70 hover:text-foreground hover:border-border/30',
               )}
             >

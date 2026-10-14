@@ -360,7 +360,7 @@ function Breakdown({ title, rows, tone }: { title: string; rows: { label: string
   );
 }
 
-const inputCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-emerald-400';
+const inputCls = 'px-2.5 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary';
 
 // `toDateInput` was a second copy of the queue's, with the same comment.
 // It lives in lib/date now.

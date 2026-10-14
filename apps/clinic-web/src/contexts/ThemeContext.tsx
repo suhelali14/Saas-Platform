@@ -28,13 +28,23 @@ function readStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
-    // No stored choice: follow the operating system, so a clinic that runs
-    // its machines in light mode isn't handed a dark screen by default.
-    if (window.matchMedia?.('(prefers-color-scheme: light)').matches) return 'light';
+    // No stored choice: follow the operating system. A clinic running its
+    // machines in dark mode gets the dark portal without asking for it.
+    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
   } catch {
     // Private browsing or blocked site data -- fall through to the default.
   }
-  return 'dark';
+  // Light is the default now, not dark.
+  //
+  // The portal was built dark because it is a tool used for hours. But a
+  // front desk works in daylight, the clinic's own public site is light,
+  // and a doctor moving between the two met two different products. The
+  // chosen direction is the light one, so that is what someone sees
+  // before they have expressed any preference.
+  //
+  // Dark is not gone -- it is one click away in the header, it is still
+  // the OS-preference answer above, and a stored choice always wins.
+  return 'light';
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
