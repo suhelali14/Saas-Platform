@@ -82,3 +82,17 @@ coverage/
 # Python bytecode from the repo's check scripts in scripts/.
 __pycache__/
 *.pyc
+
+# ── Private product and business records ────────────────────────────────
+# This repository is PUBLIC. These two hold things that should not be:
+#
+#   PRODUCT.md  names the one live customer and the doctor at it, states
+#               that nothing else is lined up, and lists what is not built.
+#   founder/    the board review, the risk analysis, infrastructure costs
+#               and the undecided price.
+#
+# Both stay on disk, so the Impeccable and founder skills still read them
+# normally -- they are simply not published. Keep a backup outside the
+# working tree: being untracked means `git clean -fdx` would delete them.
+PRODUCT.md
+founder/
