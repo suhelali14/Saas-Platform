@@ -56,3 +56,29 @@ Thumbs.db
 # checkout went dirty the moment anyone ran a typecheck -- and a cache
 # keyed to one machine's absolute paths is never useful on another.
 *.tsbuildinfo
+
+# ── Local agent tooling ─────────────────────────────────────────────────
+# Claude Code's project-local state: settings, skills, hooks and plan
+# files. Machine-specific (the skill scripts carry absolute Windows paths
+# and a downloaded per-platform binary), so a committed copy is wrong on
+# any other checkout and goes stale on this one.
+.claude/
+.github/agents/
+.github/hooks/
+.github/skills/
+
+# Agent scratch space.
+.plans/
+*.orig
+*.rej
+
+# Caches that are rebuilt on demand and keyed to one machine.
+.cache/
+.eslintcache
+.vite/
+coverage/
+*.tmp
+
+# Python bytecode from the repo's check scripts in scripts/.
+__pycache__/
+*.pyc
