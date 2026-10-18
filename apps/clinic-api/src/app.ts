@@ -25,6 +25,7 @@ import { clinicAuditRoutes } from "./routes/clinic-audit.js";
 import { clinicExpenseRoutes } from "./routes/clinic-expenses.js";
 import { clinicExportRoutes } from "./routes/clinic-export.js";
 import { clinicSiteRoutes } from "./routes/clinic-site.js";
+import { clinicBookingRoutes } from "./routes/clinic-booking.js";
 import { clinicTranslationRoutes } from "./routes/clinic-translations.js";
 import { clinicDocTemplateRoutes } from "./routes/clinic-doc-template.js";
 import { isFeatureEnabled } from "./config/features.js";
@@ -163,6 +164,7 @@ export function buildApp() {
   app.register(clinicExpenseRoutes);
   app.register(clinicExportRoutes);
   app.register(clinicSiteRoutes);
+  app.register(clinicBookingRoutes);
   app.register(clinicTranslationRoutes);
   app.register(clinicDocTemplateRoutes);
 

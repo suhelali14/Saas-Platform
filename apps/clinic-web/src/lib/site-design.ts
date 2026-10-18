@@ -198,6 +198,12 @@ export function ctaTarget(
     case 'queue':
       return { label: label || 'See how busy we are', href: queueHref, external: false };
 
+    // A same-page anchor, not a route: the form is a section of this page,
+    // so the button scrolls rather than navigating away from everything
+    // the patient was reading to decide whether to come at all.
+    case 'book':
+      return { label: label || 'Ask for an appointment', href: '#booking', external: false };
+
     case 'directions':
       if (!clinic.mapUrl) return null;
       return { label: label || 'Get directions', href: clinic.mapUrl, external: true };

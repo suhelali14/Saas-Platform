@@ -140,6 +140,17 @@ model Clinic {
   /// the palette is curated: this page is read once by a stranger
   /// deciding whether to trust a doctor.
   publicDesign       Json?
+  /// Which renderer the public page uses: "sections" (the stacked,
+  /// section-based page every clinic starts on) or "canvas" (the free
+  /// layout below). A clinic is only ever moved onto "canvas" by its own
+  /// deliberate action in the builder, because the section page is the one
+  /// that is known to work and is already serving patients.
+  publicLayoutMode   String?  @default("sections")
+  /// The free-canvas page document: absolutely positioned nodes with a
+  /// geometry per breakpoint. Validated against lib/site-canvas.ts on
+  /// every write -- this JSON is rendered onto a public page, so an
+  /// unvalidated field here is a stored-XSS hole, not an untidy record.
+  publicCanvas       Json?
   heroImagePath      String?
   mapEmbedUrl        String?
   // The one line a search engine shows under the clinic's name. Derived
@@ -184,6 +195,7 @@ model ClinicUser {
   doctorLabOrders         LabOrder[]     @relation("DoctorLabOrders")
   recordedExpenses        Expense[]      @relation("RecordedExpenses")
   authoredPosts           BlogPost[]     @relation("AuthoredPosts")
+  handledRequests     AppointmentRequest[] @relation("HandledRequests")
 }
 
 // Patients are looked up constantly at the front desk -- by name, by UHID, by
@@ -248,6 +260,7 @@ model Patient {
   // Duplicate detection matches on phone first: it is the field two
   // registrations of the same person most often share exactly.
   @@index([phone, name])
+  appointmentRequests AppointmentRequest[]
 }
 
 model Appointment {
@@ -274,6 +287,7 @@ model Appointment {
   @@index([scheduledAt])
   @@index([patientId])
   @@index([doctorId])
+  appointmentRequests AppointmentRequest[]
 }
 
 model CaseSheet {
@@ -665,3 +679,67 @@ model Translation {
 //   showFooter      page numbers + generated stamp
 //   footerNote      free text, e.g. a disclaimer
 //   showQty         whether the prescription prints a computed quantity
+
+// ── Patient-requested appointments ─────────────────────────────────────
+//
+// A request is NOT an appointment, and deliberately not a Patient either.
+//
+// This is the only model in the system written by an unauthenticated
+// stranger, so the two things it must not do are: put unverified names
+// into the patient register, where they would mix with real records and
+// multiply the duplicates the merge tool exists to clean up; and occupy a
+// slot in the doctor's day before anyone at the clinic has looked at it.
+//
+// So a request sits in its own list until reception acts on it. Confirming
+// is what creates the real Patient (or links an existing one) and the real
+// Appointment, and both ids are recorded here afterwards so the trail from
+// "a stranger typed this" to "this is in the diary" stays readable.
+//
+// There is no slot picking. The clinic has no SMS, WhatsApp or email
+// delivery, so a patient who self-booked a confirmed time would hear
+// nothing back and could not be reminded -- a worse experience than being
+// told plainly that the clinic will call to confirm.
+model AppointmentRequest {
+  id             String        @id @default(cuid())
+  name           String
+  phone          String
+  email          String?
+  /// The day they asked for, anchored to local noon like every other
+  /// date-only value in this schema -- see lib/date on the web side for
+  /// why midnight is the wrong anchor.
+  preferredDate  DateTime?
+  /// "morning" | "afternoon" | "evening". A window, not a time: offering a
+  /// precise time would imply a booking the clinic has not agreed to.
+  preferredSlot  String?
+  reason         String?
+  status         RequestStatus @default(NEW)
+
+  /// Set when reception confirms, so the request keeps pointing at what it
+  /// became.
+  patientId      String?
+  patient        Patient?      @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointmentId  String?
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  /// Who dealt with it. Denormalised name, for the same reason the audit
+  /// log denormalises it: this has to stay answerable after that staff
+  /// member has left and been deactivated.
+  handledById    String?
+  handledBy      ClinicUser?   @relation("HandledRequests", fields: [handledById], references: [id], onDelete: SetNull)
+  handledByName  String?
+  handledAt      DateTime?
+  /// Why it was declined, for the clinic's own record.
+  note           String?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+}
+
+enum RequestStatus {
+  NEW
+  CONFIRMED
+  DECLINED
+}

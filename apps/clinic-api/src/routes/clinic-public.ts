@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { resolveDesign, resolveSections } from "../lib/site-design.js";
+import { resolveLayoutMode, readCanvas } from "../lib/site-canvas.js";
 
 // Public, unauthenticated -- the "innovative" feature from the plan's Phase 4
 // research: real-world token/queue-transparency displays measurably cut
@@ -62,6 +63,7 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
         publicSections: true, publicTheme: true, heroImagePath: true, mapEmbedUrl: true,
         metaDescription: true,
         publicDesign: true,
+        publicLayoutMode: true, publicCanvas: true,
         defaultLocale: true, enabledLocales: true,
       },
     });
@@ -72,6 +74,13 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
     // the defaults are the layout every clinic is already served.
     const design = resolveDesign(clinic.publicDesign);
     const sections = resolveSections(clinic.publicSections);
+    // Which renderer the page should use, decided here rather than on the
+    // page. resolveLayoutMode falls back to "sections" for a clinic that
+    // has switched to the canvas but has an empty or unparseable
+    // document -- a stale-but-correct website beats a blank one, and a
+    // blank one is what a patient would otherwise see.
+    const layoutMode = resolveLayoutMode(clinic.publicLayoutMode, clinic.publicCanvas);
+    const canvas = layoutMode === "canvas" ? readCanvas(clinic.publicCanvas) : null;
 
     const [doctors, gallery, posts, feedback] = await Promise.all([
       prisma.clinicUser.findMany({
@@ -144,6 +153,8 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
         // clinic is already being served.
         publicDesign: design,
         publicSections: sections,
+        publicLayoutMode: layoutMode,
+        publicCanvas: canvas,
       },
       doctors,
       gallery,

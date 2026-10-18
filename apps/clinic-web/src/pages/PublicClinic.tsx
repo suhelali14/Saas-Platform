@@ -9,6 +9,8 @@ import {
   publicApiBase, publicAsset, palette,
   type Palette, type PublicPost, type PublicFeedback, type GalleryItem,
 } from '../lib/public-site';
+import { CanvasPage } from '../components/CanvasPage';
+import type { CanvasDoc } from '../lib/canvas-doc';
 import { publicSiteUrl } from '../lib/site-mode';
 import { strings, localeMeta, LOCALES, type StringKey } from '../lib/ui-strings';
 import { applySeo, describeClinic, clinicJsonLd } from '../lib/seo';
@@ -56,7 +58,7 @@ function hasStoredLocale(): boolean {
  * once by a patient deciding whether to visit, not stared at all day.
  */
 
-type SectionKey = 'about' | 'services' | 'highlights' | 'doctors' | 'gallery' | 'blog' | 'feedback' | 'queue' | 'faq' | 'contact';
+type SectionKey = 'about' | 'services' | 'highlights' | 'doctors' | 'gallery' | 'blog' | 'feedback' | 'queue' | 'faq' | 'booking' | 'contact';
 
 interface Timing { day: string; opensAt?: string; closesAt?: string; closed?: boolean }
 interface Highlight { title: string; description?: string }
@@ -73,13 +75,19 @@ interface Clinic {
   publicDesign?: SiteDesign | null;
   /// Carries a per-section heading and layout now, not just on/off.
   publicSections?: SectionConfig[] | null;
+  /** "sections" (the stacked page) or "canvas" (the free layout). The API
+   *  resolves this, and falls back to "sections" when a clinic has
+   *  switched to the canvas but has no usable document -- so this is
+   *  already the decision, not a preference to re-interpret here. */
+  publicLayoutMode?: 'sections' | 'canvas' | null;
+  publicCanvas?: CanvasDoc | null;
 }
 interface Doctor {
   id: string; name: string; qualifications: string | null; specialization: string | null;
   bio: string | null; photoPath: string | null; experienceYears: number | null; languages: string | null;
 }
 
-const DEFAULT_ORDER: SectionKey[] = ['about', 'services', 'highlights', 'doctors', 'gallery', 'blog', 'feedback', 'queue', 'faq', 'contact'];
+const DEFAULT_ORDER: SectionKey[] = ['about', 'services', 'highlights', 'doctors', 'gallery', 'blog', 'feedback', 'queue', 'faq', 'booking', 'contact'];
 
 /** Carries which of the three causes a rejected load was. */
 class PageProblem extends Error {
@@ -442,6 +450,9 @@ export function PublicClinic() {
     feedback: true, // the submission form is always worth showing
     queue: true,
     faq: faqs.length > 0,
+    // Always available: it needs nothing configured, and a patient who
+    // wants to be seen is the whole point of the page.
+    booking: true,
     contact: hasContact,
   };
 
@@ -451,6 +462,298 @@ export function PublicClinic() {
   const navItems = visible
     .filter((k) => k !== 'about' && k !== 'queue')
     .map((k) => ({ id: k, label: t(NAV_KEYS[k]) }));
+
+  /**
+   * One section, by key.
+   *
+   * Lifted out of the `visible.map()` it used to live inside so that it
+   * has two callers rather than one. The stacked page below still walks
+   * the section order and renders each in turn; the free-canvas page
+   * calls this for a `bound` node, which is how a clinic that has
+   * rearranged its page by hand still gets its real doctors, its real
+   * services and today's real queue inside the boxes it positioned.
+   *
+   * Nothing about the markup changed. Two renderers sharing one
+   * definition is the only way the canvas page cannot drift away from
+   * the stacked one.
+   */
+  const renderSection = (key: string) => {
+        switch (key) {
+          case 'about':
+            return (
+              <Section rhythm={style.section} key={key} id="about">
+                <div className="max-w-3xl">
+                  <Label p={p}>{t('about')}</Label>
+                  <p className="mt-4 text-lg text-slate-700 leading-relaxed whitespace-pre-line">{clinic.about}</p>
+                </div>
+              </Section>
+            );
+
+          case 'services':
+            return (
+              <Section rhythm={style.section} key={key} id="services" tinted>
+                <Label p={p}>{t('services')}</Label>
+                <Title>{heading('services', t('whatWeTreat'))}</Title>
+                {/* Three layouts, because the right one depends on how
+                    many services there are and how long their names
+                    run -- twelve two-word treatments want chips, four
+                    long ones want cards. */}
+                {(() => {
+                  const variant = sectionVariant(sections, 'services', 'grid');
+
+                  if (variant === 'chips') {
+                    return (
+                      <ul className="mt-8 flex flex-wrap gap-2">
+                        {services.map((s, i) => (
+                          <li key={i} className={`${style.chip} border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-800`}>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  }
+
+                  if (variant === 'list') {
+                    return (
+                      <ul className="mt-8 divide-y divide-slate-100">
+                        {services.map((s, i) => (
+                          <li key={i} className="flex items-center gap-3 py-3">
+                            <CheckCircle2 size={16} className={`${p.ring} shrink-0`} aria-hidden="true" />
+                            <span className="font-medium text-slate-800">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  }
+
+                  return (
+                    <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {services.map((s, i) => (
+                        <li key={i} className={`flex items-start gap-3 bg-white ${style.card} border border-slate-200 p-4 ${p.border} hover:shadow-sm transition-all`}>
+                          <span className={`h-8 w-8 ${style.chip} ${p.soft} flex items-center justify-center shrink-0`}>
+                            <CheckCircle2 size={16} className={p.ring} aria-hidden="true" />
+                          </span>
+                          <span className="pt-1.5 font-medium text-slate-800">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </Section>
+            );
+
+          case 'highlights':
+            // id must match the section key -- the nav builds its anchors
+            // from the key, so any other id would be a dead link.
+            return (
+              <Section rhythm={style.section} key={key} id="highlights">
+                <Label p={p}>{t('whyUs')}</Label>
+                <Title>{heading('highlights', t('whatMakesUsDifferent'))}</Title>
+                {/* Stacked gives a long reason the full width, which a
+                    two-column grid does not. */}
+                <div className={sectionVariant(sections, 'highlights', 'grid') === 'stacked'
+                  ? 'mt-8 flex flex-col gap-4'
+                  : 'mt-8 grid gap-5 md:grid-cols-2'}>
+                  {highlights.map((h, i) => (
+                    <div key={i} className={`flex gap-4 p-5 ${style.card} border border-slate-200 bg-white`}>
+                      <span className={`h-10 w-10 rounded-xl ${p.solid} text-white flex items-center justify-center font-bold shrink-0`} aria-hidden="true">{i + 1}</span>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{h.title}</h3>
+                        {h.description && <p className="mt-1.5 text-slate-600 leading-relaxed">{h.description}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            );
+
+          case 'doctors':
+            return (
+              <Section rhythm={style.section} key={key} id="doctors" tinted>
+                <Label p={p}>{t('ourTeam')}</Label>
+                <Title>{heading('doctors', doctors.length === 1 ? t('meetDoctor') : t('meetDoctors'))}</Title>
+                {/* Cards stop working past three or four doctors: each
+                    one is tall, and a visitor scrolls past the person
+                    they came to read about. Rows stay scannable. */}
+                <div className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
+                  ? 'mt-8 divide-y divide-slate-100'
+                  : 'mt-8 grid gap-5 md:grid-cols-2'}>
+                  {doctors.map((d) => (
+                    <article
+                      key={d.id}
+                      className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
+                        ? 'flex gap-5 bg-transparent py-5'
+                        : `flex gap-5 bg-white ${style.card} border border-slate-200 p-6`}
+                    >
+                      {d.photoPath ? (
+                        <img src={publicAsset(d.photoPath)} alt={`Dr. ${d.name}`} className="h-20 w-20 rounded-2xl object-cover shrink-0" />
+                      ) : (
+                        <span className={`h-20 w-20 rounded-2xl ${p.soft} flex items-center justify-center shrink-0`} aria-hidden="true">
+                          <Stethoscope size={26} className={p.ring} />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-lg text-slate-900">Dr. {d.name}</h3>
+                        {d.qualifications && <p className={`text-sm font-medium ${p.ring} mt-0.5`}>{d.qualifications}</p>}
+                        {d.specialization && <p className="text-sm text-slate-600 mt-0.5">{d.specialization}</p>}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-slate-500">
+                          {d.experienceYears != null && d.experienceYears > 0 && <span>{d.experienceYears}+ years experience</span>}
+                          {d.languages && <span>Speaks {d.languages}</span>}
+                        </div>
+                        {d.bio && <p className="mt-3 text-sm text-slate-600 leading-relaxed">{d.bio}</p>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            );
+
+          case 'gallery':
+            return (
+              <Section rhythm={style.section} key={key} id="gallery">
+                <Label p={p}>{t('ourClinic')}</Label>
+                <Title>{heading('gallery', t('lookInside'))}</Title>
+                <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {gallery.map((g) => (
+                    <figure key={g.id} className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
+                      <img src={publicAsset(g.storagePath)} alt={g.caption ?? ''} className="w-full h-52 object-cover" loading="lazy" />
+                      {g.caption && <figcaption className="px-4 py-3 text-sm text-slate-600">{g.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+              </Section>
+            );
+
+          case 'blog':
+            return (
+              <Section rhythm={style.section} key={key} id="blog" tinted>
+                <div className="flex items-end justify-between gap-4 flex-wrap">
+                  <div>
+                    <Label p={p}>{t('healthLibrary')}</Label>
+                    <Title>{heading('blog', t('articlesFromDoctors'))}</Title>
+                  </div>
+                  <Link to="/blog" className={`inline-flex items-center gap-1.5 text-sm font-medium ${p.ring} hover:underline`}>
+                    {t('allArticles')} <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                </div>
+                <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {posts.slice(0, 3).map((post) => (
+                    <Link key={post.id} to={`/blog/${post.slug}`} className={`group bg-white rounded-2xl border border-slate-200 overflow-hidden ${p.border} hover:shadow-sm transition-all`}>
+                      {post.coverImagePath ? (
+                        <img src={publicAsset(post.coverImagePath)} alt="" className="w-full h-36 object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-36 bg-slate-50 flex items-center justify-center">
+                          <FileText size={22} className="text-slate-300" aria-hidden="true" />
+                        </div>
+                      )}
+                      <div className="p-5">
+                        {post.tags && <p className={`text-[11px] font-semibold uppercase tracking-wide ${p.ring} mb-1.5`}>{post.tags}</p>}
+                        <h3 className="font-semibold text-slate-900 leading-snug">{post.title}</h3>
+                        {post.excerpt && <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-3">{post.excerpt}</p>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Section>
+            );
+
+          case 'feedback':
+            return <FeedbackSection key={key} p={p} published={feedback} />;
+
+          case 'queue':
+            return (
+              <Section rhythm={style.section} key={key} id="queue">
+                <a href={publicSiteUrl('/live-queue')} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-5 p-7 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <span className="h-11 w-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      <Radio size={20} className="text-white" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2 className="font-semibold text-lg">{t('knowBeforeYouGo')}</h2>
+                      <p className="text-slate-300 mt-1 leading-relaxed">
+                        See how many patients are ahead of you in today's queue, live — so you can wait at home instead of the waiting room.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-white font-medium shrink-0 group-hover:gap-2.5 transition-all">
+                    {t('viewLiveQueue')} <ArrowRight size={17} aria-hidden="true" />
+                  </span>
+                </a>
+              </Section>
+            );
+
+          case 'faq':
+            return (
+              <Section rhythm={style.section} key={key} id="faq" tinted>
+                <Label p={p}>{t('questions')}</Label>
+                <Title>{heading('faq', t('faq'))}</Title>
+                <div className="mt-8 max-w-3xl divide-y divide-slate-200 border-y border-slate-200">
+                  {faqs.map((f, i) => (
+                    <details key={i} className="group py-4">
+                      <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-medium text-slate-900">
+                        {f.question}
+                        <ChevronDown size={18} className="text-slate-400 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                      </summary>
+                      <p className="mt-3 text-slate-600 leading-relaxed">{f.answer}</p>
+                    </details>
+                  ))}
+                </div>
+              </Section>
+            );
+
+          case 'booking':
+            return <BookingSection key={key} p={p} rhythm={style.section} heading={heading('booking', 'Ask for an appointment')} />;
+
+          case 'contact':
+            return (
+              <Section rhythm={style.section} key={key} id="contact">
+                <Label p={p}>{t('visitUs')}</Label>
+                <Title>{heading('contact', t('getInTouch'))}</Title>
+                <div className="mt-8 grid md:grid-cols-3 gap-4">
+                  {clinic.address && (
+                    <ContactCard icon={MapPin} label={t('address')} p={p}>
+                      <p className="text-slate-700 leading-relaxed">{clinic.address}</p>
+                      {clinic.mapUrl && (
+                        <a href={clinic.mapUrl} target="_blank" rel="noopener noreferrer" className={`mt-2 inline-flex items-center gap-1.5 text-sm font-medium ${p.ring} hover:underline`}>
+                          <Navigation size={13} aria-hidden="true" /> {t('getDirections')}
+                        </a>
+                      )}
+                    </ContactCard>
+                  )}
+                  {clinic.phone && (
+                    <ContactCard icon={Phone} label={t('phone')} p={p}>
+                      <a href={`tel:${clinic.phone}`} className="text-slate-700 hover:underline">{clinic.phone}</a>
+                      {clinic.emergencyPhone && <p className="mt-1.5 text-sm text-rose-700">Emergency: {clinic.emergencyPhone}</p>}
+                    </ContactCard>
+                  )}
+                  {clinic.email && (
+                    <ContactCard icon={Mail} label={t('email')} p={p}>
+                      <a href={`mailto:${clinic.email}`} className="text-slate-700 hover:underline break-all">{clinic.email}</a>
+                    </ContactCard>
+                  )}
+                </div>
+
+                {clinic.mapEmbedUrl && (
+                  <div className="mt-6 rounded-2xl overflow-hidden border border-slate-200">
+                    <iframe
+                      src={clinic.mapEmbedUrl}
+                      title={`Map showing ${clinic.name}`}
+                      className="w-full h-80 border-0"
+                      loading="lazy"
+                      // Third-party frame: no access to this page, and no
+                      // referrer leaked to the map provider.
+                      referrerPolicy="no-referrer-when-downgrade"
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </div>
+                )}
+              </Section>
+            );
+
+          default:
+            return null;
+        }
+  };
 
   return (
     <div
@@ -510,282 +813,24 @@ export function PublicClinic() {
       </header>
 
       <main id="top">
+        {/*
+          Two renderers, one set of sections.
+
+          The stacked page is what every clinic starts on and what is
+          serving patients today, so it stays the default and is reached
+          by doing nothing. A clinic that has arranged its own layout gets
+          the canvas instead -- and even then the hero stays above it,
+          because the hero carries the clinic's name, its open/closed
+          state and its phone number, and a patient who lands here needs
+          those whatever anyone did with the rest of the page.
+        */}
         <Hero clinic={clinic} p={p} status={status} timings={timings} doctors={doctors} yearsServing={yearsServing} t={t} design={design} style={style} />
 
-        {visible.map((key) => {
-          switch (key) {
-            case 'about':
-              return (
-                <Section rhythm={style.section} key={key} id="about">
-                  <div className="max-w-3xl">
-                    <Label p={p}>{t('about')}</Label>
-                    <p className="mt-4 text-lg text-slate-700 leading-relaxed whitespace-pre-line">{clinic.about}</p>
-                  </div>
-                </Section>
-              );
-
-            case 'services':
-              return (
-                <Section rhythm={style.section} key={key} id="services" tinted>
-                  <Label p={p}>{t('services')}</Label>
-                  <Title>{heading('services', t('whatWeTreat'))}</Title>
-                  {/* Three layouts, because the right one depends on how
-                      many services there are and how long their names
-                      run -- twelve two-word treatments want chips, four
-                      long ones want cards. */}
-                  {(() => {
-                    const variant = sectionVariant(sections, 'services', 'grid');
-
-                    if (variant === 'chips') {
-                      return (
-                        <ul className="mt-8 flex flex-wrap gap-2">
-                          {services.map((s, i) => (
-                            <li key={i} className={`${style.chip} border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-800`}>
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    }
-
-                    if (variant === 'list') {
-                      return (
-                        <ul className="mt-8 divide-y divide-slate-100">
-                          {services.map((s, i) => (
-                            <li key={i} className="flex items-center gap-3 py-3">
-                              <CheckCircle2 size={16} className={`${p.ring} shrink-0`} aria-hidden="true" />
-                              <span className="font-medium text-slate-800">{s}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    }
-
-                    return (
-                      <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {services.map((s, i) => (
-                          <li key={i} className={`flex items-start gap-3 bg-white ${style.card} border border-slate-200 p-4 ${p.border} hover:shadow-sm transition-all`}>
-                            <span className={`h-8 w-8 ${style.chip} ${p.soft} flex items-center justify-center shrink-0`}>
-                              <CheckCircle2 size={16} className={p.ring} aria-hidden="true" />
-                            </span>
-                            <span className="pt-1.5 font-medium text-slate-800">{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    );
-                  })()}
-                </Section>
-              );
-
-            case 'highlights':
-              // id must match the section key -- the nav builds its anchors
-              // from the key, so any other id would be a dead link.
-              return (
-                <Section rhythm={style.section} key={key} id="highlights">
-                  <Label p={p}>{t('whyUs')}</Label>
-                  <Title>{heading('highlights', t('whatMakesUsDifferent'))}</Title>
-                  {/* Stacked gives a long reason the full width, which a
-                      two-column grid does not. */}
-                  <div className={sectionVariant(sections, 'highlights', 'grid') === 'stacked'
-                    ? 'mt-8 flex flex-col gap-4'
-                    : 'mt-8 grid gap-5 md:grid-cols-2'}>
-                    {highlights.map((h, i) => (
-                      <div key={i} className={`flex gap-4 p-5 ${style.card} border border-slate-200 bg-white`}>
-                        <span className={`h-10 w-10 rounded-xl ${p.solid} text-white flex items-center justify-center font-bold shrink-0`} aria-hidden="true">{i + 1}</span>
-                        <div>
-                          <h3 className="font-semibold text-slate-900">{h.title}</h3>
-                          {h.description && <p className="mt-1.5 text-slate-600 leading-relaxed">{h.description}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              );
-
-            case 'doctors':
-              return (
-                <Section rhythm={style.section} key={key} id="doctors" tinted>
-                  <Label p={p}>{t('ourTeam')}</Label>
-                  <Title>{heading('doctors', doctors.length === 1 ? t('meetDoctor') : t('meetDoctors'))}</Title>
-                  {/* Cards stop working past three or four doctors: each
-                      one is tall, and a visitor scrolls past the person
-                      they came to read about. Rows stay scannable. */}
-                  <div className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
-                    ? 'mt-8 divide-y divide-slate-100'
-                    : 'mt-8 grid gap-5 md:grid-cols-2'}>
-                    {doctors.map((d) => (
-                      <article
-                        key={d.id}
-                        className={sectionVariant(sections, 'doctors', 'cards') === 'rows'
-                          ? 'flex gap-5 bg-transparent py-5'
-                          : `flex gap-5 bg-white ${style.card} border border-slate-200 p-6`}
-                      >
-                        {d.photoPath ? (
-                          <img src={publicAsset(d.photoPath)} alt={`Dr. ${d.name}`} className="h-20 w-20 rounded-2xl object-cover shrink-0" />
-                        ) : (
-                          <span className={`h-20 w-20 rounded-2xl ${p.soft} flex items-center justify-center shrink-0`} aria-hidden="true">
-                            <Stethoscope size={26} className={p.ring} />
-                          </span>
-                        )}
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-lg text-slate-900">Dr. {d.name}</h3>
-                          {d.qualifications && <p className={`text-sm font-medium ${p.ring} mt-0.5`}>{d.qualifications}</p>}
-                          {d.specialization && <p className="text-sm text-slate-600 mt-0.5">{d.specialization}</p>}
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-slate-500">
-                            {d.experienceYears != null && d.experienceYears > 0 && <span>{d.experienceYears}+ years experience</span>}
-                            {d.languages && <span>Speaks {d.languages}</span>}
-                          </div>
-                          {d.bio && <p className="mt-3 text-sm text-slate-600 leading-relaxed">{d.bio}</p>}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </Section>
-              );
-
-            case 'gallery':
-              return (
-                <Section rhythm={style.section} key={key} id="gallery">
-                  <Label p={p}>{t('ourClinic')}</Label>
-                  <Title>{heading('gallery', t('lookInside'))}</Title>
-                  <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {gallery.map((g) => (
-                      <figure key={g.id} className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
-                        <img src={publicAsset(g.storagePath)} alt={g.caption ?? ''} className="w-full h-52 object-cover" loading="lazy" />
-                        {g.caption && <figcaption className="px-4 py-3 text-sm text-slate-600">{g.caption}</figcaption>}
-                      </figure>
-                    ))}
-                  </div>
-                </Section>
-              );
-
-            case 'blog':
-              return (
-                <Section rhythm={style.section} key={key} id="blog" tinted>
-                  <div className="flex items-end justify-between gap-4 flex-wrap">
-                    <div>
-                      <Label p={p}>{t('healthLibrary')}</Label>
-                      <Title>{heading('blog', t('articlesFromDoctors'))}</Title>
-                    </div>
-                    <Link to="/blog" className={`inline-flex items-center gap-1.5 text-sm font-medium ${p.ring} hover:underline`}>
-                      {t('allArticles')} <ArrowRight size={15} aria-hidden="true" />
-                    </Link>
-                  </div>
-                  <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {posts.slice(0, 3).map((post) => (
-                      <Link key={post.id} to={`/blog/${post.slug}`} className={`group bg-white rounded-2xl border border-slate-200 overflow-hidden ${p.border} hover:shadow-sm transition-all`}>
-                        {post.coverImagePath ? (
-                          <img src={publicAsset(post.coverImagePath)} alt="" className="w-full h-36 object-cover" loading="lazy" />
-                        ) : (
-                          <div className="w-full h-36 bg-slate-50 flex items-center justify-center">
-                            <FileText size={22} className="text-slate-300" aria-hidden="true" />
-                          </div>
-                        )}
-                        <div className="p-5">
-                          {post.tags && <p className={`text-[11px] font-semibold uppercase tracking-wide ${p.ring} mb-1.5`}>{post.tags}</p>}
-                          <h3 className="font-semibold text-slate-900 leading-snug">{post.title}</h3>
-                          {post.excerpt && <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-3">{post.excerpt}</p>}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </Section>
-              );
-
-            case 'feedback':
-              return <FeedbackSection key={key} p={p} published={feedback} />;
-
-            case 'queue':
-              return (
-                <Section rhythm={style.section} key={key} id="queue">
-                  <a href={publicSiteUrl('/live-queue')} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-5 p-7 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-colors">
-                    <div className="flex items-start gap-4">
-                      <span className="h-11 w-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                        <Radio size={20} className="text-white" aria-hidden="true" />
-                      </span>
-                      <div>
-                        <h2 className="font-semibold text-lg">{t('knowBeforeYouGo')}</h2>
-                        <p className="text-slate-300 mt-1 leading-relaxed">
-                          See how many patients are ahead of you in today's queue, live — so you can wait at home instead of the waiting room.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 text-white font-medium shrink-0 group-hover:gap-2.5 transition-all">
-                      {t('viewLiveQueue')} <ArrowRight size={17} aria-hidden="true" />
-                    </span>
-                  </a>
-                </Section>
-              );
-
-            case 'faq':
-              return (
-                <Section rhythm={style.section} key={key} id="faq" tinted>
-                  <Label p={p}>{t('questions')}</Label>
-                  <Title>{heading('faq', t('faq'))}</Title>
-                  <div className="mt-8 max-w-3xl divide-y divide-slate-200 border-y border-slate-200">
-                    {faqs.map((f, i) => (
-                      <details key={i} className="group py-4">
-                        <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-medium text-slate-900">
-                          {f.question}
-                          <ChevronDown size={18} className="text-slate-400 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-                        </summary>
-                        <p className="mt-3 text-slate-600 leading-relaxed">{f.answer}</p>
-                      </details>
-                    ))}
-                  </div>
-                </Section>
-              );
-
-            case 'contact':
-              return (
-                <Section rhythm={style.section} key={key} id="contact">
-                  <Label p={p}>{t('visitUs')}</Label>
-                  <Title>{heading('contact', t('getInTouch'))}</Title>
-                  <div className="mt-8 grid md:grid-cols-3 gap-4">
-                    {clinic.address && (
-                      <ContactCard icon={MapPin} label={t('address')} p={p}>
-                        <p className="text-slate-700 leading-relaxed">{clinic.address}</p>
-                        {clinic.mapUrl && (
-                          <a href={clinic.mapUrl} target="_blank" rel="noopener noreferrer" className={`mt-2 inline-flex items-center gap-1.5 text-sm font-medium ${p.ring} hover:underline`}>
-                            <Navigation size={13} aria-hidden="true" /> {t('getDirections')}
-                          </a>
-                        )}
-                      </ContactCard>
-                    )}
-                    {clinic.phone && (
-                      <ContactCard icon={Phone} label={t('phone')} p={p}>
-                        <a href={`tel:${clinic.phone}`} className="text-slate-700 hover:underline">{clinic.phone}</a>
-                        {clinic.emergencyPhone && <p className="mt-1.5 text-sm text-rose-700">Emergency: {clinic.emergencyPhone}</p>}
-                      </ContactCard>
-                    )}
-                    {clinic.email && (
-                      <ContactCard icon={Mail} label={t('email')} p={p}>
-                        <a href={`mailto:${clinic.email}`} className="text-slate-700 hover:underline break-all">{clinic.email}</a>
-                      </ContactCard>
-                    )}
-                  </div>
-
-                  {clinic.mapEmbedUrl && (
-                    <div className="mt-6 rounded-2xl overflow-hidden border border-slate-200">
-                      <iframe
-                        src={clinic.mapEmbedUrl}
-                        title={`Map showing ${clinic.name}`}
-                        className="w-full h-80 border-0"
-                        loading="lazy"
-                        // Third-party frame: no access to this page, and no
-                        // referrer leaked to the map provider.
-                        referrerPolicy="no-referrer-when-downgrade"
-                        sandbox="allow-scripts allow-same-origin allow-popups"
-                      />
-                    </div>
-                  )}
-                </Section>
-              );
-
-            default:
-              return null;
-          }
-        })}
+        {clinic.publicLayoutMode === 'canvas' && clinic.publicCanvas ? (
+          <CanvasPage doc={clinic.publicCanvas} renderSection={renderSection} />
+        ) : (
+          visible.map((key) => renderSection(key))
+        )}
       </main>
 
       <footer className="border-t border-slate-200 bg-slate-50">
@@ -971,6 +1016,183 @@ function Hero({ clinic, p, status, timings, doctors, yearsServing, t, design, st
   );
 }
 
+/* -- Booking ------------------------------------------------------------ */
+
+/**
+ * Ask for an appointment.
+ *
+ * Deliberately a REQUEST, and it says so twice -- once above the form and
+ * once on the confirmation. The clinic has no SMS, WhatsApp or email
+ * delivery, so a patient who believed they had booked a confirmed slot
+ * would get an on-screen message and then silence: no reminder, and no way
+ * to be told if the doctor is away. Promising less is the honest design,
+ * not a smaller one.
+ *
+ * It asks for a day and a window rather than a time, because a time
+ * implies a slot the clinic has not agreed to.
+ */
+function BookingSection({ p, rhythm, heading }: { p: Palette; rhythm?: string; heading: string }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [date, setDate] = useState('');
+  const [slot, setSlot] = useState('');
+  const [reason, setReason] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !phone.trim()) {
+      setError('Please give your name and a phone number we can call.');
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch(`${publicApiBase()}/public/appointment-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          preferredDate: date || undefined,
+          preferredSlot: slot || undefined,
+          reason: reason.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        // The server's own message is used when it has one: it carries the
+        // real reason (a day already past, too many attempts) and a
+        // generic failure would send someone away not knowing why.
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        const msg = typeof body?.error === 'string' ? body.error : null;
+        throw new Error(msg ?? 'GENERIC');
+      }
+      setSent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message !== 'GENERIC'
+          ? err.message
+          : 'Could not send your request. Please call the clinic instead.',
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Section id="booking" rhythm={rhythm} tinted>
+      <Label p={p}>Appointments</Label>
+      <Title>{heading}</Title>
+
+      {sent ? (
+        <div className="mt-8 max-w-xl rounded-2xl border border-slate-200 bg-white p-6">
+          <p className="font-semibold text-slate-900">Your request has reached the clinic.</p>
+          <p className="mt-2 leading-relaxed text-slate-700">
+            Someone will call you on the number you gave to confirm a time. Nothing is
+            booked until they do.
+          </p>
+          <p className="mt-3 text-sm text-slate-500">
+            If it is urgent, please call the clinic directly rather than waiting for us.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="mt-8 grid max-w-xl gap-4" noValidate>
+          <p className="leading-relaxed text-slate-700">
+            Leave your details and the clinic will call you back to confirm a time. This
+            is a request, not a confirmed booking.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PublicField label="Your name" required>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                className={PUBLIC_INPUT}
+              />
+            </PublicField>
+            <PublicField label="Phone number" required>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                inputMode="tel"
+                autoComplete="tel"
+                className={PUBLIC_INPUT}
+              />
+            </PublicField>
+            <PublicField label="Preferred day">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={PUBLIC_INPUT}
+              />
+            </PublicField>
+            <PublicField label="Preferred time">
+              <select value={slot} onChange={(e) => setSlot(e.target.value)} className={PUBLIC_INPUT}>
+                <option value="">Any time</option>
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+                <option value="evening">Evening</option>
+              </select>
+            </PublicField>
+          </div>
+
+          <PublicField label="What do you need to be seen about?">
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              className={`${PUBLIC_INPUT} resize-y`}
+            />
+            {/* A public form is the wrong place to write down a medical
+                history, and a patient has no way of knowing that unless it
+                is said here. */}
+            <span className="mt-1 block text-xs text-slate-500">
+              A line is enough. Please do not write detailed medical information here.
+            </span>
+          </PublicField>
+
+          {error && (
+            <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={sending}
+            className={`justify-self-start rounded-xl px-5 py-3 font-semibold text-white transition-opacity ${p.solid} disabled:opacity-60`}
+          >
+            {sending ? 'Sending...' : 'Send my request'}
+          </button>
+        </form>
+      )}
+    </Section>
+  );
+}
+
+const PUBLIC_INPUT =
+  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none ' +
+  'transition-colors focus-visible:border-slate-900';
+
+function PublicField({ label, required, children }: {
+  label: string; required?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-slate-800">
+        {label}
+        {required && <span className="ml-1 text-rose-600" aria-hidden>*</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+
 /* ── Feedback ──────────────────────────────────────────────────────────── */
 
 function FeedbackSection({ p, published }: { p: Palette; published: PublicFeedback[] }) {
@@ -1139,7 +1361,7 @@ function LanguageSwitcher({ current, available, onChange, label }: {
 const NAV_KEYS: Record<SectionKey, StringKey> = {
   about: 'about', services: 'services', highlights: 'whyUs', doctors: 'ourTeam',
   gallery: 'ourClinic', blog: 'healthLibrary', feedback: 'yourExperience',
-  queue: 'viewLiveQueue', faq: 'questions', contact: 'visitUs',
+  queue: 'viewLiveQueue', faq: 'questions', booking: 'bookAppointment', contact: 'visitUs',
 };
 
 /** Anchor ids differ from section keys in two places, so the nav has to use

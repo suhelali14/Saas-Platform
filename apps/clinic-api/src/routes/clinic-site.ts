@@ -2,10 +2,12 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth, requireClinicAuth } from "../plugins/auth.js";
+import { canvasSchema, readCanvas, LAYOUT_MODES } from "../lib/site-canvas.js";
 import { saveUploadedFile, FileValidationError } from "../lib/file-storage.js";
 import {
   resolveDesign, resolveSections, DEFAULT_DESIGN,
   SECTION_VARIANTS, FONT_PAIRINGS, DENSITIES, CORNERS, CTA_ACTIONS, defaultCtaLabel,
+  SECTION_KEYS,
 } from "../lib/site-design.js";
 
 /**
@@ -22,22 +24,16 @@ import {
  * point of the choice rather than letting a doctor stumble into it.
  */
 
-/** The sections the public site knows how to render. Anything not in this
- * list is ignored rather than trusted, so a hand-edited config can never
- * make the page render something arbitrary. */
-export const SECTION_KEYS = [
-  "about",
-  "services",
-  "highlights",
-  "doctors",
-  "gallery",
-  "blog",
-  "feedback",
-  "queue",
-  "faq",
-  "contact",
-] as const;
-export type SectionKey = (typeof SECTION_KEYS)[number];
+/**
+ * The sections the public site knows how to render.
+ *
+ * Re-exported, not redeclared. This file used to carry its own copy of
+ * the list; the two were identical, which is precisely why nobody
+ * noticed there were two -- and then adding a section to one of them
+ * left the page rendering an id with no key behind it. One list, one
+ * place, and the existing importers are unaffected.
+ */
+export { SECTION_KEYS, type SectionKey } from "../lib/site-design.js";
 
 /** Curated, contrast-checked palettes. Deliberately not a free colour
  * picker: patients rely on this page, and an arbitrary hex pair reliably
@@ -112,6 +108,81 @@ const feedbackSchema = z.object({
 });
 
 export async function clinicSiteRoutes(app: FastifyInstance) {
+  // ── The free-canvas page ──────────────────────────────────────────────
+  //
+  // Read separately from the public payload, and deliberately regardless
+  // of `publicLayoutMode`: the whole point is that a clinic can build a
+  // canvas page, look at it, and keep serving the section page to
+  // patients until it is happy. An editor that could only load the
+  // document once it was live would have no way to get there.
+  app.get("/api/clinic/site/canvas", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+
+    const clinic = await prisma.clinic.findFirst({
+      select: { publicCanvas: true, publicLayoutMode: true, publicSections: true },
+    });
+    if (!clinic) return reply.status(404).send({ error: "Clinic not configured" });
+
+    return {
+      // Parsed, not handed over raw. A document written by an older
+      // version of the editor, or edited by hand, must not reach the
+      // editor as something it will then re-save.
+      canvas: readCanvas(clinic.publicCanvas),
+      layoutMode: clinic.publicLayoutMode === "canvas" ? "canvas" : "sections",
+      // So the editor can offer "start from my current site" rather than
+      // an empty rectangle.
+      sections: resolveSections(clinic.publicSections),
+    };
+  });
+
+  app.put("/api/clinic/site/canvas", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+
+    const parsed = z
+      .object({
+        canvas: canvasSchema.optional(),
+        layoutMode: z.enum(LAYOUT_MODES).optional(),
+      })
+      .strict()
+      .safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+    const existing = await prisma.clinic.findFirst({ select: { id: true, publicCanvas: true } });
+    if (!existing) return reply.status(404).send({ error: "Clinic not configured" });
+
+    // Going live needs something to go live with. Switching the renderer
+    // on while the document is empty would replace a working website with
+    // a blank page, and the clinic would find out from a patient.
+    if (parsed.data.layoutMode === "canvas") {
+      const willBe = parsed.data.canvas ?? readCanvas(existing.publicCanvas);
+      if (!willBe || willBe.nodes.length === 0) {
+        return reply.status(400).send({
+          error: "There is nothing on the canvas yet, so publishing it would leave patients a blank page.",
+        });
+      }
+    }
+
+    const clinic = await prisma.clinic.update({
+      where: { id: existing.id },
+      data: {
+        // Round-tripped through JSON so the column holds plain data with
+        // no undefined holes, the same treatment publicSections gets.
+        ...(parsed.data.canvas !== undefined
+          ? { publicCanvas: JSON.parse(JSON.stringify(parsed.data.canvas)) }
+          : {}),
+        ...(parsed.data.layoutMode !== undefined ? { publicLayoutMode: parsed.data.layoutMode } : {}),
+      },
+      select: { publicCanvas: true, publicLayoutMode: true },
+    });
+
+    return {
+      canvas: readCanvas(clinic.publicCanvas),
+      layoutMode: clinic.publicLayoutMode === "canvas" ? "canvas" : "sections",
+    };
+  });
+
   // ── Site layout config ────────────────────────────────────────────────
   app.put("/api/clinic/site", async (request, reply) => {
     const auth = requireAdminAuth(request, reply);

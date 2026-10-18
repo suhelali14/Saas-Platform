@@ -10,6 +10,7 @@ import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { CanvasOverlay, type BlockRect, type DragState } from '../components/CanvasOverlay';
+import { CanvasEditor } from '../components/CanvasEditor';
 import { applyDrop, visibleKeys } from '../lib/canvas-order';
 import { describeClinic } from '../lib/seo';
 import { Label, Textarea } from '../components/ui';
@@ -21,7 +22,7 @@ import { SiteDesigner } from '../components/SiteDesigner';
  * blog, a photo gallery, and patient feedback.
  */
 
-type SectionKey = 'about' | 'services' | 'highlights' | 'doctors' | 'gallery' | 'blog' | 'feedback' | 'queue' | 'faq' | 'contact';
+type SectionKey = 'about' | 'services' | 'highlights' | 'doctors' | 'gallery' | 'blog' | 'feedback' | 'queue' | 'faq' | 'booking' | 'contact';
 interface Section { key: SectionKey; enabled: boolean }
 
 const SECTION_LABELS: Record<SectionKey, { label: string; hint: string }> = {
@@ -34,6 +35,7 @@ const SECTION_LABELS: Record<SectionKey, { label: string; hint: string }> = {
   feedback: { label: 'Patient feedback', hint: 'Only feedback you explicitly publish.' },
   queue: { label: 'Live queue promo', hint: 'Invites patients to check the waiting time.' },
   faq: { label: 'FAQ', hint: 'Common questions. Edited in Settings.' },
+  booking: { label: 'Appointment requests', hint: 'A short form for patients. Requests arrive under Requests; nothing is booked without you.' },
   contact: { label: 'Contact & map', hint: 'Address, phone, directions.' },
 };
 
@@ -49,11 +51,19 @@ const THEMES: { key: string; label: string; swatch: string }[] = [
 ];
 
 export function Website() {
-  const [tab, setTab] = useState<'layout' | 'languages' | 'blog' | 'gallery' | 'feedback'>('layout');
+  const [tab, setTab] = useState<'layout' | 'canvas' | 'languages' | 'blog' | 'gallery' | 'feedback'>('layout');
+  // The canvas editor needs its own section list to offer "start from my
+  // current site", and it is the one tab that loads before being shown.
+  const [sections, setSections] = useState<Array<{ key: string; enabled: boolean; heading?: string }>>([]);
+  useEffect(() => {
+    apiFetch<{ publicSections?: Array<{ key: string; enabled: boolean; heading?: string }> }>('/site')
+      .then((r) => setSections(r.publicSections ?? []))
+      .catch(() => { /* the canvas simply offers no starting point */ });
+  }, []);
 
   // Layout and Gallery are side-by-side editors and want the window;
   // the others are forms, where a long measure hurts readability.
-  const wide = tab === 'layout' || tab === 'gallery';
+  const wide = tab === 'layout' || tab === 'gallery' || tab === 'canvas';
 
   return (
     <div className={`p-4 sm:p-6 md:p-8 ${wide ? 'max-w-[1600px]' : 'max-w-4xl'}`}>
@@ -74,6 +84,7 @@ export function Website() {
         onChange={setTab}
         options={[
           { value: 'layout', label: 'Layout & Theme' },
+          { value: 'canvas', label: 'Free canvas' },
           { value: 'languages', label: 'Languages' },
           { value: 'blog', label: 'Health Articles' },
           { value: 'gallery', label: 'Photo Gallery' },
@@ -82,6 +93,7 @@ export function Website() {
       />
 
       {tab === 'layout' && <LayoutBuilder />}
+      {tab === 'canvas' && <CanvasEditor sections={sections} />}
       {tab === 'languages' && <LanguageManager />}
       {tab === 'blog' && <BlogManager />}
       {tab === 'gallery' && <GalleryManager />}

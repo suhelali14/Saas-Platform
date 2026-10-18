@@ -51,6 +51,7 @@ const Staff = lazy(() => import('./pages/Staff').then((m) => ({ default: m.Staff
 const Analytics = lazy(() => import('./pages/Analytics').then((m) => ({ default: m.Analytics })));
 const Pharmacy = lazy(() => import('./pages/Pharmacy').then((m) => ({ default: m.Pharmacy })));
 const Reminders = lazy(() => import('./pages/Reminders').then((m) => ({ default: m.Reminders })));
+const Requests = lazy(() => import('./pages/Requests').then((m) => ({ default: m.Requests })));
 const Billing = lazy(() => import('./pages/Billing').then((m) => ({ default: m.Billing })));
 const Labs = lazy(() => import('./pages/Labs').then((m) => ({ default: m.Labs })));
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
@@ -85,6 +86,17 @@ function PharmacyRoute({ children }: { children: React.ReactNode }) {
 }
 
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
+
+/** Appointment requests carry names and phone numbers typed in by people
+ *  who are not yet patients. Front-desk work, and the same set the API
+ *  enforces -- this only hides the screen, the server refuses the data. */
+const FRONT_DESK_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
+
+function FrontDeskRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useClinicAuth();
+  if (!user || !FRONT_DESK_ROLES.has(user.role)) return <Navigate to="/queue" replace />;
+  return <>{children}</>;
+}
 
 function BillingRoute({ children }: { children: React.ReactNode }) {
   const { user } = useClinicAuth();
@@ -159,6 +171,7 @@ function portalRoutes() {
       <Route path="/patients/:id" element={<PatientDetail />} />
       <Route path="/appointments/:id/encounter" element={<Encounter />} />
       <Route path="/reminders" element={<Reminders />} />
+      <Route path="/requests" element={<FrontDeskRoute><Requests /></FrontDeskRoute>} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/pharmacy" element={<PharmacyRoute><Pharmacy /></PharmacyRoute>} />
       <Route path="/labs" element={<Labs />} />

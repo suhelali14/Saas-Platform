@@ -3,7 +3,8 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   CalendarClock, Users, UserCog, LogOut, Stethoscope, BarChart3, Pill, Bell,
   IndianRupee, FlaskConical, Radio, Settings as SettingsIcon, Globe, Wallet,
-  ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink, LayoutDashboard} from 'lucide-react';
+  ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink, LayoutDashboard,
+  CalendarCheck} from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
@@ -24,6 +25,7 @@ const ROLE_COLORS: Record<string, string> = {
 const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
 const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
+const FRONT_DESK_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
 const REMINDER_POLL_MS = 60_000;
 
 /**
@@ -45,6 +47,7 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [dueReminders, setDueReminders] = useState(0);
+  const [newRequests, setNewRequests] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   usePolling(async () => {
@@ -53,6 +56,19 @@ export function Layout() {
       setDueReminders(res.due);
     } catch {
       // silent -- a failed poll shouldn't disrupt the rest of the app
+    }
+  }, REMINDER_POLL_MS);
+
+  // Only for the roles the API will answer: a nurse polling this would
+  // collect a 403 every minute and log a failure that is not one.
+  // `take=1` because only the count is wanted here, not the list.
+  usePolling(async () => {
+    if (!user || !FRONT_DESK_ROLES.has(user.role)) return;
+    try {
+      const res = await apiFetch<{ newCount: number }>('/appointment-requests?status=NEW&take=1');
+      setNewRequests(res.newCount);
+    } catch {
+      // silent, same reasoning as above
     }
   }, REMINDER_POLL_MS);
 
@@ -83,6 +99,9 @@ export function Layout() {
       <NavItem to="/queue" icon={CalendarClock} label="Today&rsquo;s Queue" />
       <NavItem to="/patients" icon={Users} label="Patients" />
       <NavItem to="/reminders" icon={Bell} label="Reminders" badge={dueReminders} />
+      {user && FRONT_DESK_ROLES.has(user.role) && (
+        <NavItem to="/requests" icon={CalendarCheck} label="Requests" badge={newRequests} />
+      )}
       <NavItem to="/analytics" icon={BarChart3} label="Analytics" />
       {user && BILLING_ROLES.has(user.role) && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
       {user && BILLING_ROLES.has(user.role) && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}

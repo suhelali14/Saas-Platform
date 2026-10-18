@@ -158,6 +158,12 @@ export function requireBillingAuth(request: FastifyRequest, reply: FastifyReply)
 
 const LAB_RESULT_ROLES = new Set(["RECEPTIONIST", "NURSE", "DOCTOR", "ADMIN"]);
 
+/** Who may see and act on appointments a stranger has requested. The list
+ *  carries names, phone numbers and a stated reason for visiting, typed in
+ *  by people who are not yet patients -- so it is front-desk work, not
+ *  something a pharmacist or a nurse has any reason to read. */
+const FRONT_DESK_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN"]);
+
 /** Entering/uploading a lab result -- whoever actually handles the report
  * coming back from an external lab in a small clinic (often reception). */
 /**
@@ -185,6 +191,16 @@ export function requireLabResultAuth(request: FastifyRequest, reply: FastifyRepl
   if (!auth) return null;
   if (!LAB_RESULT_ROLES.has(auth.role)) {
     reply.status(403).send({ error: "Only reception, a nurse, or a doctor can enter lab results" });
+    return null;
+  }
+  return auth;
+}
+
+export function requireFrontDeskAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
+  const auth = requireClinicAuth(request, reply);
+  if (!auth) return null;
+  if (!FRONT_DESK_ROLES.has(auth.role)) {
+    reply.status(403).send({ error: "Only reception, a doctor or an admin can handle appointment requests." });
     return null;
   }
   return auth;

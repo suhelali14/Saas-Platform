@@ -46,7 +46,7 @@
 
 export const SECTION_KEYS = [
   "about", "services", "highlights", "doctors", "gallery",
-  "blog", "feedback", "queue", "faq", "contact",
+  "blog", "feedback", "queue", "faq", "booking", "contact",
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
@@ -155,6 +155,7 @@ export const CTA_ACTIONS = [
   { key: "call", label: "Call the clinic", hint: "Dials the clinic's phone number. Works on every phone." },
   { key: "whatsapp", label: "Open WhatsApp", hint: "Opens a chat with the clinic's number, with a message ready to send." },
   { key: "queue", label: "Show the live queue", hint: "Sends them to the waiting-room display, so they can see how busy it is." },
+  { key: "book", label: "Ask for an appointment", hint: "Takes them to a short form. You get the request and call back to confirm — nothing is booked without you." },
   { key: "directions", label: "Get directions", hint: "Opens the clinic's location in a map app." },
   { key: "none", label: "No main button", hint: "The hero shows no button at all." },
 ] as const;
@@ -196,7 +197,26 @@ export const DEFAULT_DESIGN: SiteDesign = {
   secondaryCta: true,
 };
 
-export const DEFAULT_SECTIONS: SectionConfig[] = SECTION_KEYS.map((key) => ({ key, enabled: true }));
+/**
+ * Sections a clinic has to switch on, rather than receive.
+ *
+ * resolveSections appends any key missing from a stored config, so adding
+ * one to SECTION_KEYS otherwise makes it appear on every existing clinic's
+ * live website on the next deploy. For most sections that is right -- they
+ * render nothing until there is content behind them.
+ *
+ * A booking form is different: it renders immediately, and it is a promise
+ * to answer. Switching it on for a clinic that does not know it exists
+ * means patients asking for appointments into a list nobody has been told
+ * to check, which is worse for them than no form at all. So it ships off,
+ * and the clinic turns it on when its front desk is ready.
+ */
+const OFF_BY_DEFAULT = new Set<string>(["booking"]);
+
+export const DEFAULT_SECTIONS: SectionConfig[] = SECTION_KEYS.map((key) => ({
+  key,
+  enabled: !OFF_BY_DEFAULT.has(key),
+}));
 
 const has = <T extends { key: string }>(list: readonly T[], key: unknown): boolean =>
   typeof key === "string" && list.some((x) => x.key === key);
@@ -284,6 +304,7 @@ export function defaultCtaLabel(action: CtaAction): string {
     case "call": return "Call the clinic";
     case "whatsapp": return "Message us on WhatsApp";
     case "queue": return "See how busy we are";
+    case "book": return "Ask for an appointment";
     case "directions": return "Get directions";
     default: return "";
   }
