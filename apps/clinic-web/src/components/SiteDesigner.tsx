@@ -113,7 +113,7 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load the design options.'));
   }, []);
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (error) return <p className="text-sm text-ink-danger">{error}</p>;
   if (!design || !vocabulary || !available) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const set = (patch: Partial<SiteDesign>) => {
@@ -296,7 +296,7 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
       </div>
 
       {error && (
-        <p className="flex items-start gap-1.5 text-[11px] text-destructive">
+        <p className="flex items-start gap-1.5 text-[11px] text-ink-danger">
           <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
           {error}
         </p>

@@ -45,14 +45,14 @@ const buttonVariants = cva(
       variant: {
         // shadcn's names.
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive/15 text-destructive hover:bg-destructive/25',
+        destructive: 'bg-ink-danger/15 text-ink-danger hover:bg-ink-danger/25',
         outline: 'border border-border/20 bg-transparent hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
         // This app's existing names, kept so no call site has to change.
         primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'text-muted-foreground hover:bg-accent hover:text-foreground',
-        danger: 'bg-destructive/15 text-destructive hover:bg-destructive/25',
+        danger: 'bg-ink-danger/15 text-ink-danger hover:bg-ink-danger/25',
       },
       size: {
         // 36px. Reception works standing, on a phone, with a patient

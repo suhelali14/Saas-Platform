@@ -213,7 +213,7 @@ export function QuickSwitcher() {
                             list of patients somebody is about to open. */}
                         {row.patient.allergies && (
                           <span
-                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-destructive"
+                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-ink-danger"
                             title={`Allergic to ${row.patient.allergies}`}
                           >
                             <AlertTriangle size={9} aria-hidden="true" /> allergy

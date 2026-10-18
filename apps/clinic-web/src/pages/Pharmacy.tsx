@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Pill, CheckCircle2, AlertTriangle, Search, Plus, Package } from 'lucide-react';
+import { Pill, CheckCircle2, AlertTriangle, Search, Plus, Package, Ban, Clock, PackageMinus } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
 import { DatePicker } from '../components/DatePicker';
@@ -16,7 +16,7 @@ export function Pharmacy() {
   const [tab, setTab] = useState<'dispensing' | 'inventory'>('dispensing');
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Pill size={20} className="text-emerald-400" /> Pharmacy</h1>
+      <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><Pill size={20} className="text-muted-foreground" /> Pharmacy</h1>
       <p className="text-sm text-muted-foreground mb-4">Dispensing queue and stock management.</p>
       <SegmentedControl
         label="Pharmacy view"
@@ -75,9 +75,9 @@ function Dispensing() {
         {showAll ? 'Show pending only' : 'Show all'}
       </button>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       {warnings.length > 0 && (
-        <div className="mb-4 px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 text-sm">
+        <div className="mb-4 px-3 py-2 rounded-lg tone-warning text-sm">
           {warnings.map((w, i) => <div key={i} className="flex items-center gap-1"><AlertTriangle size={12} /> {w}</div>)}
         </div>
       )}
@@ -85,14 +85,14 @@ function Dispensing() {
       <div className="flex flex-col gap-3">
         {prescriptions.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing to dispense.</div>}
         {prescriptions.map((rx) => (
-          <div key={rx.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${rx.dispensed ? 'border-border/10' : 'border-amber-500/30'}`}>
+          <div key={rx.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${rx.dispensed ? 'border-border/10' : 'border-ink-warning/30'}`}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <span className="font-medium text-sm">{rx.patient.name}</span>
                 <span className="text-xs text-muted-foreground/70 font-mono ml-2">{rx.patient.uhid}</span>
               </div>
               {rx.dispensed ? (
-                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 size={13} /> Dispensed</span>
+                <span className="flex items-center gap-1 text-xs text-ink-success"><CheckCircle2 size={13} /> Dispensed</span>
               ) : (
                 <Button variant="primary" size="sm" onClick={() => dispense(rx.id)} busy={dispensing === rx.id} busyLabel="Dispensing…">
                   Mark Dispensed
@@ -197,13 +197,15 @@ function Inventory() {
 
   return (
     <div className="flex flex-col gap-6">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {alerts && (alerts.expired.length > 0 || alerts.nearExpiry.length > 0 || alerts.lowStock.length > 0) && (
         <div className="flex flex-col gap-2">
-          {alerts.expired.length > 0 && <AlertBlock icon="🔴" label="Expired" color="border-red-500/30 bg-red-500/5 text-red-400" items={alerts.expired} />}
-          {alerts.nearExpiry.length > 0 && <AlertBlock icon="🟡" label="Near Expiry (30 days)" color="border-amber-500/30 bg-amber-500/5 text-amber-400" items={alerts.nearExpiry} />}
-          {alerts.lowStock.length > 0 && <AlertBlock icon="🟠" label="Low Stock" color="border-orange-500/30 bg-orange-500/5 text-orange-400" items={alerts.lowStock} />}
+          {alerts.expired.length > 0 && <AlertBlock icon={Ban} label="Expired" tone="danger" items={alerts.expired} />}
+          {alerts.nearExpiry.length > 0 && <AlertBlock icon={Clock} label="Near Expiry (30 days)" tone="warning" items={alerts.nearExpiry} />}
+          {/* Low stock is the one of the three you can still dispense
+              against, so it is the one that is not a warm colour. */}
+          {alerts.lowStock.length > 0 && <AlertBlock icon={PackageMinus} label="Low Stock" tone="info" items={alerts.lowStock} />}
         </div>
       )}
 
@@ -257,10 +259,31 @@ function Inventory() {
   );
 }
 
-function AlertBlock({ icon, label, color, items }: { icon: string; label: string; color: string; items: AlertBatch[] }) {
+/*
+ * Spelled out, not built with `tone-${tone}`.
+ *
+ * The tone classes live in a Tailwind `@layer components`, and Tailwind
+ * prunes that layer against a scan of the source -- it cannot see a class
+ * name assembled from a variable at runtime. This worked only because
+ * every tone here also appears as a literal somewhere else in the app
+ * (`tone-info` on the nurse role badge, for one), so deleting an
+ * unrelated badge would have silently un-coloured this alert.
+ */
+const ALERT_TONE = {
+  danger: 'tone-danger',
+  warning: 'tone-warning',
+  info: 'tone-info',
+} as const;
+
+function AlertBlock({ icon: Icon, label, tone, items }: {
+  icon: typeof Ban; label: string; tone: keyof typeof ALERT_TONE; items: AlertBatch[];
+}) {
   return (
-    <div className={`p-3 rounded-xl border ${color}`}>
-      <div className="text-xs font-semibold mb-1">{icon} {label} ({items.length})</div>
+    <div className={`p-3 rounded-xl ${ALERT_TONE[tone]} tone-block`}>
+      <div className="flex items-center gap-1.5 text-xs font-semibold mb-1">
+        <Icon size={13} className="shrink-0" aria-hidden />
+        {label} ({items.length})
+      </div>
       <div className="flex flex-col gap-0.5">
         {items.slice(0, 8).map((b) => (
           <div key={b.id} className="text-xs opacity-90">

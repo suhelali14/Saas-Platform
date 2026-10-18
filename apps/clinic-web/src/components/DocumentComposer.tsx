@@ -108,7 +108,7 @@ function ShowToggle({ shown, onChange, locked, lockReason }: {
         'flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-colors',
         shown
           ? 'text-muted-foreground/70 hover:bg-foreground/10 hover:text-foreground'
-          : 'bg-warning/15 text-warning hover:bg-warning/25',
+          : 'bg-ink-warning/15 text-ink-warning hover:bg-ink-warning/25',
       )}
       aria-pressed={!shown}
     >
@@ -136,7 +136,7 @@ function Row({
           <span className="truncate text-xs font-medium" title={title}>{title}</span>
           {critical && (
             <span
-              className="flex items-center gap-0.5 text-[10px] text-destructive"
+              className="flex items-center gap-0.5 text-[10px] text-ink-danger"
               title="Safety information. Moving it below the medicines means a pharmacist reads what to dispense before they read the allergy."
             >
               <AlertTriangle size={9} aria-hidden="true" /> safety
@@ -314,7 +314,7 @@ export function DocumentComposer({
                     <button
                       type="button"
                       onClick={() => patchKind({ blocks: current.blocks.filter((_, j) => j !== i) })}
-                      className="shrink-0 rounded p-1 text-muted-foreground/70 hover:bg-destructive/15 hover:text-destructive"
+                      className="shrink-0 rounded p-1 text-muted-foreground/70 hover:bg-ink-danger/15 hover:text-ink-danger"
                       aria-label="Remove this block"
                     >
                       <Trash2 size={11} />

@@ -93,11 +93,11 @@ export function Encounter() {
           real EHR allergy-alert conventions (a doctor should never have to
           click away to discover a patient's allergies mid-consult). */}
       {hasSafetyAlert && (
-        <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 flex items-start gap-2">
-          <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-red-200">
-            {appointment.patient.allergies && <div><span className="font-semibold text-red-400">Allergies:</span> {appointment.patient.allergies}</div>}
-            {appointment.patient.chronicConditions && <div><span className="font-semibold text-red-400">Chronic conditions:</span> {appointment.patient.chronicConditions}</div>}
+        <div className="mb-4 p-3 rounded-xl border border-ink-danger/30 bg-ink-danger/10 flex items-start gap-2">
+          <AlertTriangle size={16} className="text-ink-danger shrink-0 mt-0.5" />
+          <div className="text-sm text-ink-danger">
+            {appointment.patient.allergies && <div><span className="font-semibold text-ink-danger">Allergies:</span> {appointment.patient.allergies}</div>}
+            {appointment.patient.chronicConditions && <div><span className="font-semibold text-ink-danger">Chronic conditions:</span> {appointment.patient.chronicConditions}</div>}
           </div>
         </div>
       )}
@@ -106,18 +106,18 @@ export function Encounter() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{appointment.patient.name}</h1>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-mono font-semibold">{appointment.patient.uhid}</span>
+              <h1 className="text-xl font-semibold tracking-tight">{appointment.patient.name}</h1>
+              <span className="px-2 py-0.5 rounded-full tone-success text-xs font-mono font-semibold">{appointment.patient.uhid}</span>
             </div>
             <div className="text-sm text-muted-foreground flex flex-wrap gap-3 mt-1">
               {appointment.patient.age != null && <span>{appointment.patient.age}y</span>}
               {appointment.patient.gender && <span>{appointment.patient.gender}</span>}
               {appointment.patient.bloodGroup && <span>{appointment.patient.bloodGroup}</span>}
               {appointment.patient.phone && <span>{appointment.patient.phone}</span>}
-              <Link to={`/patients/${appointment.patient.id}`} className="text-emerald-400 hover:underline">Full profile →</Link>
+              <Link to={`/patients/${appointment.patient.id}`} className="text-ink-success hover:underline">Full profile →</Link>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/15 text-purple-400 shrink-0">{appointment.status.replace('_', ' ')}</span>
+          <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet shrink-0">{appointment.status.replace('_', ' ')}</span>
         </div>
         <div className="text-xs text-muted-foreground/70 mt-3 flex items-center gap-3 flex-wrap">
           <span>{new Date(appointment.scheduledAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
@@ -134,11 +134,11 @@ export function Encounter() {
       {/* Vitals -- viewable and editable right here, not just pre-consult
           from the queue, so reception's earlier numbers or the doctor's own
           update are both one click away. */}
-      <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 mb-4">
+      <div className="p-4 rounded-xl border border-ink-info/20 bg-ink-info/5 mb-4">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-blue-300"><Activity size={14} /> Vitals</div>
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-ink-info"><Activity size={14} /> Vitals</div>
           {canRecordVitals && (
-            <button onClick={() => setPanel(panel === 'vitals' ? 'none' : 'vitals')} className="flex items-center gap-1 text-xs text-blue-300 hover:underline">
+            <button onClick={() => setPanel(panel === 'vitals' ? 'none' : 'vitals')} className="flex items-center gap-1 text-xs text-ink-info hover:underline">
               <Pencil size={11} /> {hasVitals ? 'Update' : 'Record'}
             </button>
           )}
@@ -166,12 +166,12 @@ export function Encounter() {
           {previousVisit.chiefComplaint && <div className="text-sm"><span className="text-muted-foreground">Complaint:</span> {previousVisit.chiefComplaint}</div>}
           {previousVisit.diagnosis && <div className="text-sm"><span className="text-muted-foreground">Diagnosis:</span> {previousVisit.diagnosis}</div>}
           {previousVisit.followUpDate && (
-            <div className="text-sm text-amber-400 mt-1">Follow-up was due {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+            <div className="text-sm text-ink-warning mt-1">Follow-up was due {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
           )}
         </div>
       )}
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -217,7 +217,7 @@ export function Encounter() {
                 {/* The doctor reading a result mid-consultation is exactly
                     who needs the reference beside it. */}
                 {item.normalRange && <span className="text-[11px] text-muted-foreground/70">ref {item.normalRange}</span>}
-                {item.completedAt ? <span className="text-emerald-400 text-xs">Result: {item.resultText || 'file uploaded'}</span> : <span className="text-amber-400 text-xs">Pending</span>}
+                {item.completedAt ? <span className="text-ink-success text-xs">Result: {item.resultText || 'file uploaded'}</span> : <span className="text-ink-warning text-xs">Pending</span>}
               </div>
             ))}
           </div>
@@ -230,7 +230,7 @@ export function Encounter() {
             {(c.attachments?.length ?? 0) > 0 && (
               <div className="mt-2 flex flex-col gap-1">
                 {c.attachments.map((a) => (
-                  <button key={a.id} onClick={() => openPdf(`/case-sheets/attachments/${a.id}/file`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline w-fit">
+                  <button key={a.id} onClick={() => openPdf(`/case-sheets/attachments/${a.id}/file`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline w-fit">
                     <Paperclip size={11} /> {a.fileName}
                   </button>
                 ))}
@@ -242,7 +242,7 @@ export function Encounter() {
           <div key={p.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Pill size={12} /> Prescription · {p.doctor.name}</div>
-              <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline"><Download size={11} /> PDF</button>
+              <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline"><Download size={11} /> PDF</button>
             </div>
             {p.items.map((item, i) => (
               <div key={i} className="text-sm"><span className="font-medium">{item.drugName}</span> — {item.dosage}, {item.frequency}, {item.duration}</div>
@@ -253,7 +253,7 @@ export function Encounter() {
           <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {c.type.replace('_', ' ')} · {c.doctor.name}</div>
-              <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline"><Download size={11} /> PDF</button>
+              <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline"><Download size={11} /> PDF</button>
             </div>
             <p className="text-sm text-foreground/80">{c.content}</p>
           </div>
@@ -286,15 +286,15 @@ function VitalsInlineForm({ appointmentId, vitals, onDone }: { appointmentId: st
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2 mt-1">
-      {error && <div className="px-2 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs">{error}</div>}
+      {error && <div className="px-2 py-1.5 rounded-lg tone-danger text-xs">{error}</div>}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
       </div>
-      <button type="submit" disabled={saving} className="self-start px-3 py-1.5 rounded-lg bg-blue-500 text-foreground text-xs font-semibold disabled:opacity-50">
+      <button type="submit" disabled={saving} className="self-start px-3 py-1.5 rounded-lg bg-info text-info-foreground text-xs font-semibold hover:bg-ink-info/90 transition-colors disabled:opacity-50">
         {saving ? 'Saving...' : 'Save Vitals'}
       </button>
     </form>

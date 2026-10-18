@@ -51,7 +51,7 @@ export function Analytics() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 size={20} className="text-emerald-400" /> Analytics</h1>
+        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><BarChart3 size={20} className="text-muted-foreground" /> Analytics</h1>
         <SegmentedControl
           label="Date range"
           value={String(rangeDays)}
@@ -61,7 +61,7 @@ export function Analytics() {
       </div>
       <p className="text-sm text-muted-foreground mb-6">Visit trends, common diagnoses, and workload for the selected period.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       {!data && !error && <><SkeletonStats count={4} label="Loading analytics" /><div className="mt-4"><SkeletonPanels count={2} label="Loading charts" /></div></>}
 
       {data && (

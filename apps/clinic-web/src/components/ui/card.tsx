@@ -41,7 +41,14 @@ const cardVariants = cva("rounded-xl text-card-foreground", {
       // card read as floating on the blue-grey ground, which is the whole
       // look of the reference design. Kept very low opacity: on a dense
       // clinical screen a heavy shadow under every panel turns into mud.
-      panel: "border border-border/10 bg-card shadow-[0_2px_12px_-4px_hsl(215_55%_18%_/_0.10)]",
+      //
+      // `shadow-card` rather than the arbitrary value this used to carry.
+      // That value was `hsl(215 55% 18% / 0.10)` -- the light theme's own
+      // navy, written into the component, so in the dark theme every
+      // panel cast a dark blue shadow onto a near-black ground and had no
+      // elevation whatsoever. The token resolves through --shadow and so
+      // casts near-black in the dark theme.
+      panel: "border border-border/10 bg-card shadow-card",
       subtle: "border border-border/10 bg-foreground/[0.02]",
       ghost: "border border-border/10",
       stat: "border border-border/10 bg-foreground/[0.02]",

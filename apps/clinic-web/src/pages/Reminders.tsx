@@ -54,7 +54,7 @@ export function Reminders() {
 
   return (
     <div className={`p-4 sm:p-6 md:p-8 ${tab === 'recall' ? 'max-w-4xl' : 'max-w-2xl'}`}>
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><Bell size={20} className="text-emerald-400" /> Who to chase</h1>
+      <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><Bell size={20} className="text-muted-foreground" /> Who to chase</h1>
       <p className="text-sm text-muted-foreground mb-4">
         Follow-ups you flagged for yourself, and everyone else who is overdue to come back.
       </p>
@@ -74,12 +74,12 @@ export function Reminders() {
 
       <p className="text-xs text-muted-foreground/60 mb-6">Shown here while you're using the portal -- not a phone or SMS notification.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {reminders.length > 0 && (
         <div className="flex gap-3 mb-4 text-xs">
-          {due > 0 && <span className="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 font-medium">{due} due now</span>}
-          {upcoming > 0 && <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-amber-400 font-medium">{upcoming} upcoming</span>}
+          {due > 0 && <span className="px-2 py-1 rounded-lg tone-danger font-medium">{due} due now</span>}
+          {upcoming > 0 && <span className="px-2 py-1 rounded-lg tone-warning font-medium">{upcoming} upcoming</span>}
         </div>
       )}
 
@@ -88,12 +88,12 @@ export function Reminders() {
         {reminders.map((r) => {
           const isDue = new Date(r.followUpDate) <= now;
           return (
-            <div key={r.id} className={`p-3.5 rounded-xl border bg-foreground/[0.02] flex items-center justify-between ${isDue ? 'border-red-500/30' : 'border-border/10'}`}>
+            <div key={r.id} className={`p-3.5 rounded-xl border bg-foreground/[0.02] flex items-center justify-between ${isDue ? 'border-ink-danger/30' : 'border-border/10'}`}>
               <div>
                 <div className="flex items-center gap-2">
                   <Link to={`/patients/${r.patient.id}`} className="font-medium text-sm hover:underline">{r.patient.name}</Link>
                   <span className="text-[10px] text-muted-foreground/70 font-mono">{r.patient.uhid}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isDue ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isDue ? 'tone-danger' : 'tone-warning'}`}>
                     {new Date(r.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                   </span>
                 </div>

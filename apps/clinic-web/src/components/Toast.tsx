@@ -101,8 +101,8 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 }
 
 const STYLE: Record<ToastKind, { ring: string; icon: React.ReactNode }> = {
-  success: { ring: 'border-emerald-500/30', icon: <CheckCircle2 size={16} className="text-emerald-400" /> },
-  error: { ring: 'border-red-500/40', icon: <AlertTriangle size={16} className="text-red-400" /> },
+  success: { ring: 'border-ink-success/30', icon: <CheckCircle2 size={16} className="text-ink-success" /> },
+  error: { ring: 'border-ink-danger/40', icon: <AlertTriangle size={16} className="text-ink-danger" /> },
   info: { ring: 'border-border/15', icon: <Info size={16} className="text-foreground/80" /> },
 };
 
@@ -124,10 +124,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       aria-live={toast.kind === 'error' ? 'assertive' : 'polite'}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      className={`pointer-events-auto w-full sm:w-auto sm:min-w-[280px] sm:max-w-sm flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-[#161a22] shadow-2xl toast-enter ${STYLE[toast.kind].ring}`}
+      className={`pointer-events-auto w-full sm:w-auto sm:min-w-[280px] sm:max-w-sm flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-popover shadow-overlay toast-enter ${STYLE[toast.kind].ring}`}
     >
       <span className="shrink-0 mt-0.5">{STYLE[toast.kind].icon}</span>
-      <p className="flex-1 text-sm text-gray-100 leading-snug">{toast.message}</p>
+      <p className="flex-1 text-sm text-popover-foreground leading-snug">{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
         className="shrink-0 -mr-1 -mt-0.5 p-1 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"

@@ -26,11 +26,11 @@ interface Filters { actions: string[]; resources: string[]; users: { id: string;
 
 const ACTION_STYLE: Record<string, string> = {
   VIEW: 'bg-foreground/10 text-foreground/80',
-  CREATE: 'bg-emerald-500/15 text-emerald-400',
-  UPDATE: 'bg-blue-500/15 text-blue-400',
-  DELETE: 'bg-red-500/15 text-red-400',
-  LOGIN: 'bg-teal-500/15 text-teal-300',
-  LOGIN_FAILED: 'bg-red-500/20 text-red-300',
+  CREATE: 'tone-success',
+  UPDATE: 'tone-info',
+  DELETE: 'tone-danger',
+  LOGIN: 'tone-teal',
+  LOGIN_FAILED: 'tone-danger',
 };
 
 export function AuditLog() {
@@ -96,8 +96,8 @@ export function AuditLog() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <ShieldCheck size={20} className="text-emerald-400" /> Audit Log
+        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+          <ShieldCheck size={20} className="text-muted-foreground" /> Audit Log
         </h1>
         <div className="flex items-center gap-2">
           <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
@@ -115,12 +115,12 @@ export function AuditLog() {
       {(failedLogins > 0 || denied > 0) && (
         <div className="flex flex-wrap gap-2 mb-4">
           {failedLogins > 0 && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg tone-danger text-xs">
               <AlertTriangle size={12} /> {failedLogins} failed sign-in {failedLogins === 1 ? 'attempt' : 'attempts'} in view
             </span>
           )}
           {denied > 0 && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 text-xs">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg tone-warning text-xs">
               <AlertTriangle size={12} /> {denied} permission {denied === 1 ? 'denial' : 'denials'} in view
             </span>
           )}
@@ -150,7 +150,7 @@ export function AuditLog() {
         )}
       </div>
 
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm mb-4">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm mb-4">{error}</div>}
 
       <div className="rounded-xl border border-border/10 overflow-hidden">
         <div className="overflow-x-auto">
@@ -175,7 +175,7 @@ export function AuditLog() {
                   </Td>
                   <Td><span className="text-foreground/80">{e.resource}</span></Td>
                   <Td>
-                    <span className={e.statusCode >= 400 ? 'text-red-400' : 'text-muted-foreground/70'}>
+                    <span className={e.statusCode >= 400 ? 'text-ink-danger' : 'text-muted-foreground/70'}>
                       {e.statusCode}{e.statusCode === 403 ? ' denied' : ''}
                     </span>
                   </Td>

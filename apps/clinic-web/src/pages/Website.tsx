@@ -58,8 +58,8 @@ export function Website() {
   return (
     <div className={`p-4 sm:p-6 md:p-8 ${wide ? 'max-w-[1600px]' : 'max-w-4xl'}`}>
       <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <LayoutTemplate size={20} className="text-emerald-400" /> Website
+        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+          <LayoutTemplate size={20} className="text-muted-foreground" /> Website
         </h1>
         <a href={publicSiteUrl('/')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20">
           <ExternalLink size={12} /> View live site
@@ -146,7 +146,7 @@ function LanguageManager() {
 
   return (
     <div className="flex flex-col gap-5">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Panel title="How this works" hint="">
         <ul className="text-xs text-muted-foreground leading-relaxed list-disc pl-4 flex flex-col gap-1.5">
@@ -172,11 +172,11 @@ function LanguageManager() {
               onClick={() => saveLocales(enabled, l.code)}
               busy={busy}
               className={`border ${
-                status.defaultLocale === l.code ? 'border-emerald-400 bg-emerald-500/10' : 'border-border/10 bg-foreground/[0.02]'
+                status.defaultLocale === l.code ? 'border-ink-success bg-ink-success/10' : 'border-border/10 bg-foreground/[0.02]'
               }`}
             >
               {l.nativeName}
-              {status.defaultLocale === l.code && <Check size={12} className="text-emerald-400" />}
+              {status.defaultLocale === l.code && <Check size={12} className="text-ink-success" />}
             </Button>
           ))}
         </div>
@@ -206,7 +206,7 @@ function LanguageManager() {
                   size="sm"
                   onClick={() => toggle(l.code)}
                   busy={busy}
-                  className={`shrink-0 ${on ? 'bg-emerald-500/15 text-emerald-400' : 'bg-foreground/10 text-muted-foreground'}`}
+                  className={`shrink-0 ${on ? 'tone-success' : 'bg-foreground/10 text-muted-foreground'}`}
                 >
                   {on ? 'On' : 'Off'}
                 </Button>
@@ -298,7 +298,7 @@ function TranslationEditor({ locale, status, onBack }: { locale: string; status:
           <h2 className="text-lg font-semibold">{info?.nativeName} <span className="text-sm text-muted-foreground/70 font-normal">({info?.englishName})</span></h2>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
             {items.length} item{items.length === 1 ? '' : 's'} · {missing} not translated · {needsReview} awaiting your check
-            {stale > 0 && <span className="text-amber-400"> · {stale} out of date</span>}
+            {stale > 0 && <span className="text-ink-warning"> · {stale} out of date</span>}
           </p>
         </div>
         {status.autoTranslateAvailable && (
@@ -317,8 +317,8 @@ function TranslationEditor({ locale, status, onBack }: { locale: string; status:
         )}
       </div>
 
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
-      {notice && <div className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm">{notice}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
+      {notice && <div className="px-3 py-2 rounded-lg tone-success text-sm">{notice}</div>}
 
       {!status.autoTranslateAvailable && (
         <div className="px-3 py-2.5 rounded-lg bg-foreground/5 border border-border/10 text-xs text-muted-foreground leading-relaxed">
@@ -349,8 +349,8 @@ function TranslationEditor({ locale, status, onBack }: { locale: string; status:
         </div>
       )}
 
-      <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
-        Machine translation is a <strong className="text-amber-300">first draft</strong>, not a finished one. Anything
+      <div className="px-3 py-2.5 rounded-lg bg-ink-warning/10 border border-ink-warning/20 text-xs text-ink-warning/90 leading-relaxed">
+        Machine translation is a <strong className="text-ink-warning">first draft</strong>, not a finished one. Anything
         marked &ldquo;needs check&rdquo; has not been read by a person yet. Please read each one — you speak the language,
         the model only predicts it.
       </div>
@@ -382,7 +382,7 @@ function TranslationRow({ item, onSave, selectable, selected, onToggleSelect }: 
   const long = item.sourceText.length > 120;
 
   return (
-    <div className={`p-3 rounded-xl border bg-foreground/[0.02] ${selected ? 'border-emerald-400/50' : 'border-border/10'}`}>
+    <div className={`p-3 rounded-xl border bg-foreground/[0.02] ${selected ? 'border-ink-success/50' : 'border-border/10'}`}>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {selectable && (
           <input
@@ -390,7 +390,7 @@ function TranslationRow({ item, onSave, selectable, selected, onToggleSelect }: 
             checked={selected}
             onChange={onToggleSelect}
             aria-label={`Select ${item.field} for translation`}
-            className="accent-emerald-500"
+            className="accent-ink-success"
           />
         )}
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">{item.namespace} · {item.field}</span>
@@ -425,8 +425,8 @@ function TranslationRow({ item, onSave, selectable, selected, onToggleSelect }: 
 function Badge({ tone, children }: { tone: 'gray' | 'amber' | 'emerald'; children: React.ReactNode }) {
   const tones = {
     gray: 'bg-foreground/10 text-muted-foreground',
-    amber: 'bg-amber-500/15 text-amber-400',
-    emerald: 'bg-emerald-500/15 text-emerald-400',
+    amber: 'tone-warning',
+    emerald: 'tone-success',
   };
   return <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${tones[tone]}`}>{children}</span>;
 }
@@ -558,7 +558,7 @@ function LayoutBuilder() {
   return (
     <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)] gap-5 items-start">
       <div className="flex flex-col gap-5 min-w-0">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Panel title="Page sections" hint="Turn sections off, or reorder them. A section with no content stays hidden even when it is on.">
         <div className="flex flex-col gap-1.5">
@@ -635,7 +635,7 @@ function LayoutBuilder() {
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] shrink-0 transition-colors ${
                   s.enabled
                     ? 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10'
-                    : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'
+                    : 'tone-warning hover:bg-ink-warning/25'
                 }`}
                 aria-label={`${s.enabled ? 'Hide' : 'Show'} ${SECTION_LABELS[s.key].label}`}
               >
@@ -659,11 +659,11 @@ function LayoutBuilder() {
             <button
               key={t.key}
               onClick={() => setTheme(t.key)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${theme === t.key ? 'border-emerald-400 bg-emerald-500/10' : 'border-border/10 bg-foreground/[0.02]'}`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${theme === t.key ? 'border-ink-success bg-ink-success/10' : 'border-border/10 bg-foreground/[0.02]'}`}
             >
               <span className="h-4 w-4 rounded-full" style={{ background: t.swatch }} />
               {t.label}
-              {theme === t.key && <Check size={12} className="text-emerald-400" />}
+              {theme === t.key && <Check size={12} className="text-ink-success" />}
             </button>
           ))}
         </div>
@@ -964,7 +964,7 @@ function SitePreview({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Eye size={13} /> Live preview
-          {!ready && <Spinner size={11} className="text-emerald-400" />}
+          {!ready && <Spinner size={11} className="text-ink-success" />}
         </div>
         <div className="flex items-center gap-1">
           <SegmentedControl
@@ -1082,7 +1082,7 @@ function BlogManager() {
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground/70 max-w-lg">
@@ -1110,7 +1110,7 @@ function BlogManager() {
               size="sm"
               variant="ghost"
               onClick={() => togglePublish(p)}
-              className={`shrink-0 ${p.published ? 'bg-emerald-500/15 text-emerald-400' : 'bg-foreground/10 text-muted-foreground'}`}
+              className={`shrink-0 ${p.published ? 'tone-success' : 'bg-foreground/10 text-muted-foreground'}`}
             >
               {p.published ? 'Published' : 'Draft'}
             </Button>
@@ -1170,7 +1170,7 @@ function PostEditor({ post, onDone }: { post: Post | null; onDone: () => void })
 
   return (
     <form onSubmit={save} className="flex flex-col gap-4">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <button type="button" onClick={onDone} className="self-start flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
         <X size={12} /> Back to articles
@@ -1265,7 +1265,7 @@ function GalleryManager() {
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Panel title="Add a photo" hint="Photos of your waiting room, consulting room or equipment. Never include a photo with a patient in it — you would need their written consent, and it is not worth the risk.">
         <div className="flex flex-wrap items-center gap-2">
@@ -1324,14 +1324,14 @@ function FeedbackManager() {
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {/* This is the single most important thing on this screen. It is
           stated before the publish toggles, not after. */}
-      <div className="flex gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-        <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-200/90 leading-relaxed">
-          <strong className="text-amber-300">Before you publish any of this.</strong> India's Code of Medical Ethics
+      <div className="flex gap-3 p-3.5 rounded-xl bg-ink-warning/10 border border-ink-warning/20">
+        <AlertTriangle size={16} className="text-ink-warning shrink-0 mt-0.5" />
+        <div className="text-xs text-ink-warning/90 leading-relaxed">
+          <strong className="text-ink-warning">Before you publish any of this.</strong> India's Code of Medical Ethics
           (Clause 6.1.1) and the NMC's guidance prohibit a registered practitioner from requesting or sharing patient
           testimonials, recommendations or reviews. A patient posting on Google themselves is their business —
           republishing it on your own site is generally treated as soliciting, and it is your registration at risk.
@@ -1352,9 +1352,9 @@ function FeedbackManager() {
               {data.distribution.map((d) => (
                 <div key={d.stars} className="flex items-center gap-2 text-[11px]">
                   <span className="text-muted-foreground/70 w-3">{d.stars}</span>
-                  <Star size={10} className="text-amber-400 shrink-0" />
+                  <Star size={10} className="text-ink-warning shrink-0" />
                   <div className="flex-1 h-1.5 rounded-full bg-foreground/5 overflow-hidden">
-                    <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(d.count / max) * 100}%` }} />
+                    <div className="h-full bg-warning rounded-full" style={{ width: `${(d.count / max) * 100}%` }} />
                   </div>
                   <span className="text-muted-foreground/70 w-4 text-right">{d.count}</span>
                 </div>
@@ -1372,7 +1372,7 @@ function FeedbackManager() {
                 <div className="flex items-center gap-2">
                   <span className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <Star key={n} size={11} className={n <= f.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-700'} />
+                      <Star key={n} size={11} className={n <= f.rating ? 'text-ink-warning fill-ink-warning' : 'text-muted-foreground/25'} />
                     ))}
                   </span>
                   <span className="text-xs text-muted-foreground">{f.patientName || 'Anonymous'}</span>
@@ -1382,7 +1382,7 @@ function FeedbackManager() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button variant="ghost" size="sm" onClick={() => toggle(f)}
-                  className={f.isPublished ? 'bg-amber-500/15 text-amber-400' : 'bg-foreground/10 text-muted-foreground'}>
+                  className={f.isPublished ? 'tone-warning' : 'bg-foreground/10 text-muted-foreground'}>
                   {f.isPublished ? 'Public' : 'Private'}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => remove(f.id)} aria-label="Delete feedback"><Trash2 size={13} /></Button>
@@ -1408,8 +1408,8 @@ function Panel({ title, hint, children }: { title: string; hint?: string; childr
   return (
     <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
       <h2 className="text-sm font-semibold flex items-center gap-1.5">
-        {title === 'Colour theme' && <Palette size={13} className="text-emerald-400" />}
-        {title === 'Hero image' && <ImageIcon size={13} className="text-emerald-400" />}
+        {title === 'Colour theme' && <Palette size={13} className="text-ink-success" />}
+        {title === 'Hero image' && <ImageIcon size={13} className="text-ink-success" />}
         {title}
       </h2>
       {hint && <p className="text-xs text-muted-foreground/70 mb-3 mt-0.5 leading-relaxed">{hint}</p>}
@@ -1512,7 +1512,7 @@ function SearchPreview({
           Uses your hero image{heroImagePath ? '' : ', which you have not uploaded yet — without one the card is a grey box'}.
         </p>
         {/* Said plainly rather than left to be discovered. */}
-        <p className="mt-2 text-[11px] text-warning">
+        <p className="mt-2 text-[11px] text-ink-warning">
           WhatsApp and Facebook read the page without running it, so the card needs one more
           deployment step before it shows. Search engines already see everything above.
         </p>

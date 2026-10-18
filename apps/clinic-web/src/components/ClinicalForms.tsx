@@ -102,8 +102,8 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
 
   if (createdId) {
     return (
-      <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
-        <p className="text-sm text-emerald-400 mb-3">Case sheet saved. Attach an X-ray or lab report? (optional)</p>
+      <div className="mb-6 p-4 rounded-xl border border-ink-success/30 bg-ink-success/5">
+        <p className="text-sm text-ink-success mb-3">Case sheet saved. Attach an X-ray or lab report? (optional)</p>
         <div className="flex items-center gap-2">
           <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-xs text-foreground/80" />
           <button onClick={uploadAttachment} disabled={!file || uploading} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
@@ -111,7 +111,7 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
           </button>
           <button onClick={onDone} className="px-3 py-1.5 rounded-lg bg-foreground/10 text-xs">Skip</button>
         </div>
-        {error && <div className="mt-2 text-xs text-red-400">{error}</div>}
+        {error && <div className="mt-2 text-xs text-ink-danger">{error}</div>}
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Case Sheet</h3>
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <textarea placeholder="Chief complaint" value={form.chiefComplaint} onChange={(e) => setForm({ ...form, chiefComplaint: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <textarea placeholder="History of presenting illness (HOPI)" value={form.hopi} onChange={(e) => setForm({ ...form, hopi: e.target.value })} rows={2} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
@@ -130,7 +130,7 @@ export function CaseSheetForm({ patientId, appointmentId, initialVitals, onDone 
         <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
       </div>
       {initialVitals && Object.values(initialVitals).some(Boolean) && (
-        <p className="text-xs text-emerald-400">Pre-filled from the nurse's pre-consult vitals.</p>
+        <p className="text-xs text-ink-success">Pre-filled from the nurse's pre-consult vitals.</p>
       )}
       {frequentDiagnoses.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -387,7 +387,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
           two years ago without a fresh look is a real risk, and the
           person best placed to judge needs the date in front of them. */}
       {lastRx?.stale && (
-        <p className="flex items-start gap-1.5 text-[11px] text-warning">
+        <p className="flex items-start gap-1.5 text-[11px] text-ink-warning">
           <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
             Their last prescription was {describeAge(lastRx.daysAgo)}. Worth confirming it still
@@ -395,7 +395,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
           </span>
         </p>
       )}
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {items.map((item, i) => (
         <div key={i} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-start">
@@ -417,13 +417,13 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
                           match -- and told that is what it is, because the
                           alternative is reading it as an exact hit. */}
                       {d.approximate && (
-                        <span className="shrink-0 px-1 py-px rounded text-[9px] uppercase tracking-wide bg-warning/15 text-warning" title="A close spelling match, not what you typed. Check the composition.">
+                        <span className="shrink-0 px-1 py-px rounded text-[9px] uppercase tracking-wide bg-ink-warning/15 text-ink-warning" title="A close spelling match, not what you typed. Check the composition.">
                           similar
                         </span>
                       )}
                     </div>
                     {d.composition && (
-                      <div className={cn('text-[10px] truncate', d.matchedOn === 'composition' ? 'text-emerald-400/80' : 'text-muted-foreground/70')}>
+                      <div className={cn('text-[10px] truncate', d.matchedOn === 'composition' ? 'text-ink-success/80' : 'text-muted-foreground/70')}>
                         {d.composition}
                       </div>
                     )}
@@ -432,7 +432,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               </div>
             )}
             {searchedEmpty[i] && item.drugName.length >= 2 && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-emerald-500/30 bg-[#14171f] p-2">
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-ink-success/30 bg-[#14171f] p-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -440,7 +440,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
                   onClick={() => addNewMedicine(i, item.drugName)}
                   busy={addingDrug === i}
                   busyLabel="Adding…"
-                  className="!px-0 text-emerald-400"
+                  className="!px-0 text-ink-success"
                 >
                   {`+ Add "${item.drugName}" as new medicine`}
                 </Button>
@@ -464,7 +464,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
             options={FREQUENCIES.map((f) => ({ value: f, label: f }))}
           />
           <input placeholder="Duration" value={item.duration} onChange={(e) => updateItem(i, 'duration', e.target.value)} className="col-span-1 sm:col-span-2 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary" />
-          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} aria-label="Remove this medicine" className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-red-400 disabled:opacity-30">✕</button>
+          <button type="button" onClick={() => removeRow(i)} disabled={items.length === 1} aria-label="Remove this medicine" className="col-span-2 sm:col-span-1 min-h-[36px] text-xs text-muted-foreground/70 hover:text-ink-danger disabled:opacity-30">✕</button>
 
           {/* Instructions print as a sub-row beneath the medicine on the
               prescription, so they get a full row here too. "After food,
@@ -478,14 +478,14 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
 
           {/* Warned, never blocked -- see updateDose. */}
           {doseConflict(item.dosage, item.frequency) && (
-            <p className="col-span-2 sm:col-span-12 flex items-start gap-1.5 text-[11px] text-warning">
+            <p className="col-span-2 sm:col-span-12 flex items-start gap-1.5 text-[11px] text-ink-warning">
               <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>{doseConflict(item.dosage, item.frequency)}</span>
             </p>
           )}
         </div>
       ))}
-      <button type="button" onClick={addRow} className="self-start text-xs text-emerald-400 hover:underline">+ Add drug</button>
+      <button type="button" onClick={addRow} className="self-start text-xs text-ink-success hover:underline">+ Add drug</button>
 
       <input placeholder="Save these items as a template? (optional name)" value={saveAsTemplateName} onChange={(e) => setSaveAsTemplateName(e.target.value)} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
 
@@ -531,7 +531,7 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">New Certificate for {patientName}</h3>
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <SegmentedControl
         label="Certificate type"
         value={type}
@@ -603,7 +603,7 @@ export function LabOrderForm({ patientId, appointmentId, onDone }: { patientId: 
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
       <h3 className="text-sm font-semibold">Order Lab Tests</h3>
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
         {catalog.map((t) => (
           <button

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, Info, RefreshCw, ArrowRight, Activity, Stethoscope,
@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import { Card, CardContent } from '../components/ui';
 import { SkeletonStats } from '../components/Skeleton';
 import { CATEGORY_BADGES } from '../lib/categories';
+import { usePolling } from '../lib/usePolling';
 
 /**
  * The screen somebody reads between patients.
@@ -87,10 +88,27 @@ function ago(iso: string, now: number): string {
   return `${hours} hour${hours === 1 ? '' : 's'} ago`;
 }
 
+/**
+ * The "Updated N ago" line, and the only thing in it that advances.
+ *
+ * This clock used to live in Dashboard itself as a state value set every
+ * ten seconds -- which re-rendered the whole screen, every stat tile and
+ * every list on it, to move one short string along. A doctor leaves this
+ * page open between patients, so that was the most frequently repeated
+ * piece of wasted work in the app.
+ *
+ * Owning the interval here keeps the label honest (it would otherwise
+ * read "just now" for a full minute) and costs one text node to update.
+ */
+function Freshness({ iso }: { iso: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  usePolling(() => setNow(Date.now()), 10_000);
+  return <>Updated {ago(iso, now)}</>;
+}
+
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(Date.now());
 
   const load = useCallback(async () => {
     try {
@@ -101,20 +119,16 @@ export function Dashboard() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    const poll = setInterval(() => void load(), REFRESH_MS);
-    // A separate, faster clock for the "updated N ago" line. Without it
-    // the label would claim "just now" for a full minute.
-    const clock = setInterval(() => setTick(Date.now()), 10_000);
-    return () => { clearInterval(poll); clearInterval(clock); };
-  }, [load]);
+  // Pauses while the tab is hidden and refreshes the moment it is looked
+  // at again -- see lib/usePolling. The "updated N ago" clock lives in
+  // <Freshness>, so advancing it no longer re-renders this whole screen.
+  usePolling(load, REFRESH_MS);
 
   if (!data) {
     return (
       <div className="p-4 sm:p-6 md:p-8">
         {error ? (
-          <Card><CardContent className="p-5 text-sm text-destructive">{error}</CardContent></Card>
+          <Card><CardContent className="p-5 text-sm text-ink-danger">{error}</CardContent></Card>
         ) : (
           <SkeletonStats count={4} label="Loading today's summary" />
         )}
@@ -132,7 +146,7 @@ export function Dashboard() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{greeting}</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Updated {ago(data.generatedAt, tick)}
+            <Freshness iso={data.generatedAt} />
           </p>
         </div>
         <Button variant="ghost" size="sm" icon={<RefreshCw size={12} />} onClick={load}>
@@ -185,7 +199,7 @@ export function Dashboard() {
                   Shown here for the same reason the encounter screen puts
                   it above the fold. */}
               {today.next.allergies ? (
-                <p className="mt-0.5 flex items-start gap-1 text-xs text-destructive">
+                <p className="mt-0.5 flex items-start gap-1 text-xs text-ink-danger">
                   <AlertTriangle size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
                   <span className="min-w-0">Allergic to {today.next.allergies}</span>
                 </p>
@@ -214,14 +228,14 @@ export function Dashboard() {
               className={cn(
                 'flex items-center gap-2.5 rounded-lg border p-3 transition-colors',
                 item.severity === 'warn'
-                  ? 'border-warning/30 bg-warning/10 hover:bg-warning/15'
+                  ? 'border-ink-warning/30 bg-ink-warning/10 hover:bg-ink-warning/15'
                   : 'border-border/10 bg-foreground/[0.02] hover:bg-foreground/5',
               )}
             >
               {/* Status colour never carries meaning alone: an icon and a
                   worded label say the same thing. */}
               {item.severity === 'warn'
-                ? <AlertTriangle size={14} className="shrink-0 text-warning" aria-hidden="true" />
+                ? <AlertTriangle size={14} className="shrink-0 text-ink-warning" aria-hidden="true" />
                 : <Info size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />}
               <span className="min-w-0 text-xs">
                 <span className="font-semibold">{item.count}</span>{' '}
@@ -278,7 +292,7 @@ export function Dashboard() {
         </p>
       )}
 
-      {error && <p className="mt-4 text-xs text-destructive">{error}</p>}
+      {error && <p className="mt-4 text-xs text-ink-danger">{error}</p>}
     </div>
   );
 }

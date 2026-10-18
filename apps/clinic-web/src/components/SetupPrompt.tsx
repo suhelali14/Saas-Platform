@@ -77,7 +77,7 @@ export function SetupPrompt() {
     <div
       className={`rounded-lg border p-4 ${
         urgent
-          ? 'border-amber-500/40 bg-amber-500/10'
+          ? 'border-ink-warning/40 bg-ink-warning/10'
           : 'border-border/10 bg-foreground/5'
       }`}
       role="region"
@@ -141,7 +141,7 @@ export function SetupPrompt() {
               <div className="flex items-start gap-2">
                 <span
                   className={`mt-1 size-1.5 shrink-0 rounded-full ${
-                    item.essential ? 'bg-amber-400' : 'bg-gray-500'
+                    item.essential ? 'bg-warning' : 'bg-muted-foreground/40'
                   }`}
                   aria-hidden="true"
                 />

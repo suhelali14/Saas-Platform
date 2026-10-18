@@ -38,12 +38,12 @@ interface Appointment {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  SCHEDULED: 'bg-amber-500/15 text-amber-400',
-  CHECKED_IN: 'bg-blue-500/15 text-blue-400',
-  IN_PROGRESS: 'bg-purple-500/15 text-purple-400',
-  COMPLETED: 'bg-emerald-500/15 text-emerald-400',
-  CANCELLED: 'bg-gray-500/15 text-muted-foreground',
-  NO_SHOW: 'bg-red-500/15 text-red-400',
+  SCHEDULED: 'tone-warning',
+  CHECKED_IN: 'tone-info',
+  IN_PROGRESS: 'tone-violet',
+  COMPLETED: 'tone-success',
+  CANCELLED: 'tone-neutral',
+  NO_SHOW: 'tone-danger',
 };
 
 const NEXT_STATUS: Record<string, string | null> = {
@@ -192,7 +192,7 @@ export function Queue() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-[1600px]">
       <div className="flex items-center justify-between mb-3">
-        <h1 className="text-xl font-bold">{isToday ? "Today's Queue" : 'Queue'}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{isToday ? "Today's Queue" : 'Queue'}</h1>
         <button onClick={() => setShowBook((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           <Plus size={14} /> Book Appointment
         </button>
@@ -238,7 +238,7 @@ export function Queue() {
         />
       )}
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {showBook && (
         <form onSubmit={bookAppointment} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
@@ -266,7 +266,7 @@ export function Queue() {
             )}
             {patientQuery.length >= 2 && patientOptions.length === 0 && !selectedPatientId && (
               <p className="text-xs text-muted-foreground/70 mt-1">
-                No match. <Link to="/patients" className="text-emerald-400 underline">Add a new patient</Link> first.
+                No match. <Link to="/patients" className="text-ink-success underline">Add a new patient</Link> first.
               </p>
             )}
           </div>
@@ -326,7 +326,7 @@ export function Queue() {
                     </span>
                   )}
                   {appt.patient.allergies && (
-                    <span title={`Allergies: ${appt.patient.allergies}`} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 text-[10px] font-medium">
+                    <span title={`Allergies: ${appt.patient.allergies}`} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded tone-danger text-[10px] font-medium">
                       <AlertTriangle size={9} /> allergy
                     </span>
                   )}
@@ -338,7 +338,7 @@ export function Queue() {
                   {appt.doctor && <span className="flex items-center gap-1"><Stethoscope size={10} />Dr. {appt.doctor.name}</span>}
                   {appt.reason && <span>· {appt.reason}</span>}
                   {appt.vitals && Object.values(appt.vitals).some(Boolean) && (
-                    <span className="flex items-center gap-0.5 text-emerald-400"><Activity size={10} /> vitals done</span>
+                    <span className="flex items-center gap-0.5 text-ink-success"><Activity size={10} /> vitals done</span>
                   )}
                 </div>
               </div>
@@ -351,7 +351,7 @@ export function Queue() {
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
                     appt.vitals && Object.values(appt.vitals).some(Boolean)
                       ? 'bg-foreground/10 hover:bg-foreground/20 text-foreground/80'
-                      : 'bg-blue-500 hover:bg-blue-600 text-foreground'
+                      : 'bg-info hover:bg-ink-info/90 text-info-foreground transition-colors'
                   }`}
                 >
                   <Activity size={11} /> {appt.vitals && Object.values(appt.vitals).some(Boolean) ? 'Edit Vitals' : 'Record Vitals'}
@@ -403,18 +403,18 @@ function VitalsPanel({ appointment, onClose, onSaved }: { appointment: Appointme
   };
 
   return (
-    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 flex flex-col gap-3">
+    <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-ink-info/30 bg-ink-info/5 flex flex-col gap-3">
       <h3 className="text-sm font-semibold">Record Vitals — {appointment.patient.name}</h3>
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
-        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-blue-400" />
+        <input placeholder="BP" value={form.bp} onChange={(e) => setForm({ ...form, bp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Temp" value={form.temp} onChange={(e) => setForm({ ...form, temp: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="SpO2" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
+        <input placeholder="Pulse" value={form.pulse} onChange={(e) => setForm({ ...form, pulse: e.target.value })} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-ink-info" />
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-500 text-foreground text-sm font-semibold disabled:opacity-50">
+        <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-info text-info-foreground text-sm font-semibold hover:bg-ink-info/90 transition-colors disabled:opacity-50">
           {saving ? 'Saving...' : 'Save Vitals'}
         </button>
         <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-foreground/10 text-sm">Cancel</button>

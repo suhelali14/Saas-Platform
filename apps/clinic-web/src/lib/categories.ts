@@ -10,8 +10,8 @@ export const PATIENT_CATEGORIES = [
 
 // GENERAL gets no badge -- the common case shouldn't be visually noisy.
 export const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
-  EMERGENCY: { label: 'Emergency', color: 'bg-red-500/20 text-red-400' },
-  PREGNANT: { label: 'Pregnant', color: 'bg-pink-500/20 text-pink-400' },
-  SENIOR_CITIZEN: { label: 'Senior', color: 'bg-amber-500/20 text-amber-400' },
-  CHILD: { label: 'Child', color: 'bg-blue-500/20 text-blue-400' },
+  EMERGENCY: { label: 'Emergency', color: 'tone-danger' },
+  PREGNANT: { label: 'Pregnant', color: 'tone-pink' },
+  SENIOR_CITIZEN: { label: 'Senior', color: 'tone-warning' },
+  CHILD: { label: 'Child', color: 'tone-info' },
 };

@@ -79,7 +79,7 @@ export function RecallList() {
 
   useEffect(() => { void load(); }, [load]);
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (error) return <p className="text-sm text-ink-danger">{error}</p>;
   if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const all = [...data.overdue, ...data.quiet];
@@ -193,7 +193,7 @@ function Row({ row }: { row: RecallRow }) {
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
           {row.reason === 'follow-up' ? (
-            <span className="flex items-center gap-1 text-warning">
+            <span className="flex items-center gap-1 text-ink-warning">
               <Clock size={10} aria-hidden="true" />
               due {date(row.dueOn)}
               {overdueBy != null && overdueBy > 0 && ` · ${overdueBy} days late`}

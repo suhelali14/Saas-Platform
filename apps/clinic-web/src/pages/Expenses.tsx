@@ -42,8 +42,8 @@ export function Expenses() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-5xl">
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1">
-        <Wallet size={20} className="text-emerald-400" /> Expenses
+      <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1">
+        <Wallet size={20} className="text-muted-foreground" /> Expenses
       </h1>
       <p className="text-sm text-muted-foreground mb-4">What the clinic spends, and what it actually earned.</p>
 
@@ -113,7 +113,7 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-baseline gap-2">
@@ -232,7 +232,7 @@ function ExpenseForm({ categories, onSaved }: { categories: string[]; onSaved: (
 
   return (
     <form onSubmit={submit} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] grid md:grid-cols-2 gap-3">
-      {error && <div className="md:col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="md:col-span-2 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <div>
         <label className="block text-xs text-muted-foreground mb-1">Category</label>
         <Pick
@@ -292,7 +292,7 @@ function ProfitLossView({ range }: { range: { from: string; to: string } }) {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load profit & loss.'));
   }, [range.from, range.to]);
 
-  if (error) return <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>;
+  if (error) return <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>;
   if (!pl) return <SkeletonStats count={3} label="Loading profit and loss" />;
 
   const profitable = pl.netProfit >= 0;
@@ -300,24 +300,24 @@ function ProfitLossView({ range }: { range: { from: string; to: string } }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid sm:grid-cols-3 gap-3">
-        <StatCard label="Revenue received" value={pl.revenue} icon={TrendingUp} tone="text-emerald-400" />
-        <StatCard label="Expenses paid" value={pl.expenses} icon={TrendingDown} tone="text-red-400" />
-        <StatCard label="Net profit" value={pl.netProfit} icon={IndianRupee} tone={profitable ? 'text-emerald-400' : 'text-red-400'} />
+        <StatCard label="Revenue received" value={pl.revenue} icon={TrendingUp} tone="text-ink-success" />
+        <StatCard label="Expenses paid" value={pl.expenses} icon={TrendingDown} tone="text-ink-danger" />
+        <StatCard label="Net profit" value={pl.netProfit} icon={IndianRupee} tone={profitable ? 'text-ink-success' : 'text-ink-danger'} />
       </div>
 
       {/* Deliberately separate from revenue: money billed but not collected
           is not income, and folding it in would overstate what the clinic
           actually earned. */}
       {pl.outstanding > 0 && (
-        <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 text-amber-300 text-sm">
+        <div className="px-3 py-2.5 rounded-lg tone-warning text-sm">
           ₹{pl.outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })} billed in this period is still unpaid.
           It is <strong>not</strong> counted in revenue above — these figures reflect money actually received.
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
-        <Breakdown title="Revenue by payment mode" rows={pl.revenueByMode.map((r) => ({ label: r.mode, amount: r.amount }))} tone="bg-emerald-400" />
-        <Breakdown title="Expenses by category" rows={pl.expenseByCategory.map((r) => ({ label: r.category, amount: r.amount }))} tone="bg-red-400" />
+        <Breakdown title="Revenue by payment mode" rows={pl.revenueByMode.map((r) => ({ label: r.mode, amount: r.amount }))} tone="bg-success" />
+        <Breakdown title="Expenses by category" rows={pl.expenseByCategory.map((r) => ({ label: r.category, amount: r.amount }))} tone="bg-destructive" />
       </div>
     </div>
   );

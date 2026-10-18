@@ -83,14 +83,14 @@ export function Patients() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-[1600px]">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold">Patients</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Patients</h1>
         <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           <Plus size={14} /> New Patient
         </button>
       </div>
       <p className="text-sm text-muted-foreground mb-6">Patient records and history.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {showNew && (
         <form onSubmit={createPatient} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -138,7 +138,7 @@ export function Patients() {
             <div>
               <div className="flex items-center gap-2">
                 <div className="font-medium text-sm">{p.name}</div>
-                <span className="text-[10px] text-emerald-400 font-mono">{p.uhid}</span>
+                <span className="text-[10px] text-ink-success font-mono">{p.uhid}</span>
                 {CATEGORY_BADGES[p.category] && (
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${CATEGORY_BADGES[p.category].color}`}>
                     {CATEGORY_BADGES[p.category].label}

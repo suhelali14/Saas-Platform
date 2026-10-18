@@ -113,11 +113,11 @@ export function PatientDetail() {
       <Link to="/patients" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to patients</Link>
 
       {(patient.allergies || patient.chronicConditions) && (
-        <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 flex items-start gap-2">
-          <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-red-200">
-            {patient.allergies && <div><span className="font-semibold text-red-400">Allergies:</span> {patient.allergies}</div>}
-            {patient.chronicConditions && <div><span className="font-semibold text-red-400">Chronic conditions:</span> {patient.chronicConditions}</div>}
+        <div className="mb-4 p-3 rounded-xl border border-ink-danger/30 bg-ink-danger/10 flex items-start gap-2">
+          <AlertTriangle size={16} className="text-ink-danger shrink-0 mt-0.5" />
+          <div className="text-sm text-ink-danger">
+            {patient.allergies && <div><span className="font-semibold text-ink-danger">Allergies:</span> {patient.allergies}</div>}
+            {patient.chronicConditions && <div><span className="font-semibold text-ink-danger">Chronic conditions:</span> {patient.chronicConditions}</div>}
           </div>
         </div>
       )}
@@ -125,8 +125,8 @@ export function PatientDetail() {
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.03] mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">{patient.name}</h1>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-mono font-semibold">
+            <h1 className="text-xl font-semibold tracking-tight">{patient.name}</h1>
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full tone-success text-xs font-mono font-semibold">
               <BadgeCheck size={11} /> {patient.uhid}
             </span>
           </div>
@@ -167,7 +167,7 @@ export function PatientDetail() {
 
       {vitalsTrend.length >= 2 && <VitalsTrendSection points={vitalsTrend} />}
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -220,7 +220,7 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
         {(c.attachments?.length ?? 0) > 0 && (
           <div className="mt-2 flex flex-col gap-1">
             {c.attachments.map((a) => (
-              <button key={a.id} onClick={() => openPdf(`/case-sheets/attachments/${a.id}/file`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline w-fit">
+              <button key={a.id} onClick={() => openPdf(`/case-sheets/attachments/${a.id}/file`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline w-fit">
                 <Paperclip size={11} /> {a.fileName}
               </button>
             ))}
@@ -236,7 +236,7 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Pill size={12} /> Prescription · {dateLabel} · {p.doctor.name}</div>
-          <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline">
+          <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline">
             <Download size={11} /> PDF
           </button>
         </div>
@@ -258,7 +258,7 @@ function TimelineCard({ entry }: { entry: { date: string; kind: string; data: an
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {c.type.replace('_', ' ')} Certificate · {dateLabel} · {c.doctor.name}</div>
-          <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline">
+          <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline">
             <Download size={11} /> PDF
           </button>
         </div>
@@ -337,7 +337,7 @@ function PatientEditForm({ patient, onCancel, onSaved }: { patient: Patient; onC
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] grid grid-cols-1 sm:grid-cols-2 gap-3">
       <h3 className="col-span-2 text-sm font-semibold">Edit Patient</h3>
-      {error && <div className="col-span-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="col-span-2 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <input placeholder="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
       <Pick

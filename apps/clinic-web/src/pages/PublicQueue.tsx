@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Clock, ArrowLeft } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/api';
 import { palette, publicAsset } from '../lib/public-site';
+import { usePolling } from '../lib/usePolling';
 
 // Public, no login -- the "innovative" feature from the plan's research:
 // real token/queue-transparency displays measurably cut perceived wait time
@@ -46,24 +47,19 @@ export function PublicQueue() {
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${publicQueueBase()}/queue`);
-        const data = await res.json();
-        setClinicName(data.clinicName);
-        setTheme(data.theme ?? null);
-        setLogoPath(data.logoPath ?? null);
-        setQueue(data.queue);
-        setUpdatedAt(data.updatedAt);
-      } catch {
-        // silent -- a failed refresh just keeps showing the last known state
-      }
-    };
-    load();
-    const interval = setInterval(load, REFRESH_MS);
-    return () => clearInterval(interval);
-  }, []);
+  usePolling(async () => {
+    try {
+      const res = await fetch(`${publicQueueBase()}/queue`);
+      const data = await res.json();
+      setClinicName(data.clinicName);
+      setTheme(data.theme ?? null);
+      setLogoPath(data.logoPath ?? null);
+      setQueue(data.queue);
+      setUpdatedAt(data.updatedAt);
+    } catch {
+      // silent -- a failed refresh just keeps showing the last known state
+    }
+  }, REFRESH_MS);
 
   const p = palette(theme);
   const nowServing = queue.find((q) => q.status === 'IN_PROGRESS');

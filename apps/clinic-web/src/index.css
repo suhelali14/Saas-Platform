@@ -17,23 +17,24 @@
  *
  * ── Two apps, two visual languages ──────────────────────────────────
  *
- * The staff portal is dark: it is a tool used for hours at a time. The
- * public patient site is light: it is read once, by a stranger deciding
- * whether to trust this clinic. They are deliberately different and are
- * not being unified.
+ * The tokens below describe the PORTAL. The public patient site keeps its
+ * own explicit per-clinic palette (lib/site-design.ts), because a page
+ * patients act on must not change because someone restyled a staff
+ * screen -- and because each clinic chooses its own colour there.
  *
- * So the tokens below describe the PORTAL, which is what shadcn primitives
- * are used for. The public site keeps its own explicit light palette, as
- * documented in DESIGN.md -- a page patients act on should not inherit a
- * theme change made for a staff screen.
+ * The portal ships LIGHT. Reception works standing at a front desk in
+ * daylight, which is the scene that decides this; dark is offered for a
+ * doctor's evening clinic and is a preference, not the norm.
  *
- * ── Why dark sits on :root ──────────────────────────────────────────
+ * ── Why dark still sits on :root ────────────────────────────────────
  *
  * The usual shadcn setup puts light on :root and dark under .dark. This
- * app is inverted because it was dark first: every one of ~40 existing
- * components is written for the dark ground, and `theme-light` is the
- * override. Flipping that round would mean no screen rendered correctly
- * until all of them had been converted.
+ * file is inverted -- dark on :root, light under `.theme-light` -- purely
+ * because the portal was written dark-first. Flipping the cascade would
+ * mean no screen rendered correctly until all ~40 components had been
+ * converted. Which theme is DEFAULT is decided by ThemeContext, not by
+ * which one sits on :root; the two are easy to confuse and are not the
+ * same question.
  */
 @tailwind base;
 @tailwind components;
@@ -77,9 +78,52 @@
        screen to decide something, so they are tokens with names rather
        than a hue chosen per component. */
     --success: 158 64% 42%;
-    --success-foreground: 0 0% 100%;
+    /* Dark, not white. White on a 42%-lightness green is 2.78:1 -- the
+       same trap --warning-foreground already avoids one line below. */
+    --success-foreground: 158 80% 8%;
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 10%;
+    /* Neutral-informational: a note, a reference range, a role badge --
+       something to read, not to act on. Distinct from --primary, which
+       means "this is the action". */
+    --info: 212 90% 62%;
+    --info-foreground: 210 60% 10%;
+
+    /*
+     * ── Ink, as distinct from ground ──────────────────────────────────
+     *
+     * The four tokens above are GROUNDS: a solid fill with its own
+     * foreground painted on top, which is what a button or a solid badge
+     * needs. They cannot also serve as text colour, because the two jobs
+     * pull in opposite directions -- a red dark enough for white text on
+     * it is too dark to read AS text on a near-black page, and a red
+     * bright enough to read on black is too bright to put white on.
+     *
+     * Trying to make one token do both is why `text-red-400` was typed
+     * into sixty places instead: the token genuinely did not work there.
+     * So each meaning gets a second value, the colour of its TEXT, in
+     * this theme. Every pair below was checked against this theme's page
+     * ground, its card ground, and its own tint, and clears 4.5:1 on all
+     * three; the lowest in the set is 5.42:1.
+     */
+    --ink-success: 158 64% 56%;
+    --ink-warning: 38 95% 62%;
+    --ink-danger: 0 85% 72%;
+    --ink-info: 212 90% 70%;
+    /* Three more hues that carry meaning nothing above covers: a staff
+       role, a triage tier, an audit event class. They are not decoration
+       -- collapsing them into the four semantic tones would make
+       "pharmacist" and "dispensed" the same colour. */
+    --ink-violet: 265 90% 76%;
+    --ink-pink: 330 85% 74%;
+    --ink-teal: 175 70% 58%;
+
+    /* The colour shadows are cast IN, not the shadow itself. A shadow is
+       a darkening of the ground, so on a near-black ground it has to be
+       nearly black to register at all -- the card shadow used to be a
+       light-theme navy hardcoded into the component, which meant every
+       panel in the dark theme had no elevation whatsoever. */
+    --shadow: 220 60% 2%;
 
     --border: 0 0% 100%;  /* used at low opacity, as border-white/10 was */
     --input: 220 14% 18%;
@@ -106,15 +150,23 @@
     --popover-foreground: 215 55% 18%;
 
     /* Deeper than the dark theme's blue: the same sky blue that reads
-       bright on near-black fails contrast as a link on white. */
-    --primary: 203 85% 44%;
+       bright on near-black fails contrast as a link on white. 44% was
+       still not deep enough -- measured, it came to 3.91:1 as text on a
+       white card, so every `text-primary` link in the portal failed on
+       the theme that ships by default. 38% measures 5.03:1 on the card
+       and 4.51:1 on the page ground, and white on it as a button reads
+       5.03:1. */
+    --primary: 203 85% 38%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 225 40% 93%;
     --secondary-foreground: 215 55% 18%;
 
     --muted: 225 40% 95%;
-    --muted-foreground: 215 20% 48%;
+    /* 48% measured 4.15:1 against the blue-grey PAGE ground -- it passed
+       on a white card and failed everywhere a muted line sat directly on
+       the page, which is most of them. */
+    --muted-foreground: 215 20% 44%;
 
     --accent: 225 40% 91%;
     --accent-foreground: 215 55% 18%;
@@ -122,10 +174,28 @@
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 64% 34%;
+    /* Both darkened so that white text on them clears 4.5:1: at 34% and
+       40% a solid success or warning button measured 4.4:1 and 3.9:1. */
+    --success: 158 64% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 92% 40%;
+    --warning: 32 92% 34%;
     --warning-foreground: 0 0% 100%;
+    --info: 212 80% 40%;
+    --info-foreground: 0 0% 100%;
+
+    /* Ink for this theme -- see the dark block for why ground and ink are
+       two different tokens. Lowest in this set is 4.93:1. */
+    --ink-success: 160 72% 26%;
+    --ink-warning: 28 88% 33%;
+    --ink-danger: 0 72% 42%;
+    --ink-info: 212 80% 40%;
+    --ink-violet: 266 70% 45%;
+    --ink-pink: 334 70% 42%;
+    --ink-teal: 184 75% 26%;
+
+    /* Tinted toward the page's own blue rather than neutral grey: a grey
+       shadow on a blue-grey ground reads as dirt. */
+    --shadow: 215 55% 28%;
 
     --border: 215 55% 18%;
     --input: 220 30% 88%;
@@ -139,8 +209,91 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-feature-settings: "cv11", "ss01";
+    /* This used to read `font-feature-settings: "cv11", "ss01"`, copied
+       from a setup built on Inter v3. Inter v4 -- the version shipping
+       here -- dropped those stylistic sets; reading the font's own GSUB
+       table back, all it offers is calt, ccmp, dnom, frac, locl, numr,
+       pnum and tnum. So those two tags addressed nothing, before or after
+       the font was actually loaded.
+       Figure alignment is the one typographic setting this app genuinely
+       needs, and it is set where it belongs -- on table cells and on
+       `.tabular` -- rather than globally, because tabular figures in a
+       sentence leave visible gaps around the 1. */
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * ── The surfaces we did not draw ──────────────────────────────────
+   *
+   * Text selection, the caret and the scrollbars ship with a browser
+   * default that belongs to no design system: a Chrome-blue highlight and
+   * a light-grey scrollbar, both of which look pasted on against either
+   * theme's ground. They are cheap to theme and they are visible on every
+   * screen, every day.
+   */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+
+  /* The caret inherits `color`, which on a muted field is the muted grey
+     -- hard to find in a long number. The action colour is easier to see
+     and reads as "this field is live". */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: hsl(var(--primary));
+  }
+
+  /* Firefox. */
+  * {
+    scrollbar-color: hsl(var(--foreground) / 0.2) transparent;
+    scrollbar-width: thin;
+  }
+
+  /* WebKit and Blink. Overlaid on the content rather than reserving a
+     light-grey gutter beside it, which is what makes the default read as
+     a seam down the side of a panel. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--foreground) / 0.18);
+    border-radius: 9999px;
+    /* A transparent border, so the thumb reads as inset from the edge
+       rather than welded to it. */
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--foreground) / 0.32);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* An underline that runs through the descenders of every `p` and `g` in
+     a clinic's name is the browser's default, not a choice. */
+  a:where(:not([class*="no-underline"])) {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* Any number that sits in a column -- money, a count, a dose, a UHID --
+     must not change width as it changes value, or the column dances while
+     a queue refreshes behind it. */
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
   }
 
   /*
@@ -154,6 +307,67 @@
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /*
+   * ── Tones: the chip, badge and callout pattern ────────────────────
+   *
+   * Nearly every meaning-coloured thing in this portal is the same
+   * shape: a tint of a hue with that hue's text on it. Written out by
+   * hand that is two classes which have to be kept in step
+   * (`bg-red-500/15 text-red-400`), and it was wrong in 313 places --
+   * all of them picked to glow on the near-black ground the portal
+   * launched with, none of them re-picked when light became the default.
+   *
+   * One class per meaning instead. The tint is derived from the ink, so
+   * there is a single value per tone per theme and the pair cannot drift
+   * apart. `--tone-tint` is the only thing the two themes disagree on: a
+   * wash has to be stronger to register on black than on white.
+   *
+   * These name MEANINGS, not colours. Reach for the meaning; if none of
+   * these is it, the thing probably should not be coloured.
+   */
+  :root {
+    --tone-tint: 0.16;
+  }
+
+  :root.theme-light {
+    --tone-tint: 0.12;
+  }
+
+  .tone-success,
+  .tone-warning,
+  .tone-danger,
+  .tone-info,
+  .tone-violet,
+  .tone-pink,
+  .tone-teal,
+  .tone-neutral {
+    background-color: hsl(var(--tone) / var(--tone-tint));
+    color: hsl(var(--tone));
+  }
+
+  .tone-success { --tone: var(--ink-success); }
+  .tone-warning { --tone: var(--ink-warning); }
+  .tone-danger  { --tone: var(--ink-danger); }
+  .tone-info    { --tone: var(--ink-info); }
+  .tone-violet  { --tone: var(--ink-violet); }
+  .tone-pink    { --tone: var(--ink-pink); }
+  .tone-teal    { --tone: var(--ink-teal); }
+  /* The absence of a state -- cancelled, inactive, not applicable. Grey
+     on purpose: it must not compete with anything that needs acting on. */
+  .tone-neutral {
+    background-color: hsl(var(--foreground) / 0.07);
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* A bordered callout rather than a chip: the same tone, at panel scale.
+     Composes with the tone classes -- `tone-warning tone-block`. */
+  .tone-block {
+    border: 1px solid hsl(var(--tone) / 0.28);
+    background-color: hsl(var(--tone) / calc(var(--tone-tint) * 0.45));
   }
 }
 

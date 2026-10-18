@@ -44,7 +44,7 @@ function FieldShell({
       {label && (
         <Label htmlFor={htmlFor}>
           {label}
-          {required && <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>}
+          {required && <span className="ml-0.5 text-ink-danger" aria-hidden="true">*</span>}
         </Label>
       )}
       {children}
@@ -52,7 +52,7 @@ function FieldShell({
           toast: "phone number is too long" belongs next to the phone
           number, where the correction has to be made. */}
       {error ? (
-        <p className="text-[11px] text-destructive">{error}</p>
+        <p className="text-[11px] text-ink-danger">{error}</p>
       ) : hint ? (
         <p className="text-[11px] text-muted-foreground">{hint}</p>
       ) : null}
@@ -79,7 +79,7 @@ export function TextField({
       <Input
         id={fieldId}
         aria-invalid={error ? true : undefined}
-        className={cn(error && 'border-destructive/60', inputClassName)}
+        className={cn(error && 'border-ink-danger/60', inputClassName)}
         {...props}
       />
     </FieldShell>
@@ -104,7 +104,7 @@ export function TextAreaField({
       <Textarea
         id={fieldId}
         aria-invalid={error ? true : undefined}
-        className={cn(error && 'border-destructive/60', textareaClassName)}
+        className={cn(error && 'border-ink-danger/60', textareaClassName)}
         {...props}
       />
     </FieldShell>
@@ -177,7 +177,7 @@ export function Pick({
         <SelectTrigger
           id={fieldId}
           aria-invalid={error ? true : undefined}
-          className={cn(error && 'border-destructive/60', triggerClassName)}
+          className={cn(error && 'border-ink-danger/60', triggerClassName)}
         >
           <SelectValue placeholder={placeholder ?? 'Select…'} />
         </SelectTrigger>

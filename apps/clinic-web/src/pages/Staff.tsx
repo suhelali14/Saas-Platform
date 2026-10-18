@@ -59,14 +59,14 @@ export function Staff() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold">Staff</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Staff</h1>
         <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
           <Plus size={14} /> Add Staff
         </button>
       </div>
       <p className="text-sm text-muted-foreground mb-6">Staff accounts for this clinic.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {showNew && (
         <form onSubmit={createStaff} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
@@ -92,7 +92,7 @@ export function Staff() {
               <div className="text-xs text-muted-foreground/70">{m.email}</div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => toggleActive(m)} title={m.isActive ? 'Deactivate' : 'Activate'}>
-              {m.isActive ? <ToggleRight size={20} className="text-emerald-400" /> : <ToggleLeft size={20} className="text-muted-foreground/70" />}
+              {m.isActive ? <ToggleRight size={20} className="text-muted-foreground" /> : <ToggleLeft size={20} className="text-muted-foreground/70" />}
               {m.isActive ? 'Active' : 'Inactive'}
             </Button>
           </div>

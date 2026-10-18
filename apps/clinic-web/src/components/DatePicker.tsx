@@ -1,6 +1,20 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { CalendarDays, X } from 'lucide-react';
-import { Calendar } from './ui/calendar';
+/*
+ * Loaded on first open, not at startup.
+ *
+ * The month grid is react-day-picker plus date-fns -- comfortably the
+ * heaviest widget in the app -- and it was reaching the startup bundle
+ * through the `components/ui` barrel, so it was downloaded by everyone,
+ * including a patient who opened the clinic's public website to find its
+ * phone number and never sees a date field at all.
+ *
+ * It already only RENDERS inside PopoverContent, which Radix mounts when
+ * the popover opens, so deferring the import costs nothing that was not
+ * already deferred: by the time anyone can see the grid, the click that
+ * reveals it has happened.
+ */
+const Calendar = lazy(() => import('./ui/calendar').then((m) => ({ default: m.Calendar })));
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { describeDateInput, fromDateInput, toDateInput, todayInput } from '../lib/date';
@@ -102,7 +116,7 @@ export function DatePicker({
                   onChange('');
                 }
               }}
-              className="ml-auto shrink-0 text-muted-foreground/50 hover:text-red-400"
+              className="ml-auto shrink-0 text-muted-foreground/50 hover:text-ink-danger"
             >
               <X size={12} aria-hidden />
             </span>
@@ -134,18 +148,28 @@ export function DatePicker({
             })}
           </div>
         )}
-        <Calendar
-          mode="single"
-          selected={selected}
-          defaultMonth={selected ?? minDate ?? new Date()}
-          disabled={[
-            ...(minDate ? [{ before: minDate }] : []),
-            ...(maxDate ? [{ after: maxDate }] : []),
-          ]}
-          onSelect={(d) => {
-            if (d) pick(toDateInput(d));
-          }}
-        />
+        <Suspense
+          fallback={
+            <div
+              className="h-[300px] w-[252px] animate-pulse rounded-md bg-foreground/5"
+              role="status"
+              aria-label="Loading the calendar"
+            />
+          }
+        >
+          <Calendar
+            mode="single"
+            selected={selected}
+            defaultMonth={selected ?? minDate ?? new Date()}
+            disabled={[
+              ...(minDate ? [{ before: minDate }] : []),
+              ...(maxDate ? [{ after: maxDate }] : []),
+            ]}
+            onSelect={(d) => {
+              if (d) pick(toDateInput(d));
+            }}
+          />
+        </Suspense>
       </PopoverContent>
     </Popover>
   );

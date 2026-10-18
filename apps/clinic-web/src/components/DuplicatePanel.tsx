@@ -77,9 +77,9 @@ export function DuplicatePanel({ patient, onMerged }: { patient: Patient; onMerg
   if (candidates.length === 0) return null;
 
   return (
-    <div className="mb-4 rounded-xl border border-warning/30 bg-warning/5 p-4">
+    <div className="mb-4 rounded-xl border border-ink-warning/30 bg-ink-warning/5 p-4">
       <div className="flex items-start gap-2.5">
-        <Users size={15} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+        <Users size={15} className="mt-0.5 shrink-0 text-ink-warning" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">
             {candidates.length === 1
@@ -106,7 +106,7 @@ export function DuplicatePanel({ patient, onMerged }: { patient: Patient; onMerg
                         judgement about the patient. */}
                     <span className={cn(
                       'shrink-0 rounded px-1.5 py-0.5 text-[10px]',
-                      c.score >= 85 ? 'bg-warning/20 text-warning' : 'bg-foreground/10 text-muted-foreground',
+                      c.score >= 85 ? 'bg-ink-warning/20 text-ink-warning' : 'bg-foreground/10 text-muted-foreground',
                     )}>
                       {c.reasons.join(', ')}
                     </span>
@@ -198,12 +198,12 @@ function MergeDialog({
                   key={r.label}
                   className={cn(
                     'grid grid-cols-[auto_1fr_1fr] gap-x-3 px-3 py-1.5 text-[11px]',
-                    differs && 'bg-destructive/5',
+                    differs && 'bg-ink-danger/5',
                   )}
                 >
                   <span className="text-muted-foreground">{r.label}</span>
                   <span className="truncate">{r.keep}</span>
-                  <span className={cn('truncate', differs && 'text-destructive')}>{r.other}</span>
+                  <span className={cn('truncate', differs && 'text-ink-danger')}>{r.other}</span>
                 </div>
               );
             })}
@@ -215,7 +215,7 @@ function MergeDialog({
             filled in from {candidate.uhid}; fields that already have a value are left alone.
           </p>
 
-          <p className="flex items-start gap-1.5 rounded-lg border border-destructive/25 bg-destructive/10 p-2.5 text-[11px] text-destructive">
+          <p className="flex items-start gap-1.5 rounded-lg border border-ink-danger/25 bg-ink-danger/10 p-2.5 text-[11px] text-ink-danger">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>
               <strong>This cannot be undone.</strong> Once the two histories are interleaved there
@@ -224,7 +224,7 @@ function MergeDialog({
             </span>
           </p>
 
-          {error && <p className="text-[11px] text-destructive">{error}</p>}
+          {error && <p className="text-[11px] text-ink-danger">{error}</p>}
         </div>
 
         <DialogFooter>

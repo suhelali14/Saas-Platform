@@ -54,7 +54,7 @@ export function Settings() {
 
   return (
     <div className={`p-4 sm:p-6 md:p-8 ${tab === 'documents' ? 'max-w-6xl' : 'max-w-3xl'}`}>
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><SettingsIcon size={20} className="text-emerald-400" /> Settings</h1>
+      <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><SettingsIcon size={20} className="text-muted-foreground" /> Settings</h1>
       <p className="text-sm text-muted-foreground mb-4">Clinic details, your profile, and your password.</p>
 
       {/* Which tabs exist depends on the role: reception can change its
@@ -160,7 +160,7 @@ function ClinicSettings() {
 
   return (
     <form onSubmit={save} className="flex flex-col gap-5">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Section title="Clinic Details" hint="Appears on every prescription, certificate, and invoice you print.">
         <div className="grid md:grid-cols-2 gap-3">
@@ -210,7 +210,7 @@ function ClinicSettings() {
             {(clinic.services ?? []).map((s, i) => (
               <span key={i} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-foreground/10 text-xs">
                 {s}
-                <button type="button" onClick={() => setField({ services: (clinic.services ?? []).filter((_, idx) => idx !== i) })} className="text-muted-foreground/70 hover:text-red-400"><X size={10} /></button>
+                <button type="button" onClick={() => setField({ services: (clinic.services ?? []).filter((_, idx) => idx !== i) })} className="text-muted-foreground/70 hover:text-ink-danger"><X size={10} /></button>
               </span>
             ))}
             {(clinic.services ?? []).length === 0 && <span className="text-xs text-muted-foreground/60">None added yet.</span>}
@@ -274,7 +274,7 @@ function ClinicSettings() {
                   <input value={h.title} onChange={(e) => setField({ highlights: replaceAt(clinic.highlights ?? [], i, { ...h, title: e.target.value }) })} placeholder="Title" maxLength={100} className={inputCls} />
                   <input value={h.description ?? ''} onChange={(e) => setField({ highlights: replaceAt(clinic.highlights ?? [], i, { ...h, description: e.target.value }) })} placeholder="One line of detail (optional)" maxLength={300} className={inputCls} />
                 </div>
-                <button type="button" onClick={() => setField({ highlights: (clinic.highlights ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-red-400" aria-label="Remove highlight"><X size={13} /></button>
+                <button type="button" onClick={() => setField({ highlights: (clinic.highlights ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-ink-danger" aria-label="Remove highlight"><X size={13} /></button>
               </div>
             ))}
           </div>
@@ -295,7 +295,7 @@ function ClinicSettings() {
                   <input value={f.question} onChange={(e) => setField({ faqs: replaceAt(clinic.faqs ?? [], i, { ...f, question: e.target.value }) })} placeholder="Question" maxLength={200} className={inputCls} />
                   <textarea value={f.answer} onChange={(e) => setField({ faqs: replaceAt(clinic.faqs ?? [], i, { ...f, answer: e.target.value }) })} placeholder="Answer" rows={2} maxLength={1000} className={inputCls} />
                 </div>
-                <button type="button" onClick={() => setField({ faqs: (clinic.faqs ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-red-400" aria-label="Remove question"><X size={13} /></button>
+                <button type="button" onClick={() => setField({ faqs: (clinic.faqs ?? []).filter((_, idx) => idx !== i) })} className="p-2 text-muted-foreground/70 hover:text-ink-danger" aria-label="Remove question"><X size={13} /></button>
               </div>
             ))}
           </div>
@@ -306,7 +306,7 @@ function ClinicSettings() {
           )}
         </div>
 
-        <a href={publicSiteUrl('/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:underline mt-5">
+        <a href={publicSiteUrl('/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-ink-success hover:underline mt-5">
           <ExternalLink size={11} /> Preview public website
         </a>
       </Section>
@@ -377,7 +377,7 @@ function ProfileSettings() {
 
   return (
     <form onSubmit={save} className="flex flex-col gap-5">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Section title="My Profile" hint={isDoctor ? 'Prints on the prescriptions and certificates you sign.' : 'Your name as it appears across the portal.'}>
         <div className="grid md:grid-cols-2 gap-3">
@@ -474,7 +474,7 @@ function PasswordSettings() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
       <Section title="Change Password" hint="You'll stay signed in on this device.">
         <div className="grid md:grid-cols-2 gap-3">
           <Field label="Current password" span><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required className={inputCls} /></Field>
@@ -535,7 +535,7 @@ function DataSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <Section title="Full Backup" hint="Everything in the system as one JSON file. Take one regularly and keep it somewhere safe.">
         <button
@@ -687,7 +687,7 @@ function DocumentSettings() {
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-6 items-start">
       {/* ── Controls ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5 min-w-0">
-        {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+        {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
         <p className="text-xs text-muted-foreground/70 leading-relaxed">
           Applies to every document you print — prescriptions, certificates, invoices and patient reports.
@@ -715,8 +715,8 @@ function DocumentSettings() {
               ['compact', 'Compact', 'Smaller logo and clinic name only — leaves more room for content.'],
               ['none', 'Pre-printed stationery', 'Prints nothing at the top. Use this if you already have letterhead paper — otherwise the software prints over it.'],
             ] as const).map(([key, label, hint]) => (
-              <label key={key} className={`flex gap-3 p-3 rounded-lg border cursor-pointer ${template.headerMode === key ? 'border-emerald-400 bg-emerald-500/5' : 'border-border/10 bg-foreground/[0.02]'}`}>
-                <input type="radio" name="headerMode" checked={template.headerMode === key} onChange={() => set({ headerMode: key })} className="mt-0.5 accent-emerald-500" />
+              <label key={key} className={`flex gap-3 p-3 rounded-lg border cursor-pointer ${template.headerMode === key ? 'border-ink-success bg-ink-success/5' : 'border-border/10 bg-foreground/[0.02]'}`}>
+                <input type="radio" name="headerMode" checked={template.headerMode === key} onChange={() => set({ headerMode: key })} className="mt-0.5 accent-ink-success" />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{label}</span>
                   <span className="block text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</span>
@@ -734,7 +734,7 @@ function DocumentSettings() {
                 type="range" min={0} max={120} step={1}
                 value={template.topOffsetMm}
                 onChange={(e) => set({ topOffsetMm: Number(e.target.value) })}
-                className="w-full accent-emerald-500"
+                className="w-full accent-ink-success"
               />
               <p className="text-[11px] text-muted-foreground/60 mt-1">
                 Measure your printed letterhead from the top of the page to where your content should begin.
@@ -750,7 +750,7 @@ function DocumentSettings() {
                 key={a.key}
                 type="button"
                 onClick={() => set({ accentColor: a.key })}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${template.accentColor === a.key ? 'border-emerald-400 bg-emerald-500/10' : 'border-border/10 bg-foreground/[0.02]'}`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${template.accentColor === a.key ? 'border-ink-success bg-ink-success/10' : 'border-border/10 bg-foreground/[0.02]'}`}
               >
                 <span className="h-4 w-4 rounded-full border border-border/20" style={{ background: a.ink }} />
                 {a.label}
@@ -761,7 +761,7 @@ function DocumentSettings() {
 
         <Section title="Watermark" hint="Printed faintly behind the page — useful for marking duplicates or drafts.">
           <label className="flex items-center gap-2 text-sm text-foreground/80 mb-3">
-            <input type="checkbox" checked={template.watermarkEnabled} onChange={(e) => set({ watermarkEnabled: e.target.checked })} className="accent-emerald-500" />
+            <input type="checkbox" checked={template.watermarkEnabled} onChange={(e) => set({ watermarkEnabled: e.target.checked })} className="accent-ink-success" />
             Print a watermark
           </label>
           {template.watermarkEnabled && (
@@ -788,8 +788,8 @@ function DocumentSettings() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <FileText size={13} />
             Live preview
-            {rendering && <Spinner size={11} className="text-emerald-400" />}
-            {dirty && !rendering && <span className="text-amber-400">· unsaved</span>}
+            {rendering && <Spinner size={11} className="text-ink-success" />}
+            {dirty && !rendering && <span className="text-ink-warning">· unsaved</span>}
           </div>
           <div className="flex items-center gap-2">
             {previewUrl && (
@@ -823,7 +823,7 @@ function DocumentSettings() {
               style={{ aspectRatio: '210 / 297' }}
             />
           ) : (
-            <div className="h-[660px] rounded-sm bg-white flex items-center justify-center text-slate-400 text-sm shadow-2xl">
+            <div className="h-[660px] rounded-sm bg-white flex items-center justify-center text-slate-500 text-sm shadow-overlay">
               Rendering…
             </div>
           )}
@@ -841,7 +841,7 @@ function DocumentSettings() {
 function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex gap-2.5 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 accent-emerald-500" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 accent-ink-success" />
       <span className="min-w-0">
         <span className="block text-sm text-foreground">{label}</span>
         {hint && <span className="block text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</span>}

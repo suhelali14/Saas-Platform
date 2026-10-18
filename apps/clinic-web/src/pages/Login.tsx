@@ -4,7 +4,11 @@ import { Stethoscope, AlertCircle } from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { apiFetch } from '../lib/api';
 import { Button } from '../components/Button';
-import { Card, CardContent, Input, Label } from '../components/ui';
+// Direct paths, not the barrel: this is the only page that is eagerly
+// imported, so anything it reaches lands in the startup chunk.
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -48,7 +52,7 @@ export function Login() {
 
             {error && (
               <div
-                className="mb-4 flex items-start gap-2 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
+                className="mb-4 flex items-start gap-2 rounded-md border border-ink-danger/25 bg-ink-danger/10 p-3 text-sm text-ink-danger"
                 // Assertive: a failed sign-in has to interrupt, because
                 // nothing else on this screen will have changed and a
                 // screen-reader user would otherwise be left waiting.

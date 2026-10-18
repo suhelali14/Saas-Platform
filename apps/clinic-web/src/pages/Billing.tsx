@@ -25,9 +25,9 @@ const CATEGORIES = [
 ];
 const MODES = ['CASH', 'UPI', 'CARD'];
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-amber-500/15 text-amber-400',
-  PARTIAL: 'bg-blue-500/15 text-blue-400',
-  PAID: 'bg-emerald-500/15 text-emerald-400',
+  PENDING: 'tone-warning',
+  PARTIAL: 'tone-info',
+  PAID: 'tone-success',
 };
 
 export function Billing() {
@@ -74,7 +74,7 @@ export function Billing() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl">
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-1"><IndianRupee size={20} className="text-emerald-400" /> Billing</h1>
+      <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><IndianRupee size={20} className="text-muted-foreground" /> Billing</h1>
       <p className="text-sm text-muted-foreground mb-4">Invoices, payments, and daily cash closing.</p>
 
       <SegmentedControl
@@ -88,7 +88,7 @@ export function Billing() {
         ]}
       />
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       {tab === 'invoices' ? (
         <div className="flex flex-col gap-2">
@@ -189,7 +189,7 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
       </div>
       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-4 ${STATUS_COLORS[invoice.status]}`}>{invoice.status}</span>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-4">
         <h3 className="text-sm font-semibold mb-2">Line Items</h3>
@@ -238,7 +238,7 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
       )}
 
       {invoice.balance > 0 && (
-        <form onSubmit={recordPayment} className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex gap-2">
+        <form onSubmit={recordPayment} className="p-4 rounded-xl border border-ink-success/20 bg-ink-success/5 flex gap-2">
           <input placeholder={`Up to ₹${invoice.balance.toFixed(2)}`} type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="flex-1 px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none" />
           <Pick
             value={payMode}
@@ -260,7 +260,7 @@ function DailyClosing() {
     apiFetch<any>('/billing/daily-summary').then(setSummary).catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load summary.'));
   }, []);
 
-  if (error) return <div className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>;
+  if (error) return <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>;
   if (!summary) return <SkeletonStats count={3} label="Loading the day's takings" />;
 
   return (
@@ -268,8 +268,8 @@ function DailyClosing() {
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">Cash</div><div className="text-lg font-bold">₹{summary.byMode.CASH?.toFixed(2) ?? '0.00'}</div></div>
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">UPI</div><div className="text-lg font-bold">₹{summary.byMode.UPI?.toFixed(2) ?? '0.00'}</div></div>
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]"><div className="text-xs text-muted-foreground/70 mb-1">Card</div><div className="text-lg font-bold">₹{summary.byMode.CARD?.toFixed(2) ?? '0.00'}</div></div>
-      <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5"><div className="text-xs text-muted-foreground/70 mb-1">Total Today</div><div className="text-lg font-bold text-emerald-400">₹{summary.totalCollected.toFixed(2)}</div></div>
-      <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 col-span-2 md:col-span-4"><div className="text-xs text-muted-foreground/70 mb-1">Pending Dues (all time)</div><div className="text-lg font-bold text-amber-400">₹{summary.pendingDues.toFixed(2)}</div></div>
+      <div className="p-4 rounded-xl border border-ink-success/20 bg-ink-success/5"><div className="text-xs text-muted-foreground/70 mb-1">Total Today</div><div className="text-lg font-bold text-ink-success">₹{summary.totalCollected.toFixed(2)}</div></div>
+      <div className="p-4 rounded-xl border border-ink-warning/20 bg-ink-warning/5 col-span-2 md:col-span-4"><div className="text-xs text-muted-foreground/70 mb-1">Pending Dues (all time)</div><div className="text-lg font-bold text-ink-warning">₹{summary.pendingDues.toFixed(2)}</div></div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ClinicAuthProvider, useClinicAuth } from './contexts/ClinicAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -6,25 +7,61 @@ import { SkeletonPage } from './components/Skeleton';
 import { siteMode } from './lib/site-mode';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { Queue } from './pages/Queue';
-import { Patients } from './pages/Patients';
-import { PatientDetail } from './pages/PatientDetail';
-import { Encounter } from './pages/Encounter';
-import { Staff } from './pages/Staff';
-import { Analytics } from './pages/Analytics';
-import { Pharmacy } from './pages/Pharmacy';
-import { Reminders } from './pages/Reminders';
-import { Billing } from './pages/Billing';
-import { Labs } from './pages/Labs';
-import { PublicQueue } from './pages/PublicQueue';
-import { PublicClinic } from './pages/PublicClinic';
-import { Settings } from './pages/Settings';
-import { AuditLog } from './pages/AuditLog';
-import { Expenses } from './pages/Expenses';
-import { Website } from './pages/Website';
-import { PublicBlog } from './pages/PublicBlog';
-import { PublicBlogPost } from './pages/PublicBlogPost';
+
+/**
+ * ── Why every screen below is lazy ───────────────────────────────────
+ *
+ * One build serves the clinic's patient website and the staff portal on
+ * two different hostnames (lib/site-mode.ts). Every page used to be a
+ * static import, which meant one chunk containing both: 875KB of
+ * JavaScript, 246KB over the wire, and Vite warning about it on every
+ * build.
+ *
+ * The cost of that landed on exactly the wrong person. A patient opening
+ * the clinic's website to find its phone number downloaded the entire
+ * EHR -- the website builder, the document composer, the audit log, the
+ * billing screens -- before the address rendered. And a receptionist
+ * opening the portal on a phone at the front desk downloaded all of it
+ * before the login field appeared.
+ *
+ * Because the hostname decides the route tree at runtime, Vite cannot
+ * know which half to keep; a dynamic import is the only thing that
+ * splits them. So the patient site now ships the patient site.
+ *
+ * Two deliberate exceptions, both eager:
+ *
+ *   - `Login` is the first thing an unauthenticated visitor to the
+ *     portal sees, every time. Splitting it would buy nothing and cost a
+ *     second round trip on the most common cold start.
+ *   - `Layout` is the shell. It is on screen for the whole session, so
+ *     deferring it would only delay the thing that frames everything
+ *     else.
+ *
+ * The named-export `.then()` dance is the price of `export function
+ * Dashboard` rather than a default export. Written out rather than hidden
+ * behind a helper, because Vite's bundler has to see a literal path in
+ * each `import()` to split on it at all.
+ */
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Queue = lazy(() => import('./pages/Queue').then((m) => ({ default: m.Queue })));
+const Patients = lazy(() => import('./pages/Patients').then((m) => ({ default: m.Patients })));
+const PatientDetail = lazy(() => import('./pages/PatientDetail').then((m) => ({ default: m.PatientDetail })));
+const Encounter = lazy(() => import('./pages/Encounter').then((m) => ({ default: m.Encounter })));
+const Staff = lazy(() => import('./pages/Staff').then((m) => ({ default: m.Staff })));
+const Analytics = lazy(() => import('./pages/Analytics').then((m) => ({ default: m.Analytics })));
+const Pharmacy = lazy(() => import('./pages/Pharmacy').then((m) => ({ default: m.Pharmacy })));
+const Reminders = lazy(() => import('./pages/Reminders').then((m) => ({ default: m.Reminders })));
+const Billing = lazy(() => import('./pages/Billing').then((m) => ({ default: m.Billing })));
+const Labs = lazy(() => import('./pages/Labs').then((m) => ({ default: m.Labs })));
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const AuditLog = lazy(() => import('./pages/AuditLog').then((m) => ({ default: m.AuditLog })));
+const Expenses = lazy(() => import('./pages/Expenses').then((m) => ({ default: m.Expenses })));
+const Website = lazy(() => import('./pages/Website').then((m) => ({ default: m.Website })));
+
+const PublicQueue = lazy(() => import('./pages/PublicQueue').then((m) => ({ default: m.PublicQueue })));
+const PublicClinic = lazy(() => import('./pages/PublicClinic').then((m) => ({ default: m.PublicClinic })));
+const PublicBlog = lazy(() => import('./pages/PublicBlog').then((m) => ({ default: m.PublicBlog })));
+const PublicBlogPost = lazy(() => import('./pages/PublicBlogPost').then((m) => ({ default: m.PublicBlogPost })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useClinicAuth();
@@ -150,18 +187,28 @@ export default function App() {
       <ToastProvider>
       <ClinicAuthProvider>
         <BrowserRouter>
-          <Routes>
-            {mode === 'public' && publicRoutes()}
-            {mode === 'portal' && portalRoutes()}
-            {mode === 'both' && [
-              // Single-domain / development: the patient site keeps its
-              // /clinic path so both fit on one origin, exactly as before.
-              <Route key="clinic" path="/clinic" element={<PublicClinic />} />,
-              <Route key="blog" path="/blog" element={<PublicBlog />} />,
-              <Route key="post" path="/blog/:slug" element={<PublicBlogPost />} />,
-              ...portalRoutes(),
-            ]}
-          </Routes>
+          {/*
+            The outer boundary, for the screens that are not inside the
+            portal shell: the login form, the waiting-room display and
+            every page of the patient website. Inside the shell the
+            boundary sits around <Outlet /> in Layout instead, so that
+            navigating the portal never blanks the sidebar you are
+            navigating with.
+          */}
+          <Suspense fallback={<div className="min-h-screen bg-background"><SkeletonPage label="Loading" /></div>}>
+            <Routes>
+              {mode === 'public' && publicRoutes()}
+              {mode === 'portal' && portalRoutes()}
+              {mode === 'both' && [
+                // Single-domain / development: the patient site keeps its
+                // /clinic path so both fit on one origin, exactly as before.
+                <Route key="clinic" path="/clinic" element={<PublicClinic />} />,
+                <Route key="blog" path="/blog" element={<PublicBlog />} />,
+                <Route key="post" path="/blog/:slug" element={<PublicBlogPost />} />,
+                ...portalRoutes(),
+              ]}
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </ClinicAuthProvider>
       </ToastProvider>

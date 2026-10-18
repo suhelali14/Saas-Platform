@@ -23,6 +23,15 @@ export { Separator } from './separator';
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export { Textarea } from './textarea';
-export { Calendar } from './calendar';
+/*
+ * `Calendar` is deliberately NOT re-exported here.
+ *
+ * It carries react-day-picker and date-fns, and a barrel is imported by
+ * eager modules -- which is exactly how that library ended up in the
+ * startup chunk for every visitor. Use `<DatePicker>`, which is the
+ * component you actually want anyway: it owns the value contract and
+ * loads the grid on first open. Reach for `./calendar` directly only if
+ * you are building something that is not a date field.
+ */
 export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './popover';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';

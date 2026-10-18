@@ -75,26 +75,26 @@ export function Labs() {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2"><FlaskConical size={20} className="text-emerald-400" /> Lab Orders</h1>
+        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><FlaskConical size={20} className="text-muted-foreground" /> Lab Orders</h1>
         <button onClick={() => setShowAll((v) => !v)} className="px-3 py-1.5 rounded-lg bg-foreground/5 text-foreground/80 text-xs font-medium hover:bg-foreground/10">
           {showAll ? 'Show pending only' : 'Show all'}
         </button>
       </div>
       <p className="text-sm text-muted-foreground mb-6">Tests ordered during consultation -- enter or upload results as they come back.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
       <div className="flex flex-col gap-3">
         {orders.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No lab orders.</div>}
         {orders.map((order) => (
-          <div key={order.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${order.status === 'ORDERED' ? 'border-amber-500/30' : 'border-border/10'}`}>
+          <div key={order.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${order.status === 'ORDERED' ? 'border-ink-warning/30' : 'border-border/10'}`}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <span className="font-medium text-sm">{order.patient.name}</span>
                 <span className="text-xs text-muted-foreground/70 font-mono ml-2">{order.patient.uhid}</span>
                 <div className="text-xs text-muted-foreground/70">Ordered by Dr. {order.doctor.name} · {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
               </div>
-              {order.status === 'COMPLETED' && <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 size={13} /> Completed</span>}
+              {order.status === 'COMPLETED' && <span className="flex items-center gap-1 text-xs text-ink-success"><CheckCircle2 size={13} /> Completed</span>}
             </div>
             <div className="flex flex-col gap-2">
               {order.items.map((item) => (
@@ -112,11 +112,11 @@ export function Labs() {
                         </span>
                       )}
                     </span>
-                    {item.completedAt && <span className="text-[10px] text-emerald-400">Done</span>}
+                    {item.completedAt && <span className="text-[10px] text-ink-success">Done</span>}
                   </div>
                   {item.resultText && <p className="text-xs text-foreground/80 mb-1">{item.resultText}</p>}
                   {item.resultFilePath && (
-                    <button onClick={() => openPdf(`/lab-orders/items/${item.id}/file`)} className="flex items-center gap-1 text-xs text-emerald-400 hover:underline mb-1">
+                    <button onClick={() => openPdf(`/lab-orders/items/${item.id}/file`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline mb-1">
                       <Download size={11} /> {item.resultFileName}
                     </button>
                   )}

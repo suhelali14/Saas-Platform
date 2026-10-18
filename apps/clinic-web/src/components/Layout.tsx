@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   CalendarClock, Users, UserCog, LogOut, Stethoscope, BarChart3, Pill, Bell,
@@ -8,15 +8,17 @@ import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { apiFetch } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 import { SetupPrompt } from './SetupPrompt';
 import { QuickSwitcher } from './QuickSwitcher';
+import { SkeletonPage } from './Skeleton';
 
 const ROLE_COLORS: Record<string, string> = {
-  DOCTOR: 'bg-emerald-500/15 text-emerald-400',
-  ADMIN: 'bg-emerald-500/15 text-emerald-400',
-  NURSE: 'bg-blue-500/15 text-blue-400',
-  RECEPTIONIST: 'bg-amber-500/15 text-amber-400',
-  PHARMACIST: 'bg-purple-500/15 text-purple-400',
+  DOCTOR: 'tone-success',
+  ADMIN: 'tone-success',
+  NURSE: 'tone-info',
+  RECEPTIONIST: 'tone-warning',
+  PHARMACIST: 'tone-violet',
 };
 
 const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
@@ -45,19 +47,14 @@ export function Layout() {
   const [dueReminders, setDueReminders] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await apiFetch<{ due: number }>('/reminders');
-        setDueReminders(res.due);
-      } catch {
-        // silent -- a failed poll shouldn't disrupt the rest of the app
-      }
-    };
-    poll();
-    const interval = setInterval(poll, REMINDER_POLL_MS);
-    return () => clearInterval(interval);
-  }, []);
+  usePolling(async () => {
+    try {
+      const res = await apiFetch<{ due: number }>('/reminders');
+      setDueReminders(res.due);
+    } catch {
+      // silent -- a failed poll shouldn't disrupt the rest of the app
+    }
+  }, REMINDER_POLL_MS);
 
   // Navigating must dismiss the drawer, or tapping a link leaves it covering
   // the page you just asked for.
@@ -122,7 +119,7 @@ export function Layout() {
     <div className="min-h-screen bg-background text-foreground md:flex">
       {/* ── Mobile top bar ──────────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/10 bg-background/95 backdrop-blur"
+        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/10 bg-card/95 backdrop-blur"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <button
@@ -134,7 +131,7 @@ export function Layout() {
           <Menu size={20} />
         </button>
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Stethoscope size={17} className="text-emerald-400 shrink-0" />
+          <Stethoscope size={17} className="text-primary shrink-0" />
           <span className="font-bold text-sm tracking-tight truncate" title={clinicName || 'Clinic Portal'}>{clinicName || 'Clinic Portal'}</span>
         </div>
         <IconButtons theme={theme} toggleTheme={toggleTheme} dueReminders={dueReminders} onBell={() => navigate('/reminders')} />
@@ -145,13 +142,13 @@ export function Layout() {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <aside
-            className="relative w-[82%] max-w-[300px] bg-background border-r border-border/10 flex flex-col p-4 overflow-y-auto"
+            className="relative w-[82%] max-w-[300px] bg-card shadow-overlay border-r border-border/10 flex flex-col p-4 overflow-y-auto"
             role="dialog"
             aria-label="Navigation"
           >
             <div className="flex items-center justify-between gap-2 mb-6">
               <div className="flex items-center gap-2 min-w-0">
-                <Stethoscope size={18} className="text-emerald-400 shrink-0" />
+                <Stethoscope size={18} className="text-primary shrink-0" />
                 <span className="font-bold text-sm truncate">{clinicName || 'Clinic Portal'}</span>
               </div>
               <button onClick={() => setDrawerOpen(false)} className="p-2 -mr-1 rounded-lg text-muted-foreground hover:bg-foreground/10" aria-label="Close menu">
@@ -165,10 +162,10 @@ export function Layout() {
       )}
 
       {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
-      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-border/10 flex-col p-4 overflow-y-auto">
+      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-border/10 bg-card flex-col p-4 overflow-y-auto">
         <div className="flex items-center justify-between gap-2 mb-8 px-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Stethoscope size={20} className="text-emerald-400 shrink-0" />
+            <Stethoscope size={20} className="text-primary shrink-0" />
             <span className="font-bold text-sm tracking-tight truncate" title={clinicName || 'Clinic Portal'}>{clinicName || 'Clinic Portal'}</span>
           </div>
           <IconButtons theme={theme} toggleTheme={toggleTheme} dueReminders={dueReminders} onBell={() => navigate('/reminders')} />
@@ -183,7 +180,19 @@ export function Layout() {
         {/* Above every portal screen, because the person who can fill in
             the clinic's website did not come here to look at it. */}
         <SetupPrompt />
-        <Outlet />
+        {/*
+          Every portal screen is a separate chunk (see App.tsx), so the
+          first visit to one has to wait for it. The boundary belongs
+          HERE rather than around <Routes>: at the router level the
+          fallback would replace the shell too, so the sidebar and the
+          clinic's name would vanish for the moment it took to fetch the
+          page -- and the nav you had just clicked would disappear under
+          your cursor. Scoped to <main>, the shell holds still and only
+          the content area fills in.
+        */}
+        <Suspense fallback={<SkeletonPage label="Loading this screen" />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* Overlays everything, so it is mounted on the shell rather than
@@ -214,7 +223,7 @@ function IconButtons({ theme, toggleTheme, dueReminders, onBell }: {
       >
         <Bell size={16} />
         {dueReminders > 0 && (
-          <span className="absolute top-0 right-0 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-foreground text-[11px] leading-none font-bold flex items-center justify-center">
+          <span className="absolute top-0 right-0 min-w-[16px] h-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] leading-none font-bold flex items-center justify-center">
             {dueReminders}
           </span>
         )}
@@ -236,14 +245,16 @@ function NavItem({ to, icon: Icon, label, badge }: { to: string; icon: any; labe
       end={to === '/'}
       className={({ isActive }) =>
         `flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? 'bg-foreground text-background' : 'text-foreground/80 hover:bg-foreground/10'
+          isActive
+            ? 'bg-primary text-primary-foreground'
+            : 'text-foreground/75 hover:bg-foreground/[0.06] hover:text-foreground'
         }`
       }
     >
       <Icon size={16} className="shrink-0" />
       <span className="truncate" title={label}>{label}</span>
       {badge != null && badge > 0 && (
-        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
           {badge}
         </span>
       )}
