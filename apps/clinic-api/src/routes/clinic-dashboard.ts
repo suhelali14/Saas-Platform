@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth } from "../plugins/auth.js";
-import { PRIORITY_TIER } from "./clinic-appointments.js";
+import { byTriage } from "../lib/triage.js";
 import { summarize } from "./clinic-billing.js";
 
 /**
@@ -99,7 +99,7 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
     const waiting = todaysAppointments
       .filter((a) => a.status === "CHECKED_IN" || a.status === "SCHEDULED")
       .sort((a, b) => {
-        const tier = (PRIORITY_TIER[a.patient.category] ?? 3) - (PRIORITY_TIER[b.patient.category] ?? 3);
+        const tier = byTriage(a, b);
         return tier !== 0 ? tier : a.scheduledAt.getTime() - b.scheduledAt.getTime();
       });
 

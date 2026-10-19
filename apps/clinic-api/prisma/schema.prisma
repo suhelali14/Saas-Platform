@@ -212,6 +212,12 @@ model Patient {
   bloodGroup        String?
   allergies         String?
   chronicConditions String?
+  /// The patient's USUAL priority, remembered so an eighty-year-old is
+  /// not re-entered at every booking. Only the durable values belong
+  /// here -- EMERGENCY and PREGNANT describe a visit, not a person, and
+  /// are set on the appointment. Enforced in the route, not the type,
+  /// because the enum is shared with Appointment.priority where all five
+  /// are legitimate.
   category          PatientCategory @default(GENERAL)
 
   // Contact and identity. All nullable: a patient is registered at a
@@ -272,6 +278,12 @@ model Appointment {
   scheduledAt         DateTime
   status              AppointmentStatus @default(SCHEDULED)
   reason              String?
+  /// What this VISIT is, for triage. Null means "whatever is usual for
+  /// this patient", which is Patient.category. Priority used to live only
+  /// on the patient, so someone who once arrived as an emergency was
+  /// sorted ahead of everybody for the rest of their life -- see
+  /// lib/triage.ts.
+  priority            PatientCategory?
   vitals              Json?
   followUpOfCaseSheetId String?
   followUpOfCaseSheet CaseSheet?        @relation("FollowUpAppointments", fields: [followUpOfCaseSheetId], references: [id])

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
+import { byTriage } from "../lib/triage.js";
 import { resolveDesign, resolveSections } from "../lib/site-design.js";
 import { resolveLayoutMode, readCanvas } from "../lib/site-canvas.js";
 
@@ -15,13 +16,9 @@ import { resolveLayoutMode, readCanvas } from "../lib/site-canvas.js";
 // endpoint with no auth -- shown as the last 4 characters of their UHID
 // instead (e.g. "···00004"), the same "file number" reception already uses
 // to identify people out loud in a waiting room.
-const PRIORITY_TIER: Record<string, number> = {
-  EMERGENCY: 0,
-  PREGNANT: 1,
-  SENIOR_CITIZEN: 1,
-  CHILD: 2,
-  GENERAL: 3,
-};
+// Tiers come from lib/triage.ts. This file had its own copy, so the
+// waiting-room display and the staff queue could have disagreed about
+// who was next in front of the whole waiting room.
 
 export async function clinicPublicRoutes(app: FastifyInstance) {
   // Public clinic page (Phase 5) -- what a patient sees before they ever
@@ -228,7 +225,7 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
     });
 
     const sorted = [...appointments].sort(
-      (a, b) => (PRIORITY_TIER[a.patient.category] ?? 3) - (PRIORITY_TIER[b.patient.category] ?? 3),
+      byTriage,
     );
 
     const queue = sorted.map((appt, index) => ({

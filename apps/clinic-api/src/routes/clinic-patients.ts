@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { PatientCategory } from "../generated/prisma-client/index.js";
 import { prisma } from "../lib/prisma.js";
+import { DURABLE_CATEGORIES } from "../lib/triage.js";
 import { requireClinicAuth, requirePatientAdminAuth } from "../plugins/auth.js";
 import { generatePatientUhid } from "../lib/uhid.js";
 import {
@@ -51,7 +52,15 @@ const patientSchema = z.object({
   deskNote: z.string().max(1000).optional(),
   allergies: z.string().max(1000).optional(),
   chronicConditions: z.string().max(1000).optional(),
-  category: z.nativeEnum(PatientCategory).optional(),
+  /**
+   * Only the durable values.
+   *
+   * EMERGENCY and PREGNANT describe a visit, not a person. Allowing
+   * them here is what left a patient sorted to the front of every
+   * queue for years because of one night in casualty. They are set on
+   * the appointment instead.
+   */
+  category: z.enum(DURABLE_CATEGORIES).optional(),
 });
 
 /**

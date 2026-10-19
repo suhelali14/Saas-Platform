@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Clock, Phone, Stethoscope, Activity, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
-import { CATEGORY_BADGES } from '../lib/categories';
+import { CATEGORY_BADGES, VISIT_PRIORITIES, effectivePriority } from '../lib/categories';
 import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
 
@@ -74,6 +74,13 @@ export function Queue() {
   const [bookDate, setBookDate] = useState(toDateInput(new Date()));
   const [time, setTime] = useState('');
   const [reason, setReason] = useState('');
+  // Null means "whatever is usual for this patient". Set only when today
+  // differs, so a senior citizen keeps their place without reception
+  // restating it and an emergency applies to this visit alone.
+  const [priority, setPriority] = useState<string | null>(null);
+  // The chosen patient's usual case, which is what the control starts on.
+  const usualPriority =
+    patientOptions.find((p) => p.id === selectedPatientId)?.category ?? 'GENERAL';
   const [booking, setBooking] = useState(false);
 
   // Which day's queue is on screen. The backend already accepted ?date=;
@@ -150,7 +157,13 @@ export function Queue() {
       const scheduled = new Date(`${bookDate}T${time}:00`);
       await apiFetch('/appointments', {
         method: 'POST',
-        data: { patientId: selectedPatientId, doctorId: bookDoctorId || undefined, scheduledAt: scheduled.toISOString(), reason: reason || undefined },
+        data: {
+          patientId: selectedPatientId,
+          doctorId: bookDoctorId || undefined,
+          scheduledAt: scheduled.toISOString(),
+          reason: reason || undefined,
+          priority: priority ?? undefined,
+        },
       });
       setShowBook(false);
       setPatientQuery('');
@@ -158,6 +171,7 @@ export function Queue() {
       setBookDoctorId('');
       setTime('');
       setReason('');
+      setPriority(null);
       // Jump the view to the day we just booked into, so a future booking
       // doesn't look like it silently failed.
       setViewDate(bookDate);
@@ -299,6 +313,51 @@ export function Queue() {
             <label className="block text-xs font-medium text-muted-foreground mb-1">Reason (optional)</label>
             <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
           </div>
+
+          {/*
+            Priority for THIS visit.
+            
+            It used to be asked once, when the patient was first
+            registered, and then every queue sorted on it forever -- so
+            somebody who arrived once in an emergency went to the front of
+            the line on every routine visit afterwards. It belongs here,
+            because this is the moment anyone knows why the patient is
+            coming.
+            
+            Pre-selected from the patient's usual case, so the common
+            visit needs no thought and only an unusual one needs a click.
+          */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Priority for this visit
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {VISIT_PRIORITIES.map((c) => {
+                const active = (priority ?? usualPriority) === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    title={c.hint}
+                    onClick={() => setPriority(c.id)}
+                    aria-pressed={active}
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-foreground/5 text-foreground/80 hover:bg-foreground/10'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+            {usualPriority !== 'GENERAL' && priority === null && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                This patient is usually seen as {CATEGORY_BADGES[usualPriority]?.label.toLowerCase()}.
+              </p>
+            )}
+          </div>
           <button type="submit" disabled={!selectedPatientId || !time || booking} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
             {booking ? 'Booking...' : 'Confirm Booking'}
           </button>
@@ -320,9 +379,9 @@ export function Queue() {
                 <div className="flex items-center gap-2">
                   <Link to={`/patients/${appt.patient.id}`} className="font-medium text-sm hover:underline">{appt.patient.name}</Link>
                   <span className="text-[10px] text-muted-foreground/70 font-mono">{appt.patient.uhid}</span>
-                  {CATEGORY_BADGES[appt.patient.category] && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${CATEGORY_BADGES[appt.patient.category].color}`}>
-                      {CATEGORY_BADGES[appt.patient.category].label}
+                  {CATEGORY_BADGES[effectivePriority(appt)] && (
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${CATEGORY_BADGES[effectivePriority(appt)]!.color}`}>
+                      {CATEGORY_BADGES[effectivePriority(appt)]!.label}
                     </span>
                   )}
                   {appt.patient.allergies && (
