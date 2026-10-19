@@ -35,6 +35,56 @@ command -v docker > /dev/null || die "docker is not installed -- re-run bootstra
 
 PREVIOUS="$(cat "$IMAGE_FILE" 2>/dev/null || true)"
 
+# ── 0. Preflight ──────────────────────────────────────────────────────
+#
+# Everything here is cheap, and happens before anything is pulled,
+# migrated or restarted. A deploy that is going to fail should fail in
+# seconds rather than after it has already changed the schema.
+shopt -s nullglob
+ENV_FILES=("$ENV_DIR"/*.env)
+shopt -u nullglob
+[ ${#ENV_FILES[@]} -gt 0 ] || die "no env files in $ENV_DIR -- nothing to deploy"
+
+# ── Variables this image requires that older env files predate ────────
+#
+# A clinic's env file is written once, when the clinic is provisioned. An
+# image that later requires a new variable will not start against it, and
+# the way that surfaces is the worst possible: pull 2.5GB, migrate the
+# database, restart the container, fail the health check, roll back. All
+# of it avoidable from information available before the pull.
+#
+# REDIS_URL is the first of these. Its value is not a secret and not a
+# choice -- render-compose.sh creates exactly one session store per clinic
+# and names it redis-<slug> -- so it can simply be written.
+#
+# Where the file cannot be written (they are chmod 600 and this script
+# does not run as root), the deploy stops HERE with the command to run,
+# rather than discovering the same thing twenty times more expensively.
+for env_file in "${ENV_FILES[@]}"; do
+  slug="$(basename "$env_file" .env)"
+  [ "$slug" = "provider" ] && continue
+  grep -q '^REDIS_URL=' "$env_file" && continue
+
+  want="redis://redis-$slug:6379"
+  if printf '\n# Added by deploy-image.sh: this clinic predates REDIS_URL.\n# One session store per clinic, on its own network -- see render-compose.sh.\nREDIS_URL=%s\n' "$want" >> "$env_file" 2>/dev/null; then
+    info "  $slug: added REDIS_URL"
+  else
+    cat >&2 <<MISSING
+
+  $slug has no REDIS_URL and this file is not writable by $(id -un).
+
+  The API will not start without it. Add it and re-run the deploy:
+
+    echo 'REDIS_URL=$want' | sudo tee -a $env_file
+
+  The value is not a secret: render-compose.sh gives each clinic one
+  session store, on a private network only that clinic can reach.
+
+MISSING
+    die "$slug is missing REDIS_URL. Nothing was pulled, migrated or restarted."
+  fi
+done
+
 # ── 1. Pull ───────────────────────────────────────────────────────────
 log "Pulling $TAG"
 # Show what docker actually said. Swallowing it and substituting a guess
@@ -65,10 +115,6 @@ info "size $(docker image inspect "$TAG" --format '{{.Size}}' | awk '{printf "%.
 # one failure aborts: a half-migrated estate with no record of which
 # clinics succeeded is the worst outcome available here.
 log "Migrating databases"
-shopt -s nullglob
-ENV_FILES=("$ENV_DIR"/*.env)
-shopt -u nullglob
-[ ${#ENV_FILES[@]} -gt 0 ] || die "no env files in $ENV_DIR -- nothing to deploy"
 
 # Quoted values break `docker run --env-file`, which takes KEY=VALUE
 # literally and keeps the quotes. Sourcing the same file in a shell
