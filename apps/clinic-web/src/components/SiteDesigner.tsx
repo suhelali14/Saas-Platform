@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
+import { sectionHint, sectionLabel, sectionDefaultHeading } from '../lib/sections';
 import { cn } from '@/lib/utils';
 import { Input, Label, Textarea } from './ui';
 import { SegmentedControl } from './SegmentedControl';
@@ -36,11 +37,9 @@ type Vocabulary = {
 
 type Available = { heroImage: boolean; phone: boolean; mapUrl: boolean; tagline: boolean };
 
-const SECTION_LABELS: Record<string, string> = {
-  about: 'About', services: 'Services', highlights: 'Why choose us',
-  doctors: 'Doctors', gallery: 'Photos', blog: 'Articles',
-  feedback: 'Patient feedback', queue: 'Live queue', faq: 'Questions', contact: 'Contact',
-};
+// Section names come from lib/sections.ts. This file used to keep its
+// own copy, which is how a doctor ended up reading the literal string
+// "booking" in a list where every other row had a real name.
 
 /** A row of choices where each explains itself. */
 function Choice<T extends string>({
@@ -188,7 +187,31 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
         label="The main button"
         hint="One prominent action works better than several competing ones. Pick the one your patients actually use."
         value={design.cta.action}
-        onChange={(action) => set({ cta: { ...design.cta, action } })}
+        onChange={(action) => {
+          // Drop a label that was only ever the previous action's default.
+          //
+          // The label is stored, and changing the action did not touch it
+          // -- so picking "Show the live queue", then changing your mind
+          // and picking "Ask for an appointment", left a button that said
+          // "see how busy we are" and opened the booking form. The words
+          // contradicted what the button did, on the clinic's own home
+          // page.
+          //
+          // A label the clinic actually wrote is kept. One that matches
+          // any action's built-in wording was never a decision, so it
+          // gives way to the new action's.
+          const current = design.cta.label?.trim().toLowerCase();
+          const wasADefault =
+            !current ||
+            vocabulary.ctaActions.some((a) => a.defaultLabel.trim().toLowerCase() === current);
+          set({
+            cta: {
+              ...design.cta,
+              action,
+              ...(wasADefault ? { label: undefined } : {}),
+            },
+          });
+        }}
         options={vocabulary.ctaActions.map((a) => ({
           ...a,
           disabled: (a.key === 'call' || a.key === 'whatsapp') && !available.phone
@@ -226,20 +249,26 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
         </div>
       )}
 
-      <label className="flex items-start gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={design.secondaryCta}
-          onChange={(e) => set({ secondaryCta: e.target.checked })}
-          className="mt-0.5 accent-primary"
-        />
-        <span>
-          Also show a quieter &ldquo;live queue&rdquo; button beside it.
-          <span className="block text-[11px] text-muted-foreground">
-            Turn this off if you want one unmistakable action.
+      {/* Not offered when the main button already goes there. Two
+          buttons to the same page, one of them labelled "see how busy we
+          are" and the other "live queue", is the sort of thing that makes
+          a page look unfinished. */}
+      {design.cta.action !== 'queue' && (
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={design.secondaryCta}
+            onChange={(e) => set({ secondaryCta: e.target.checked })}
+            className="mt-0.5 accent-primary"
+          />
+          <span>
+            Also show a quieter &ldquo;live queue&rdquo; button beside it.
+            <span className="block text-[11px] text-muted-foreground">
+              Turn this off if you want one unmistakable action.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       {/* ── Spacing and corners ────────────────────────────────────── */}
       <div className="grid gap-5 sm:grid-cols-2">
@@ -267,30 +296,52 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
         <div className="mt-2 divide-y divide-border/10 overflow-hidden rounded-lg border border-border/10">
           {sections.map((s) => {
             const variants = vocabulary.sectionVariants[s.key];
-            return (
-              <div key={s.key} className={cn('p-2.5', !s.enabled && 'opacity-50')}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="w-28 shrink-0 text-xs font-medium">
-                    {SECTION_LABELS[s.key] ?? s.key}
-                    {!s.enabled && <span className="ml-1 text-[10px] text-muted-foreground">off</span>}
+
+            // A section that is switched off gets its name and nothing
+            // else. It used to carry a heading field and a layout picker
+            // too -- eleven rows of controls for things nobody will see,
+            // burying the handful that are actually live. Visual weight
+            // follows the exception, not the norm.
+            if (!s.enabled) {
+              return (
+                <div key={s.key} className="flex items-center gap-2 px-2.5 py-2">
+                  <span className="w-28 shrink-0 text-xs text-muted-foreground">
+                    {sectionLabel(s.key)}
                   </span>
-                  <Input
-                    value={s.heading ?? ''}
-                    onChange={(e) => setSection(s.key, { heading: e.target.value || undefined })}
-                    placeholder="Built-in heading"
-                    className="h-7 min-w-0 flex-1 text-[11px]"
-                  />
-                  {variants && (
-                    <SegmentedControl
-                      label={`${SECTION_LABELS[s.key] ?? s.key} layout`}
-                      value={s.variant ?? variants[0]!.key}
-                      onChange={(variant) => setSection(s.key, { variant })}
-                      options={variants.map((v) => ({ value: v.key, label: v.label, title: v.hint }))}
-                    />
-                  )}
+                  <span className="tone-neutral rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                    not shown
+                  </span>
                 </div>
-              </div>
-            );
+              );
+            }
+
+            return (
+                <div key={s.key} className="p-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="w-28 shrink-0 text-xs font-medium" title={sectionHint(s.key)}>
+                      {sectionLabel(s.key)}
+                    </span>
+                    <Input
+                      value={s.heading ?? ''}
+                      onChange={(e) => setSection(s.key, { heading: e.target.value || undefined })}
+                      // The heading it will actually carry, not the words
+                      // "Built-in heading". The question this row raises
+                      // is "what will this say if I leave it alone", and
+                      // the placeholder may as well answer it.
+                      placeholder={sectionDefaultHeading(s.key)}
+                      className="h-7 min-w-0 flex-1 text-[11px]"
+                    />
+                    {variants && (
+                      <SegmentedControl
+                        label={`${sectionLabel(s.key)} layout`}
+                        value={s.variant ?? variants[0]!.key}
+                        onChange={(variant) => setSection(s.key, { variant })}
+                        options={variants.map((v) => ({ value: v.key, label: v.label, title: v.hint }))}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
           })}
         </div>
       </div>

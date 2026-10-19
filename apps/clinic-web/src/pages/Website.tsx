@@ -5,7 +5,7 @@ import {
 import { useToast } from '../components/Toast';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { brandingUrl } from './Settings';
-import { publicSiteUrl } from '../lib/site-mode';
+import { publicSiteUrl, publicSiteHost } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -13,6 +13,7 @@ import { CanvasOverlay, type BlockRect, type DragState } from '../components/Can
 import { CanvasEditor } from '../components/CanvasEditor';
 import { applyDrop, visibleKeys } from '../lib/canvas-order';
 import { describeClinic } from '../lib/seo';
+import { SECTIONS, SECTION_ORDER, type SectionKey } from '../lib/sections';
 import { Label, Textarea } from '../components/ui';
 import { SiteDesigner } from '../components/SiteDesigner';
 
@@ -22,24 +23,14 @@ import { SiteDesigner } from '../components/SiteDesigner';
  * blog, a photo gallery, and patient feedback.
  */
 
-type SectionKey = 'about' | 'services' | 'highlights' | 'doctors' | 'gallery' | 'blog' | 'feedback' | 'queue' | 'faq' | 'booking' | 'contact';
 interface Section { key: SectionKey; enabled: boolean }
 
-const SECTION_LABELS: Record<SectionKey, { label: string; hint: string }> = {
-  about: { label: 'About the clinic', hint: 'Your introduction. Edited in Settings → Public Website.' },
-  services: { label: 'Services', hint: 'What you treat.' },
-  highlights: { label: 'Why patients choose us', hint: 'Your strongest points.' },
-  doctors: { label: 'Doctors', hint: 'Profiles of doctors who opted in.' },
-  gallery: { label: 'Photo gallery', hint: 'Photos of the clinic, managed below.' },
-  blog: { label: 'Health articles', hint: 'Your published articles.' },
-  feedback: { label: 'Patient feedback', hint: 'Only feedback you explicitly publish.' },
-  queue: { label: 'Live queue promo', hint: 'Invites patients to check the waiting time.' },
-  faq: { label: 'FAQ', hint: 'Common questions. Edited in Settings.' },
-  booking: { label: 'Appointment requests', hint: 'A short form for patients. Requests arrive under Requests; nothing is booked without you.' },
-  contact: { label: 'Contact & map', hint: 'Address, phone, directions.' },
-};
-
-const ALL_KEYS = Object.keys(SECTION_LABELS) as SectionKey[];
+/* Names and hints live in lib/sections.ts. Aliased rather than renamed at
+   every call site: there were three copies of this map, they drifted, and
+   a doctor was shown the raw key "booking" because of it. One record now,
+   and the old identifier still reads naturally here. */
+const SECTION_LABELS = SECTIONS;
+const ALL_KEYS = SECTION_ORDER;
 
 const THEMES: { key: string; label: string; swatch: string }[] = [
   { key: 'teal', label: 'Teal', swatch: '#0d9488' },
@@ -1486,7 +1477,7 @@ function SearchPreview({
       {/* A search result. The colours are Google's, not the portal's,
           because the point is to look like the thing being previewed. */}
       <div className="rounded-lg bg-white p-4">
-        <p className="truncate text-[11px] text-[#5f6368]">{window.location.host}</p>
+        <p className="truncate text-[11px] text-[#5f6368]">{publicSiteHost()}</p>
         <p className="mt-0.5 truncate text-[17px] leading-snug text-[#1a0dab]">{title || 'Your clinic'}</p>
         <p className="mt-0.5 text-[12.5px] leading-[1.45] text-[#4d5156]">{effective}</p>
       </div>

@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { Button } from './Button';
 import { CanvasInspector, type GalleryPhoto } from './CanvasInspector';
-import { BASIC_BLOCKS, CONTENT_BLOCKS, SECTION_LABELS, type PaletteItem } from '../lib/canvas-blocks';
+import { BASIC_BLOCKS, CONTENT_BLOCKS, sectionLabel, type PaletteItem } from '../lib/canvas-blocks';
 import { NODE_DEFAULTS } from '../lib/canvas-doc';
 import {
   CANVAS_WIDTH, EMPTY_DOC,
@@ -474,7 +474,7 @@ export function CanvasEditor({ sections }: Props) {
                   const g = n.at[bp];
                   const isSel = n.id === selected;
                   const label = n.type === 'bound'
-                    ? (SECTION_LABELS[n.props.bind ?? ''] ?? 'Clinic content')
+                    ? sectionLabel(n.props.bind ?? '')
                     : NODE_DEFAULTS[n.type].label;
                   return (
                     <div

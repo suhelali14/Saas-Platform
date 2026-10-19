@@ -137,6 +137,31 @@ export function publicSiteUrl(path = '/'): string {
   return joinUrl(siblingOrigin(true), path);
 }
 
+/**
+ * The hostname a patient and a search engine see.
+ *
+ * The search-appearance preview used `window.location.host`, which inside
+ * the portal is the PORTAL's hostname -- so a clinic on a split
+ * deployment was shown `vadgaonkar.portal.nayaverse.in` as the address
+ * Google would list, when the indexed site is `vadgaonkar.nayaverse.in`.
+ * The one thing that preview exists to show was the one thing it had
+ * wrong.
+ *
+ * On a single-domain deployment the two share a host, so the current one
+ * is the right answer; on a split one the public URL is absolute and
+ * carries the host to use.
+ */
+export function publicSiteHost(): string {
+  const url = publicSiteUrl('/');
+  // A relative path means the patient site is served from this origin.
+  if (url.startsWith('/')) return window.location.host;
+  try {
+    return new URL(url, window.location.origin).host;
+  } catch {
+    return window.location.host;
+  }
+}
+
 export function portalSiteUrl(path = '/'): string {
   if (siteMode() !== 'public') return path;
   const configured = import.meta.env.VITE_PORTAL_SITE_URL;

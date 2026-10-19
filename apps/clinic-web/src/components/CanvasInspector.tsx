@@ -5,7 +5,7 @@ import {
   CANVAS_WIDTH, NODE_DEFAULTS,
   type Breakpoint, type CanvasNode, type Geometry, type NodeProps,
 } from '../lib/canvas-doc';
-import { SECTION_LABELS } from '../lib/canvas-blocks';
+import { sectionLabel } from '../lib/canvas-blocks';
 
 /**
  * The panel for the selected block.
@@ -55,7 +55,7 @@ export function CanvasInspector({
   const p = node.props;
   const isText = node.type === 'heading' || node.type === 'text' || node.type === 'button';
   const label = node.type === 'bound'
-    ? (SECTION_LABELS[p.bind ?? ''] ?? 'Clinic content')
+    ? sectionLabel(p.bind ?? '')
     : NODE_DEFAULTS[node.type].label;
 
   return (

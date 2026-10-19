@@ -1,4 +1,5 @@
 import type { NodeType } from './canvas-doc';
+import { SECTIONS, SECTION_ORDER } from './sections';
 
 /**
  * What the palette offers, in the words a doctor would use.
@@ -42,22 +43,14 @@ export const BASIC_BLOCKS: PaletteItem[] = [
  * validates against that list and ignores anything else, so a key typed
  * wrong here is a block that silently renders nothing.
  */
-export const CONTENT_BLOCKS: PaletteItem[] = [
-  { type: 'bound', bind: 'about', label: 'About the clinic', hint: 'The About text from your Settings.' },
-  { type: 'bound', bind: 'services', label: 'Services', hint: 'What you treat. Edited in Settings.' },
-  { type: 'bound', bind: 'highlights', label: 'Why patients choose us', hint: 'Your list of strong points.' },
-  { type: 'bound', bind: 'doctors', label: 'Doctors', hint: 'Every doctor set to appear publicly, with their real credentials.' },
-  { type: 'bound', bind: 'gallery', label: 'Photo gallery', hint: 'The photos you uploaded, as a grid.' },
-  { type: 'bound', bind: 'blog', label: 'Health articles', hint: 'Your published articles, newest first.' },
-  { type: 'bound', bind: 'feedback', label: 'Patient feedback', hint: 'The private feedback form, and anything you chose to publish.' },
-  { type: 'bound', bind: 'queue', label: 'Live queue link', hint: 'Sends patients to the waiting-room display.' },
-  { type: 'bound', bind: 'faq', label: 'Questions and answers', hint: 'Your FAQs from Settings.' },
-  { type: 'bound', bind: 'booking', label: 'Appointment request form', hint: 'Patients leave a name and number; you call back to confirm.' },
-  { type: 'bound', bind: 'contact', label: 'Contact and map', hint: 'Address, phone, email, and the map if you set one.' },
-];
+export const CONTENT_BLOCKS: PaletteItem[] = SECTION_ORDER.map((key) => ({
+  type: 'bound' as const,
+  bind: key,
+  label: SECTIONS[key].label,
+  hint: SECTIONS[key].hint,
+}));
 
-/** Short names for the content blocks, used by the inspector and the
- *  on-canvas tags. Derived so the two can never disagree. */
-export const SECTION_LABELS: Record<string, string> = Object.fromEntries(
-  CONTENT_BLOCKS.map((b) => [b.bind!, b.label]),
-);
+/** Re-exported so the canvas components keep one import. The names
+ *  themselves come from lib/sections.ts, which is the only place they are
+ *  written down. */
+export { sectionLabel } from './sections';
