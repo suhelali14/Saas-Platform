@@ -164,10 +164,36 @@ html.theme-light .skeleton::after {
   }
 }
 
+/*
+ * A figure that just changed.
+ *
+ * The dashboard refreshes on a timer, so "Seen today" can go from 12 to
+ * 13 with nothing to show it did. Someone glancing at a screen they left
+ * open has no way to tell a stale number from a fresh one.
+ *
+ * This is the only motion in the app that exists to report a change in
+ * data rather than a change the user just made, and that is exactly why
+ * it is allowed: it is information, not decoration. It fades out on its
+ * own, so a screen left alone settles back to plain.
+ */
+.just-changed {
+  animation: just-changed 1.4s var(--ease-out);
+  border-radius: 6px;
+}
+
+@keyframes just-changed {
+  from {
+    background-color: hsl(var(--primary) / 0.22);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
 /* Toast entrance. Short and from below, so it reads as arriving rather
    than as the page reflowing. */
 .toast-enter {
-  animation: toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: toast-in var(--dur) var(--ease-out);
 }
 
 @keyframes toast-in {
@@ -186,5 +212,31 @@ html.theme-light .skeleton::after {
   .skeleton::after,
   .toast-enter {
     animation: none;
+  }
+
+  /*
+   * The Radix overlays too.
+   *
+   * Every dialog, popover, select and tooltip animates through
+   * tailwindcss-animate's `animate-in` / `animate-out`, which carry
+   * their own duration and so were never covered by the rule above --
+   * so someone who had asked the operating system for less motion still
+   * got a zoom on every dropdown, which in this app is most of the
+   * interface.
+   *
+   * 1ms rather than `none`: Radix watches for the animation to finish
+   * before unmounting, and removing the animation entirely changes that
+   * path. A duration nobody can perceive keeps the mechanism intact.
+   */
+  .animate-in,
+  .animate-out {
+    animation-duration: 1ms !important;
+  }
+
+  /* A figure that changed still marks itself, just without the fade --
+     the information survives, the movement does not. */
+  .just-changed {
+    animation: none;
+    background-color: hsl(var(--primary) / 0.12);
   }
 }

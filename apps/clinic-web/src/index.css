@@ -118,6 +118,36 @@
     --ink-pink: 330 85% 74%;
     --ink-teal: 175 70% 58%;
 
+    /*
+     * ── Chart marks, which are NOT the ink above ──────────────────────
+     *
+     * Two different jobs. Ink is tuned for TEXT contrast, so on a dark
+     * ground it goes bright. A chart mark is a filled area, and the
+     * perceptual band it has to sit in for a dark surface is OKLCH
+     * lightness 0.48-0.67 -- which dark --primary (0.716) and dark
+     * --ink-warning (0.814) are both well above. Reusing them paints a
+     * chart that glares and loses its chroma against the panel.
+     *
+     * Blue and amber rather than blue and violet, and that choice was
+     * measured, not picked. Violet is blue plus red, so deuteranopia
+     * collapses it into the blue: the validator put the dark
+     * blue/violet pair at delta-E 1.4, effectively one colour for
+     * ~8% of men, while normal vision reads 16.7 and never notices.
+     * Blue against amber is the axis deuteranopia preserves, and the
+     * same pair measures 23.6.
+     *
+     * Both steps clear all five checks against this theme's panel
+     * surface -- lightness band, chroma floor, CVD separation,
+     * normal-vision floor, contrast. Re-run before changing either:
+     *   node validate_palette.js "#1197d4,#c27d05" --mode dark --surface "#13161b"
+     */
+    --chart-1: 199 85% 45%;
+    --chart-2: 38 95% 39%;
+    /* Grid and axis are structure, not data, so they recede. Derived
+       from the foreground at low alpha in use, not stated as a colour,
+       so they follow the theme. */
+    --chart-grid: 0 0% 100%;
+
     /* The colour shadows are cast IN, not the shadow itself. A shadow is
        a darkening of the ground, so on a near-black ground it has to be
        nearly black to register at all -- the card shadow used to be a
@@ -192,6 +222,16 @@
     --ink-violet: 266 70% 45%;
     --ink-pink: 334 70% 42%;
     --ink-teal: 184 75% 26%;
+
+    /* Chart marks for the white panel. Validated the same way:
+         node validate_palette.js "#0f74b3,#9e4f0a" --mode light --surface "#ffffff"
+       These happen to coincide with --primary and --ink-warning here,
+       because the light band and the text-contrast target agree on a
+       white ground. They do NOT agree on a dark one, which is why these
+       are separate tokens rather than aliases. */
+    --chart-1: 203 85% 38%;
+    --chart-2: 28 88% 33%;
+    --chart-grid: 215 55% 18%;
 
     /* Tinted toward the page's own blue rather than neutral grey: a grey
        shadow on a blue-grey ground reads as dirt. */
@@ -307,6 +347,47 @@
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+}
+
+@layer base {
+  /*
+   * ── Motion, as three durations and one curve ──────────────────────
+   *
+   * Stated once so the app moves at one speed rather than at whatever
+   * each component picked. The curve is an exponential ease-out: fast
+   * departure, long settle, which is what reads as a physical object
+   * coming to rest rather than as a CSS transition finishing.
+   *
+   * The restraint is the point. This is a tool someone uses fifty times
+   * a day, so motion is for CONFIRMING something changed, never for
+   * introducing content that was already there -- a staggered fade on
+   * every card is a delay between the doctor and the queue, charged
+   * once per visit to the page.
+   */
+  :root {
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    /* A state change on something already on screen. */
+    --dur-fast: 120ms;
+    /* Something arriving: a popover, a toast, a row. */
+    --dur: 220ms;
+    /* The one authored moment -- a chart drawing itself. */
+    --dur-slow: 700ms;
+  }
+
+  /*
+   * Everything above collapses under prefers-reduced-motion.
+   *
+   * Set on the tokens rather than on each animation, so a component
+   * written later inherits the guard instead of having to remember it.
+   * For some people this is a migraine, not a preference.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-fast: 0ms;
+      --dur: 0ms;
+      --dur-slow: 0ms;
+    }
   }
 }
 

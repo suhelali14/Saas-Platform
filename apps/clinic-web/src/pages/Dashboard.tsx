@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, Info, RefreshCw, ArrowRight, Activity, Stethoscope,
@@ -305,12 +305,49 @@ export function Dashboard() {
  * what the number is measured against — a figure with nothing to compare
  * it to is trivia.
  */
+/**
+ * Marks itself when the figure changes.
+ *
+ * This screen refreshes on a timer, so a count can move while nobody is
+ * looking at it and there is nothing to say it did -- a doctor glancing
+ * at a dashboard left open since this morning cannot tell a current
+ * number from a stale one. The highlight answers that and then fades, so
+ * a screen left alone settles back to plain.
+ *
+ * Keyed on the value rather than on a render: React re-renders this on
+ * every poll whether the number moved or not, and highlighting an
+ * unchanged figure once a minute would be worse than not highlighting
+ * at all.
+ *
+ * The very first value is deliberately NOT a change. Everything flashing
+ * on arrival is the staggered-entrance habit wearing a different hat.
+ */
+function useChanged(value: string): boolean {
+  const previous = useRef<string | null>(null);
+  const [changed, setChanged] = useState(false);
+
+  useEffect(() => {
+    const had = previous.current;
+    previous.current = value;
+    if (had === null || had === value) return;
+    setChanged(true);
+    // Slightly longer than the animation, so re-arming cannot clip it.
+    const t = setTimeout(() => setChanged(false), 1500);
+    return () => clearTimeout(t);
+  }, [value]);
+
+  return changed;
+}
+
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  const changed = useChanged(value);
   return (
     <Card>
       <CardContent className="p-4">
         <p className="text-[11px] text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold leading-none">{value}</p>
+        <p className="mt-1 inline-block text-2xl font-semibold leading-none">
+          <span className={changed ? 'just-changed' : undefined}>{value}</span>
+        </p>
         {hint && <p className="mt-1.5 text-[11px] text-muted-foreground/70">{hint}</p>}
       </CardContent>
     </Card>

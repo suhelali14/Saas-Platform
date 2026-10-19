@@ -72,6 +72,14 @@ export default {
         // value cannot be both a fill that white sits on and a legible
         // text colour on the page -- see index.css for the measurements.
         // `text-ink-danger`, `border-ink-warning/30`, and so on.
+        // Chart marks. Separate from `ink` because a filled mark and a
+        // run of text want different lightness on a dark ground -- see
+        // index.css for the measurements and the validator command.
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          grid: "hsl(var(--chart-grid))",
+        },
         ink: {
           success: "hsl(var(--ink-success))",
           warning: "hsl(var(--ink-warning))",

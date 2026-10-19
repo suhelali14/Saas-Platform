@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, Users, UserPlus, Repeat, Stethoscope, ClipboardList } from 'lucide-react';
+import { TrendChart, BarList } from '../components/charts';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError } from '../lib/api';
 import { shiftDateInput, todayInput } from '../lib/date';
@@ -21,7 +22,6 @@ const RANGES = [
   { label: '90 days', days: 90 },
 ];
 
-const ACCENT = '#34d399'; // emerald-400 -- this app's single accent hue throughout; single-series charts here need no categorical palette
 
 export function Analytics() {
   const [rangeDays, setRangeDays] = useState(30);
@@ -112,56 +112,6 @@ function StatTile({ icon: Icon, label, value }: { icon: any; label: string; valu
     <div className="p-3 rounded-xl border border-border/10 bg-foreground/[0.02]">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 mb-1"><Icon size={12} /> {label}</div>
       <div className="text-xl font-bold text-foreground">{value}</div>
-    </div>
-  );
-}
-
-// Thin 2px line, rounded data-end marker, recessive baseline grid, native
-// <title> hover tooltip per point -- lightweight but real interactivity for
-// this internal tool's scale (a handful of points per range).
-function TrendChart({ data }: { data: DailyVisit[] }) {
-  const width = 640;
-  const height = 160;
-  const padding = 24;
-  const max = Math.max(1, ...data.map((d) => d.count));
-  const stepX = data.length > 1 ? (width - padding * 2) / (data.length - 1) : 0;
-
-  const points = data.map((d, i) => ({
-    x: padding + i * stepX,
-    y: height - padding - (d.count / max) * (height - padding * 2),
-    ...d,
-  }));
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40" preserveAspectRatio="none">
-      <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
-      <path d={path} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-      {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3} fill={ACCENT}>
-          <title>{`${p.date}: ${p.count} visit${p.count === 1 ? '' : 's'}`}</title>
-        </circle>
-      ))}
-    </svg>
-  );
-}
-
-// Horizontal bar list -- clearer than a vertical bar chart when labels are
-// variable-length free text (diagnosis names, doctor names), avoids label
-// rotation/overflow entirely.
-function BarList({ items }: { items: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...items.map((i) => i.value));
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <div className="text-xs text-muted-foreground w-32 truncate shrink-0" title={item.label}>{item.label}</div>
-          <div className="flex-1 h-4 bg-foreground/5 rounded overflow-hidden">
-            <div className="h-full rounded" style={{ width: `${(item.value / max) * 100}%`, background: ACCENT }} title={`${item.value}`} />
-          </div>
-          <div className="text-xs text-foreground/80 w-6 text-right shrink-0">{item.value}</div>
-        </div>
-      ))}
     </div>
   );
 }
