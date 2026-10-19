@@ -257,14 +257,14 @@ function HandlePanel({
     try {
       await apiFetch(`/appointment-requests/${r.id}/confirm`, {
         method: 'POST',
-        body: JSON.stringify({
+        data: {
           // Local time, assembled from the two fields. A date-only string
           // would be parsed as UTC midnight and land on the previous day
           // in IST -- the trap lib/date exists to avoid.
           scheduledAt: new Date(`${date}T${time || '10:00'}:00`).toISOString(),
           ...(linkTo ? { patientId: linkTo } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),
-        }),
+        },
       });
       onDone(linkTo ? 'Booked for the existing patient.' : 'Patient registered and booked.');
     } catch (e) {
@@ -276,7 +276,7 @@ function HandlePanel({
     try {
       await apiFetch(`/appointment-requests/${r.id}/decline`, {
         method: 'POST',
-        body: JSON.stringify(note.trim() ? { note: note.trim() } : {}),
+        data: note.trim() ? { note: note.trim() } : {},
       });
       onDone('Request declined.');
     } catch (e) {

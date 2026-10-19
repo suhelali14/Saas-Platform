@@ -296,13 +296,13 @@ export function CanvasEditor({ sections }: Props) {
     try {
       // The phone layout is derived at save time, so a clinic that never
       // opens the phone view still publishes something that works on one.
-      const body: { canvas: CanvasDoc; layoutMode?: 'canvas' | 'sections' } = {
+      const payload: { canvas: CanvasDoc; layoutMode?: 'canvas' | 'sections' } = {
         canvas: fitHeight(deriveMobile(fitHeight(doc, 'desktop')), 'mobile'),
       };
-      if (publish !== undefined) body.layoutMode = publish ? 'canvas' : 'sections';
+      if (publish !== undefined) payload.layoutMode = publish ? 'canvas' : 'sections';
       const res = await apiFetch<{ canvas: CanvasDoc | null; layoutMode: string }>('/site/canvas', {
         method: 'PUT',
-        body: JSON.stringify(body),
+        data: payload,
       });
       if (res.canvas) setHistory((h) => ({ ...h, present: res.canvas! }));
       setLive(res.layoutMode === 'canvas');

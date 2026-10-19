@@ -55,11 +55,34 @@ const inFlight = new Map<string, Promise<unknown>>();
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-export async function apiFetch<T = any>(endpoint: string, options: RequestInit & { data?: unknown } = {}): Promise<T> {
+/**
+ * Options, with `body` deliberately removed.
+ *
+ * `body` used to come through from RequestInit, and passing it looked
+ * entirely reasonable -- `apiFetch(url, { method: 'POST', body:
+ * JSON.stringify(x) })` is how fetch is written everywhere. It silently
+ * did the wrong thing twice over: no Content-Type was set, so fetch
+ * defaulted a string body to `text/plain`, Fastify's text parser handed
+ * the route a string, and zod answered "Expected object, received
+ * string" -- and the request skipped the stringify this function does,
+ * so what arrived was the JSON *inside* a JSON string.
+ *
+ * Three endpoints shipped broken that way, each one "verified" with curl
+ * and an explicit header rather than through this client. Typing it out
+ * of existence is the fix: `data` is the only way to send a payload, and
+ * reaching for `body` is now a compile error rather than a 400 somebody
+ * finds in production.
+ *
+ * A caller that genuinely needs a non-JSON body -- multipart, a blob --
+ * wants `apiUpload` below, or plain fetch.
+ */
+export type ApiOptions = Omit<RequestInit, 'body'> & { data?: unknown };
+
+export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
 
   if (MUTATING.has(method)) {
-    const key = `${method} ${endpoint} ${options.data ? JSON.stringify(options.data) : ''}`;
+    const key = `${method} ${endpoint} ${options.data === undefined ? '' : JSON.stringify(options.data)}`;
     const existing = inFlight.get(key);
     if (existing) return existing as Promise<T>;
 
@@ -71,16 +94,16 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit &
   return performFetch<T>(endpoint, options);
 }
 
-async function performFetch<T>(endpoint: string, options: RequestInit & { data?: unknown }): Promise<T> {
+async function performFetch<T>(endpoint: string, options: ApiOptions): Promise<T> {
   const token = localStorage.getItem('clinicAccessToken');
   const headers = new Headers(options.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
-  if (options.data && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (options.data !== undefined && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${apiBaseUrl}${endpoint}`, {
     ...options,
     headers,
-    body: options.data ? JSON.stringify(options.data) : options.body,
+    body: options.data === undefined ? undefined : JSON.stringify(options.data),
   });
 
   if (response.status === 401) {
