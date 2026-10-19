@@ -5,7 +5,7 @@ import {
 import { useToast } from '../components/Toast';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { brandingUrl } from './Settings';
-import { publicSiteUrl, publicSiteHost } from '../lib/site-mode';
+import { publicSiteUrl, publicSiteHost, publicSiteDisplayUrl } from '../lib/site-mode';
 import { Button, Loading, Spinner } from '../components/Button';
 import { DeviceFrame } from '../components/DeviceFrame';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -13,6 +13,7 @@ import { CanvasOverlay, type BlockRect, type DragState } from '../components/Can
 import { CanvasEditor } from '../components/CanvasEditor';
 import { applyDrop, visibleKeys } from '../lib/canvas-order';
 import { describeClinic } from '../lib/seo';
+import { cn } from '@/lib/utils';
 import { SECTIONS, SECTION_ORDER, type SectionKey } from '../lib/sections';
 import { Label, Textarea } from '../components/ui';
 import { SiteDesigner } from '../components/SiteDesigner';
@@ -559,7 +560,21 @@ function LayoutBuilder() {
   const hiddenKeys = new Set(sections.filter((s) => !s.enabled).map((s) => s.key));
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)] gap-5 items-start">
+    // The third column exists only when something is selected.
+    // Holding 300px open for "Click a block in the preview..." took a
+    // sixth of the screen to say nothing, while the settings column
+    // next to it was squeezed to 320px and wrapping its own controls
+    // two words to a line. The hint it was showing is already printed
+    // under the preview, where someone looking at the preview will
+    // actually read it.
+    <div
+      className={cn(
+        'grid gap-5 items-start lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
+        selected
+          ? 'xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)_minmax(0,300px)]'
+          : 'xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)]',
+      )}
+    >
       <div className="flex flex-col gap-5 min-w-0">
       {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
@@ -728,7 +743,14 @@ function LayoutBuilder() {
 
       {/* The inspector. Its own column at xl; below the preview on a
           narrower screen, because three columns under about 1280px gives
-          each of them too little to be usable. */}
+          each of them too little to be usable.
+
+          Rendered only when a block is selected. It used to be permanent,
+          holding 300px open to say "Click a block in the preview" -- so
+          the settings column beside it was squeezed to 320px and wrapped
+          its own option cards two words to a line. The column appears
+          when there is something to put in it. */}
+      {selected && (
       <div className="lg:col-span-2 xl:col-span-1 lg:sticky lg:top-6 min-w-0">
         <SectionInspector
           selected={selected}
@@ -741,6 +763,7 @@ function LayoutBuilder() {
           }}
         />
       </div>
+      )}
     </div>
   );
 }
@@ -770,15 +793,10 @@ function SectionInspector({ selected, sections, onClose, onToggle, onMove }: {
   onToggle: (key: SectionKey) => void;
   onMove: (key: SectionKey, delta: number) => void;
 }) {
-  if (!selected) {
-    return (
-      <Panel title="Block settings">
-        <p className="text-xs text-muted-foreground/70 leading-relaxed">
-          Click a block in the preview, or a row in the list, to edit it here.
-        </p>
-      </Panel>
-    );
-  }
+  // The caller only renders this when something is selected. Returning
+  // null rather than an empty panel, so a future caller that forgets
+  // cannot put the 300px placeholder back on screen.
+  if (!selected) return null;
 
   // The hero is configurable but is not one of the page's sections -- it
   // always renders -- so it has no row in the list and no on/off.
@@ -1000,7 +1018,10 @@ function SitePreview({
           device={width}
           width={viewport * scale}
           height={PREVIEW_HEIGHT * scale}
-          url={typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') + '/clinic' : undefined}
+          // The address a patient would be at, not this one. It read
+          // `vadgaonkar.portal.nayaverse.in/clinic` -- the portal --
+          // inside a frame previewing the public site.
+          url={publicSiteDisplayUrl()}
         >
           {/* The iframe draws the real page; the overlay draws the editing
               surface at the same coordinates. They are siblings in one

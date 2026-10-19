@@ -162,6 +162,25 @@ export function publicSiteHost(): string {
   }
 }
 
+/**
+ * The public site's address, as a person would read it.
+ *
+ * Host plus path, no scheme -- what a browser's address bar shows. The
+ * device-frame preview built this from `window.location.origin`, which
+ * inside the portal is the portal, so the mock address bar above a
+ * preview of the patient site read `…portal.nayaverse.in/clinic`.
+ */
+export function publicSiteDisplayUrl(): string {
+  const url = publicSiteUrl('/');
+  if (url.startsWith('/')) return window.location.host + url;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.host + (parsed.pathname === '/' ? '' : parsed.pathname);
+  } catch {
+    return window.location.host;
+  }
+}
+
 export function portalSiteUrl(path = '/'): string {
   if (siteMode() !== 'public') return path;
   const configured = import.meta.env.VITE_PORTAL_SITE_URL;

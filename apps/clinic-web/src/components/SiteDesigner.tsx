@@ -55,7 +55,21 @@ function Choice<T extends string>({
     <div>
       <Label>{label}</Label>
       {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      {/*
+        auto-fit, not a fixed two columns.
+
+        These sit in a 320px settings column, and Spacing and Corners
+        were additionally side by side, so each option card was ending
+        up about 75px wide -- "Less space between sections." set two
+        words to a line, down a column, for every option. A fixed
+        column count cannot know how much room it has; a minimum
+        width can, and drops to one column rather than shredding the
+        sentence.
+
+        152px is the measured floor: below it "Comfortable" and
+        "Very round" start breaking mid-word.
+      */}
+      <div className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(152px,1fr))]">
         {options.map((o) => {
           const selected = o.key === value;
           return (
@@ -73,9 +87,9 @@ function Choice<T extends string>({
                 o.disabled && 'cursor-not-allowed opacity-50',
               )}
             >
-              <span className="flex items-center gap-1.5 text-xs font-medium">
-                {o.label}
-                {selected && <Check size={11} className="text-primary" aria-hidden="true" />}
+              <span className="flex items-start justify-between gap-1.5 text-xs font-medium">
+                <span className="min-w-0">{o.label}</span>
+                {selected && <Check size={11} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />}
               </span>
               {/* What it is for, not what it is called. */}
               <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
@@ -222,8 +236,10 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
         }))}
       />
 
+      {/* One column unless there is a second field to pair with. Half of a
+          320px column truncated the label at "see how busy we ar". */}
       {design.cta.action !== 'none' && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={cn('grid gap-3', design.cta.action === 'whatsapp' && 'sm:grid-cols-2')}>
           <div className="space-y-1.5">
             <Label htmlFor="ctaLabel">What the button says</Label>
             <Input
@@ -271,7 +287,10 @@ export function SiteDesigner({ onSaved }: { onSaved?: () => void }) {
       )}
 
       {/* ── Spacing and corners ────────────────────────────────────── */}
-      <div className="grid gap-5 sm:grid-cols-2">
+      {/* Stacked, not side by side. Each of these needs the full
+          width of the settings column for its options to read; two
+          of them abreast is what made the cards unreadable. */}
+      <div className="grid gap-5">
         <Choice
           label="Spacing"
           value={design.density}
