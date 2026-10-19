@@ -25,9 +25,19 @@ import { SECTION_LABELS } from '../lib/canvas-blocks';
  * exactly, and a canvas without that forces people to fight the snap.
  */
 
+export interface GalleryPhoto {
+  id: string;
+  caption: string | null;
+  storagePath: string;
+}
+
 interface Props {
   node: CanvasNode;
   bp: Breakpoint;
+  /** The clinic's uploaded photos, for the picture picker. */
+  photos: GalleryPhoto[];
+  /** Turns a stored path into something an <img> can load. */
+  assetUrl: (storagePath: string) => string;
   onGeometry: (patch: Partial<Geometry>) => void;
   onProps: (patch: Partial<NodeProps>) => void;
   onDelete: () => void;
@@ -38,7 +48,8 @@ interface Props {
 }
 
 export function CanvasInspector({
-  node, bp, onGeometry, onProps, onDelete, onDuplicate, onForward, onBackward, onUnpinMobile,
+  node, bp, photos, assetUrl,
+  onGeometry, onProps, onDelete, onDuplicate, onForward, onBackward, onUnpinMobile,
 }: Props) {
   const g = node.at[bp];
   const p = node.props;
@@ -125,16 +136,66 @@ export function CanvasInspector({
 
       {node.type === 'image' && (
         <Group title="Picture">
-          <Field label="Description for screen readers" hint="What the picture shows. Leave blank if it is decoration only.">
+          {/*
+            The actual picker. This panel used to say "pictures are chosen
+            from the ones you have uploaded under Gallery" and then offer no
+            way to choose one -- so an image block took up space on the page
+            and could never display anything, because the renderer draws
+            nothing without a `src`. A sentence describing a control is not
+            a control.
+          */}
+          {photos.length === 0 ? (
+            <p className="leading-relaxed text-muted-foreground">
+              You have not uploaded any photos yet. Add them under Website →
+              Photo Gallery, and they will appear here to choose from.
+            </p>
+          ) : (
+            <>
+              <div className="grid max-h-56 grid-cols-3 gap-1.5 overflow-y-auto">
+                {photos.map((ph) => {
+                  const chosen = p.src === ph.storagePath;
+                  return (
+                    <button
+                      key={ph.id}
+                      type="button"
+                      title={ph.caption ?? 'Use this picture'}
+                      onClick={() => onProps({ src: ph.storagePath })}
+                      className={`relative aspect-square overflow-hidden rounded-md border-2 transition-colors ${
+                        chosen ? 'border-primary' : 'border-transparent hover:border-primary/40'
+                      }`}
+                    >
+                      <img
+                        src={assetUrl(ph.storagePath)}
+                        alt={ph.caption ?? ''}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {p.src && (
+                <button
+                  type="button"
+                  onClick={() => onProps({ src: undefined })}
+                  className="self-start text-[10px] text-muted-foreground/70 underline hover:text-foreground"
+                >
+                  Use no picture
+                </button>
+              )}
+            </>
+          )}
+
+          <Field
+            label="Description for screen readers"
+            hint="What the picture shows. Leave blank if it is decoration only."
+          >
             <input
               className={INPUT}
               value={p.alt ?? ''}
               onChange={(e) => onProps({ alt: e.target.value })}
             />
           </Field>
-          <p className="text-muted-foreground leading-relaxed">
-            Pictures are chosen from the ones you have uploaded under Gallery.
-          </p>
         </Group>
       )}
 

@@ -3,7 +3,7 @@ import {
   Monitor, Redo2, Smartphone, Undo2, ZoomIn, ZoomOut, Plus, Eye, Globe, Info,
 } from 'lucide-react';
 import { Button } from './Button';
-import { CanvasInspector } from './CanvasInspector';
+import { CanvasInspector, type GalleryPhoto } from './CanvasInspector';
 import { BASIC_BLOCKS, CONTENT_BLOCKS, SECTION_LABELS, type PaletteItem } from '../lib/canvas-blocks';
 import { NODE_DEFAULTS } from '../lib/canvas-doc';
 import {
@@ -15,6 +15,7 @@ import {
   type Breakpoint, type CanvasDoc, type Guide, type History, type ResizeHandle,
 } from '../lib/canvas-doc';
 import { apiFetch, ApiError } from '../lib/api';
+import { brandingUrl } from '../pages/Settings';
 import { publicSiteUrl } from '../lib/site-mode';
 import { useToast } from './Toast';
 
@@ -86,6 +87,7 @@ export function CanvasEditor({ sections }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
 
   const surface = useRef<HTMLDivElement | null>(null);
   const frame = useRef<HTMLIFrameElement | null>(null);
@@ -109,6 +111,19 @@ export function CanvasEditor({ sections }: Props) {
       .finally(() => setLoaded(true));
     // toast is stable; re-running this would refetch over local edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The picture picker's options. Fetched here rather than in the
+  // inspector so it is one request per editing session instead of one per
+  // selection, and so the panel stays a pure view of the selected node.
+  useEffect(() => {
+    apiFetch<{ photos: GalleryPhoto[] }>('/gallery')
+      .then((r) => setPhotos(r.photos ?? []))
+      .catch(() => {
+        // Not fatal. The picker then reads as "no photos yet", which is
+        // also what an empty gallery looks like, and the rest of the
+        // editor is unaffected.
+      });
   }, []);
 
   // ── push the document into the frame ───────────────────────────────
@@ -472,6 +487,25 @@ export function CanvasEditor({ sections }: Props) {
                           isSel ? 'border-primary' : 'border-transparent group-hover:border-primary/40'
                         }`}
                       />
+
+                      {/*
+                        An image block with no picture yet.
+
+                        The frame underneath draws nothing for it, because
+                        the published page must not show a patient an
+                        unfinished placeholder. That left the block
+                        genuinely invisible here too -- occupying space,
+                        selectable only by guessing where it was. This
+                        placeholder exists only in the editor, so the block
+                        is findable and says what it needs.
+                      */}
+                      {n.type === 'image' && !n.props.src && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-sm border-2 border-dashed border-primary/40 bg-primary/5">
+                          <span className="px-2 text-center text-[11px] font-medium text-primary">
+                            Pick a picture →
+                          </span>
+                        </div>
+                      )}
                       <span
                         className={`pointer-events-none absolute -top-[18px] left-0 whitespace-nowrap rounded-t px-1.5 text-[10px] font-medium transition-opacity ${
                           isSel
@@ -564,6 +598,8 @@ export function CanvasEditor({ sections }: Props) {
               <CanvasInspector
                 node={node}
                 bp={bp}
+                photos={photos}
+                assetUrl={brandingUrl}
                 onGeometry={(patch) => change(setGeometry(doc, node.id, patch, bp))}
                 onProps={(patch) => change(setProps(doc, node.id, patch))}
                 onDelete={() => { change(removeNode(doc, node.id)); setSelected(null); }}
