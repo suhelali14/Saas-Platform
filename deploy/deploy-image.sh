@@ -260,7 +260,52 @@ if [ ${#FAILED[@]} -gt 0 ]; then
   die "no previous image to roll back to. Logs: docker logs ${FAILED[0]}"
 fi
 
-# ── 6. Reclaim disk ───────────────────────────────────────────────────
+# -- 6. Make sure every clinic has a medicine catalogue ----------------
+#
+# The catalogue used to be imported once, at provisioning, and never
+# checked again. The first clinic ran for weeks with an empty Drug table
+# -- a prescription screen whose autocomplete searched nothing -- because
+# that one-shot step predated the clinic and nothing ever converged on
+# the right state afterwards.
+#
+# So it is checked on every deploy instead. import-drugs.ts returns
+# immediately when the catalogue is already present, so a healthy clinic
+# costs one COUNT and a few seconds; an empty or half-imported one gets
+# filled in without anybody having to notice it was wrong.
+#
+# Deliberately AFTER the health checks. The clinic is already serving by
+# this point, so a slow download cannot delay the deploy and a failed one
+# cannot block it -- and neither must ever happen, because a working
+# deployment is worth more than a complete catalogue. A failure is
+# reported with the command to re-run it, and the deploy still succeeds.
+#
+# It also cannot destroy anything. The import refuses outright when a
+# pharmacy batch or an issued prescription points at a catalogue row,
+# because Drug -> DrugBatch cascades on delete and replacing the
+# catalogue would take the clinic's stock records with it.
+log "Checking medicine catalogues"
+for env_file in "${ENV_FILES[@]}"; do
+  slug="$(basename "$env_file" .env)"
+  [ "$slug" = "provider" ] && continue
+
+  if out="$(docker run --rm --env-file "$env_file" \
+              -w /app/apps/clinic-api \
+              "$TAG" npx tsx prisma/seed-data/import-drugs.ts 2>&1)"; then
+    # One line per clinic, so a deploy log stays readable: it either was
+    # already fine or it says what it filled in.
+    summary="$(printf '%s\n' "$out" | grep -E 'already holds|now holds' | tail -1)"
+    info "  $slug: ${summary:-catalogue ok}"
+  else
+    printf '%s\n' "$out" | redact | tail -5
+    info "  $slug: CATALOGUE NOT IMPORTED. The clinic works, but the"
+    info "    prescription autocomplete will find nothing. Re-run with:"
+    info "    docker run --rm --env-file $env_file -w /app/apps/clinic-api \\"
+    info "      \$(cat $IMAGE_FILE) npx tsx prisma/seed-data/import-drugs.ts"
+  fi
+done
+
+
+# ── 7. Reclaim disk ───────────────────────────────────────────────────
 # Old image layers accumulate fast and a full 25 GB disk fails in
 # confusing ways. The previous tag is kept so rollback still works.
 log "Pruning unused images"

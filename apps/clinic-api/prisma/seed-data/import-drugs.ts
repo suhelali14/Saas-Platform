@@ -41,7 +41,76 @@ interface CsvRow {
   short_composition2: string;
 }
 
+/**
+ * Two flags, deliberately not one.
+ *
+ * `DRUG_IMPORT_FORCE` means "re-import even though rows are already
+ * there", which is a reasonable thing to want and is not dangerous.
+ * `DRUG_IMPORT_DESTROY_REFERENCED` is the one that permits deleting
+ * catalogue rows a clinic's pharmacy batches point at, and it is named
+ * after what it does rather than after when you reach for it.
+ *
+ * Collapsing them into a single FORCE -- which the first version of this
+ * did -- recreates the bug it was added to fix: someone refreshing a
+ * catalogue sets the flag that sounds benign and loses stock records.
+ */
+const FORCE = process.env.DRUG_IMPORT_FORCE === "1";
+const DESTROY_REFERENCED = process.env.DRUG_IMPORT_DESTROY_REFERENCED === "1";
+
+/** Below this the catalogue counts as missing or half-imported, and is
+ *  worth (re)doing. The real figure is ~246,000. */
+const HEALTHY = 1000;
+
 async function main() {
+  // ── Already done? Then do nothing at all. ────────────────────────────
+  //
+  // This makes the import CONVERGENT, which is what lets the per-push
+  // deploy call it for every clinic on every deploy: a clinic that has
+  // its catalogue costs one COUNT and exits, and a clinic that somehow
+  // does not gets it without anyone noticing it was missing. The first
+  // live clinic ran for weeks with an empty Drug table precisely because
+  // this was a one-shot step at provisioning time that nothing ever
+  // re-checked.
+  const already = await prisma.drug.count({ where: { addedManually: false } });
+  if (already >= HEALTHY && !FORCE) {
+    console.log(`Catalogue already holds ${already} imported medicines. Nothing to do.`);
+    return;
+  }
+
+  // ── Refuse to destroy data the clinic is using. ──────────────────────
+  //
+  // The wipe below is `deleteMany({ addedManually: false })`, and Drug is
+  // the parent of two things that matter:
+  //
+  //   DrugBatch.drug        onDelete: Cascade  -- deleting a catalogue row
+  //     DELETES its stock batches. Quantities, batch numbers, expiry
+  //     dates: gone, with no record that they existed.
+  //   PrescriptionItem.drug onDelete: SetNull  -- breaks the link from a
+  //     prescription already issued back to what was prescribed.
+  //
+  // So on a clinic that has started using its pharmacy, re-running this
+  // is silent data loss -- and re-running it is exactly what anyone is
+  // told to do when the autocomplete finds nothing. The recovery for one
+  // problem was a cause of a worse one.
+  //
+  // Checked rather than assumed, because "no batches exist yet" was true
+  // when this script was written and is not a property that stays true.
+  const [batches, items] = await Promise.all([
+    prisma.drugBatch.count({ where: { drug: { addedManually: false } } }),
+    prisma.prescriptionItem.count({ where: { drug: { addedManually: false } } }),
+  ]);
+  if ((batches > 0 || items > 0) && !DESTROY_REFERENCED) {
+    throw new Error(
+      `Refusing to re-import: ${batches} pharmacy batch(es) and ${items} prescription ` +
+        `item(s) point at catalogue rows. Replacing the catalogue would delete those ` +
+        `batches outright (Drug -> DrugBatch cascades) and unlink those prescriptions. ` +
+        `The catalogue currently holds ${already} imported rows.
+` +
+        `If the catalogue really must be rebuilt, back up DrugBatch first and re-run ` +
+        `with DRUG_IMPORT_DESTROY_REFERENCED=1.`,
+    );
+  }
+
   console.log(`Downloading medicine dataset from ${CSV_URL} ...`);
   const response = await fetch(CSV_URL);
   if (!response.ok) throw new Error(`Download failed: ${response.status}`);
