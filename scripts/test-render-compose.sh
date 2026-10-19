@@ -59,11 +59,33 @@ d = yaml.safe_load(io.open(sys.argv[1], encoding='utf-8'))
 svc = d.get('services') or {}
 print('   parsed ok; services: %s' % ', '.join(sorted(svc)))
 problems = []
-expected = {'provider-api', 'clinic-acme', 'clinic-bright'}
-if set(svc) != expected:
-    problems.append('expected %s' % sorted(expected))
+apps  = {'provider-api', 'clinic-acme', 'clinic-bright'}
+# One session store per clinic. The provider console has none -- it holds
+# no patient data and nobody signs into it from a clinic.
+stores = {'redis-acme', 'redis-bright'}
+if set(svc) != apps | stores:
+    problems.append('expected %s' % sorted(apps | stores))
+
+nets = d.get('networks') or {}
 for name, c in svc.items():
-    if not c.get('image'):         problems.append('%s has no image' % name)
+    if not c.get('image'):  problems.append('%s has no image' % name)
+
+    joined = c.get('networks') or []
+    if not joined:
+        problems.append('%s is on no network -- it would share the default one with every clinic' % name)
+    for n in joined:
+        if n not in nets:
+            problems.append('%s joins %s, which is never declared' % (name, n))
+
+    if name.startswith('redis-'):
+        slug = name[len('redis-'):]
+        # A published port would put a clinic's live sessions on the host.
+        if c.get('ports'):
+            problems.append('%s publishes a port -- its sessions would be reachable off its network' % name)
+        if joined != ['net-%s' % slug]:
+            problems.append('%s should be on net-%s alone, got %s' % (name, slug, joined))
+        continue
+
     if not c.get('command'):       problems.append('%s has no command' % name)
     if not c.get('env_file'):      problems.append('%s has no env_file' % name)
     if not c.get('ports'):         problems.append('%s has no ports' % name)
@@ -74,6 +96,18 @@ for name, c in svc.items():
         problems.append('%s has no uploads volume -- patient files would die with the container' % name)
     lim = (c.get('deploy') or {}).get('resources', {}).get('limits', {}).get('memory')
     print('      %-16s port=%-18s mem=%s' % (name, c['ports'][0], lim or '(uncapped)'))
+
+# The boundary that makes one-store-per-clinic real rather than a naming
+# convention: no two clinics may share a network.
+for a in svc:
+    if not a.startswith('clinic-'):
+        continue
+    slug = a[len('clinic-'):]
+    mine = set(svc[a].get('networks') or [])
+    others = {n for other, c2 in svc.items() if other != a and not other.endswith(slug)
+              for n in (c2.get('networks') or [])}
+    if mine & others:
+        problems.append('%s shares a network with another clinic: %s' % (a, sorted(mine & others)))
 if problems:
     print('   PROBLEMS:'); [print('     - ' + p) for p in problems]; sys.exit(1)
 print('   shape ok')

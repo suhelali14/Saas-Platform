@@ -167,8 +167,25 @@ model ClinicUser {
   email        String     @unique
   passwordHash String
   name         String
+  /// What this person IS: their clinical job. Decides what they may do
+  /// to patient records, and nothing else.
   role         ClinicRole
+  /// What this person may ADMINISTER: staff, settings, the audit log, the
+  /// website. Separate from `role` because the two are genuinely
+  /// different questions and conflating them broke both ways -- a
+  /// practice manager made ADMIN could write prescriptions, and every
+  /// doctor the clinic hired silently got the audit log and the settings
+  /// screen, because DOCTOR was hardcoded as admin-equivalent.
+  ///
+  /// A clinic head who is also a doctor is `role: DOCTOR, isAdmin: true`.
+  /// A non-clinical practice manager is `role: RECEPTIONIST, isAdmin:
+  /// true`, and still cannot prescribe.
+  isAdmin      Boolean    @default(false)
   isActive     Boolean    @default(true)
+  /// Bumped to invalidate every session this user holds. See
+  /// lib/sessions.ts -- deactivating someone used to leave their token
+  /// working, with full patient access, until it expired.
+  tokenVersion Int        @default(0)
   // Per-doctor credentials (Phase 5) -- these belong to the individual
   // doctor, not the clinic, since a clinic can have several. They print on
   // that doctor's own prescriptions/certificates and show on the public

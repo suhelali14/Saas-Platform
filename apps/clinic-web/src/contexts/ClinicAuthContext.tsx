@@ -6,6 +6,11 @@ export interface ClinicStaffUser {
   email: string;
   name: string;
   role: 'DOCTOR' | 'RECEPTIONIST' | 'NURSE' | 'PHARMACIST' | 'ADMIN';
+  /** May administer staff, settings, the audit log and the website.
+   *  Independent of `role`: a clinic head who is also a doctor is
+   *  both, and a non-clinical practice manager is admin without any
+   *  clinical write access. */
+  isAdmin?: boolean;
 }
 
 interface MeResponse {
@@ -22,6 +27,7 @@ interface ClinicAuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   canWriteClinical: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -68,10 +74,17 @@ export function ClinicAuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const canWriteClinical = user?.role === 'DOCTOR' || user?.role === 'ADMIN';
+  // DOCTOR only. This used to include ADMIN, which meant a practice
+  // manager given admin rights saw clinical write controls -- and the
+  // server, which had the same rule, accepted them. Administering a
+  // clinic is not a clinical qualification.
+  const canWriteClinical = user?.role === 'DOCTOR';
+  // Hides the admin screens. The server enforces the same flag; this
+  // only keeps the nav honest.
+  const isAdmin = user?.isAdmin === true;
 
   return (
-    <ClinicAuthContext.Provider value={{ user, clinicName, enabledFeatures, isLoading, isAuthenticated: !!user, canWriteClinical, login, logout }}>
+    <ClinicAuthContext.Provider value={{ user, clinicName, enabledFeatures, isLoading, isAuthenticated: !!user, canWriteClinical, isAdmin, login, logout }}>
       {children}
     </ClinicAuthContext.Provider>
   );

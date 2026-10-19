@@ -139,6 +139,49 @@ for env_file in "${ENV_FILES[@]}"; do
 
   mkdir -p "$DATA_DIR/$slug/uploads"
 
+  # ── This clinic's session store ──────────────────────────────────
+  #
+  # One Redis per clinic, not one shared. The product's first principle
+  # is that a breach of any one thing must not expose every clinic --
+  # which is why each has its own database -- and every clinic's live
+  # sessions in a single store would undo that for the sake of a
+  # container.
+  #
+  # The network is what makes that real rather than a naming convention.
+  # All clinics share one compose file, so without it clinic A's API
+  # could reach clinic B's Redis by service name. Each pair gets a
+  # private bridge and joins nothing else.
+  #
+  # No published port: nothing outside this network can reach it, so it
+  # needs no password of its own on top.
+  #
+  # No persistence. Sessions are ephemeral by nature and a restart simply
+  # asks everyone to sign in again, which is a far better failure than a
+  # stale dump of live credentials surviving on disk.
+  if [ "$slug" != "provider" ]; then
+    cat >> "$OUT.tmp" <<REDIS
+  redis-$slug:
+    image: redis:7-alpine
+    container_name: redis-$slug
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "32mb", "--maxmemory-policy", "noeviction"]
+    networks:
+      - net-$slug
+    restart: unless-stopped
+    stop_grace_period: 5s
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "2m"
+        max-file: "2"
+
+REDIS
+  fi
+
   cat >> "$OUT.tmp" <<SERVICE
   $service:
     image: $IMAGE
@@ -152,6 +195,8 @@ for env_file in "${ENV_FILES[@]}"; do
     # these publicly would skip both that and its rate limits.
     ports:
       - "127.0.0.1:$port:$port"
+    networks:
+      - net-$slug
     volumes:
       # Patient scans and lab reports. The app resolves uploads against
       # its working directory (/app), so this mount is what makes them
@@ -182,6 +227,30 @@ LIMIT
   printf '\n' >> "$OUT.tmp"
   COUNT=$((COUNT + 1))
 done
+
+# ── Networks ────────────────────────────────────────────────────────
+#
+# One private bridge per clinic. Compose would otherwise put every
+# service on a single default network, where each clinic's API could
+# reach every other clinic's session store by name -- which would make
+# "one Redis per clinic" a naming convention rather than a boundary.
+#
+# Declared after the services because a compose file is read whole; the
+# order is for whoever opens it.
+{
+  echo ""
+  echo "networks:"
+  for env_file in "${ENV_FILES[@]}"; do
+    slug="$(basename "$env_file" .env)"
+    # Every service that was rendered needs its network declared,
+    # including the provider console -- it has no Redis, but it still
+    # joins a network, and a reference to one that is never declared
+    # makes compose reject the whole file.
+    [ -z "$(read_var "$env_file" PORT)" ] && continue
+    echo "  net-$slug:"
+    echo "    driver: bridge"
+  done
+} >> "$OUT.tmp"
 
 mv -f "$OUT.tmp" "$OUT"
 echo "Rendered $OUT: $COUNT service(s) on $IMAGE"

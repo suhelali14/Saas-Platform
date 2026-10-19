@@ -197,6 +197,15 @@ DATABASE_URL=$DB_URL
 # clinic must not be valid at another.
 JWT_SECRET=$JWT
 
+# This clinic's session store, reachable only from this clinic's own
+# docker network -- see render-compose.sh. Sessions are what make a
+# sign-in revocable, so deactivating a staff member cuts their access on
+# their next request instead of leaving it live until the token expires.
+#
+# The hostname is the service name compose gives it. Nothing outside
+# net-$SLUG can resolve or reach it, which is why it carries no password.
+REDIS_URL=redis://redis-$SLUG:6379
+
 CLINIC_PLAN=$PLAN
 CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN$EXTRA_ORIGINS
 ENVFILE

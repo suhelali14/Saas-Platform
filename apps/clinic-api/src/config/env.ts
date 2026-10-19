@@ -5,6 +5,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required -- see .env.example"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters -- see .env.example"),
+  // This clinic's own Redis, holding its live sessions. Required:
+  // without it there is no way to revoke access, and the default of a
+  // missing session store is silently going back to tokens nobody can
+  // cancel. render-compose.sh gives each clinic its own.
+  REDIS_URL: z.string().min(1, "REDIS_URL is required -- see .env.example"),
 
   // Gates which route modules this deployment registers at boot -- see
   // src/config/features.ts. One value per deployment, set once in .env.

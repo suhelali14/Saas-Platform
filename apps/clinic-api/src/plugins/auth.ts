@@ -1,6 +1,7 @@
 import fp from "fastify-plugin";
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { verifyClinicToken } from "../lib/jwt.js";
+import { readSession, touchSession } from "../lib/sessions.js";
 import { prisma } from "../lib/prisma.js";
 import { auditRequest } from "../lib/audit.js";
 
@@ -8,6 +9,11 @@ declare module "fastify" {
   interface FastifyRequest {
     clinicUserId: string | null;
     clinicUserRole: string | null;
+    /** May administer staff, settings, audit and the website. A flag, not
+     *  a role -- a clinic head who is also a doctor is both. */
+    clinicUserIsAdmin: boolean;
+    /** The Redis session this request arrived on. */
+    clinicSessionId: string | null;
     clinicUserName: string | null;
   }
 }
@@ -45,6 +51,8 @@ const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest("clinicUserId", null);
   app.decorateRequest("clinicUserRole", null);
   app.decorateRequest("clinicUserName", null);
+  app.decorateRequest("clinicUserIsAdmin", false);
+  app.decorateRequest("clinicSessionId", null);
 
   app.addHook("onRequest", async (request) => {
     const header = request.headers.authorization;
@@ -53,11 +61,39 @@ const authPlugin: FastifyPluginAsync = async (app) => {
 
     try {
       const payload = verifyClinicToken(token);
+
+      // A valid signature is not authorisation. The session must still
+      // exist, which is what makes revocation possible at all.
+      const session = await readSession(payload.sid);
+      if (!session || session.userId !== payload.clinicUserId) return;
+
+      // And the user must still be allowed in. Checked against the
+      // database rather than trusted from the session, because the
+      // question "is this person still employed here" has to be answered
+      // by the record, not by a copy made when they signed in.
+      const user = await prisma.clinicUser.findUnique({
+        where: { id: payload.clinicUserId },
+        select: { name: true, role: true, isAdmin: true, isActive: true, tokenVersion: true },
+      });
+      if (!user || !user.isActive) return;
+      if (user.tokenVersion !== session.tokenVersion) return;
+
       request.clinicUserId = payload.clinicUserId;
-      request.clinicUserRole = payload.role;
-      request.clinicUserName = await resolveUserName(payload.clinicUserId);
+      // From the user row, not the token: a role changed an hour ago must
+      // take effect now, not when the token expires.
+      request.clinicUserRole = user.role;
+      request.clinicUserIsAdmin = user.isAdmin;
+      request.clinicUserName = user.name;
+      request.clinicSessionId = payload.sid;
+
+      // Slide the expiry so an active shift is not signed out mid
+      // consultation at exactly twelve hours.
+      void touchSession(payload.sid, payload.clinicUserId);
     } catch {
-      // invalid/expired -- leave null, routes that require auth reject explicitly
+      // Invalid, expired, or Redis unreachable. Left null either way, and
+      // routes that require auth reject explicitly -- failing closed,
+      // because serving patient data to a token whose revocation status
+      // is unknown is the hole this exists to close.
     }
   });
 
@@ -74,6 +110,11 @@ export default fp(authPlugin);
 export interface ClinicAuthContext {
   clinicUserId: string;
   role: string;
+  /** May administer staff, settings, the audit log and the website.
+   *  Independent of `role` -- see the ClinicUser model. */
+  isAdmin: boolean;
+  /** The session this request arrived on, so a route can revoke it. */
+  sessionId: string | null;
 }
 
 export function requireClinicAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
@@ -81,10 +122,19 @@ export function requireClinicAuth(request: FastifyRequest, reply: FastifyReply):
     reply.status(401).send({ error: "Authentication required" });
     return null;
   }
-  return { clinicUserId: request.clinicUserId, role: request.clinicUserRole! };
+  return {
+    clinicUserId: request.clinicUserId,
+    role: request.clinicUserRole!,
+    isAdmin: request.clinicUserIsAdmin === true,
+    sessionId: request.clinicSessionId ?? null,
+  };
 }
 
-const CLINICAL_WRITE_ROLES = new Set(["DOCTOR", "ADMIN"]);
+// DOCTOR only. ADMIN used to be in here, which meant a practice
+// manager given admin rights could write case sheets and
+// prescriptions. Administering a clinic is not a clinical
+// qualification, and the software should not imply that it is.
+const CLINICAL_WRITE_ROLES = new Set(["DOCTOR"]);
 
 /** Case sheets, prescriptions, certificates -- only a doctor (or admin) writes clinical content. */
 export function requireClinicalWriteAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
@@ -98,10 +148,18 @@ export function requireClinicalWriteAuth(request: FastifyRequest, reply: Fastify
 }
 
 /** Staff management -- doctor/admin only. */
+/**
+ * May administer: staff, settings, the audit log, the website.
+ *
+ * Reads the flag rather than the role. It used to accept DOCTOR or ADMIN,
+ * so every doctor a clinic hired silently received the audit log -- which
+ * records who opened which patient's file -- along with settings and
+ * staff management.
+ */
 export function requireAdminAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
   const auth = requireClinicAuth(request, reply);
   if (!auth) return null;
-  if (auth.role !== "DOCTOR" && auth.role !== "ADMIN") {
+  if (!request.clinicUserIsAdmin) {
     reply.status(403).send({ error: "Admin access required" });
     return null;
   }

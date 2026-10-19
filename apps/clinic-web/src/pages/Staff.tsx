@@ -1,27 +1,57 @@
-import { useState, useEffect } from 'react';
-import { Plus, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Plus, ShieldCheck, LogOut, UserX, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Card, CardContent } from '../components/ui';
+import { SkeletonList } from '../components/Skeleton';
 import { apiFetch, ApiError } from '../lib/api';
+import { useToast } from '../components/Toast';
+import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { Pick } from '../components/Field';
 
+/**
+ * Who works here, and what each of them may do.
+ *
+ * ── Two questions, deliberately separate ────────────────────────────
+ *
+ * The job someone does decides what they may do to patient records. Who
+ * runs the clinic decides who may manage staff, settings and the audit
+ * log. They were one field, and it was wrong in both directions: an
+ * admin could write prescriptions, and every doctor hired received the
+ * audit log -- which records who opened which patient's file.
+ *
+ * So the clinic head who is also a doctor is a doctor with admin rights,
+ * a practice manager who is not clinical is reception with admin rights
+ * and still cannot prescribe, and an employed doctor is a doctor.
+ */
+
 interface StaffUser {
-  id: string; email: string; name: string; role: string; isActive: boolean; createdAt: string;
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  isAdmin: boolean;
+  isActive: boolean;
+  createdAt: string;
+  /** How many devices this person is currently signed in on. */
+  activeSessions: number;
 }
 
-const ROLES = ['DOCTOR', 'RECEPTIONIST', 'NURSE', 'PHARMACIST', 'ADMIN'];
+const ROLES = [
+  { id: 'DOCTOR', label: 'Doctor', hint: 'Writes case sheets, prescriptions and certificates.' },
+  { id: 'RECEPTIONIST', label: 'Reception', hint: 'Patients, bookings, billing. Records vitals.' },
+  { id: 'NURSE', label: 'Nurse', hint: 'Records vitals and lab results. No clinical writing.' },
+  { id: 'PHARMACIST', label: 'Pharmacist', hint: 'Dispenses prescriptions and manages stock.' },
+];
 
 export function Staff() {
-  const [staff, setStaff] = useState<StaffUser[]>([]);
+  const toast = useToast();
+  const { user: me } = useClinicAuth();
+  const [staff, setStaff] = useState<StaffUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTIONIST' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTIONIST', isAdmin: false });
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await apiFetch<{ data: StaffUser[] }>('/staff');
       setStaff(res.data);
@@ -29,80 +59,214 @@ export function Staff() {
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not load staff.');
     }
-  };
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
 
   const createStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreating(true);
-    setError(null);
     try {
       await apiFetch('/staff', { method: 'POST', data: form });
-      setForm({ name: '', email: '', password: '', role: 'RECEPTIONIST' });
+      setForm({ name: '', email: '', password: '', role: 'RECEPTIONIST', isAdmin: false });
       setShowNew(false);
+      toast.success(`${form.name} can now sign in.`);
       await load();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to add staff member.');
-    } finally {
-      setCreating(false);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not create the account.');
     }
   };
 
-  const toggleActive = async (member: StaffUser) => {
+  const update = async (u: StaffUser, patch: Partial<Pick2>, done: string) => {
     try {
-      await apiFetch(`/staff/${member.id}`, { method: 'PATCH', data: { isActive: !member.isActive } });
+      const res = await apiFetch<{ endedSessions: number }>(`/staff/${u.id}`, { method: 'PATCH', data: patch });
+      // Saying so matters: an admin removing someone needs to know the
+      // change reached the device they are worried about, not just the
+      // database.
+      const ended = res.endedSessions;
+      toast.success(
+        ended > 0 ? `${done} ${ended} sign-in${ended === 1 ? '' : 's'} ended.` : done,
+      );
       await load();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to update.');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not save that change.');
+    }
+  };
+
+  const signOutEverywhere = async (u: StaffUser) => {
+    try {
+      const res = await apiFetch<{ ended: number }>(`/staff/${u.id}/revoke-sessions`, { method: 'POST' });
+      toast.success(`${u.name} signed out of ${res.ended} device${res.ended === 1 ? '' : 's'}.`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not sign them out.');
     }
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-semibold tracking-tight">Staff</h1>
-        <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
-          <Plus size={14} /> Add Staff
-        </button>
+    <div className="max-w-[1600px] p-4 sm:p-6 md:p-8">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Staff</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            What someone does, and whether they help run the clinic, are separate.
+          </p>
+        </div>
+        <Button icon={<Plus size={14} />} onClick={() => setShowNew((v) => !v)}>
+          {showNew ? 'Cancel' : 'Add someone'}
+        </Button>
       </div>
-      <p className="text-sm text-muted-foreground mb-6">Staff accounts for this clinic.</p>
 
-      {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
-
-      {showNew && (
-        <form onSubmit={createStaff} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
-          <input placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
-          <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
-          <input type="password" placeholder="Temporary password (min 6 chars)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} className="px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
-          <Pick
-            value={form.role}
-            onChange={(role) => setForm({ ...form, role })}
-            options={ROLES.map((r) => ({ value: r, label: r }))}
-          />
-          <button type="submit" disabled={creating} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
-            {creating ? 'Adding...' : 'Add Staff Member'}
-          </button>
-        </form>
+      {error && (
+        <Card className="mb-4"><CardContent className="p-4 text-sm text-ink-danger">{error}</CardContent></Card>
       )}
 
-      <div className="flex flex-col gap-2">
-        {staff.map((m) => (
-          <div key={m.id} className="flex items-center justify-between p-3.5 rounded-xl border border-border/10 bg-foreground/[0.02]">
-            <div>
-              <div className="font-medium text-sm">{m.name} <span className="text-xs text-muted-foreground/70">· {m.role}</span></div>
-              <div className="text-xs text-muted-foreground/70">{m.email}</div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => toggleActive(m)} title={m.isActive ? 'Deactivate' : 'Activate'}>
-              {m.isActive ? <ToggleRight size={20} className="text-muted-foreground" /> : <ToggleLeft size={20} className="text-muted-foreground/70" />}
-              {m.isActive ? 'Active' : 'Inactive'}
-            </Button>
-          </div>
-        ))}
-        {staff.length === 0 && (
-          <p className="text-sm text-muted-foreground/60 py-8 text-center">
-            No staff accounts yet. Add one above to let reception or a nurse sign in.
-          </p>
-        )}
-      </div>
+      {showNew && (
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <form onSubmit={createStaff} className="flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Name">
+                  <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={INPUT} />
+                </Field>
+                <Field label="Email">
+                  <input required type="email" autoComplete="off" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={INPUT} />
+                </Field>
+                <Field label="Password" hint="At least 10 characters. They can change it after signing in.">
+                  <input required type="password" autoComplete="new-password" minLength={10} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={INPUT} />
+                </Field>
+              </div>
+
+              <Field label="What they do" hint="Decides what they may do to patient records.">
+                <div className="flex flex-wrap gap-1.5">
+                  {ROLES.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      title={r.hint}
+                      onClick={() => setForm({ ...form, role: r.id })}
+                      aria-pressed={form.role === r.id}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        form.role === r.id ? 'bg-primary text-primary-foreground' : 'bg-foreground/5 hover:bg-foreground/10'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
+              <label className="flex items-start gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={form.isAdmin}
+                  onChange={(e) => setForm({ ...form, isAdmin: e.target.checked })}
+                  className="mt-0.5 accent-primary"
+                />
+                <span>
+                  They also help run the clinic
+                  <span className="block text-[11px] leading-relaxed text-muted-foreground">
+                    Lets them manage staff, settings, the website and the audit log — which records
+                    who opened which patient&rsquo;s file. Give this only to people who run the
+                    practice. It does not let them write clinical records; that follows the job above.
+                  </span>
+                </span>
+              </label>
+
+              <Button type="submit" className="self-start">Create account</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {!staff ? (
+        <SkeletonList rows={3} label="Loading staff" />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {staff.map((u) => {
+            const isMe = u.id === me?.id;
+            return (
+              <li key={u.id}>
+                <Card variant={u.isActive ? 'panel' : 'subtle'}>
+                  <CardContent size="md" className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`font-medium ${!u.isActive && 'text-muted-foreground line-through'}`}>{u.name}</span>
+                        <span className="tone-neutral rounded-full px-2 py-0.5 text-[11px] font-medium">
+                          {ROLES.find((r) => r.id === u.role)?.label ?? u.role}
+                        </span>
+                        {u.isAdmin && (
+                          <span className="tone-violet flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                            <ShieldCheck size={10} aria-hidden /> Runs the clinic
+                          </span>
+                        )}
+                        {isMe && <span className="text-[11px] text-muted-foreground">(you)</span>}
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {u.email}
+                        {u.isActive && u.activeSessions > 0 && (
+                          <span> · signed in on {u.activeSessions} device{u.activeSessions === 1 ? '' : 's'}</span>
+                        )}
+                        {!u.isActive && <span> · cannot sign in</span>}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {u.isActive && u.activeSessions > 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<LogOut size={12} />}
+                          onClick={() => signOutEverywhere(u)}
+                        >
+                          Sign out everywhere
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<ShieldCheck size={12} />}
+                        onClick={() => update(u, { isAdmin: !u.isAdmin }, u.isAdmin ? `${u.name} no longer runs the clinic.` : `${u.name} can now run the clinic.`)}
+                      >
+                        {u.isAdmin ? 'Remove admin' : 'Make admin'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={u.isActive ? <UserX size={12} /> : <UserCheck size={12} />}
+                        onClick={() => update(u, { isActive: !u.isActive }, u.isActive ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)}
+                      >
+                        {u.isActive ? 'Deactivate' : 'Reactivate'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="mt-4 max-w-prose text-[11px] leading-relaxed text-muted-foreground">
+        Deactivating someone, or changing their job or admin rights, signs them out of every
+        device immediately. It used to leave them working with full access to patient records
+        until their session expired on its own.
+      </p>
     </div>
+  );
+}
+
+type Pick2 = { isActive: boolean; isAdmin: boolean; role: string; name: string };
+
+const INPUT =
+  'w-full rounded-lg border border-border/10 bg-foreground/5 px-3 py-2 text-sm outline-none ' +
+  'transition-colors focus-visible:border-primary';
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+      {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/70">{hint}</span>}
+    </label>
   );
 }

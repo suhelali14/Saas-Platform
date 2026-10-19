@@ -24,7 +24,10 @@ const ROLE_COLORS: Record<string, string> = {
 
 const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
-const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
+// Admin screens are gated on the isAdmin FLAG now, not on being a doctor.
+// This set used to include DOCTOR, so every doctor a clinic hired saw the
+// audit log -- which records who opened which patient's file -- along with
+// settings and the website builder.
 const FRONT_DESK_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
 const REMINDER_POLL_MS = 60_000;
 
@@ -42,7 +45,7 @@ const REMINDER_POLL_MS = 60_000;
  * which is about the smallest a fingertip hits reliably one-handed.
  */
 export function Layout() {
-  const { user, clinicName, enabledFeatures, logout } = useClinicAuth();
+  const { user, clinicName, enabledFeatures, isAdmin, logout } = useClinicAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,8 +110,8 @@ export function Layout() {
       {user && BILLING_ROLES.has(user.role) && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
       {user && PHARMACY_ROLES.has(user.role) && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
       <NavItem to="/labs" icon={FlaskConical} label="Labs" />
-      {user && ADMIN_ROLES.has(user.role) && <NavItem to="/website" icon={LayoutTemplate} label="Website" />}
-      {user && ADMIN_ROLES.has(user.role) && <NavItem to="/audit" icon={ShieldCheck} label="Audit Log" />}
+      {isAdmin && <NavItem to="/website" icon={LayoutTemplate} label="Website" />}
+      {isAdmin && <NavItem to="/audit" icon={ShieldCheck} label="Audit Log" />}
       <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
       {enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
 

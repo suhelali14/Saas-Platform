@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { verifyPassword } from "../lib/password.js";
 import { signClinicToken } from "../lib/jwt.js";
+import { createSession, listSessions, newSessionId, revokeSession } from "../lib/sessions.js";
 import { requireClinicAuth } from "../plugins/auth.js";
 import { auditAuth } from "../lib/audit.js";
 import { isFeatureEnabled } from "../config/features.js";
@@ -49,11 +50,69 @@ export async function clinicAuthRoutes(app: FastifyInstance) {
     if (!valid) return invalid(user.id, user.role);
 
     auditAuth(request, "LOGIN", { id: user.id, name: user.name, role: user.role });
-    const token = signClinicToken(user.id, user.role);
+
+    // The session is the thing that can be cancelled; the token only
+    // points at it. Created before the token is signed, so a Redis
+    // failure means no sign-in rather than a token with nothing behind
+    // it -- which would be a credential nobody could revoke.
+    const sid = newSessionId();
+    try {
+      await createSession(sid, {
+        userId: user.id,
+        role: user.role,
+        isAdmin: user.isAdmin,
+        tokenVersion: user.tokenVersion,
+        createdAt: new Date().toISOString(),
+        userAgent: (request.headers["user-agent"] ?? "").slice(0, 120) || undefined,
+      });
+    } catch {
+      return reply.status(503).send({
+        error: "Sign-in is temporarily unavailable. Please try again in a moment.",
+      });
+    }
+
+    const token = signClinicToken(user.id, user.role, sid);
     return {
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: {
+        id: user.id, email: user.email, name: user.name,
+        role: user.role, isAdmin: user.isAdmin,
+      },
     };
+  });
+
+  // ── Signing out, for real ────────────────────────────────────────────
+  //
+  // There was no logout endpoint at all: the browser dropped its copy of
+  // the token and the token itself stayed valid for up to twelve hours.
+  // On a shared front-desk machine that is not signing out.
+  app.post("/api/clinic/auth/logout", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+    if (auth.sessionId) await revokeSession(auth.sessionId, auth.clinicUserId);
+    return { ok: true };
+  });
+
+  // Where this account is signed in, and a way to end any of them. Shown
+  // to the person themselves -- an admin ends other people's sessions by
+  // deactivating them or changing their role, both of which revoke.
+  app.get("/api/clinic/auth/sessions", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+    return { sessions: await listSessions(auth.clinicUserId, auth.sessionId ?? undefined) };
+  });
+
+  app.post("/api/clinic/auth/sessions/revoke-others", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+    const all = await listSessions(auth.clinicUserId, auth.sessionId ?? undefined);
+    let ended = 0;
+    for (const sess of all) {
+      if (sess.current) continue;
+      await revokeSession(sess.sid, auth.clinicUserId);
+      ended += 1;
+    }
+    return { ended };
   });
 
   app.get("/api/clinic/auth/me", async (request, reply) => {
@@ -62,7 +121,7 @@ export async function clinicAuthRoutes(app: FastifyInstance) {
 
     const user = await prisma.clinicUser.findUnique({
       where: { id: auth.clinicUserId },
-      select: { id: true, email: true, name: true, role: true },
+      select: { id: true, email: true, name: true, role: true, isAdmin: true },
     });
     if (!user) return reply.status(404).send({ error: "Not found" });
 
