@@ -52,6 +52,7 @@ ever reads them.
 | `VERCEL_ORG_ID` | `apps/clinic-web/.vercel/project.json` after `vercel link` |
 | `VERCEL_PROJECT_ID_CLINIC_WEB` | same file |
 | `VERCEL_PROJECT_ID_PROVIDER_CONSOLE` | `apps/provider-console/.vercel/project.json` |
+| `VERCEL_PROJECT_ID_NAYAVERSE_WEB` | `apps/nayaverse-web/.vercel/project.json` |
 
 ### How to obtain each one
 
@@ -75,6 +76,51 @@ cd ../provider-console
 npx vercel link          # Name: provider-console
 cat .vercel/project.json
 #                              ↑ VERCEL_PROJECT_ID_PROVIDER_CONSOLE
+
+cd ../nayaverse-web
+npx vercel link          # Name: nayaverse-web
+cat .vercel/project.json
+#                              ↑ VERCEL_PROJECT_ID_NAYAVERSE_WEB
+```
+
+Delete each `.vercel/` directory afterwards if you like; it is local state,
+it is gitignored, and the workflow does not read it. Do **not** connect any
+of these projects to Git in the Vercel dashboard: deploys go through GitHub
+Actions so that CI has to pass first, and a Git connection would deploy
+pushes that never got that far.
+
+#### The domain move nayaverse-web needs
+
+`www.nayaverse.in` and the apex are attached to the **clinic-web** project,
+which is why the company site currently shows clinic-web's "each clinic has
+its own address" fallback. The secret alone does not change that.
+
+In the Vercel dashboard:
+
+1. **clinic-web → Settings → Domains** — remove `www.nayaverse.in` and
+   `nayaverse.in`. Leave every wildcard and every clinic hostname alone:
+   `*.nayaverse.in` and `*.portal.nayaverse.in` are the clinics and must stay
+   on clinic-web.
+2. **nayaverse-web → Settings → Domains** — add `www.nayaverse.in`, then add
+   `nayaverse.in` and set it to redirect to `www`.
+
+The explicit hostname has to be added to nayaverse-web, not merely removed
+from clinic-web: with `*.nayaverse.in` still on clinic-web, a www that is not
+claimed anywhere falls back through the wildcard and keeps serving the
+clinic bundle. An exact domain on one project beats another project's
+wildcard; an absent one does not.
+
+Then re-run **Actions → Deploy static apps → Run workflow**, app
+`nayaverse-web`, and check it took:
+
+```bash
+curl -s https://www.nayaverse.in/ | grep -o '<title>[^<]*</title>'
+# want: Nayaverse - One system for how your business runs
+# not:  Clinic Portal
+
+curl -s -o /dev/null -w '%{http_code}\n' https://www.nayaverse.in/mr
+curl -s -o /dev/null -w '%{http_code}\n' https://vadgaonkar.nayaverse.in/
+# the second one must still be 200 -- that is the live clinic
 ```
 
 `orgId` is the same in both files — it is your account, so you only need
