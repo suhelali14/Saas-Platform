@@ -216,11 +216,15 @@ jobs:
           PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
           PROVIDER_API_URL: ${{ vars.PROVIDER_API_URL }}
         run: |
-          # The two apps get their API address in different ways, so a
-          # correct bundle looks different for each.
+          # Each app gets its API address a different way, so a correct
+          # bundle looks different for each. An explicit arm per app, and a
+          # default that fails: the previous version was an `else` holding
+          # clinic-web's rules, so adding a third app silently enrolled it
+          # in them and reported the failure under clinic-web's name.
           fail=0
 
-          if [ "${{ matrix.app }}" = "provider-console" ]; then
+          case "${{ matrix.app }}" in
+          provider-console)
             # Build-time: VITE_API_URL is compiled in. A localhost URL
             # here means it was empty and the code fell back to its dev
             # default -- which in a browser is ERR_CONNECTION_REFUSED,
@@ -235,7 +239,9 @@ jobs:
               echo "::error::provider-console does not contain $PROVIDER_API_URL."
               fail=1
             fi
-          else
+            ;;
+
+          clinic-web)
             # Runtime: clinic-web reads its own hostname and asks the
             # tenant directory which clinic's API to call, so one bundle
             # serves every clinic. VITE_API_URL is empty on purpose and
@@ -257,7 +263,33 @@ jobs:
               echo "::error::PLATFORM_DOMAIN or PROVIDER_API_URL is unset. clinic-web cannot resolve clinics without them."
               fail=1
             fi
-          fi
+            ;;
+
+          nayaverse-web)
+            # Nayaverse's own site talks to no API at all: every page is
+            # prerendered and the only outbound link a visitor follows is a
+            # wa.me URL composed in the browser. So the check is the
+            # opposite one -- nothing that looks like an API base, and
+            # certainly no dev host, should have reached the bundle.
+            if grep -rqE 'localhost:[0-9]+|127\.0\.0\.1' dist/assets/ 2>/dev/null; then
+              echo "::error::nayaverse-web shipped a localhost URL."
+              grep -roE 'localhost:[0-9]+|127\.0\.0\.1' dist/assets/ | sort -u | sed 's/^/  /'
+              fail=1
+            fi
+            if [ -n "$PROVIDER_API_URL" ] && grep -rqF "$PROVIDER_API_URL" dist/assets/ 2>/dev/null; then
+              echo "::error::nayaverse-web contains the provider API URL. It is a static site and should call nothing."
+              fail=1
+            fi
+            ;;
+
+          *)
+            echo "::error::No configuration check defined for ${{ matrix.app }}."
+            echo "::error::Add an arm to this case saying what a correct bundle looks like for it."
+            echo "::error::Do not let it inherit another app's rules -- that is how a marketing"
+            echo "::error::site ended up being required to contain a clinic API URL."
+            fail=1
+            ;;
+          esac
 
           # The bundle is not the only thing shipped now. clinic-web's SEO
           # functions read a generated module, and if it was built without
