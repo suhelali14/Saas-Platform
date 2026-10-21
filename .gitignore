@@ -3,6 +3,9 @@ node_modules/
 
 # Build outputs
 dist/
+# nayaverse-web builds a server bundle to prerender its routes; it is an
+# intermediate, not an artifact.
+dist-ssr/
 build/
 .next/
 .turbo/

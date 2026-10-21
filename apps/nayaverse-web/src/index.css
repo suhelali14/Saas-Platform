@@ -1,0 +1,873 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===========================================================================
+   Nayaverse — the company's own site.
+
+   The world: a chart board on the side of a coach. A matte painted
+   destination board, and beneath it laminated chart panels in steel frames,
+   ruled in faded red ink and stamped. The audience reads one of these
+   fluently already; a clinic queue is a list of named people in order where a
+   declared priority outranks the order they arrived in, which is what this
+   kind of print has always been for.
+
+   Two rules this file exists to hold:
+
+   1. Reading happens on the cream panels. The steel is the frame around them
+      and the void between them, never a reading surface. That is why there is
+      no dark mode here -- there is nothing to invert.
+   2. Rules are hairlines and figures are tabular. This world is one notch of
+      craft away from looking like a bad government form, and the notch is
+      entirely in rule weight, figure alignment and panel padding.
+   ========================================================================= */
+
+@layer base {
+  :root {
+    /* --- the ground and the frame ------------------------------------- */
+    --steel: #161b20;
+    --steel-deep: #0d1115;
+    --steel-line: #313c45;
+    --steel-rivet: #55626c;
+
+    /* --- the painted board -------------------------------------------- */
+    --board: #0a0c0d;
+    --board-ink: #f6f2e9;
+    --board-ink-soft: #a7b0b6;
+
+    /* --- the chart paper ---------------------------------------------- */
+    --chart: #f3ede1;
+    --chart-band: #e5dac4;
+    --chart-edge: #d6c9b0;
+
+    /* --- ruling ink and writing ink ----------------------------------- */
+    --rule: #a85f44;
+    --rule-soft: #cfa894;
+    --ink: #1a1917;
+    --ink-soft: #4b4740;
+    --ink-faint: #6b6459;
+
+    /* --- stamps and lamps --------------------------------------------- */
+    /* Ground colours and ink colours are kept apart: a fill that white type
+       sits on cannot also be legible type on cream. Where both are needed the
+       pair is named. */
+    --confirmed: #1a6340;
+    --waiting: #845608;
+    --priority: #a81f18;
+    --stamp: #453585;
+    --lamp: #eba63f;
+
+    /* --- motion -------------------------------------------------------
+       Exponential ease-out from an already-visible default. The one authored
+       moment on this site is the chart re-ranking itself; everything else is
+       a material behaviour -- a rule ruling itself in, a stamp pressing, a
+       cell flipping -- and never a section sliding up and fading in. */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-press: cubic-bezier(0.3, 1.5, 0.6, 1);
+    --dur-cell: 90ms;
+    --dur: 320ms;
+    --dur-slow: 900ms;
+
+    --frame-shadow: 0 2px 4px rgb(0 0 0 / 0.4), 0 14px 34px -10px rgb(0 0 0 / 0.55);
+
+    color-scheme: dark;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-cell: 0ms;
+      --dur: 0ms;
+      --dur-slow: 0ms;
+    }
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* The sticky rail must not cover the heading of a section jumped to. */
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  body {
+    background-color: var(--steel-deep);
+    color: var(--board-ink);
+    font-family: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* The ribbed cladding of the coach. Two near-invisible gradients: a wide
+     vertical rib and a single warm wash from the top, so the ground is not a
+     flat fill. Kept under 3% contrast -- it is a material, not a pattern. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0.016) 0 1px,
+        transparent 1px 7px
+      ),
+      radial-gradient(120% 70% at 50% -10%, rgb(120 150 170 / 0.09), transparent 60%);
+  }
+
+  /* --- browser surfaces -------------------------------------------------
+     The parts not drawn here still carry the design. Each of these ships
+     with a default that belongs to no design system. */
+
+  ::selection {
+    background-color: var(--lamp);
+    color: var(--ink);
+  }
+
+  :root {
+    accent-color: var(--lamp);
+    caret-color: var(--lamp);
+  }
+
+  .on-chart ::selection {
+    background-color: #f7d9a0;
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--lamp);
+    outline-offset: 3px;
+    border-radius: 1px;
+  }
+
+  .on-chart :focus-visible {
+    outline-color: var(--stamp);
+  }
+
+  a {
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* Every figure in this world sits in a column that has to line up. */
+  .font-mono,
+  code,
+  th,
+  td,
+  time,
+  [data-figures] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--steel-rivet) var(--steel-deep);
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--steel-deep);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--steel-line);
+    border: 2px solid var(--steel-deep);
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--steel-rivet);
+  }
+  ::-webkit-scrollbar-corner {
+    background: var(--steel-deep);
+  }
+}
+
+@layer components {
+  /* ======================================================================
+     TYPE VOICES
+     ==================================================================== */
+
+  /* Painted board lettering: condensed, caps, tight. Used for the destination
+     board and every panel heading. Never for prose. */
+  .t-board {
+    font-family: 'Barlow Condensed', 'Khand', 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--board-tracking, -0.012em);
+    line-height: var(--board-leading, 0.88);
+  }
+
+  .t-display {
+    font-size: clamp(3.1rem, 11.5vw, 7.5rem);
+  }
+
+  .t-heading {
+    font-size: clamp(1.85rem, 4.4vw, 3rem);
+    letter-spacing: -0.008em;
+    line-height: 0.95;
+  }
+
+  /* The data voice: stencilled small caps for column heads and labels. This
+     is measurement, not a costume for "technical". */
+  .t-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .t-row {
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: -0.005em;
+  }
+
+  /* ----------------------------------------------------------------------
+     Devanagari.
+
+     The script carries matras above the shirorekha and below the baseline, so
+     the Latin leading crushes it; it sets wider and taller at the same point
+     size, so the display scale has to come down; and letter-spacing pulls a
+     conjunct apart and breaks the shirorekha, which is the line along the top
+     that makes the script scannable at all.
+     -------------------------------------------------------------------- */
+  :root:lang(hi),
+  :root:lang(mr) {
+    --board-leading: 1.1;
+    --board-tracking: 0;
+  }
+
+  :lang(hi) .t-display,
+  :lang(mr) .t-display {
+    font-size: clamp(2.3rem, 8vw, 5.1rem);
+  }
+
+  :lang(hi) .t-heading,
+  :lang(mr) .t-heading {
+    font-size: clamp(1.6rem, 3.8vw, 2.5rem);
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  /* A label in Devanagari is neither uppercase (the script has no case) nor
+     letterspaced, and the tracking is what actually does damage. */
+  :lang(hi) .t-label,
+  :lang(mr) .t-label {
+    letter-spacing: 0.01em;
+    font-size: 0.75rem;
+  }
+
+  :lang(hi) .t-row,
+  :lang(mr) .t-row {
+    letter-spacing: 0;
+  }
+
+  :lang(hi) .cell,
+  :lang(mr) .cell,
+  :lang(hi) .quota,
+  :lang(mr) .quota,
+  :lang(hi) .stamp,
+  :lang(mr) .stamp {
+    letter-spacing: 0.01em;
+  }
+
+  /* The status column holds a longer word in both scripts. */
+  :lang(hi) .cell-wide,
+  :lang(mr) .cell-wide {
+    min-width: 7ch;
+  }
+
+  /* The plate's label is a word, not a Latin small-cap run. */
+  :lang(hi) .plate,
+  :lang(mr) .plate,
+  :lang(hi) .engraved,
+  :lang(mr) .engraved {
+    letter-spacing: 0;
+    line-height: 1.3;
+  }
+
+  .t-lede {
+    font-size: clamp(1rem, 1.35vw, 1.1875rem);
+    line-height: 1.62;
+    max-width: 62ch;
+  }
+
+  .t-prose {
+    max-width: 68ch;
+    line-height: 1.68;
+  }
+
+  /* ======================================================================
+     THE FRAME — a laminated panel in a steel surround
+     ==================================================================== */
+
+  .panel {
+    position: relative;
+    background-color: var(--chart);
+    color: var(--ink);
+    border: 1px solid var(--chart-edge);
+    outline: 1px solid var(--steel-line);
+    outline-offset: 4px;
+    box-shadow: var(--frame-shadow);
+  }
+
+  /* The lamination: a cool sheen across the top-left, and a darkened bottom
+     edge where the sheet lifts away from the frame.
+     Kept faint on purpose. At 0.5 the sheen washed the punched holes from
+     near-black to mid-grey and lifted the whole top-left of every panel --
+     a lamination catches the light, it does not bleach the paper. */
+  .panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      148deg,
+      rgb(255 255 255 / 0.12) 0%,
+      rgb(255 255 255 / 0) 30%,
+      rgb(0 0 0 / 0) 70%,
+      rgb(90 70 40 / 0.05) 100%
+    );
+  }
+
+  .panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Holes punched down the binding edge. Real punched paper: a dark hole with
+     the paper's own thickness catching light on the lower lip. */
+  .punched {
+    padding-left: 2.1rem;
+  }
+
+  .punched::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2.1rem;
+    border-right: 1px dashed color-mix(in srgb, var(--rule) 24%, transparent);
+    background-image: radial-gradient(
+      circle at 1.05rem 0.62rem,
+      var(--steel-deep) 0 0.3rem,
+      color-mix(in srgb, #ffffff 65%, var(--chart)) 0.3rem 0.38rem,
+      transparent 0.38rem
+    );
+    background-size: 100% 2.35rem;
+    background-repeat: repeat-y;
+  }
+
+  @media (max-width: 719px) {
+    .punched { padding-left: 1.35rem; }
+    .punched::before {
+      width: 1.35rem;
+      background-image: radial-gradient(
+        circle at 0.675rem 0.52rem,
+        var(--steel-deep) 0 0.21rem,
+        color-mix(in srgb, #ffffff 65%, var(--chart)) 0.21rem 0.27rem,
+        transparent 0.27rem
+      );
+      background-size: 100% 1.9rem;
+    }
+  }
+
+  /* The metadata strip across the top of a panel: what chart this is, the
+     date, the clock. Functional chrome carrying data -- the panel's heading
+     lives inside the panel, not up here. */
+  .band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.1rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--chart-band);
+    border-bottom: 1px solid color-mix(in srgb, var(--rule) 30%, transparent);
+    color: var(--ink-soft);
+  }
+
+  /* ======================================================================
+     THE PAINTED BOARD
+     ==================================================================== */
+
+  .board {
+    position: relative;
+    background-color: var(--board);
+    color: var(--board-ink);
+    border: 1px solid #22282c;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      var(--frame-shadow);
+  }
+
+  /* Enamel over steel is never perfectly flat: a faint brushed grain and a
+     top-lit falloff keep it from reading as a black rectangle. */
+  .board::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgb(255 255 255 / 0.022) 0 1px,
+        transparent 1px 4px
+      ),
+      radial-gradient(90% 120% at 22% 0%, rgb(190 215 235 / 0.07), transparent 65%);
+  }
+
+  .board > * {
+    position: relative;
+  }
+
+  /* The bolts that hold the board to the cladding. Four, where they would
+     actually be. */
+  .bolt {
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--steel-rivet), #1c2226 70%);
+    box-shadow: 0 1px 1px rgb(0 0 0 / 0.6);
+  }
+
+  /* ======================================================================
+     RULES — the whole world lives or dies on these
+     ==================================================================== */
+
+  .rule-row {
+    border-bottom: 1px solid color-mix(in srgb, var(--rule) 20%, transparent);
+  }
+
+  .rule-head {
+    border-bottom: 1.5px solid color-mix(in srgb, var(--rule) 52%, transparent);
+  }
+
+  /* A total is double-ruled, as it is in any ledger. */
+  .rule-total {
+    border-top: 1px solid color-mix(in srgb, var(--rule) 55%, transparent);
+    box-shadow: 0 3px 0 -2px color-mix(in srgb, var(--rule) 55%, transparent);
+  }
+
+  .rule-v {
+    border-left: 1px solid color-mix(in srgb, var(--rule) 15%, transparent);
+  }
+
+  /* ======================================================================
+     STAMPS
+     ==================================================================== */
+
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.22rem 0.5rem;
+    border: 1.5px solid currentColor;
+    outline: 1px solid currentColor;
+    outline-offset: 1.5px;
+    color: var(--stamp);
+    mix-blend-mode: multiply;
+    opacity: 0.82;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .stamp-rotate {
+    transform: rotate(-3.5deg);
+  }
+
+  .stamp-pressed {
+    animation: press var(--dur) var(--ease-press) both;
+  }
+
+  @keyframes press {
+    from {
+      transform: rotate(-3.5deg) scale(1.22);
+      opacity: 0;
+      filter: blur(2px);
+    }
+    to {
+      transform: rotate(-3.5deg) scale(1);
+      opacity: 0.82;
+      filter: blur(0);
+    }
+  }
+
+  /* ======================================================================
+     STATUS — a fixed cell grid. A state change restyles the row without
+     ever changing its geometry.
+     ==================================================================== */
+
+  .cell {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.42rem;
+    border: 1px solid currentColor;
+    min-width: 7.1ch;
+    text-align: center;
+  }
+
+  /* "Waitlist" is longer than "Live", and a status column whose cells change
+     width row to row stops being a column. */
+  .cell-wide {
+    min-width: 9.6ch;
+  }
+
+  .cell-serving {
+    color: var(--confirmed);
+    background-color: color-mix(in srgb, var(--confirmed) 12%, transparent);
+  }
+  .cell-next {
+    color: var(--stamp);
+    background-color: color-mix(in srgb, var(--stamp) 10%, transparent);
+  }
+  .cell-waiting {
+    color: var(--waiting);
+    background-color: color-mix(in srgb, var(--waiting) 11%, transparent);
+  }
+  .cell-done {
+    color: var(--ink-faint);
+    border-style: dashed;
+  }
+
+  /* The character cascade. A cell whose text has changed squashes through
+     zero height and comes back, the way a flap turns over. */
+  .cell-flip {
+    animation: flip var(--dur-cell) steps(3, end) both;
+  }
+
+  @keyframes flip {
+    0% { transform: scaleY(1); }
+    50% { transform: scaleY(0.05); }
+    100% { transform: scaleY(1); }
+  }
+
+  /* The priority marker: the quota column. Only an exception is marked --
+     "general" is the norm and carries no weight at all. */
+  .quota {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--priority);
+  }
+
+  .quota::before {
+    content: '';
+    display: inline-block;
+    width: 0.3rem;
+    height: 0.72rem;
+    margin-right: 0.4rem;
+    vertical-align: -0.08rem;
+    background-color: currentColor;
+  }
+
+  /* One marker outranks the others. Marking every exception the same red says
+     "this row has a quota"; it does not say which one is an emergency, and on
+     a chart whose whole point is that one of them jumps the queue, that is
+     the distinction worth drawing. */
+  .quota-urgent {
+    color: var(--chart);
+    background-color: var(--priority);
+    padding: 0.14rem 0.42rem 0.14rem 0.3rem;
+  }
+
+  .quota-urgent::before {
+    background-color: var(--chart);
+    opacity: 0.85;
+  }
+
+  /* A printed notice on the chart: ruled all the way round and tinted from its
+     own hue. Not a heavy coloured edge down one side -- that is a convention
+     from somebody else's design system and it is not in this world. */
+  .notice {
+    border: 1px solid color-mix(in srgb, var(--tone) 42%, transparent);
+    background-color: color-mix(in srgb, var(--tone) 9%, transparent);
+    color: var(--ink);
+  }
+
+  .notice-live {
+    --tone: var(--confirmed);
+  }
+
+  .notice-building {
+    --tone: var(--waiting);
+  }
+
+  /* The lamp over the row being served. A real light source, so it is
+     allowed to glow; it is not a halo standing in for depth. */
+  .lamp {
+    position: relative;
+    display: inline-block;
+    width: 0.44rem;
+    height: 0.44rem;
+    border-radius: 50%;
+    background-color: var(--lamp);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--lamp) 40%, transparent),
+      0 0 9px 1px color-mix(in srgb, var(--lamp) 55%, transparent);
+    animation: lamp 2.4s ease-in-out infinite;
+  }
+
+  @keyframes lamp {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lamp { animation: none; }
+  }
+
+  /* ======================================================================
+     A ROW
+     ==================================================================== */
+
+  .chart-row {
+    display: grid;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    transition: background-color var(--dur) var(--ease);
+  }
+
+  .chart-row:hover {
+    background-color: color-mix(in srgb, var(--rule) 7%, transparent);
+  }
+
+  .chart-row[aria-expanded='true'] {
+    background-color: color-mix(in srgb, var(--stamp) 7%, transparent);
+  }
+
+  /* A row that has just been inserted by the triage sort. The rule above it
+     draws itself in rather than the row fading up from nowhere. */
+  .row-arrived {
+    animation: arrive var(--dur-slow) var(--ease) both;
+  }
+
+  @keyframes arrive {
+    from {
+      background-color: color-mix(in srgb, var(--priority) 26%, transparent);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  /* A hairline that rules itself in, left to right. */
+  .rule-draw {
+    transform-origin: left center;
+    animation: draw var(--dur-slow) var(--ease) both;
+  }
+
+  @keyframes draw {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  /* ======================================================================
+     DISCLOSURE — native <details>, so the answers are in the document
+     ==================================================================== */
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary:hover {
+    color: var(--stamp);
+  }
+
+  /* The caret turns from CSS rather than from state, so it is still correct
+     with the script turned off. */
+  .caret-auto {
+    transition: transform var(--dur) var(--ease);
+  }
+
+  details[open] > summary .caret-auto {
+    transform: rotate(90deg);
+  }
+
+  /* ======================================================================
+     ACTIONS
+     ==================================================================== */
+
+  /* The primary action is a plate screwed to the board: lit enamel, square,
+     with the bolt shadow under it. */
+  .plate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.8rem 1.4rem;
+    background-color: var(--lamp);
+    color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--lamp) 70%, #000000);
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.3) inset, 0 2px 5px rgb(0 0 0 / 0.45);
+    transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+
+  .plate:hover {
+    background-color: color-mix(in srgb, var(--lamp) 86%, #ffffff);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.35) inset, 0 4px 11px rgb(0 0 0 / 0.5);
+  }
+
+  .plate:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.2) inset, 0 1px 3px rgb(0 0 0 / 0.5);
+  }
+
+  .plate:disabled {
+    background-color: var(--steel-line);
+    color: var(--board-ink-soft);
+    border-color: var(--steel-line);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* The secondary action is engraved rather than lit: the label with a ruled
+     underline that thickens on hover. */
+  .engraved {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.8rem 0.2rem;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--board-ink);
+    border-bottom: 1px solid color-mix(in srgb, var(--board-ink) 40%, transparent);
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+
+  .engraved:hover {
+    border-bottom-color: var(--lamp);
+    color: var(--lamp);
+  }
+
+  /* A nav label on the rail: a small painted plate. */
+  .rail-link {
+    padding: 0.35rem 0.6rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--board-ink-soft);
+    border: 1px solid transparent;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+
+  .rail-link:hover {
+    color: var(--board-ink);
+    border-color: var(--steel-line);
+  }
+
+  /* ======================================================================
+     FORM CONTROLS — printed fields on the chart
+     ==================================================================== */
+
+  .field {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    background-color: color-mix(in srgb, #ffffff 55%, var(--chart));
+    color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--rule) 34%, transparent);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    /* 16px exactly on touch, below which iOS Safari zooms the viewport and
+       leaves it zoomed. The threshold, not a size chosen for looks. */
+    font-size: 0.875rem;
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+
+  @media (pointer: coarse) {
+    .field { font-size: 1rem; }
+  }
+
+  .field::placeholder {
+    color: var(--ink-faint);
+  }
+
+  .field:hover {
+    border-color: color-mix(in srgb, var(--rule) 55%, transparent);
+  }
+
+  .field:focus {
+    outline: none;
+    border-color: var(--stamp);
+    box-shadow: inset 0 0 0 1px var(--stamp);
+  }
+
+  /* A native option is drawn by the OS with the system palette and inherits
+     nothing from its select. Both are set, or half the menu is unreadable. */
+  select.field option {
+    background-color: var(--chart);
+    color: var(--ink);
+  }
+
+  /* ======================================================================
+     LAYOUT
+     ==================================================================== */
+
+  .frame {
+    width: 100%;
+    max-width: 78rem;
+    margin-inline: auto;
+    /* 16px gutter at phone width, never less. */
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 720px) {
+    .frame { padding-inline: 2rem; }
+  }
+
+  /* The destination board is wider than every panel beneath it. On a coach the
+     board overhangs what it labels, and it is also the one place this layout
+     breaks its own grid -- deliberately, where it costs no legibility. */
+  .frame-wide {
+    max-width: 86rem;
+  }
+
+  /* The voids between panels are part of the construction, not slack. */
+  .void {
+    padding-block: 4.5rem;
+  }
+
+  @media (min-width: 720px) {
+    .void { padding-block: 7rem; }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+}

@@ -51,7 +51,7 @@ jobs:
             echo "--- $app ---"
             ( cd "apps/$app" && npx tsc --noEmit )
           done
-          for app in clinic-web provider-console; do
+          for app in clinic-web provider-console nayaverse-web; do
             echo "--- $app ---"
             ( cd "apps/$app" && npx tsc -b )
           done
@@ -103,7 +103,7 @@ jobs:
 
       - name: Build everything
         run: |
-          for app in clinic-api provider-api clinic-web provider-console; do
+          for app in clinic-api provider-api clinic-web provider-console nayaverse-web; do
             echo "--- building $app ---"
             npm run --workspace "apps/$app" build
           done

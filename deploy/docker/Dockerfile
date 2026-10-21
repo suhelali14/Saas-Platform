@@ -30,6 +30,7 @@ COPY apps/business-dashboard/package.json apps/business-dashboard/
 COPY apps/clinic-api/package.json         apps/clinic-api/
 COPY apps/clinic-web/package.json         apps/clinic-web/
 COPY apps/mobile/package.json             apps/mobile/
+COPY apps/nayaverse-web/package.json      apps/nayaverse-web/
 COPY apps/provider-api/package.json       apps/provider-api/
 COPY apps/provider-console/package.json   apps/provider-console/
 COPY packages/shared-types/package.json   packages/shared-types/

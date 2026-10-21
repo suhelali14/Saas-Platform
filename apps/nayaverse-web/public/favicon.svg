@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- A chart board: ruled rows, one of them lit. Legible at 16px because it
+       is four shapes, not a logo shrunk down. -->
+  <rect width="32" height="32" fill="#0a0c0d"/>
+  <rect x="4" y="5" width="24" height="3" fill="#eba63f"/>
+  <rect x="4" y="12" width="24" height="2" fill="#f6f2e9" opacity="0.85"/>
+  <rect x="4" y="18" width="17" height="2" fill="#f6f2e9" opacity="0.55"/>
+  <rect x="4" y="24" width="21" height="2" fill="#f6f2e9" opacity="0.55"/>
+</svg>

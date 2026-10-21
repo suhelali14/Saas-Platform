@@ -16,6 +16,7 @@ on:
     paths:
       - 'apps/clinic-web/**'
       - 'apps/provider-console/**'
+      - 'apps/nayaverse-web/**'
       - 'package-lock.json'
       - '.github/workflows/deploy-static.yml'
   # So you can redeploy without an empty commit.
@@ -24,8 +25,8 @@ on:
       app:
         description: Which app to deploy
         type: choice
-        options: [both, clinic-web, provider-console]
-        default: both
+        options: [all, clinic-web, provider-console, nayaverse-web]
+        default: all
 
 concurrency:
   # A second push while the first is deploying cancels the first: the
@@ -55,8 +56,17 @@ jobs:
         include:
           - app: clinic-web
             project_id_secret: VERCEL_PROJECT_ID_CLINIC_WEB
+            spa: true
           - app: provider-console
             project_id_secret: VERCEL_PROJECT_ID_PROVIDER_CONSOLE
+            spa: true
+          # Nayaverse's own site. Prerendered to real HTML per route rather
+          # than an SPA, so it is checked differently below: the failure that
+          # matters here is an empty <div id="root"> shipping to a search
+          # engine, not a deep link falling through to the host's 404.
+          - app: nayaverse-web
+            project_id_secret: VERCEL_PROJECT_ID_NAYAVERSE_WEB
+            spa: false
 
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +75,7 @@ jobs:
         id: gate
         run: |
           choice="${{ github.event.inputs.app }}"
-          if [ -z "$choice" ] || [ "$choice" = "both" ] || [ "$choice" = "${{ matrix.app }}" ]; then
+          if [ -z "$choice" ] || [ "$choice" = "all" ] || [ "$choice" = "both" ] || [ "$choice" = "${{ matrix.app }}" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -88,7 +98,7 @@ jobs:
       # someone opens a link to anything but the home page -- /login was
       # how it surfaced here.
       - name: Check the SPA rewrite exists
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && matrix.spa
         working-directory: apps/${{ matrix.app }}
         run: |
           if [ ! -f vercel.json ]; then
@@ -115,6 +125,32 @@ jobs:
           # the code compiles and sets this nowhere, so write-shell warns there.
           SEO_REQUIRE_DIRECTORY: "1"
         run: npm run --workspace "apps/${{ matrix.app }}" build
+
+      # A prerender that silently produces an empty root still builds, still
+      # returns 200, and is invisible until somebody notices the site has no
+      # search traffic months later. The app's own build asserts its copy is
+      # in the HTML; this re-asserts it against what is about to be uploaded.
+      - name: Check the pages actually contain their content
+        if: steps.gate.outputs.run == 'true' && !matrix.spa
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          fail=0
+          for f in dist/index.html dist/pricing.html; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f was not produced -- the prerender did not run"
+              fail=1
+              continue
+            fi
+            bytes=$(wc -c < "$f")
+            if [ "$bytes" -lt 12000 ]; then
+              echo "::error::$f is only $bytes bytes -- it is a shell, not a page"
+              fail=1
+            fi
+            grep -q '<title>' "$f" || { echo "::error::$f has no title"; fail=1; }
+          done
+          grep -q 'Sitemap:' dist/robots.txt || { echo "::error::robots.txt has no sitemap"; fail=1; }
+          [ "$fail" = 0 ] && echo "pages carry their content"
+          exit $fail
 
       - name: Deploy to Vercel
         if: steps.gate.outputs.run == 'true'
