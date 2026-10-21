@@ -153,6 +153,7 @@ jobs:
           exit $fail
 
       - name: Deploy to Vercel
+        id: vercel
         if: steps.gate.outputs.run == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -207,7 +208,16 @@ jobs:
           sed 's/^/    /' .env.production
 
           npx --yes vercel@63 build --prod --token "$VERCEL_TOKEN" --yes
-          npx --yes vercel@63 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+
+          # The URL is the last line vercel prints. Kept so the next step can
+          # fetch the thing that was just deployed rather than trusting that
+          # a clean build implies a working site.
+          url="$(npx --yes vercel@63 deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes | tail -n1 | tr -d '\r')"
+          echo "deployed to $url"
+          case "$url" in
+            https://*) echo "url=$url" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::warning::Could not read a deployment URL from vercel; skipping the live check." ;;
+          esac
 
       - name: Check the bundle was built with its configuration
         if: steps.gate.outputs.run == 'true'
@@ -319,6 +329,40 @@ jobs:
           fi
 
           [ "$fail" = "0" ] && echo "${{ matrix.app }}: built with the right configuration"
+          exit $fail
+
+      # Everything above this line inspects the build. This fetches the
+      # deployment. nayaverse-web shipped once with all nine pages built,
+      # checked and correct, and two of its six routes serving 404 -- the
+      # files were fine, the routing was not, and no build-time check can
+      # see that difference.
+      - name: Ask the deployment for its own pages
+        if: steps.gate.outputs.run == 'true' && steps.vercel.outputs.url != ''
+        env:
+          URL: ${{ steps.vercel.outputs.url }}
+        run: |
+          case "${{ matrix.app }}" in
+            nayaverse-web) paths="/ /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml" ;;
+            *)             paths="/" ;;
+          esac
+
+          fail=0
+          for p in $paths; do
+            code="$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$URL$p" || echo 000)"
+            size="$(wc -c < /tmp/body | tr -d ' ')"
+            printf '  %-16s %s  %s bytes\n' "$p" "$code" "$size"
+            if [ "$code" != "200" ]; then
+              echo "::error::$p returned $code on the new deployment."
+              fail=1
+            elif [ "${p%%.*}" = "$p" ] && [ "$size" -lt 2000 ]; then
+              # A page that resolves but is nearly empty is the prerender
+              # having silently not run.
+              echo "::error::$p returned 200 but only $size bytes."
+              fail=1
+            fi
+          done
+
+          [ "$fail" = 0 ] && echo "every route answered"
           exit $fail
 
       - name: Summary

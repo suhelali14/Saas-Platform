@@ -33,12 +33,20 @@ for (const marker of ['<!--app-html-->', '<!--app-head-->', 'lang="en-IN"']) {
 const mod = await import(pathToFileURL(ssr).href);
 const { render, allRoutes, pathFor, facts, statusWords, locales, content } = mod;
 
-/** Where a route's file goes. Vercel's cleanUrls serves /mr/pricing from
- *  mr/pricing.html, and /404.html is what it reaches for on a miss. */
+/**
+ * Where a route's file goes: one flat file per route, never a directory
+ * index.
+ *
+ * Vercel resolves `/x` by looking for `x.html`. It does not fall back to
+ * `x/index.html`, so `/mr` served from `mr/index.html` is a 404 while
+ * `/mr/pricing` served from `mr/pricing.html` is fine -- which is exactly the
+ * split the first deployment showed. The root keeps the name `index.html`
+ * because that is the one filename every static host agrees about.
+ */
 const fileFor = (locale, page) => {
-  const prefix = locale === 'en' ? '' : `${locale}/`;
-  if (page === 'home') return `${prefix}index.html`;
-  return `${prefix}${page}.html`;
+  if (page === '404') return locale === 'en' ? '404.html' : `${locale}/404.html`;
+  if (locale === 'en') return page === 'home' ? 'index.html' : `${page}.html`;
+  return page === 'home' ? `${locale}.html` : `${locale}/${page}.html`;
 };
 
 const written = [];
@@ -158,6 +166,51 @@ if (problems.length) {
 const origin = 'https://www.nayaverse.in';
 const today = new Date().toISOString().slice(0, 10);
 const indexable = allRoutes.filter((r) => r.page !== '404');
+
+/*
+ * vercel.json's rewrites are written from the same route list that produced
+ * the files, so a new page cannot ship with a URL that resolves to nothing.
+ * This is the failure the first deployment had: the files were all present
+ * and correct, and two of the six were unreachable.
+ */
+const rewrites = allRoutes
+  .filter((r) => r.page !== '404')
+  .map(({ locale, page }) => ({
+    source: pathFor(locale, page),
+    destination: `/${fileFor(locale, page)}`,
+  }));
+
+const vercelConfig = {
+  $schema: 'https://openapi.vercel.sh/vercel.json',
+  trailingSlash: false,
+  rewrites,
+  headers: [
+    {
+      source: '/assets/(.*)',
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+    },
+    {
+      source: '/(.*).html',
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }],
+    },
+  ],
+};
+
+fs.writeFileSync(
+  path.join(app, 'vercel.json'),
+  JSON.stringify(vercelConfig, null, 2) + '\n',
+  'utf8',
+);
+
+// Every rewrite must point at a file that exists, and every page must have a
+// rewrite. Checked here rather than discovered by a visitor.
+for (const r of rewrites) {
+  const target = path.join(dist, r.destination.replace(/^\//, ''));
+  if (!fs.existsSync(target)) {
+    console.error(`prerender: rewrite ${r.source} points at ${r.destination}, which was not written`);
+    process.exit(1);
+  }
+}
 
 fs.writeFileSync(
   path.join(dist, 'robots.txt'),
