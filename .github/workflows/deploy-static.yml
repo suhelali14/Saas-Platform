@@ -128,6 +128,7 @@ jobs:
           # A served build must have a directory URL. CI builds to prove
           # the code compiles and sets this nowhere, so write-shell warns there.
           SEO_REQUIRE_DIRECTORY: "1"
+          VITE_BUILD_SHA: ${{ github.sha }}
         run: npm run --workspace "apps/${{ matrix.app }}" build
 
       # A prerender that silently produces an empty root still builds, still
@@ -173,6 +174,7 @@ jobs:
           VAR_TOKEN: ${{ vars.VERCEL_TOKEN }}
           VAR_ORG: ${{ vars.VERCEL_ORG_ID }}
           VAR_PROJECT: ${{ vars[matrix.project_id_secret] }}
+          VITE_BUILD_SHA: ${{ github.sha }}
         working-directory: apps/${{ matrix.app }}
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
@@ -206,6 +208,7 @@ jobs:
           {
             echo "VITE_PLATFORM_DOMAIN=$VITE_PLATFORM_DOMAIN"
             echo "VITE_PROVIDER_API_URL=$VITE_PROVIDER_API_URL"
+            echo "VITE_BUILD_SHA=$VITE_BUILD_SHA"
             [ -n "$VITE_API_URL" ] && echo "VITE_API_URL=$VITE_API_URL"
           } > .env.production
           echo "build-time environment:"
@@ -345,23 +348,46 @@ jobs:
       # and a bare *.vercel.app deployment URL is not a clinic, so there is
       # no path on it that is meaningfully "the site". Their equivalent
       # check is the real hostnames, which this workflow does not own.
-      - name: Ask the deployment for its own pages
+      # Asks the PUBLIC address, not the *.vercel.app deployment URL: that
+      # one carries Vercel's deployment protection, which answered 404 in
+      # 107 bytes and redirected robots.txt to an SSO login, none of which
+      # is a fact about this site.
+      #
+      # A public URL can answer 200 from an older deployment, or from a
+      # different project, as this domain did until recently -- so every
+      # page carries the commit it was built from, and this requires the
+      # one being deployed. "The site is up" is not the claim; "this build
+      # is up" is.
+      - name: Ask the live site for its own pages
         if: >-
           steps.gate.outputs.run == 'true'
-          && steps.vercel.outputs.url != ''
           && matrix.app == 'nayaverse-web'
         env:
-          URL: ${{ steps.vercel.outputs.url }}
+          SITE: https://www.nayaverse.in
+          SHA: ${{ github.sha }}
         run: |
-          paths="/ /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml"
+          # Promotion to the domain is not instant.
+          for attempt in 1 2 3 4 5 6 7 8; do
+            live="$(curl -s --max-time 30 "$SITE/?cb=$RANDOM$attempt" || true)"
+            case "$live" in
+              *"$SHA"*) echo "live after ${attempt} attempt(s)"; break ;;
+            esac
+            if [ "$attempt" = 8 ]; then
+              echo "::error::$SITE never served build $SHA."
+              echo "::error::Found: $(printf '%s' "$live" | grep -o 'name=\"x-build\" content=\"[^\"]*\"' || echo 'no build stamp at all')"
+              echo "::error::If another project still owns this domain, that is the cause."
+              exit 1
+            fi
+            sleep 15
+          done
 
           fail=0
-          for p in $paths; do
-            code="$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$URL$p" || echo 000)"
+          for p in / /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml; do
+            code="$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$SITE$p?cb=$RANDOM" || echo 000)"
             size="$(wc -c < /tmp/body | tr -d ' ')"
             printf '  %-16s %s  %s bytes\n' "$p" "$code" "$size"
             if [ "$code" != "200" ]; then
-              echo "::error::$p returned $code on the new deployment."
+              echo "::error::$p returned $code."
               fail=1
             elif [ "${p%%.*}" = "$p" ] && [ "$size" -lt 2000 ]; then
               # A page that resolves but is nearly empty is the prerender
@@ -371,7 +397,7 @@ jobs:
             fi
           done
 
-          [ "$fail" = 0 ] && echo "every route answered"
+          [ "$fail" = 0 ] && echo "every route answered, on build $SHA"
           exit $fail
 
       - name: Summary

@@ -70,8 +70,14 @@ export function render(locale: Locale, page: Page) {
     );
   }
 
+  // Which build is answering. The deploy asserts the live page carries the
+  // sha it just pushed, so a green deploy cannot mean "an older copy of the
+  // site is still up and returning 200".
+  const build = import.meta.env.VITE_BUILD_SHA || 'dev';
+
   const head = [
     `<title>${esc(title)}</title>`,
+    `<meta name="x-build" content="${esc(build)}" />`,
     `<meta name="description" content="${esc(description)}" />`,
     `<link rel="canonical" href="${site.url}${path}" />`,
     ...alternates,
