@@ -89,6 +89,33 @@ of these projects to Git in the Vercel dashboard: deploys go through GitHub
 Actions so that CI has to pass first, and a Git connection would deploy
 pushes that never got that far.
 
+#### Turn off Vercel's own Git builds
+
+If you created the project through the Vercel dashboard by importing the
+repo, Vercel builds on every push **as well as** GitHub Actions. That build
+fails, and the failure looks like a workflow failure without being one:
+
+```
+Running build in Washington, D.C., USA (East) - iad1
+Vercel CLI 64.5.0                     <- the workflow pins vercel@63
+Running "npm run build" -> turbo run build
+  Packages in scope: ... all ten ...
+Error: [STATIC_BUILD_NO_OUT_DIR] No Output Directory named "dist" found
+```
+
+It is building the repo root, not the app, so there is no `dist` where it
+looks. Worse than the noise: two deploy paths are racing for one project and
+only one of them runs CI first.
+
+**Vercel → nayaverse-web → Settings → Git → Disconnect.** Deploys come from
+Actions, same as clinic-web and provider-console.
+
+If you would rather keep it connected, set **Root Directory** to
+`apps/nayaverse-web` first. Vercel will then read that app's `vercel.json`,
+which carries `git.deploymentEnabled: false` and switches the automatic
+builds off by itself. Until the root directory is right, Vercel never reads
+that file — which is why it ignored it the first time.
+
 #### The domain move nayaverse-web needs
 
 `www.nayaverse.in` and the apex are attached to the **clinic-web** project,

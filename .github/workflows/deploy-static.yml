@@ -52,6 +52,10 @@ jobs:
       # Independent projects, but kept serial so a failure is easy to read
       # in the log rather than interleaved.
       max-parallel: 1
+      # Three separate Vercel projects. One failing must not cancel the
+      # others: a broken check on clinic-web once cancelled nayaverse-web
+      # before it deployed, which left a fix sitting unshipped.
+      fail-fast: false
       matrix:
         include:
           - app: clinic-web
@@ -336,15 +340,20 @@ jobs:
       # checked and correct, and two of its six routes serving 404 -- the
       # files were fine, the routing was not, and no build-time check can
       # see that difference.
+      # Only nayaverse-web. The other two are multi-tenant: clinic-web
+      # rewrites / to a function that resolves a clinic from the hostname,
+      # and a bare *.vercel.app deployment URL is not a clinic, so there is
+      # no path on it that is meaningfully "the site". Their equivalent
+      # check is the real hostnames, which this workflow does not own.
       - name: Ask the deployment for its own pages
-        if: steps.gate.outputs.run == 'true' && steps.vercel.outputs.url != ''
+        if: >-
+          steps.gate.outputs.run == 'true'
+          && steps.vercel.outputs.url != ''
+          && matrix.app == 'nayaverse-web'
         env:
           URL: ${{ steps.vercel.outputs.url }}
         run: |
-          case "${{ matrix.app }}" in
-            nayaverse-web) paths="/ /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml" ;;
-            *)             paths="/" ;;
-          esac
+          paths="/ /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml"
 
           fail=0
           for p in $paths; do

@@ -183,6 +183,12 @@ const rewrites = allRoutes
 const vercelConfig = {
   $schema: 'https://openapi.vercel.sh/vercel.json',
   trailingSlash: false,
+  // Vercel's Git integration must not deploy this project; GitHub Actions
+  // does, after CI passes. Two paths to one project means the one that skips
+  // the tests can overwrite the one that ran them. Only effective once the
+  // project's Root Directory is apps/nayaverse-web -- otherwise Vercel reads
+  // the repo root and never sees this file.
+  git: { deploymentEnabled: { master: false, main: false } },
   rewrites,
   headers: [
     {
