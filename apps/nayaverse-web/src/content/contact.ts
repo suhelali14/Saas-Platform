@@ -25,8 +25,8 @@ type Contact = {
 };
 
 export const contact: Contact = {
-  whatsapp: '',
-  phone: '',
+  whatsapp: '917558436263',
+  phone: '+91 75584 36263',
   email: '',
   city: 'Sangli',
 };
