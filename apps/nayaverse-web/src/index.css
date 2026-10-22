@@ -95,7 +95,8 @@
   body {
     background-color: var(--steel-deep);
     color: var(--board-ink);
-    font-family: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans Variable', 'IBM Plex Sans', 'IBM Plex Sans Devanagari',
+      system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -218,7 +219,7 @@
   /* The data voice: stencilled small caps for column heads and labels. This
      is measurement, not a costume for "technical". */
   .t-label {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -239,6 +240,15 @@
      size, so the display scale has to come down; and letter-spacing pulls a
      conjunct apart and breaks the shirorekha, which is the line along the top
      that makes the script scannable at all.
+
+     Every font stack in this file names the Devanagari face explicitly. A
+     Latin face has no Devanagari glyphs, so the browser resolves per glyph
+     and walks the stack -- and a stack that ends at system-ui ends at Segoe
+     UI on Windows, which has none either, so the text lands in Nirmala UI
+     and the page is set in a font nobody chose. The monospace voices fall
+     back to a sans here because there is no Devanagari monospace in the
+     stack; a proportional face the design picked beats a system face it
+     did not.
      -------------------------------------------------------------------- */
   :root:lang(hi),
   :root:lang(mr) {
@@ -478,7 +488,7 @@
     color: var(--stamp);
     mix-blend-mode: multiply;
     opacity: 0.82;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     font-size: 0.625rem;
     font-weight: 600;
     letter-spacing: 0.14em;
@@ -513,7 +523,7 @@
 
   .cell {
     display: inline-block;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -562,7 +572,7 @@
   /* The priority marker: the quota column. Only an exception is marked --
      "general" is the norm and carries no weight at all. */
   .quota {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     font-size: 0.625rem;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -777,7 +787,7 @@
   /* A nav label on the rail: a small painted plate. */
   .rail-link {
     padding: 0.35rem 0.6rem;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -802,7 +812,7 @@
     background-color: color-mix(in srgb, #ffffff 55%, var(--chart));
     color: var(--ink);
     border: 1px solid color-mix(in srgb, var(--rule) 34%, transparent);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'IBM Plex Mono', 'IBM Plex Sans Devanagari', ui-monospace, monospace;
     /* 16px exactly on touch, below which iOS Safari zooms the viewport and
        leaves it zoomed. The threshold, not a size chosen for looks. */
     font-size: 0.875rem;
