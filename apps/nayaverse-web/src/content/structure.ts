@@ -206,18 +206,23 @@ export const fareSeats: [number, number][] = [
 export const seatSteps = [1, 2, 3, 5, 8, 12, 20, 30, 45] as const;
 
 /** Each script set in itself — someone looking for Marathi should find
- *  मराठी, not the word "Marathi". */
+ *  मराठी, not the word "Marathi".
+ *
+ *  `rtl` is carried per entry because `lang` does not imply direction: a
+ *  browser given lang="ur" still lays the text out left to right, which is
+ *  invisible on a bare word and wrong the moment the string has a digit or a
+ *  Latin name in it. */
 export const languages = [
-  { code: 'hi', native: 'हिन्दी', latin: 'Hindi' },
-  { code: 'mr', native: 'मराठी', latin: 'Marathi' },
-  { code: 'ta', native: 'தமிழ்', latin: 'Tamil' },
-  { code: 'bn', native: 'বাংলা', latin: 'Bengali' },
-  { code: 'te', native: 'తెలుగు', latin: 'Telugu' },
-  { code: 'kn', native: 'ಕನ್ನಡ', latin: 'Kannada' },
-  { code: 'ml', native: 'മലയാളം', latin: 'Malayalam' },
-  { code: 'gu', native: 'ગુજરાતી', latin: 'Gujarati' },
-  { code: 'pa', native: 'ਪੰਜਾਬੀ', latin: 'Punjabi' },
-  { code: 'or', native: 'ଓଡ଼ିଆ', latin: 'Odia' },
-  { code: 'as', native: 'অসমীয়া', latin: 'Assamese' },
-  { code: 'ur', native: 'اردو', latin: 'Urdu' },
+  { code: 'hi', native: 'हिन्दी', latin: 'Hindi', rtl: false },
+  { code: 'mr', native: 'मराठी', latin: 'Marathi', rtl: false },
+  { code: 'ta', native: 'தமிழ்', latin: 'Tamil', rtl: false },
+  { code: 'bn', native: 'বাংলা', latin: 'Bengali', rtl: false },
+  { code: 'te', native: 'తెలుగు', latin: 'Telugu', rtl: false },
+  { code: 'kn', native: 'ಕನ್ನಡ', latin: 'Kannada', rtl: false },
+  { code: 'ml', native: 'മലയാളം', latin: 'Malayalam', rtl: false },
+  { code: 'gu', native: 'ગુજરાતી', latin: 'Gujarati', rtl: false },
+  { code: 'pa', native: 'ਪੰਜਾਬੀ', latin: 'Punjabi', rtl: false },
+  { code: 'or', native: 'ଓଡ଼ିଆ', latin: 'Odia', rtl: false },
+  { code: 'as', native: 'অসমীয়া', latin: 'Assamese', rtl: false },
+  { code: 'ur', native: 'اردو', latin: 'Urdu', rtl: true },
 ] as const;

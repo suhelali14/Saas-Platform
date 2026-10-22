@@ -58,7 +58,13 @@ export function Manifest() {
           <ul className="flex flex-wrap items-baseline gap-x-5 gap-y-2.5">
             {languages.map((l) => (
               <li key={l.code} className="flex items-baseline gap-1.5">
-                <span lang={l.code} className="text-[1.0625rem] text-[var(--ink)]">{l.native}</span>
+                <span
+                  lang={l.code}
+                  dir={l.rtl ? 'rtl' : undefined}
+                  className="lang-name text-[1.0625rem] text-[var(--ink)]"
+                >
+                  {l.native}
+                </span>
                 <span className="t-label text-[var(--ink-faint)]">{l.latin}</span>
               </li>
             ))}

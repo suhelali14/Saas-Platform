@@ -252,55 +252,80 @@
      -------------------------------------------------------------------- */
   :root:lang(hi),
   :root:lang(mr) {
-    --board-leading: 1.1;
+    /* 1.1 was measured clipping the top matras by 3px out of the pricing
+       headline's board, which has overflow hidden. The marks sit above the
+       shirorekha, so the first line needs the room, not just the gaps
+       between lines. */
+    --board-leading: 1.25;
     --board-tracking: 0;
   }
 
-  :lang(hi) .t-display,
-  :lang(mr) .t-display {
+  .t-display:lang(hi),
+  .t-display:lang(mr) {
     font-size: clamp(2.3rem, 8vw, 5.1rem);
   }
 
-  :lang(hi) .t-heading,
-  :lang(mr) .t-heading {
+  .t-heading:lang(hi),
+  .t-heading:lang(mr) {
     font-size: clamp(1.6rem, 3.8vw, 2.5rem);
-    line-height: 1.15;
+    /* 1.15 was measured still colliding by 1.6px at 390px. */
+    line-height: 1.3;
     letter-spacing: 0;
   }
 
   /* A label in Devanagari is neither uppercase (the script has no case) nor
      letterspaced, and the tracking is what actually does damage. */
-  :lang(hi) .t-label,
-  :lang(mr) .t-label {
-    letter-spacing: 0.01em;
-    font-size: 0.75rem;
-  }
+  /* Every voice in this file is stencilled: uppercase, letterspaced. Both
+     are Latin devices.
 
-  :lang(hi) .t-row,
-  :lang(mr) .t-row {
+     Written `.cls:lang(hi)` rather than `:lang(hi) .cls`. The descendant
+     form needs an ancestor in that language, so it silently skipped the
+     language switcher, whose links carry `lang` on themselves -- the one
+     place Devanagari appears on an English page. `:lang()` is inherited, so
+     this form covers the page-level case and the element-level one.
+ Devanagari has no case for the transform to apply,
+     and tracking breaks the shirorekha the letters hang from -- so each
+     uppercased class is reset here rather than in eight places, and a voice
+     added later that forgets this reads as a Latin label set in Marathi. */
+  .t-board:lang(hi), .t-board:lang(mr),
+  .t-label:lang(hi), .t-label:lang(mr),
+  .t-row:lang(hi), .t-row:lang(mr),
+  .cell:lang(hi), .cell:lang(mr),
+  .quota:lang(hi), .quota:lang(mr),
+  .stamp:lang(hi), .stamp:lang(mr),
+  .plate:lang(hi), .plate:lang(mr),
+  .engraved:lang(hi), .engraved:lang(mr),
+  .rail-link:lang(hi), .rail-link:lang(mr) {
+    text-transform: none;
     letter-spacing: 0;
   }
 
-  :lang(hi) .cell,
-  :lang(mr) .cell,
-  :lang(hi) .quota,
-  :lang(mr) .quota,
-  :lang(hi) .stamp,
-  :lang(mr) .stamp {
-    letter-spacing: 0.01em;
+  .t-label:lang(hi),
+  .t-label:lang(mr) {
+    font-size: 0.75rem;
   }
 
   /* The status column holds a longer word in both scripts. */
-  :lang(hi) .cell-wide,
-  :lang(mr) .cell-wide {
+  .cell-wide:lang(hi),
+  .cell-wide:lang(mr) {
     min-width: 7ch;
   }
 
+  /* Ten scripts, one word each -- the roster of languages still to come.
+     Setting each in its own typeface would mean shipping ten more families,
+     roughly 700KB, to render ten words that are never read as prose. The
+     system font is the right answer here, and naming it as the whole stack
+     says so: a generic-only stack is a decision, where falling off the end
+     of a stack of specific families is an accident. */
+  .lang-name {
+    font-family: system-ui, sans-serif;
+  }
+
   /* The plate's label is a word, not a Latin small-cap run. */
-  :lang(hi) .plate,
-  :lang(mr) .plate,
-  :lang(hi) .engraved,
-  :lang(mr) .engraved {
+  .plate:lang(hi),
+  .plate:lang(mr),
+  .engraved:lang(hi),
+  .engraved:lang(mr) {
     letter-spacing: 0;
     line-height: 1.3;
   }
@@ -734,7 +759,7 @@
     background-color: var(--lamp);
     color: var(--ink);
     border: 1px solid color-mix(in srgb, var(--lamp) 70%, #000000);
-    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-family: 'Barlow Condensed', 'Khand', 'Arial Narrow', sans-serif;
     font-weight: 600;
     font-size: 1.0625rem;
     text-transform: uppercase;
@@ -769,7 +794,7 @@
     align-items: center;
     gap: 0.45rem;
     padding: 0.8rem 0.2rem;
-    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-family: 'Barlow Condensed', 'Khand', 'Arial Narrow', sans-serif;
     font-weight: 600;
     font-size: 1.0625rem;
     text-transform: uppercase;
