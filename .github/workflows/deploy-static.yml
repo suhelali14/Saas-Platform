@@ -338,66 +338,65 @@ jobs:
           [ "$fail" = "0" ] && echo "${{ matrix.app }}: built with the right configuration"
           exit $fail
 
-      # Everything above this line inspects the build. This fetches the
-      # deployment. nayaverse-web shipped once with all nine pages built,
-      # checked and correct, and two of its six routes serving 404 -- the
-      # files were fine, the routing was not, and no build-time check can
-      # see that difference.
-      # Only nayaverse-web. The other two are multi-tenant: clinic-web
-      # rewrites / to a function that resolves a clinic from the hostname,
-      # and a bare *.vercel.app deployment URL is not a clinic, so there is
-      # no path on it that is meaningfully "the site". Their equivalent
-      # check is the real hostnames, which this workflow does not own.
-      # Asks the PUBLIC address, not the *.vercel.app deployment URL: that
-      # one carries Vercel's deployment protection, which answered 404 in
-      # 107 bytes and redirected robots.txt to an SSO login, none of which
-      # is a fact about this site.
+      # Everything above this line inspects the build. This asks the
+      # deployment. The site once shipped with all nine pages built, checked
+      # and correct, and two of its six routes serving 404 -- the files were
+      # fine, the routing was not, and no build-time check can see that.
       #
-      # A public URL can answer 200 from an older deployment, or from a
-      # different project, as this domain did until recently -- so every
-      # page carries the commit it was built from, and this requires the
-      # one being deployed. "The site is up" is not the claim; "this build
-      # is up" is.
+      # This was 33 lines of shell here. It is now a package, because those
+      # 33 lines were rewritten three times, each time after a failure that
+      # reached production, and every project that writes them by hand writes
+      # the same three bugs.
+      #
+      # Only nayaverse-web. clinic-web rewrites / to a function that resolves
+      # a clinic from the hostname, so a bare *.vercel.app URL is not a
+      # clinic and there is no path on it that is meaningfully "the site".
       - name: Ask the live site for its own pages
         if: >-
           steps.gate.outputs.run == 'true'
           && matrix.app == 'nayaverse-web'
-        env:
-          SITE: https://www.nayaverse.in
-          SHA: ${{ github.sha }}
+        working-directory: apps/nayaverse-web
         run: |
-          # Promotion to the domain is not instant.
-          for attempt in 1 2 3 4 5 6 7 8; do
-            live="$(curl -s --max-time 30 "$SITE/?cb=$RANDOM$attempt" || true)"
-            case "$live" in
-              *"$SHA"*) echo "live after ${attempt} attempt(s)"; break ;;
-            esac
-            if [ "$attempt" = 8 ]; then
-              echo "::error::$SITE never served build $SHA."
-              echo "::error::Found: $(printf '%s' "$live" | grep -o 'name=\"x-build\" content=\"[^\"]*\"' || echo 'no build stamp at all')"
-              echo "::error::If another project still owns this domain, that is the cause."
-              exit 1
-            fi
-            sleep 15
+          npx --no-install verify-deploy \
+            --site https://www.nayaverse.in \
+            --build "${{ github.sha }}" \
+            --min-bytes 9000 \
+            --retries 8 --wait-ms 15000 \
+            --routes ".,pricing,hi,hi/pricing,mr,mr/pricing,robots.txt,sitemap.xml"
+
+      # Responsive breakage used to be checked by taking screenshots and
+      # looking at them. That is how a layout came to be "fixed" for a bug
+      # that did not exist: Chrome on Windows cannot open a window narrower
+      # than ~494px, so every "390px" capture was a desktop layout clipped.
+      #
+      # This uses device metrics, runs at seven widths, and names the element.
+      - name: No horizontal overflow at any breakpoint
+        if: >-
+          steps.gate.outputs.run == 'true'
+          && matrix.app == 'nayaverse-web'
+        working-directory: apps/nayaverse-web
+        run: |
+          # The runner image ships Chrome; fail loudly rather than skip if not.
+          CHROME="$(command -v google-chrome || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::error::No Chrome on this runner, so the overflow sweep cannot run."
+            echo "::error::Install one with browser-actions/setup-chrome, or drop this step."
+            exit 1
+          fi
+          "$CHROME" --headless=new --disable-gpu --no-sandbox \
+            --remote-debugging-port=9222 --user-data-dir=/tmp/ovf about:blank &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:9222/json/version > /dev/null && break
+            [ "$i" = 20 ] && { echo "::error::Chrome never opened its debugging port."; exit 1; }
+            sleep 1
           done
 
           fail=0
-          for p in / /pricing /hi /hi/pricing /mr /mr/pricing /robots.txt /sitemap.xml; do
-            code="$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$SITE$p?cb=$RANDOM" || echo 000)"
-            size="$(wc -c < /tmp/body | tr -d ' ')"
-            printf '  %-16s %s  %s bytes\n' "$p" "$code" "$size"
-            if [ "$code" != "200" ]; then
-              echo "::error::$p returned $code."
-              fail=1
-            elif [ "${p%%.*}" = "$p" ] && [ "$size" -lt 2000 ]; then
-              # A page that resolves but is nearly empty is the prerender
-              # having silently not run.
-              echo "::error::$p returned 200 but only $size bytes."
-              fail=1
-            fi
+          for page in "" "mr" "hi" "pricing"; do
+            echo "--- /$page ---"
+            npx --no-install overflow "https://www.nayaverse.in/$page" \
+              --widths 320,360,390,414,768,1024,1440 || fail=1
           done
-
-          [ "$fail" = 0 ] && echo "every route answered, on build $SHA"
           exit $fail
 
       - name: Summary
