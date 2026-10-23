@@ -238,7 +238,20 @@ function ClinicSettings() {
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Opening hours</label>
           <div className="flex flex-col gap-1.5">
             {timings.map((t, i) => (
-              <div key={t.day} className="flex items-center gap-2">
+              /*
+               * The day, the Open switch, and the two times.
+               *
+               * This was one non-wrapping row and it was the only screen in
+               * the portal that overflowed a phone: a 390px viewport scrolled
+               * to 420px, because 80px of day label plus the checkbox plus
+               * two 108px time inputs do not fit in the ~358px a phone
+               * leaves after padding. Measured, not guessed -- the closing
+               * time input started at 311px and was 108px wide.
+               *
+               * So the times wrap onto their own line below `sm` and share
+               * it, and the desktop layout is untouched above it.
+               */
+              <div key={t.day} className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground w-20 shrink-0">{t.day}</span>
                 <label className="flex items-center gap-1 text-xs text-muted-foreground/70">
                   <input
@@ -253,11 +266,14 @@ function ClinicSettings() {
                   Open
                 </label>
                 {!t.closed && (
-                  <>
-                    <input type="time" value={t.opensAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, opensAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
-                    <span className="text-xs text-muted-foreground/60">to</span>
-                    <input type="time" value={t.closesAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, closesAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none" />
-                  </>
+                  // Grouped so the pair wraps together: a closing time on a
+                  // line of its own, away from its "to", reads as a second
+                  // opening time.
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="time" value={t.opensAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, opensAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none flex-1 min-w-0 sm:flex-none" />
+                    <span className="text-xs text-muted-foreground/60 shrink-0">to</span>
+                    <input type="time" value={t.closesAt ?? ''} onChange={(e) => { const next = [...timings]; next[i] = { ...t, closesAt: e.target.value }; setField({ timings: next }); }} className="px-2 py-1 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none flex-1 min-w-0 sm:flex-none" />
+                  </div>
                 )}
               </div>
             ))}
