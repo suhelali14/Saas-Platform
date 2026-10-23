@@ -29,6 +29,20 @@ import { describeDateInput, todayInput } from '../lib/date';
 
 type Status = 'NEW' | 'CONFIRMED' | 'DECLINED';
 
+/** A patient this request might already be, as the scorer ranks them. */
+interface Match {
+  id: string;
+  uhid: string;
+  name: string;
+  phone: string | null;
+  visits: number;
+  lastSeen: string | null;
+  /** 0-100. At or above the near-certain threshold the server links on its own. */
+  score: number;
+  /** Why it matched, in words, so the decision is informed rather than numeric. */
+  reasons: string[];
+}
+
 interface Request {
   id: string;
   name: string;
@@ -44,6 +58,8 @@ interface Request {
   createdAt: string;
   patient: { id: string; uhid: string; name: string } | null;
   appointment: { id: string; scheduledAt: string; status: string } | null;
+  /** Attached by the list endpoint for NEW requests. */
+  matches?: Match[];
 }
 
 const SLOT_LABEL: Record<string, string> = {
@@ -224,9 +240,15 @@ function RequestRow({
 /**
  * Confirming or declining.
  *
- * The possible existing patient is looked up on open rather than offered
- * blind: the phone number is the only thing to match on, and a match is a
- * hint for a person to confirm, never an automatic link.
+ * Candidates arrive with the request rather than being fetched when this
+ * opens: a second round-trip behind a click is a round-trip that gets
+ * skipped when the waiting room is full, and then a duplicate is created.
+ *
+ * Three outcomes, not two. Reception can link to a named patient, insist on
+ * a new record, or leave it -- and leaving it lets the server link only when
+ * the match is near-certain. That default is the point: the old one was
+ * "register as new", which is how a returning patient became a second
+ * record with an empty history.
  */
 function HandlePanel({
   request: r, onDone, onError,
@@ -237,20 +259,23 @@ function HandlePanel({
 }) {
   const [date, setDate] = useState(r.preferredDate ? r.preferredDate.slice(0, 10) : todayInput());
   const [time, setTime] = useState(defaultTime(r.preferredSlot));
-  const [linkTo, setLinkTo] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [declining, setDeclining] = useState(false);
-  const [matches, setMatches] = useState<Array<{ id: string; uhid: string; name: string; phone: string | null }> | null>(null);
 
-  // Looked up once, when the panel opens.
-  useMemo(() => {
-    apiFetch<{ patients: Array<{ id: string; uhid: string; name: string; phone: string | null }> } | Array<{ id: string; uhid: string; name: string; phone: string | null }>>(
-      `/patients?phone=${encodeURIComponent(r.phone)}`,
-    )
-      .then((res) => setMatches(Array.isArray(res) ? res : (res.patients ?? [])))
-      .catch(() => setMatches([]));
-    return null;
-  }, [r.phone]);
+  const matches = r.matches ?? [];
+  // Matches this strong are what the server acts on by itself. Kept in step
+  // with NEAR_CERTAIN_SCORE in lib/patient-duplicates.ts.
+  const NEAR_CERTAIN = 85;
+  const certain = matches.find((m) => m.score >= NEAR_CERTAIN) ?? null;
+  const ambiguous = matches.filter((m) => m.score >= NEAR_CERTAIN).length > 1;
+  const willAutoLink = certain !== null && !ambiguous;
+
+  /**
+   * `null` means "leave it to the match", which is the default and is not
+   * the same as "register as new" -- that is `'new'`, and it is a decision
+   * somebody has to make on purpose.
+   */
+  const [choice, setChoice] = useState<string | 'new' | null>(null);
 
   const confirm = async () => {
     if (!date) { onError('Pick the day you are seeing them.'); return; }
@@ -262,11 +287,21 @@ function HandlePanel({
           // would be parsed as UTC midnight and land on the previous day
           // in IST -- the trap lib/date exists to avoid.
           scheduledAt: new Date(`${date}T${time || '10:00'}:00`).toISOString(),
-          ...(linkTo ? { patientId: linkTo } : {}),
+          ...(choice && choice !== 'new' ? { patientId: choice } : {}),
+          ...(choice === 'new' ? { createNewPatient: true } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),
         },
       });
-      onDone(linkTo ? 'Booked for the existing patient.' : 'Patient registered and booked.');
+      const linkedName = choice && choice !== 'new'
+        ? matches.find((m) => m.id === choice)?.name
+        : choice === null && willAutoLink
+          ? certain?.name
+          : null;
+      onDone(
+        linkedName
+          ? `Booked for ${linkedName}, who was already a patient here.`
+          : 'Patient registered and booked.',
+      );
     } catch (e) {
       onError(e instanceof ApiError ? e.message : 'Could not confirm this request.');
     }
@@ -286,40 +321,64 @@ function HandlePanel({
 
   return (
     <div className="mt-4 border-t border-border/10 pt-4">
-      {matches === null ? (
-        <p className="text-xs text-muted-foreground">Checking whether they are already a patient…</p>
-      ) : matches.length > 0 ? (
+      {matches.length > 0 ? (
         <div className="tone-info tone-block mb-4 rounded-lg p-3">
-          <p className="text-xs font-medium">
-            This number is already on {matches.length === 1 ? 'a patient record' : `${matches.length} patient records`}.
-          </p>
-          <p className="mt-1 text-[11px] leading-relaxed opacity-90">
-            Link the request if it is the same person. If a family shares this phone, register
-            them as new instead — a merged record means a doctor reads the wrong history.
-          </p>
+          {willAutoLink && choice === null ? (
+            <>
+              <p className="text-xs font-medium">
+                Already a patient here — this will use {certain!.name}&apos;s record ({certain!.uhid}).
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed opacity-90">
+                {certain!.reasons.join('; ')}. No new record will be created, so their history
+                stays in one place. If this is a different person, say so below.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium">
+                {matches.length === 1
+                  ? 'This may already be a patient here.'
+                  : `${matches.length} patient records look like this person.`}
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed opacity-90">
+                {ambiguous
+                  ? 'More than one is a close match, so nobody can pick for you — families share a phone, and a wrong link puts two people’s history in one file.'
+                  : 'Link it if it is the same person. If a family shares this phone, register them as new instead — a merged record means a doctor reads the wrong history.'}
+              </p>
+            </>
+          )}
+
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {matches.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setLinkTo((v) => (v === m.id ? null : m.id))}
-                className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
-                  linkTo === m.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-foreground/10 hover:bg-foreground/20'
-                }`}
-              >
-                <Link2 size={10} aria-hidden /> {m.name} · {m.uhid}
-              </button>
-            ))}
+            {matches.map((m) => {
+              const selected = choice === m.id || (choice === null && willAutoLink && m.id === certain!.id);
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setChoice((v) => (v === m.id ? null : m.id))}
+                  title={m.reasons.join('; ')}
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
+                    selected ? 'bg-primary text-primary-foreground' : 'bg-foreground/10 hover:bg-foreground/20'
+                  }`}
+                >
+                  <Link2 size={10} aria-hidden /> {m.name} · {m.uhid}
+                  {/* The score and the visit count, because "which of these
+                      is the real record" is answered by how much history
+                      each one carries, not by the name. */}
+                  <span className="opacity-70">
+                    {m.score}%{m.visits > 0 ? ` · ${m.visits} visit${m.visits === 1 ? '' : 's'}` : ' · no visits'}
+                  </span>
+                </button>
+              );
+            })}
             <button
               type="button"
-              onClick={() => setLinkTo(null)}
+              onClick={() => setChoice('new')}
               className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
-                linkTo === null ? 'bg-primary text-primary-foreground' : 'bg-foreground/10 hover:bg-foreground/20'
+                choice === 'new' ? 'bg-primary text-primary-foreground' : 'bg-foreground/10 hover:bg-foreground/20'
               }`}
             >
-              <UserPlus size={10} aria-hidden /> Register as new
+              <UserPlus size={10} aria-hidden /> {willAutoLink ? 'No — different person' : 'Register as new'}
             </button>
           </div>
         </div>

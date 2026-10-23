@@ -3,6 +3,9 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireFrontDeskAuth } from "../plugins/auth.js";
 import { generatePatientUhid } from "../lib/uhid.js";
+import {
+  findDuplicatesForDetails, NEAR_CERTAIN_SCORE, type DuplicateCandidate,
+} from "../lib/patient-duplicates.js";
 
 /**
  * Patient-requested appointments.
@@ -179,8 +182,28 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
       },
     });
 
+    /*
+     * Each NEW request carries the patients it might already be.
+     *
+     * Attached here rather than fetched per-row by the screen, because a
+     * receptionist confirming a booking should see the match in the same
+     * breath as the request -- a second round-trip behind a click is a
+     * round-trip that gets skipped when the waiting room is full, and then
+     * a duplicate is created.
+     *
+     * Only for NEW. A confirmed request already has its patient, and a
+     * declined one is never going to.
+     */
+    const withMatches = await Promise.all(
+      requests.map(async (r) => {
+        if (r.status !== "NEW") return { ...r, matches: [] as DuplicateCandidate[] };
+        const matches = await findDuplicatesForDetails({ name: r.name, phone: r.phone });
+        return { ...r, matches };
+      }),
+    );
+
     const newCount = await prisma.appointmentRequest.count({ where: { status: "NEW" } });
-    return { requests, newCount };
+    return { requests: withMatches, newCount, nearCertainScore: NEAR_CERTAIN_SCORE };
   });
 
   // ── Front desk: confirm ──────────────────────────────────────────────
@@ -203,6 +226,13 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
          *  decides this, having seen the match -- guessing from a phone
          *  number would merge two people who share a household handset. */
         patientId: z.string().optional(),
+        /**
+         * "This is a different person" -- register them even though the
+         * scorer is near-certain. Needed because the scorer is sometimes
+         * wrong and reception is looking at the human: two brothers with
+         * one name and one phone is the case that defeats any number.
+         */
+        createNewPatient: z.boolean().optional(),
         note: z.string().max(500).optional(),
       })
       .safeParse(request.body);
@@ -219,13 +249,44 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: `This request was already ${existing.status.toLowerCase()}.` });
     }
 
+    /*
+     * Is this person already a patient here?
+     *
+     * Reception's explicit choice wins -- they have seen the candidates and
+     * said which one, or said none. Only when they have said nothing does
+     * the scorer get to decide, and then only on a near-certain match: an
+     * exact phone number together with a real name match, or a matching
+     * date of birth.
+     *
+     * The threshold matters more than it looks. Below it, families are the
+     * problem: an Indian household shares one handset, so phone alone would
+     * merge a mother and her daughter, and a wrong link is not a tidy-up
+     * job -- it mixes two people's medical histories and is read by a
+     * doctor as one person's. Above it, the risk runs the other way, and
+     * creating a second empty record for a returning patient hides the
+     * history that was the point of keeping it.
+     */
+    let autoLinked: DuplicateCandidate | null = null;
+    if (!body.data.patientId && !body.data.createNewPatient) {
+      const matches = await findDuplicatesForDetails({ name: existing.name, phone: existing.phone });
+      const best = matches[0];
+      // Only when it is unambiguous: a second candidate anywhere near the
+      // first means the right answer is a person, not a number.
+      const runnerUp = matches[1];
+      if (best && best.score >= NEAR_CERTAIN_SCORE && (!runnerUp || runnerUp.score < NEAR_CERTAIN_SCORE)) {
+        autoLinked = best;
+      }
+    }
+
+    const linkTo = body.data.patientId ?? autoLinked?.id;
+
     // Generated outside the transaction: it reads a Postgres sequence,
     // which is deliberately non-transactional so two reception desks
     // registering at once cannot collide.
-    const uhid = body.data.patientId ? null : await generatePatientUhid();
+    const uhid = linkTo ? null : await generatePatientUhid();
 
     const result = await prisma.$transaction(async (tx) => {
-      let patientId = body.data.patientId;
+      let patientId = linkTo;
 
       if (patientId) {
         const found = await tx.patient.findUnique({ where: { id: patientId } });
@@ -260,7 +321,15 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
           handledById: auth.clinicUserId,
           handledByName: request.clinicUserName,
           handledAt: new Date(),
-          note: body.data.note ?? null,
+          // The auto-link is written into the note so the decision
+          // survives in the record itself, not only in an audit row:
+          // somebody reading this request next year should be able to see
+          // that nobody typed this link.
+          note: autoLinked
+            ? `${body.data.note ? `${body.data.note} — ` : ""}` +
+              `Linked automatically to existing patient ${autoLinked.uhid} ` +
+              `(${autoLinked.score}% match: ${autoLinked.reasons.join("; ")}).`
+            : body.data.note ?? null,
         },
         include: {
           patient: { select: { id: true, uhid: true, name: true } },
@@ -269,7 +338,9 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
       });
     });
 
-    return result;
+    // So the screen can say "we used the existing record" rather than
+    // leaving reception to notice there is no new UHID.
+    return { ...result, autoLinked };
   });
 
   // ── Front desk: decline ──────────────────────────────────────────────

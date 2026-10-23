@@ -240,12 +240,41 @@ export function scorePair(
 }
 
 /** Likely duplicates of one patient, best first. */
-export async function findDuplicatesOf(patientId: string): Promise<DuplicateCandidate[]> {
-  const target = await prisma.patient.findUnique({ where: { id: patientId } });
-  if (!target) return [];
+/** The details of a person, whether or not they are a row yet. */
+export type PersonDetails = {
+  name: string;
+  phone?: string | null;
+  dob?: Date | null;
+  age?: number | null;
+  gender?: string | null;
+  address?: string | null;
+};
 
-  const phone = normalisePhone(target.phone);
-  const nameTokens = normaliseName(target.name);
+/**
+ * Above this, two records are the same person beyond reasonable doubt.
+ *
+ * Only reached by an exact phone match together with a real name match, or
+ * by a matching date of birth -- see scorePair. It is the threshold the
+ * booking flow is allowed to act on without asking, and it is exported so
+ * that the one place which auto-links and the UI that explains it cannot
+ * drift to different numbers.
+ */
+export const NEAR_CERTAIN_SCORE = 85;
+
+/**
+ * Candidates for a person who may not exist in the database yet.
+ *
+ * `findDuplicatesOf` needs a patient id, which an online booking request
+ * does not have -- that is the whole problem, since the request is about to
+ * become a patient and should not if they already are one.
+ */
+export async function findDuplicatesForDetails(
+  person: PersonDetails,
+  options: { excludePatientId?: string } = {},
+): Promise<DuplicateCandidate[]> {
+  const phone = normalisePhone(person.phone);
+  const nameTokens = normaliseName(person.name);
+  if (phone.length < 10 && nameTokens.length === 0) return [];
 
   // Narrowed in the database before scoring in memory. Scoring every
   // patient against every other is fine at a few thousand rows and not
@@ -253,7 +282,7 @@ export async function findDuplicatesOf(patientId: string): Promise<DuplicateCand
   // the hard way.
   const candidates = await prisma.patient.findMany({
     where: {
-      id: { not: patientId },
+      ...(options.excludePatientId ? { id: { not: options.excludePatientId } } : {}),
       mergedIntoId: null,
       OR: [
         ...(phone.length >= 10 ? [{ phone: { contains: phone } }] : []),
@@ -270,7 +299,7 @@ export async function findDuplicatesOf(patientId: string): Promise<DuplicateCand
 
   const out: DuplicateCandidate[] = [];
   for (const c of candidates) {
-    const scored = scorePair(target, c);
+    const scored = scorePair(person, c);
     if (!scored || scored.score < 50) continue;
 
     const [visits, last] = await Promise.all([
@@ -291,6 +320,12 @@ export async function findDuplicatesOf(patientId: string): Promise<DuplicateCand
   }
 
   return out.sort((a, b) => b.score - a.score);
+}
+
+export async function findDuplicatesOf(patientId: string): Promise<DuplicateCandidate[]> {
+  const target = await prisma.patient.findUnique({ where: { id: patientId } });
+  if (!target) return [];
+  return findDuplicatesForDetails(target, { excludePatientId: patientId });
 }
 
 export type MergeResult = {
