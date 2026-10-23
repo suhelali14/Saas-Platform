@@ -141,7 +141,12 @@ async function write(entry: AuditEntry): Promise<void> {
  * exactly the entries a security review looks for). */
 export function auditAuth(
   request: FastifyRequest,
-  outcome: "LOGIN" | "LOGIN_FAILED",
+  // SESSION_TAKEOVER is a successful sign-in that ended another device's
+  // session. Recorded separately because it is the one an admin wants to
+  // see: a login repeatedly taking over means two people are sharing an
+  // account, which is both a seat the clinic has not paid for and an audit
+  // trail that names the wrong person.
+  outcome: "LOGIN" | "LOGIN_FAILED" | "SESSION_TAKEOVER",
   user: { id: string | null; name: string; role: string },
 ): void {
   void write({

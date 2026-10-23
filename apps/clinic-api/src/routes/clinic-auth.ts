@@ -3,11 +3,13 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { verifyPassword } from "../lib/password.js";
 import { signClinicToken } from "../lib/jwt.js";
-import { createSession, listSessions, newSessionId, revokeSession } from "../lib/sessions.js";
+import {
+  createSession, listSessions, newSessionId, revokeOtherSessions, revokeSession,
+} from "../lib/sessions.js";
+import { env } from "../config/env.js";
 import { requireClinicAuth } from "../plugins/auth.js";
 import { auditAuth } from "../lib/audit.js";
 import { isFeatureEnabled } from "../config/features.js";
-import { env } from "../config/env.js";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -71,6 +73,23 @@ export async function clinicAuthRoutes(app: FastifyInstance) {
       });
     }
 
+    // One device per login, unless this deployment turned it off. Done
+    // AFTER the new session exists, so a failure here leaves the person
+    // signed in on both rather than on neither -- losing a seat guarantee
+    // is a billing problem, locking a clinic out is a clinical one.
+    let endedElsewhere = 0;
+    if (env.CLINIC_SINGLE_DEVICE) {
+      try {
+        endedElsewhere = await revokeOtherSessions(user.id, sid);
+      } catch {
+        // Logged, not fatal. See above.
+        request.log.warn({ userId: user.id }, "could not end this user's other sessions");
+      }
+    }
+    if (endedElsewhere > 0) {
+      auditAuth(request, "SESSION_TAKEOVER", { id: user.id, name: user.name, role: user.role });
+    }
+
     const token = signClinicToken(user.id, user.role, sid);
     return {
       token,
@@ -78,6 +97,8 @@ export async function clinicAuthRoutes(app: FastifyInstance) {
         id: user.id, email: user.email, name: user.name,
         role: user.role, isAdmin: user.isAdmin,
       },
+      /** So the new device can say "we signed you out on your other one". */
+      endedElsewhere,
     };
   });
 

@@ -23,6 +23,29 @@ export function Login() {
     apiFetch<{ name: string }>('/public-info').then((info) => setClinicName(info.name)).catch(() => {});
   }, []);
 
+  /*
+   * Why they were sent here, if the API said.
+   *
+   * Arriving at a login screen you did not ask for, mid-task, with no
+   * explanation is the moment a receptionist decides the software is
+   * broken. The usual reason is that this account signed in on another
+   * device, and saying so turns a fault into a fact.
+   *
+   * Read once and cleared, so it does not reappear on a later deliberate
+   * sign-out.
+   */
+  useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem('clinicSignedOutReason');
+      if (reason) {
+        setError(reason);
+        sessionStorage.removeItem('clinicSignedOutReason');
+      }
+    } catch {
+      // Private mode. Nothing to show, nothing to clear.
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

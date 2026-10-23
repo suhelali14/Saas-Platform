@@ -1,7 +1,7 @@
 import fp from "fastify-plugin";
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { verifyClinicToken } from "../lib/jwt.js";
-import { readSession, touchSession } from "../lib/sessions.js";
+import { readSession, revokedReason, touchSession, type RevokedReason } from "../lib/sessions.js";
 import { prisma } from "../lib/prisma.js";
 import { auditRequest } from "../lib/audit.js";
 
@@ -15,6 +15,10 @@ declare module "fastify" {
     /** The Redis session this request arrived on. */
     clinicSessionId: string | null;
     clinicUserName: string | null;
+    /** Why the session this request carried is gone, when we know. Lets the
+     *  401 say something other than "expired" to somebody who was working
+     *  thirty seconds ago. */
+    clinicRevokedReason: RevokedReason | null;
   }
 }
 
@@ -53,6 +57,7 @@ const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest("clinicUserName", null);
   app.decorateRequest("clinicUserIsAdmin", false);
   app.decorateRequest("clinicSessionId", null);
+  app.decorateRequest("clinicRevokedReason", null);
 
   app.addHook("onRequest", async (request) => {
     const header = request.headers.authorization;
@@ -65,7 +70,12 @@ const authPlugin: FastifyPluginAsync = async (app) => {
       // A valid signature is not authorisation. The session must still
       // exist, which is what makes revocation possible at all.
       const session = await readSession(payload.sid);
-      if (!session || session.userId !== payload.clinicUserId) return;
+      if (!session || session.userId !== payload.clinicUserId) {
+        // The signature was good and the session is gone, so something
+        // ended it. Worth one lookup to be able to say what.
+        request.clinicRevokedReason = await revokedReason(payload.sid);
+        return;
+      }
 
       // And the user must still be allowed in. Checked against the
       // database rather than trusted from the session, because the
@@ -117,9 +127,30 @@ export interface ClinicAuthContext {
   sessionId: string | null;
 }
 
+/**
+ * What to tell somebody whose session is gone.
+ *
+ * "Authentication required" is accurate and useless: to a receptionist who
+ * was mid-booking it reads as the software breaking. Where the reason was
+ * recorded, it is given, along with the only thing they can do about it.
+ */
+const REVOKED_MESSAGE: Record<RevokedReason, string> = {
+  "another-device":
+    "You were signed out because this account signed in on another device. " +
+    "Each login works on one device at a time.",
+  "signed-out-elsewhere": "You were signed out from another device.",
+  "permissions-changed":
+    "Your access changed, so you were signed out. Sign in again to continue.",
+};
+
 export function requireClinicAuth(request: FastifyRequest, reply: FastifyReply): ClinicAuthContext | null {
   if (!request.clinicUserId) {
-    reply.status(401).send({ error: "Authentication required" });
+    const reason = request.clinicRevokedReason;
+    reply.status(401).send({
+      error: reason ? REVOKED_MESSAGE[reason] : "Authentication required",
+      // A code the front end can branch on without matching prose.
+      ...(reason ? { reason } : {}),
+    });
     return null;
   }
   return {

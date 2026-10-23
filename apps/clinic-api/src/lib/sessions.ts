@@ -147,13 +147,89 @@ export async function revokeSession(sid: string, userId: string): Promise<void> 
  * changed, or changes their password. All four are moments where the
  * access they currently hold should stop being the access they had.
  */
-export async function revokeAllForUser(userId: string): Promise<number> {
+export async function revokeAllForUser(
+  userId: string,
+  reason: RevokedReason = "permissions-changed",
+): Promise<number> {
   const r = redis();
   const sids = await r.smembers(userKey(userId));
   if (sids.length === 0) return 0;
+  // Recorded before the delete: after it there is nothing left to key on.
+  await markRevoked(sids, reason);
   await r.multi()
     .del(...sids.map(sessionKey))
     .del(userKey(userId))
+    .exec();
+  return sids.length;
+}
+
+/**
+ * Why a session is gone, kept after the session itself.
+ *
+ * A revoked session is a deleted row, so the next request is a bare 401 and
+ * the screen says "your session expired" -- which, to someone who was
+ * working a moment ago, reads as a bug in the software rather than as
+ * something that happened for a reason. They call the clinic's admin, who
+ * calls us.
+ *
+ * So the reason outlives the session. The key is the session id, which is
+ * already a credential the holder has, so this leaks nothing to anyone who
+ * did not have it; it holds no patient data and no user id. The TTL is
+ * longer than a session's so the explanation is still there for a laptop
+ * reopened the next morning.
+ */
+export type RevokedReason = "another-device" | "signed-out-elsewhere" | "permissions-changed";
+
+const REVOKED_TTL_SECONDS = 36 * 60 * 60;
+const revokedKey = (sid: string) => `sess:revoked:${sid}`;
+
+async function markRevoked(sids: readonly string[], reason: RevokedReason): Promise<void> {
+  if (sids.length === 0) return;
+  const r = redis();
+  const multi = r.multi();
+  for (const sid of sids) multi.set(revokedKey(sid), reason, "EX", REVOKED_TTL_SECONDS);
+  await multi.exec();
+}
+
+/** Why this session ended, if we recorded it. */
+export async function revokedReason(sid: string): Promise<RevokedReason | null> {
+  try {
+    const raw = await redis().get(revokedKey(sid));
+    return raw === "another-device" || raw === "signed-out-elsewhere" || raw === "permissions-changed"
+      ? raw
+      : null;
+  } catch {
+    // The reason is a courtesy. Failing to read it must never turn a
+    // clean 401 into a 500.
+    return null;
+  }
+}
+
+/**
+ * End every session this user holds except the one just created.
+ *
+ * This is what makes a seat a seat. Without it, one login works on any
+ * number of devices at once, so a five-person front desk needs one
+ * account -- which undercuts the plan's seat cap and, worse, makes the
+ * audit trail useless, because every action anyone takes is attributed to
+ * whoever owns the shared password. Under the DPDP Act the log has to say
+ * who looked at a record, and "one of the five people who know Priya's
+ * password" is not an answer.
+ *
+ * Newest wins, rather than refusing the new sign-in. Refusing is stronger
+ * against sharing, but it locks out anyone who closed a browser without
+ * signing out, and the clinic cannot wait twelve hours for a session to
+ * expire during a consultation. Two people sharing one login log each
+ * other out every few minutes, which is unusable enough to stop it.
+ */
+export async function revokeOtherSessions(userId: string, keepSid: string): Promise<number> {
+  const r = redis();
+  const sids = (await r.smembers(userKey(userId))).filter((s) => s !== keepSid);
+  if (sids.length === 0) return 0;
+  await markRevoked(sids, "another-device");
+  await r.multi()
+    .del(...sids.map(sessionKey))
+    .srem(userKey(userId), ...sids)
     .exec();
   return sids.length;
 }

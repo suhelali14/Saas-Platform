@@ -108,8 +108,30 @@ async function performFetch<T>(endpoint: string, options: ApiOptions): Promise<T
 
   if (response.status === 401) {
     localStorage.removeItem('clinicAccessToken');
+    /*
+     * Carry the reason to the login screen.
+     *
+     * The API now says why a session is gone -- most usefully that this
+     * account signed in somewhere else, since one login works on one device
+     * at a time. Dropping that and showing "Session expired" sends the
+     * person looking for a fault in the software instead of remembering
+     * they opened the portal on their phone ten minutes ago.
+     *
+     * sessionStorage rather than a query string: the message is for this
+     * tab, and a reason in the URL survives being bookmarked and shared.
+     */
+    const body = await response.json().catch(() => null);
+    const message = typeof body?.error === 'string' ? body.error : null;
+    if (message) {
+      try {
+        sessionStorage.setItem('clinicSignedOutReason', message);
+      } catch {
+        // Private mode, or storage refused. The redirect still happens;
+        // only the explanation is lost.
+      }
+    }
     window.location.href = '/login';
-    throw new ApiError('Session expired');
+    throw new ApiError(message ?? 'Session expired');
   }
 
   const data = await response.json().catch(() => null);
