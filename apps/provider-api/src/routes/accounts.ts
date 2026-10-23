@@ -11,7 +11,7 @@ import { validateSlug, publicHostFor, portalHostFor } from "../lib/subdomain.js"
 import { env } from "../config/env.js";
 import { queueHealth, enqueueDomainSync } from "../lib/provision-jobs.js";
 
-const PLANS = ["BASIC", "STANDARD", "PREMIUM"] as const;
+const PLANS = ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
 
 /** Domains are typed by hand from a sales call, so they arrive with

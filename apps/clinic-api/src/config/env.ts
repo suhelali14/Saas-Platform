@@ -11,9 +11,26 @@ const envSchema = z.object({
   // cancel. render-compose.sh gives each clinic its own.
   REDIS_URL: z.string().min(1, "REDIS_URL is required -- see .env.example"),
 
-  // Gates which route modules this deployment registers at boot -- see
-  // src/config/features.ts. One value per deployment, set once in .env.
-  CLINIC_PLAN: z.enum(["BASIC", "STANDARD", "PREMIUM"]).default("BASIC"),
+  // Gates which route modules this deployment registers at boot, and how
+  // many staff logins it allows -- see src/config/features.ts. One value
+  // per deployment, set once in .env.
+  CLINIC_PLAN: z.enum(["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"]).default("BASIC"),
+
+  // Optional. Overrides the plan's seat cap in either direction, for a
+  // deal that included extra logins. 0 means unlimited. Left unset, the
+  // plan's own number applies, which is the normal case.
+  CLINIC_MAX_USERS: z.coerce.number().int().min(0).max(500).optional(),
+
+  // Signing in on a second device ends the session on the first. On by
+  // default: seats are what the plan sells, so one login being used by a
+  // whole front desk is both a billing hole and an audit trail that
+  // attributes everyone's actions to one person. A clinic that genuinely
+  // needs one person on two devices turns it off here rather than sharing
+  // a password.
+  CLINIC_SINGLE_DEVICE: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
 
   // Optional. Powers the "translate this page into Marathi" button on the
   // website builder. Deliberately optional: without either key the

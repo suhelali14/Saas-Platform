@@ -53,6 +53,7 @@ enum PlanTier {
   BASIC
   STANDARD
   PREMIUM
+  ENTERPRISE
 }
 
 enum BillingCycle {

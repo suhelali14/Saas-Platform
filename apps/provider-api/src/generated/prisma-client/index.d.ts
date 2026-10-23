@@ -71,7 +71,8 @@ export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus]
 export const PlanTier: {
   BASIC: 'BASIC',
   STANDARD: 'STANDARD',
-  PREMIUM: 'PREMIUM'
+  PREMIUM: 'PREMIUM',
+  ENTERPRISE: 'ENTERPRISE'
 };
 
 export type PlanTier = (typeof PlanTier)[keyof typeof PlanTier]

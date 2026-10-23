@@ -24,6 +24,17 @@ import { Pick } from '../components/Field';
  * and still cannot prescribe, and an employed doctor is a doctor.
  */
 
+/** What the plan allows, as the staff list reports it. */
+interface Seats {
+  tier: string;
+  label: string;
+  used: number;
+  /** null when the plan has no limit. */
+  max: number | null;
+  remaining: number | null;
+  canAddMore: boolean;
+}
+
 interface StaffUser {
   id: string;
   email: string;
@@ -47,14 +58,16 @@ export function Staff() {
   const toast = useToast();
   const { user: me } = useClinicAuth();
   const [staff, setStaff] = useState<StaffUser[] | null>(null);
+  const [seats, setSeats] = useState<Seats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTIONIST', isAdmin: false });
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch<{ data: StaffUser[] }>('/staff');
+      const res = await apiFetch<{ data: StaffUser[]; seats?: Seats }>('/staff');
       setStaff(res.data);
+      setSeats(res.seats ?? null);
       setError(null);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not load staff.');
@@ -78,6 +91,8 @@ export function Staff() {
 
   const update = async (u: StaffUser, patch: Partial<Pick2>, done: string) => {
     try {
+      // Deactivating frees a seat and reactivating takes one, so the count
+      // on screen has to come back from the server rather than be inferred.
       const res = await apiFetch<{ endedSessions: number }>(`/staff/${u.id}`, { method: 'PATCH', data: patch });
       // Saying so matters: an admin removing someone needs to know the
       // change reached the device they are worried about, not just the
@@ -110,8 +125,48 @@ export function Staff() {
           <p className="mt-0.5 text-sm text-muted-foreground">
             What someone does, and whether they help run the clinic, are separate.
           </p>
+          {seats && (
+            /*
+             * The seat count, before the form rather than after it.
+             *
+             * The API refuses the create with a message naming the next tier
+             * up, but that arrives once somebody has typed a name, an email
+             * and a password -- too late to be useful and annoying enough to
+             * read as a bug. Shown here, it is a fact about the plan.
+             */
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {seats.max === null ? (
+                <>
+                  <span className="text-foreground/70">{seats.label} plan</span>
+                  {' · '}{seats.used} {seats.used === 1 ? 'login' : 'logins'}, no limit
+                </>
+              ) : (
+                <>
+                  <span className="text-foreground/70">{seats.label} plan</span>
+                  {' · '}
+                  <span className={seats.canAddMore ? '' : 'text-ink-warning'}>
+                    {seats.used} of {seats.max} {seats.max === 1 ? 'login' : 'logins'} in use
+                  </span>
+                  {seats.canAddMore
+                    ? `, ${seats.remaining} left`
+                    : ' — deactivate someone who has left, or move up a plan for more'}
+                </>
+              )}
+            </p>
+          )}
         </div>
-        <Button icon={<Plus size={14} />} onClick={() => setShowNew((v) => !v)}>
+        <Button
+          icon={<Plus size={14} />}
+          onClick={() => setShowNew((v) => !v)}
+          // Only blocked when the form is closed: somebody who already has
+          // it open should still be able to press Cancel.
+          disabled={!showNew && seats ? !seats.canAddMore : false}
+          title={
+            !showNew && seats && !seats.canAddMore
+              ? `All ${seats.max} logins on the ${seats.label} plan are in use.`
+              : undefined
+          }
+        >
           {showNew ? 'Cancel' : 'Add someone'}
         </Button>
       </div>

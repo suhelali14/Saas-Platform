@@ -5,12 +5,16 @@ import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth } from "../plugins/auth.js";
 import { hashPassword } from "../lib/password.js";
 import { listSessions, revokeAllForUser } from "../lib/sessions.js";
+import { currentPlan, maxUsers, seatUsage } from "../config/features.js";
 
 /**
  * Who works here, and what each of them may do.
  *
- * Gated behind the STANDARD+ plan feature ("staff") -- app.ts only
- * registers this module when isFeatureEnabled("staff") is true.
+ * Available on every plan. What the plan decides is how many people can
+ * hold an active login at once -- see config/features.ts. Staff management
+ * used to be the STANDARD+ differentiator, which left a BASIC clinic
+ * sharing one password between the doctor and the front desk, and an audit
+ * trail that attributed every action to the doctor.
  *
  * ── Two questions, not one ──────────────────────────────────────────
  *
@@ -69,6 +73,36 @@ async function wouldOrphanClinic(targetId: string, next: { isAdmin?: boolean; is
   return others === 0;
 }
 
+/** Active logins right now. Deactivated staff do not hold a seat. */
+async function activeUserCount(): Promise<number> {
+  return prisma.clinicUser.count({ where: { isActive: true } });
+}
+
+/**
+ * Is there room for one more active login?
+ *
+ * Returns the message to send when there is not, so the caller cannot
+ * accidentally refuse without saying why -- and the message names the
+ * current plan and the next one up, because "limit reached" with no way
+ * forward is a support call rather than an upgrade.
+ */
+async function seatCheck(): Promise<{ ok: true } | { ok: false; message: string; usage: unknown }> {
+  const max = maxUsers();
+  if (max === null) return { ok: true };
+  const used = await activeUserCount();
+  if (used < max) return { ok: true };
+
+  const plan = currentPlan();
+  const nextUp = plan.tier === "BASIC" ? "Standard" : plan.tier === "STANDARD" ? "Premium" : "Enterprise";
+  return {
+    ok: false,
+    usage: seatUsage(used),
+    message:
+      `The ${plan.label} plan covers ${max} active ${max === 1 ? "login" : "logins"} and all ` +
+      `${max} are in use. Deactivate someone who has left, or move to ${nextUp} for more seats.`,
+  };
+}
+
 export async function clinicStaffRoutes(app: FastifyInstance) {
   app.get("/api/clinic/staff", async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
@@ -87,7 +121,9 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
         activeSessions: s.isActive ? (await listSessions(s.id)).length : 0,
       })),
     );
-    return { data: withSessions };
+    // The cap travels with the list so the screen can show seats used
+    // before somebody fills in a form they are not allowed to submit.
+    return { data: withSessions, seats: seatUsage(staff.filter((s) => s.isActive).length) };
   });
 
   app.post("/api/clinic/staff", async (request, reply) => {
@@ -101,6 +137,11 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
 
     const existing = await prisma.clinicUser.findUnique({ where: { email: parsed.data.email } });
     if (existing) return reply.status(409).send({ error: "A staff account with this email already exists" });
+
+    const seats = await seatCheck();
+    if (!seats.ok) {
+      return reply.status(409).send({ error: seats.message, seats: seats.usage });
+    }
 
     const passwordHash = await hashPassword(parsed.data.password);
     const user = await prisma.clinicUser.create({
@@ -134,6 +175,18 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
           "This is the clinic's only administrator. Give someone else admin rights first, " +
           "or nobody will be able to manage staff or settings.",
       });
+    }
+
+    // Switching someone back on takes a seat, same as creating them.
+    // Guarding only the create would make the cap avoidable in three
+    // clicks -- deactivate one, add two, reactivate the first -- and a
+    // limit people route around still refuses the honest case while
+    // stopping nothing.
+    if (parsed.data.isActive === true && existing.isActive === false) {
+      const seats = await seatCheck();
+      if (!seats.ok) {
+        return reply.status(409).send({ error: seats.message, seats: seats.usage });
+      }
     }
 
     /*

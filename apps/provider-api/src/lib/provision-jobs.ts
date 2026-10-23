@@ -40,7 +40,7 @@ export type ProvisionRequest = {
   name: string;
   doctorName: string;
   doctorEmail: string;
-  plan: "BASIC" | "STANDARD" | "PREMIUM";
+  plan: "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE";
   databaseUrl: string;
   /** Any custom domain already recorded for this clinic. A domain set
    *  during the sales call, before provisioning, would otherwise be left

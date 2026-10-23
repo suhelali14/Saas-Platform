@@ -1,0 +1,15 @@
+-- A fourth plan tier.
+--
+-- Seats are what a plan buys now rather than which modules exist, and the
+-- ladder being sold runs 3k / 7k / 12k / negotiated. ENTERPRISE is the
+-- negotiated one: unlimited logins, because a number in a table would be a
+-- guess at a hospital's org chart.
+--
+-- Added at the end of the enum deliberately. Postgres orders enum values by
+-- their declaration, and the console sorts plans by that order to decide
+-- what counts as an upgrade -- so inserting this anywhere but last would
+-- silently reorder the ladder.
+--
+-- ALTER TYPE ... ADD VALUE cannot run inside a transaction before
+-- Postgres 12. Every deployment of this is on Neon (15+), where it can.
+ALTER TYPE "PlanTier" ADD VALUE IF NOT EXISTS 'ENTERPRISE';

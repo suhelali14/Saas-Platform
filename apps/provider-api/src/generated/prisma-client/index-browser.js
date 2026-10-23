@@ -233,7 +233,8 @@ exports.AccountStatus = exports.$Enums.AccountStatus = {
 exports.PlanTier = exports.$Enums.PlanTier = {
   BASIC: 'BASIC',
   STANDARD: 'STANDARD',
-  PREMIUM: 'PREMIUM'
+  PREMIUM: 'PREMIUM',
+  ENTERPRISE: 'ENTERPRISE'
 };
 
 exports.BillingCycle = exports.$Enums.BillingCycle = {
