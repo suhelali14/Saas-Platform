@@ -7,6 +7,7 @@
  * JavaScript that matters here is the charts, the fare selector and the form.
  */
 import { useCallback } from 'react';
+import { MotionProvider, Reveal } from '@/components/Reveal';
 import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, type Locale, type Page } from '@/content/index';
 import { Rail } from '@/sections/Rail';
@@ -40,6 +41,7 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
   const t = content[locale];
 
   return (
+    <MotionProvider>
     <div className="relative z-10 flex min-h-screen flex-col">
       <a
         href="#main"
@@ -58,16 +60,20 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 what is in it, why it is worth money, what else comes with it,
                 the price, who you are dealing with, the awkward questions,
                 then the counter. */}
+            {/* The hero is deliberately NOT wrapped. It is on screen before
+                anyone scrolls, so fading it in is a delay dressed as polish
+                -- and it is the one block that must be readable the instant
+                the prerendered HTML lands. */}
             <Hero onEnquire={onEnquire} />
-            <ServiceChart />
-            <DayCharts />
-            <Manifest />
-            <Growth />
-            <Services />
-            <Fares onEnquire={onEnquire} />
-            <About />
-            <Conditions />
-            <Enquiry />
+            <Reveal><ServiceChart /></Reveal>
+            <Reveal><DayCharts /></Reveal>
+            <Reveal><Manifest /></Reveal>
+            <Reveal><Growth /></Reveal>
+            <Reveal><Services /></Reveal>
+            <Reveal><Fares onEnquire={onEnquire} /></Reveal>
+            <Reveal><About /></Reveal>
+            <Reveal><Conditions /></Reveal>
+            <Reveal><Enquiry /></Reveal>
           </>
         )}
 
@@ -83,11 +89,11 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 </p>
               </Board>
             </section>
-            <Fares onEnquire={onEnquire} />
-            <Services />
-            <About />
-            <Conditions />
-            <Enquiry />
+            <Reveal><Fares onEnquire={onEnquire} /></Reveal>
+            <Reveal><Services /></Reveal>
+            <Reveal><About /></Reveal>
+            <Reveal><Conditions /></Reveal>
+            <Reveal><Enquiry /></Reveal>
           </>
         )}
 
@@ -117,6 +123,7 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
 
       <Footer />
     </div>
+    </MotionProvider>
   );
 }
 
