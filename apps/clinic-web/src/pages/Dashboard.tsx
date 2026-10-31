@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '../components/Button';
 import { Card, CardContent } from '../components/ui';
 import { SkeletonStats } from '../components/Skeleton';
+import { BarList, Sparkline, StageFlow } from '../components/charts';
 import { CATEGORY_BADGES } from '../lib/categories';
 import { usePolling } from '../lib/usePolling';
 
@@ -25,7 +26,19 @@ import { usePolling } from '../lib/usePolling';
  * Not a chart. The data's job here is a handful of single headlines, and
  * a stat tile *is* the chart for that — Analytics already owns the trend
  * line, and a plot to interpret is the wrong thing to put in front of
- * someone with a patient waiting. The one review of clinical dashboards
+ * someone with a patient waiting.
+ *
+ * Two things since added test that rule rather than break it. A sparkline
+ * sits beside "seen today" because the number alone answers nothing:
+ * twelve patients is a quiet day or a busy one, and only the shape of the
+ * fortnight says which. It is a scale for a figure, not a plot to read —
+ * deliberately not interactive, with the date-by-date question left on
+ * Analytics where it belongs. And today's flow replaces five numbers that
+ * were already on this screen, scattered; one row of comparable bars is
+ * less to interpret than five tiles, not more.
+ *
+ * The test each had to pass: does it let somebody act sooner? Anything
+ * that only satisfies curiosity belongs on Analytics. The one review of clinical dashboards
  * with any rigour (https://www.jmir.org/2026/1/e77361) found 78% of them
  * are built ad hoc, and names what matters: actionable metrics, visible
  * freshness, priority ordering, role-based views.
@@ -56,6 +69,10 @@ type DashboardData = {
   today: {
     waiting: number; inProgress: number; completed: number; noShow: number;
     cancelled: number; booked: number; awaitingVitals: number;
+    /** Who is carrying today. Empty on a single-doctor practice. */
+    loadByDoctor: { doctorId: string; doctorName: string; booked: number; seen: number }[];
+    /** The last 14 days including today, so today's count has a scale. */
+    dailyContext: { date: string; count: number }[];
     nowServing: { patientName: string; uhid: string; allergies: string | null; doctorName: string | null } | null;
     next: {
       patientName: string; uhid: string; category: string;
@@ -251,7 +268,17 @@ export function Dashboard() {
 
       {/* ── The rest of today, then the money ──────────────────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Seen today" value={String(today.completed)} hint={today.booked ? `of ${today.booked} booked` : undefined} />
+        <Stat
+          label="Seen today"
+          value={String(today.completed)}
+          hint={today.booked ? `of ${today.booked} booked` : undefined}
+          // The fortnight behind the number. Without it "9" is unreadable:
+          // nobody can tell a quiet Tuesday from a rush without knowing
+          // what this clinic's days usually look like.
+          aside={
+            today.dailyContext?.length >= 2 ? <Sparkline data={today.dailyContext} /> : undefined
+          }
+        />
         <Stat
           label="Awaiting vitals"
           value={String(today.awaitingVitals)}
@@ -279,6 +306,59 @@ export function Dashboard() {
           <Stat label="Did not arrive" value={String(today.noShow)} hint="marked no-show" />
         )}
       </div>
+
+      {/* ── Where today has got to ────────────────────────────────────────
+          Shown only once there is a day to describe. On an empty morning
+          four bars at zero is furniture, and the hero card above already
+          says the clinic has nobody waiting. */}
+      {today.booked > 0 && (
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <Card>
+            <CardContent className="p-4">
+              <h2 className="mb-3 text-[11px] text-muted-foreground">Today&apos;s flow</h2>
+              <StageFlow
+                total={today.booked}
+                stages={[
+                  { label: 'Booked', value: today.booked },
+                  { label: 'Waiting', value: today.waiting },
+                  { label: 'With doctor', value: today.inProgress },
+                  { label: 'Seen', value: today.completed },
+                ]}
+              />
+              {/* The ones that fell out of the flow rather than moved
+                  through it, named rather than drawn: a bar for "did not
+                  arrive" alongside the stages would read as a fifth stage,
+                  which is the opposite of what happened. */}
+              {(today.noShow > 0 || today.cancelled > 0) && (
+                <p className="mt-2.5 border-t border-border/10 pt-2.5 text-[11px] text-muted-foreground/70">
+                  {[
+                    today.noShow > 0 && `${today.noShow} did not arrive`,
+                    today.cancelled > 0 && `${today.cancelled} cancelled`,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Only with a second doctor. On a single-doctor practice this is
+              one bar at 100%, which tells them something they know. */}
+          {today.loadByDoctor?.length > 1 && (
+            <Card>
+              <CardContent className="p-4">
+                <h2 className="mb-3 text-[11px] text-muted-foreground">
+                  Booked today, by doctor
+                </h2>
+                <BarList
+                  items={today.loadByDoctor.map((d) => ({
+                    label: d.doctorName,
+                    value: d.booked,
+                  }))}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {stock && (stock.expiringSoon > 0 || stock.lowStock > 0) && (
         <p className="mt-4 text-xs text-muted-foreground">
@@ -339,15 +419,31 @@ function useChanged(value: string): boolean {
   return changed;
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({
+  label, value, hint, aside,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  /** A small mark that gives the figure a scale, such as a sparkline. */
+  aside?: React.ReactNode;
+}) {
   const changed = useChanged(value);
   return (
     <Card>
       <CardContent className="p-4">
         <p className="text-[11px] text-muted-foreground">{label}</p>
-        <p className="mt-1 inline-block text-2xl font-semibold leading-none">
-          <span className={changed ? 'just-changed' : undefined}>{value}</span>
-        </p>
+        {/* The figure and its scale on one baseline, the mark pushed right
+            so the numbers down the row of tiles still line up. `items-end`
+            rather than centre: a sparkline hangs off the number's baseline,
+            which is what makes it read as an annotation on the figure
+            rather than a second thing in the tile. */}
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <p className="inline-block text-2xl font-semibold leading-none">
+            <span className={changed ? 'just-changed' : undefined}>{value}</span>
+          </p>
+          {aside && <span className="shrink-0 leading-none">{aside}</span>}
+        </div>
         {hint && <p className="mt-1.5 text-[11px] text-muted-foreground/70">{hint}</p>}
       </CardContent>
     </Card>

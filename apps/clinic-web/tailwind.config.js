@@ -80,6 +80,16 @@ export default {
           2: "hsl(var(--chart-2))",
           grid: "hsl(var(--chart-grid))",
         },
+        // An ordinal ramp for a sequence whose order carries meaning --
+        // today's queue stages. Separate from `chart` because these are not
+        // series identities and must never be used as one: four stages of
+        // one thing, not four things.
+        stage: {
+          1: "hsl(var(--stage-1))",
+          2: "hsl(var(--stage-2))",
+          3: "hsl(var(--stage-3))",
+          4: "hsl(var(--stage-4))",
+        },
         ink: {
           success: "hsl(var(--ink-success))",
           warning: "hsl(var(--ink-warning))",

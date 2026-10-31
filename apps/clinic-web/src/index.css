@@ -143,6 +143,22 @@
      */
     --chart-1: 199 85% 45%;
     --chart-2: 38 95% 39%;
+
+    /* An ORDINAL ramp, for a sequence whose order is the point: booked ->
+       waiting -> in progress -> seen. Not categorical, because swapping two
+       stages would change what the chart means, and not the status tokens,
+       because none of these stages is good or bad.
+       One hue, monotone lightness, and the anchor is FLIPPED here: on a
+       near-black ground "further along" has to read lighter, so the ramp
+       runs dark -> light. Checked, not chosen:
+         node validate_palette.js "#126991,#188abf,#25a8e4,#57bcea"            --ordinal --mode dark --surface "#13161b"
+       Re-run it before changing a step. The first attempt failed the
+       adjacent-delta-L gate twice at a glance-identical spacing. */
+    --stage-1: 199 78% 32%;
+    --stage-2: 199 78% 42%;
+    --stage-3: 199 78% 52%;
+    --stage-4: 199 78% 63%;
+
     /* Grid and axis are structure, not data, so they recede. Derived
        from the foreground at low alpha in use, not stated as a colour,
        so they follow the theme. */
@@ -231,6 +247,18 @@
        are separate tokens rather than aliases. */
     --chart-1: 203 85% 38%;
     --chart-2: 28 88% 33%;
+
+    /* The same ordinal ramp on a white ground, running light -> dark. Its
+       own steps rather than an inversion of the dark ones: the light end
+       has to clear 2:1 against white, which is a different constraint from
+       clearing a near-black surface, and the first version of this failed
+       that gate at 1.76:1.
+         node validate_palette.js "#6cb6e5,#40a1dd,#2388c7,#1c6b9c"            --ordinal --mode light */
+    --stage-1: 203 70% 66%;
+    --stage-2: 203 70% 56%;
+    --stage-3: 203 70% 46%;
+    --stage-4: 203 70% 36%;
+
     --chart-grid: 215 55% 18%;
 
     /* Tinted toward the page's own blue rather than neutral grey: a grey

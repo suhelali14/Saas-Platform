@@ -106,6 +106,63 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
     const next = waiting[0] ?? null;
     const inProgress = todaysAppointments.find((a) => a.status === "IN_PROGRESS") ?? null;
 
+    /**
+     * Who is carrying today, from the rows already fetched.
+     *
+     * No extra query: the doctor is already selected above for "now
+     * serving". On a single-doctor practice this is one row and the screen
+     * leaves it out; it earns its place the moment a second doctor exists,
+     * which is the case this product is being sold into.
+     */
+    const loadByDoctor = [...todaysAppointments
+      .filter((a) => a.doctor)
+      .reduce((acc, a) => {
+        const key = a.doctor!.id;
+        const row = acc.get(key) ?? { doctorId: key, doctorName: a.doctor!.name, booked: 0, seen: 0 };
+        row.booked += 1;
+        if (a.status === "COMPLETED") row.seen += 1;
+        acc.set(key, row);
+        return acc;
+      }, new Map<string, { doctorId: string; doctorName: string; booked: number; seen: number }>())
+      .values()]
+      .sort((a, b) => b.booked - a.booked);
+
+    /**
+     * The last fortnight, so today has something to be compared against.
+     *
+     * "Twelve patients" answers nothing on its own -- the question a doctor
+     * actually has is whether that is a normal Tuesday. Grouped in the
+     * database rather than by pulling a fortnight of rows into memory.
+     *
+     * Dates are formatted from the local day, not from toISOString(): the
+     * clinic's day boundary is local midnight, and serialising in UTC puts
+     * every appointment before about 5:30am IST on the previous day. That
+     * exact bug has been fixed twice in this codebase already.
+     */
+    const CONTEXT_DAYS = 14;
+    const contextStart = new Date(start);
+    contextStart.setDate(contextStart.getDate() - (CONTEXT_DAYS - 1));
+    const contextRows = await prisma.appointment.findMany({
+      where: { scheduledAt: { gte: contextStart, lt: end } },
+      select: { scheduledAt: true },
+    });
+    const perDay = new Map<string, number>();
+    for (let i = 0; i < CONTEXT_DAYS; i += 1) {
+      const d = new Date(contextStart);
+      d.setDate(d.getDate() + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      // Every day present, including the empty ones: a gap silently
+      // redrawn as a shorter chart reads as a quiet fortnight rather than
+      // a closed Sunday.
+      perDay.set(key, 0);
+    }
+    for (const r of contextRows) {
+      const d = r.scheduledAt;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (perDay.has(key)) perDay.set(key, perDay.get(key)! + 1);
+    }
+    const dailyContext = [...perDay.entries()].map(([date, count]) => ({ date, count }));
+
     const today = {
       waiting: waiting.length,
       inProgress: byStatus("IN_PROGRESS"),
@@ -113,6 +170,10 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
       noShow: byStatus("NO_SHOW"),
       cancelled: byStatus("CANCELLED"),
       booked: todaysAppointments.length,
+      /** Who is carrying today. Empty on a single-doctor practice. */
+      loadByDoctor,
+      /** The last 14 days including today, so today has a scale. */
+      dailyContext,
       /** Vitals not yet taken for someone already waiting -- reception's
        *  job, and the thing that makes the consultation itself faster. */
       awaitingVitals: waiting.filter((a) => {

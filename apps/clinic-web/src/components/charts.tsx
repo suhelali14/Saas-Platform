@@ -301,3 +301,139 @@ export function BarList({ items, series = 1 }: { items: BarItem[]; series?: 1 | 
     </ul>
   );
 }
+
+export interface Stage {
+  /** The stage's name, as the person reading would say it. */
+  label: string;
+  value: number;
+}
+
+/**
+ * Today's queue as a sequence, not five unrelated numbers.
+ *
+ * ── Why this is ordinal and not categorical ─────────────────────────
+ *
+ * Booked, waiting, in progress, seen is an ORDER: swapping two of them
+ * changes what the row means. So it takes a one-hue ramp with monotone
+ * lightness (`--stage-*`), which puts the progression in the colour, rather
+ * than four categorical hues -- which would say "four unrelated things" --
+ * and rather than the status tokens, since none of these stages is good or
+ * bad. A patient waiting is not a warning.
+ *
+ * The ramp has its own steps per theme and was checked with the ordinal
+ * validator, not chosen by eye; see the note beside `--stage-1` in
+ * index.css. Two early attempts failed, one on light-end contrast against
+ * white and one on a step gap that looked fine and measured too small.
+ *
+ * ── Why the widths are shares of the first stage ────────────────────
+ *
+ * Every stage is drawn against `booked`, so the bars shorten along the row
+ * and the drop-off is the thing you see. Scaling each to the largest value
+ * instead would make the first stage full-width and tell you nothing.
+ */
+export function StageFlow({ stages, total }: { stages: Stage[]; total: number }) {
+  const base = Math.max(1, total);
+
+  return (
+    <ol className="flex flex-col gap-1.5">
+      {stages.map((s, i) => {
+        const share = (s.value / base) * 100;
+        return (
+          <li key={s.label} className="flex items-center gap-2.5">
+            <span className="w-24 shrink-0 text-xs text-muted-foreground">{s.label}</span>
+            <span className="relative h-5 flex-1 overflow-hidden rounded-sm bg-foreground/[0.04]">
+              <span
+                className="absolute inset-y-0 left-0 rounded-r-[4px]"
+                style={{
+                  // A stage with nobody in it still shows a sliver, so the
+                  // row does not look like a rendering failure.
+                  width: `${Math.max(s.value > 0 ? 2 : 0, share)}%`,
+                  background: `hsl(var(--stage-${i + 1}))`,
+                  transition: 'width var(--dur-slow) var(--ease-out)',
+                }}
+              />
+            </span>
+            <span className="w-7 shrink-0 text-right text-xs font-medium tabular-nums">{s.value}</span>
+            {/* The share, because "4 of 12" is the reading, and a bar
+                length alone makes the eye do arithmetic. Hidden on the
+                narrowest phones, where the number itself is enough. */}
+            <span className="hidden w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground/70 sm:inline">
+              {total > 0 ? `${Math.round(share)}%` : '—'}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/**
+ * A fortnight of appointment counts, small, beside today's number.
+ *
+ * Today's count answers nothing on its own: twelve patients is a quiet day
+ * or a busy one depending on the clinic, and the doctor already knows which
+ * -- the software does not. So the number gets a scale.
+ *
+ * Deliberately not interactive, which is the one case the hover rule
+ * exempts: this is a sparkline read as a shape next to a figure, not a
+ * chart read for individual values. The same data is on Analytics with a
+ * full hover layer and a date axis, which is where that question belongs.
+ * It carries a text summary instead, so the shape is not the only way in.
+ */
+export function Sparkline({
+  data,
+  width = 96,
+  height = 28,
+}: {
+  data: TrendPoint[];
+  width?: number;
+  height?: number;
+}) {
+  if (data.length < 2) return null;
+
+  const counts = data.map((d) => d.count);
+  const max = Math.max(1, ...counts);
+  const step = width / (data.length - 1);
+  // Inset by the stroke's half-width top and bottom, or a peak at the
+  // maximum is clipped in half by the viewBox edge.
+  const inset = 1.5;
+  const y = (v: number) => inset + (1 - v / max) * (height - inset * 2);
+  const points = counts.map((c, i) => `${(i * step).toFixed(1)},${y(c).toFixed(1)}`).join(' ');
+
+  const today = counts[counts.length - 1] ?? 0;
+  const busiest = Math.max(...counts);
+  const typical = [...counts].sort((a, b) => a - b)[Math.floor(counts.length / 2)] ?? 0;
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label={`${data.length} days to today. Today ${today}, typical ${typical}, busiest ${busiest}.`}
+      className="overflow-visible"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="hsl(var(--chart-1))"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        // Thin marks, and the line is the only ink: no grid, no axis, no
+        // fill. At 28px tall any of those is noise rather than structure.
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* Today, marked. A sparkline whose last point is not findable is a
+          decoration. 3.5px radius on a 2px line reads as a terminus. */}
+      <circle
+        cx={(counts.length - 1) * step}
+        cy={y(today)}
+        r={3.5}
+        fill="hsl(var(--chart-1))"
+        stroke="hsl(var(--card))"
+        strokeWidth={2}
+      />
+    </svg>
+  );
+}
