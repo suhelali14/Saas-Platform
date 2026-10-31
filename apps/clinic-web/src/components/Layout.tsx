@@ -139,6 +139,26 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground md:flex">
+      {/*
+        Past the nav, in one key.
+
+        The sidebar holds twelve destinations, and without this a keyboard
+        or screen-reader user tabbed through all twelve to reach the content
+        of every single screen -- then through them again on the next one.
+        The patient site has had a skip link since it was built; the portal,
+        which is the thing staff use all day, did not.
+
+        Visible only when focused, so it costs nothing to anyone using a
+        mouse. It is the first element in the DOM because a skip link that
+        is not first is a link you have to tab to in order to skip tabbing.
+      */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
+
       {/* ── Mobile top bar ──────────────────────────────────────────────── */}
       <header
         className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/10 bg-card/95 backdrop-blur"
@@ -198,7 +218,7 @@ export function Layout() {
 
       {/* min-w-0 stops a wide table inside from stretching the flex row and
           pushing the sidebar off screen. */}
-      <main className="flex-1 min-w-0">
+      <main id="main" className="flex-1 min-w-0">
         {/* Above every portal screen, because the person who can fill in
             the clinic's website did not come here to look at it. */}
         <SetupPrompt />
