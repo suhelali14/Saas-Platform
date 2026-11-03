@@ -461,6 +461,25 @@
       radial-gradient(90% 120% at 22% 0%, rgb(190 215 235 / 0.07), transparent 65%);
   }
 
+  /* The lamp on the enamel. Only once the lit ground is running
+     (html.lamp-on), at the lamp's own viewport position, so the board and
+     the steel around it are lit by one light. */
+  html.lamp-on .board::before {
+    background:
+      radial-gradient(
+        34rem circle at var(--lamp-x, 50%) var(--lamp-y, -20%),
+        rgb(255 228 180 / 0.06),
+        transparent 70%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgb(255 255 255 / 0.022) 0 1px,
+        transparent 1px 4px
+      ),
+      radial-gradient(90% 120% at 22% 0%, rgb(190 215 235 / 0.07), transparent 65%);
+    background-attachment: fixed, scroll, scroll;
+  }
+
   .board > * {
     position: relative;
   }

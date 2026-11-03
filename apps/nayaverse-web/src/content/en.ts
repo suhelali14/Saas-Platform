@@ -419,6 +419,10 @@ export const en = {
       'Nayaverse — business software built in India, for how Indian businesses actually run.',
       'Full data export from the first day. One clinic live in Sangli; every other row is being built, and says so.',
     ],
+    studio: {
+      label: 'Studio',
+      note: 'Also from Nayaverse: Studio, for reels scripted, cut and captioned in the browser.',
+    },
     legal:
       'No patient testimonials are published anywhere in this product. The NMC Code of Medical Ethics prohibits a registered practitioner requesting or publishing them.',
   },

@@ -129,6 +129,8 @@ jobs:
           # the code compiles and sets this nowhere, so write-shell warns there.
           SEO_REQUIRE_DIRECTORY: "1"
           VITE_BUILD_SHA: ${{ github.sha }}
+          # nayaverse-web links to Studio only once this variable is set; see content/contact.ts.
+          VITE_STUDIO_URL: ${{ vars.STUDIO_URL }}
         run: npm run --workspace "apps/${{ matrix.app }}" build
 
       # A prerender that silently produces an empty root still builds, still
@@ -175,6 +177,8 @@ jobs:
           VAR_ORG: ${{ vars.VERCEL_ORG_ID }}
           VAR_PROJECT: ${{ vars[matrix.project_id_secret] }}
           VITE_BUILD_SHA: ${{ github.sha }}
+          # nayaverse-web links to Studio only once this variable is set; see content/contact.ts.
+          VITE_STUDIO_URL: ${{ vars.STUDIO_URL }}
         working-directory: apps/${{ matrix.app }}
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
@@ -209,6 +213,7 @@ jobs:
             echo "VITE_PLATFORM_DOMAIN=$VITE_PLATFORM_DOMAIN"
             echo "VITE_PROVIDER_API_URL=$VITE_PROVIDER_API_URL"
             echo "VITE_BUILD_SHA=$VITE_BUILD_SHA"
+            [ -n "$VITE_STUDIO_URL" ] && echo "VITE_STUDIO_URL=$VITE_STUDIO_URL"
             [ -n "$VITE_API_URL" ] && echo "VITE_API_URL=$VITE_API_URL"
           } > .env.production
           echo "build-time environment:"

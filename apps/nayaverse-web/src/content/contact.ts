@@ -37,3 +37,11 @@ export const site = {
   domain: 'www.nayaverse.in',
   url: 'https://www.nayaverse.in',
 } as const;
+
+/**
+ * Studio, the company's video product, linked from the footer -- but only
+ * once it is live. Set at build time (the STUDIO_URL repository variable,
+ * passed as VITE_STUDIO_URL by the static deploy); unset, nothing renders,
+ * so a visitor is never sent to a domain that does not answer yet.
+ */
+export const studioUrl: string | null = (import.meta.env.VITE_STUDIO_URL as string | undefined)?.trim() || null;

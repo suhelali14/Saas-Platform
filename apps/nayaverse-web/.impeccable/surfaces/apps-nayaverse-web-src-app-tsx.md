@@ -112,6 +112,17 @@ Raises taken from challengers it beat or declined, each named for its donor:
 - *Ebru floated pigment (declined):* motion comes from the material — rules
   rule themselves in, stamps press, cells flip. No float-and-fade anywhere.
 
+**Lit cladding (2026-11-03, user asked for three.js across both sites).** The
+steel ground is drawn by a full-screen three.js shader on desktops with a
+fine pointer: the CSS ribs' own 7px period as surface relief, riveted seams
+every 420px that travel with the page, and one warm lamp raking low across
+it from the pointer, which the destination board's enamel catches too. It
+is motion from the material, per the contract: it draws only when the lamp
+moves or the page scrolls, never touches the prerendered HTML, and phones,
+Save-Data and crawlers keep the CSS ground and download nothing more.
+Reduced motion leaves the lamp at rest where the CSS wash already was.
+Critical-path cost +0.5 KB; three.js (131 KB gzip) is deferred to idle.
+
 **Memorable moment.** An emergency walks in while you are reading, and the
 clinic chart re-ranks it above everyone waiting and behind the person already
 with the doctor. Only the Live tab moves; a design that animates is pretending

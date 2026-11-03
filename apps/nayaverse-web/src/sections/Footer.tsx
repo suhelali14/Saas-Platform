@@ -7,7 +7,7 @@
  */
 import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
-import { site } from '@/content/contact';
+import { site, studioUrl } from '@/content/contact';
 
 export function Footer() {
   const { footer, nav, site: siteText } = useContent();
@@ -19,6 +19,7 @@ export function Footer() {
     { label: nav.fares, href: pathFor(locale, 'pricing') },
     { label: nav.about, href: `${pathFor(locale, 'home')}#about` },
     { label: nav.questions, href: `${pathFor(locale, 'home')}#conditions` },
+    ...(studioUrl ? [{ label: footer.studio.label, href: studioUrl }] : []),
   ];
 
   return (
@@ -34,6 +35,18 @@ export function Footer() {
                 {line}
               </p>
             ))}
+            {studioUrl && (
+              <p className="mt-3 text-sm text-[var(--board-ink-soft)]">
+                {footer.studio.note}{' '}
+                <a
+                  href={studioUrl}
+                  className="t-label text-[var(--board-ink)] underline decoration-[var(--steel-line)] transition-colors hover:text-[var(--lamp)] hover:decoration-[var(--lamp)]"
+                  style={{ transitionDuration: 'var(--dur)' }}
+                >
+                  {studioUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                </a>
+              </p>
+            )}
           </div>
 
           <nav aria-label={nav.questions}>

@@ -29,6 +29,9 @@ if (container) {
       <App locale={locale} page={page} />
     </StrictMode>
   );
-  if (container.hasChildNodes()) hydrateRoot(container, tree);
+  // An element, not any node: the unrendered template still holds its
+  // `<!--app-html-->` placeholder comment, and hydrating that against the
+  // app is a guaranteed mismatch (the dev server serves exactly that).
+  if (container.firstElementChild) hydrateRoot(container, tree);
   else createRoot(container).render(tree);
 }

@@ -8,6 +8,7 @@
  */
 import { useCallback } from 'react';
 import { MotionProvider, Reveal } from '@/components/Reveal';
+import { SteelGround } from '@/components/SteelGround';
 import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, type Locale, type Page } from '@/content/index';
 import { Rail } from '@/sections/Rail';
@@ -42,6 +43,7 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
 
   return (
     <MotionProvider>
+    <SteelGround />
     <div className="relative z-10 flex min-h-screen flex-col">
       <a
         href="#main"
