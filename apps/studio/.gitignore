@@ -1,4 +1,0 @@
-content/
-dist/
-.env
-workspaces/*/content/
