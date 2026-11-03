@@ -352,10 +352,20 @@ done
 
 
 # ── 7. Reclaim disk ───────────────────────────────────────────────────
-# Old image layers accumulate fast and a full 25 GB disk fails in
-# confusing ways. The previous tag is kept so rollback still works.
-log "Pruning unused images"
-docker image prune -f --filter "until=168h" > /dev/null 2>&1 || true
+# Old image layers accumulate fast and a full disk fails in confusing
+# ways. The previous tag is kept so rollback still works.
+#
+# `docker image prune` alone removes only UNTAGGED images, and every deploy
+# pulls a tagged one -- so it never removed anything, and each deploy's
+# image stayed on disk for good (a 40 GB server reached 86% this way).
+# Every tag of this image except the running one and the previous one is
+# removed by name first; the prune then takes the layers they leave.
+log "Pruning old images"
+repo="${TAG%:*}"
+docker images "$repo" --format '{{.Repository}}:{{.Tag}}' \
+  | grep -vxF -e "$TAG" -e "${PREVIOUS:-none}" \
+  | xargs -r docker rmi > /dev/null 2>&1 || true
+docker image prune -f > /dev/null 2>&1 || true
 info "disk: $(df -h / | awk 'NR==2 {print $4" free of "$2}')"
 
 log "Deployed $TAG"
