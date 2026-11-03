@@ -33,6 +33,10 @@ COPY apps/mobile/package.json             apps/mobile/
 COPY apps/nayaverse-web/package.json      apps/nayaverse-web/
 COPY apps/provider-api/package.json       apps/provider-api/
 COPY apps/provider-console/package.json   apps/provider-console/
+# Studio is a workspace member too (it also has its own repository). Not
+# built here, but `npm ci` refuses to install unless every workspace the
+# lockfile names is present.
+COPY apps/studio/package.json             apps/studio/
 COPY packages/shared-types/package.json   packages/shared-types/
 
 # THE RULE: `npm ci` runs postinstall for every workspace member, so
@@ -92,6 +96,12 @@ RUN test -f apps/clinic-api/dist/generated/prisma-client/index.js \
  && test -f apps/provider-api/dist/generated/prisma-client/index.js \
  && test -f apps/clinic-api/dist/index.js \
  && test -f apps/provider-api/dist/server.js
+
+# Studio's ffmpeg binary (~75MB) arrives with `npm ci` above, and nothing in
+# a clinic image runs it. Removed here, in the build stage, because the
+# runtime stage copies node_modules from this one -- deleting it there would
+# leave it in an earlier layer and the image no smaller.
+RUN rm -rf node_modules/ffmpeg-static
 
 
 # ── Runtime ───────────────────────────────────────────────────────────
