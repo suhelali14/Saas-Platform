@@ -22,7 +22,7 @@ export function Rail({ onEnquire }: { onEnquire: () => void }) {
   // switcher below, which never drops.
   const links = [
     { label: nav.businesses, href: `${home}#services`, cls: 'hidden md:inline-block' },
-    { label: nav.system, href: `${home}#manifest`, cls: 'hidden lg:inline-block' },
+    { label: nav.system, href: `${home}#system`, cls: 'hidden lg:inline-block' },
     { label: nav.fares, href: pathFor(locale, 'pricing'), cls: 'hidden sm:inline-block' },
     { label: nav.about, href: `${home}#about`, cls: 'hidden xl:inline-block' },
     { label: nav.questions, href: `${home}#conditions`, cls: 'hidden lg:inline-block' },

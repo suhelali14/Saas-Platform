@@ -90,6 +90,9 @@ export interface RevealProps {
   className?: string;
   /** Rendered element. A reveal around a table row must still be a row. */
   as?: 'div' | 'section' | 'li' | 'tr' | 'span';
+  /** A whole section below the hero: skip its layout for the first paint
+   *  (see components/settle.ts). */
+  defer?: boolean;
 }
 
 /**
@@ -99,7 +102,7 @@ export interface RevealProps {
  * detail into a fidget -- the same reasoning the existing `Ruling` was
  * written with, and the reason its observer disconnects on first hit.
  */
-export function Reveal({ children, delay = 0, y = 10, className, as = 'div' }: RevealProps) {
+export function Reveal({ children, delay = 0, y = 10, className, as = 'div', defer }: RevealProps) {
   const hydrated = useHydrated();
   // Motion's own hook, which reads the OS setting and keeps reading it.
   // Someone who has asked their machine for less movement has asked this
@@ -112,6 +115,7 @@ export function Reveal({ children, delay = 0, y = 10, className, as = 'div' }: R
   return (
     <Tag
       className={className}
+      data-defer={defer ? '' : undefined}
       initial={hydrated && !still ? { opacity: 0, y } : false}
       whileInView={animate}
       // A third of the block, so a tall section starts moving when its top

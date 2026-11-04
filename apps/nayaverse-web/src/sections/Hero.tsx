@@ -20,6 +20,7 @@
 import { useContent } from '@/content/use-content';
 import { serviceRows, type Readiness } from '@/content/structure';
 import { Board, Chevron, cx } from '@/components/primitives';
+import { Departures } from '@/components/Departures';
 
 const TALLY: Readiness[] = ['LIVE', 'BUILDING', 'WAITLIST'];
 
@@ -44,8 +45,8 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
   };
 
   return (
-    <section id="top" className="frame frame-wide pb-10 pt-8 sm:pb-14 sm:pt-12">
-      <Board className="px-5 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+    <section id="top" className="frame frame-wide pb-10 pt-8 sm:pt-12">
+      <Board className="px-5 py-8 sm:px-10 sm:py-11 lg:px-14 lg:py-12">
         <ul className="t-label flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[var(--board-ink-soft)]">
           {hero.route.map((stop, i) => (
             <li key={stop} className="flex items-center gap-2">
@@ -55,8 +56,12 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
           ))}
         </ul>
 
-        <div className="mt-7 grid gap-x-12 gap-y-9 lg:mt-9 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="min-w-0">
+        {/* Three cells. On a desk: headline and lede, then the departure
+            line under them, with the tally, fare and action down the right.
+            On a phone the departure line comes last, after the action: the
+            price and the way to act are what has to fit the first screen. */}
+        <div className="mt-7 grid gap-x-12 gap-y-9 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-rows-[auto_1fr]">
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
             <h1 className="t-board t-display text-[var(--board-ink)]">
               {hero.headline.map((line) => (
                 <span key={line} className="block">
@@ -67,7 +72,7 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
             <p className="t-lede mt-6 text-pretty text-[var(--board-ink-soft)]">{hero.lede}</p>
           </div>
 
-          <div className="flex flex-col gap-7 border-t border-[var(--steel-line)] pt-7 lg:w-[20.5rem] lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+          <div className="flex flex-col gap-7 border-t border-[var(--steel-line)] pt-7 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:w-[20.5rem] lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
             {/* The state of the chart, in three lines, at the top of the page. */}
             <dl>
               {TALLY.map((status) => (
@@ -112,6 +117,10 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
                 </a>
               </div>
             </div>
+          </div>
+
+          <div className="min-w-0 lg:col-start-1 lg:row-start-2 lg:self-end">
+            <Departures />
           </div>
         </div>
       </Board>

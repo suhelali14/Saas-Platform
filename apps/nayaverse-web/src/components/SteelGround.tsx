@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { cx } from '@/components/primitives';
+import { afterFirstPaint } from '@/components/after-paint';
 import type { SteelScene } from './steel-scene';
 
 /**
@@ -8,8 +9,8 @@ import type { SteelScene } from './steel-scene';
  * The prerendered page already has its ground: `body::before` draws the
  * ribs in CSS, and that is what every phone, every crawler and every
  * visitor saving data gets -- complete, and nothing else downloaded. On a
- * desk with a mouse and WebGL2, three.js is fetched after the page is idle
- * and the same steel is drawn as a surface under a lamp that follows the
+ * desk with a mouse and WebGL2, three.js is fetched once the first frame is
+ * painted and the page is idle, and the same steel is drawn as a surface under a lamp that follows the
  * pointer, fading in over the CSS ground it replaces.
  *
  * The element is the same empty div on the server and the client, so it
@@ -24,15 +25,18 @@ export function SteelGround() {
     const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
     const desk = window.matchMedia('(pointer: fine) and (min-width: 1024px)').matches;
     if (!desk || nav.connection?.saveData) return;
-    try {
-      if (!document.createElement('canvas').getContext('webgl2')) return;
-    } catch {
-      return;
-    }
     const follow = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let scene: SteelScene | null = null;
     let cancelled = false;
     const start = () => {
+      // The WebGL2 check is here, deferred, and not up front: creating a
+      // context waits on the GPU process, and measured inside hydration it
+      // took 18-140ms -- in front of the first paint, for an enhancement.
+      try {
+        if (!document.createElement('canvas').getContext('webgl2')) return;
+      } catch {
+        return;
+      }
       void import('./steel-scene')
         .then(({ createSteelScene }) => {
           if (cancelled || !host.current) return;
@@ -40,12 +44,12 @@ export function SteelGround() {
         })
         .catch(() => undefined);
     };
-    const hasIdle = 'requestIdleCallback' in window;
-    const handle = hasIdle ? window.requestIdleCallback(start, { timeout: 2000 }) : window.setTimeout(start, 600);
+    // After the first frame, not merely when idle: idle came before it
+    // while the fonts loaded, and this setup held the first paint back.
+    const cancel = afterFirstPaint(start);
     return () => {
       cancelled = true;
-      if (hasIdle) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
+      cancel();
       scene?.dispose();
     };
   }, []);

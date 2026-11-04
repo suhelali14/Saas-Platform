@@ -68,7 +68,7 @@ export function Footer() {
 
         <div className="mt-9 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-t border-[var(--steel-line)] pt-5">
           <p className="t-prose text-xs leading-relaxed text-[var(--board-ink-soft)]">{footer.legal}</p>
-          <p className="t-label shrink-0 text-[var(--steel-rivet)]">{site.domain}</p>
+          <p className="t-label shrink-0 text-[var(--board-ink-soft)]">{site.domain}</p>
         </div>
       </div>
     </footer>

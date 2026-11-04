@@ -160,7 +160,7 @@ export function DayCharts() {
             <span data-figures>{rows.length}</span> {words.unit}
           </BandItem>
           <BandItem grow>
-            <span className="text-[var(--ink-faint)]">{chartSection.clock}</span>{' '}
+            <span className="text-[var(--ink-soft)]">{chartSection.clock}</span>{' '}
             <time data-figures>{clock ?? '--:--:--'}</time>
           </BandItem>
           <BandItem>

@@ -1,6 +1,25 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
+import { lampKeyframes } from './src/components/yard.ts'
+
+/**
+ * The route model's lamp run, as a stylesheet in the CSS bundle.
+ *
+ * The keyframes are computed from the track's geometry, so they cannot be
+ * hand-written without drifting from it. They also cannot go inline in the
+ * page: the prerender refuses any "N%" in the HTML (there is no measured
+ * figure to cite), and a keyframe stop is exactly that shape. So the
+ * geometry module writes them here, at build time, into the cached CSS.
+ */
+function yardKeyframes(): Plugin {
+  const id = 'virtual:yard-lamp.css'
+  return {
+    name: 'nayaverse:yard-keyframes',
+    resolveId: (source) => (source === id ? `\0${id}` : undefined),
+    load: (resolved) => (resolved === `\0${id}` ? lampKeyframes('yard-lamp') : undefined),
+  }
+}
 
 // Nayaverse's own site. Deliberately a separate app from clinic-web:
 //
@@ -13,7 +32,7 @@ import { fileURLToPath } from 'node:url'
 //
 // Port 5178: clinic-web is 5176, provider-console 5177.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), yardKeyframes()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

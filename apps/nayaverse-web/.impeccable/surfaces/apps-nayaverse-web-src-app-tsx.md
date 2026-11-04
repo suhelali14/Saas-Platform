@@ -123,6 +123,38 @@ Save-Data and crawlers keep the CSS ground and download nothing more.
 Reduced motion leaves the lamp at rest where the CSS wash already was.
 Critical-path cost +0.5 KB; three.js (131 KB gzip) is deferred to idle.
 
+**Departure line and route model (2026-11-05, user asked for visible 3D and
+animation with load speed kept good; finish-reviewed, fixes applied).** Two
+pieces, both CSS 3D rather than WebGL so they run on the phones this is read
+on, and both event-shaped: one pass when they come into view, then rest.
+- *Departure line* (`components/Departures.tsx`, `Flap.tsx`): split-flap
+  units on the destination board. One pass through seven real rows (Clinic
+  Live, Kirana, Restaurant, Salon, Gym, Coaching as Building, Hotel as
+  Waitlist), resting on 01 Clinic Live. Digits turn per character; the name
+  and status turn per field, in the same beat, so a Building trade is never
+  shown beside Live even mid-turn; whole-word drums keep Devanagari
+  conjuncts intact. Desktop: under the lede. Phone: after the fare and the
+  action, so ₹3,000 stays in the first screen.
+- *The route* (`sections/Route.tsx`, `components/yard.ts`): a cream chart
+  panel, in the hero strip's order (Counter to Your website), each row saying
+  what that desk writes to or reads from the one record. Beside it, through a
+  recessed steel window, a model yard on the cladding's rib: six sheds on a
+  loop of track, a stack of chart sheets, and a trolley carrying the sale's
+  slip. At each desk its roof lamp and leading edge light (flat paint, no
+  halos), its line rules itself in to the stack and stays, and a sheet drops
+  onto the stack. One circuit; the finished picture is every desk ruled to
+  one record. Fixed camera.
+- Loop rules (`components/useLoop.ts`): never before hydration, off screen,
+  in a background tab or under reduced motion; a switch on each (pause,
+  play, run again: WCAG 2.2.2); the departure line holds while pointed at or
+  focused. Reduced motion: board still, trolley not drawn, every line ruled.
+- Performance, measured not assumed: every section below the hero ships with
+  `data-defer` (content-visibility) and is laid out after the first paint
+  (`components/settle.ts`), and the WebGL2 probe moved out of hydration
+  (`after-paint.ts`). 5-run medians, 4x-CPU slow-4G phone: LCP 968 to 788ms;
+  desktop LCP unchanged, blocking 46 to 1ms; +10 KB transfer. In-page jumps
+  land exactly; a placeholder height must never be what a jump is aimed at.
+
 **Memorable moment.** An emergency walks in while you are reading, and the
 clinic chart re-ranks it above everyone waiting and behind the person already
 with the doctor. Only the Live tab moves; a design that animates is pretending

@@ -6,9 +6,10 @@
  * faster than shipping a router and strictly better for a crawler. The only
  * JavaScript that matters here is the charts, the fare selector and the form.
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { MotionProvider, Reveal } from '@/components/Reveal';
 import { SteelGround } from '@/components/SteelGround';
+import { settleAll, startSettling } from '@/components/settle';
 import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, type Locale, type Page } from '@/content/index';
 import { Rail } from '@/sections/Rail';
@@ -16,6 +17,7 @@ import { Hero } from '@/sections/Hero';
 import { ServiceChart } from '@/sections/ServiceChart';
 import { DayCharts } from '@/sections/DayCharts';
 import { Manifest } from '@/sections/Manifest';
+import { Route } from '@/sections/Route';
 import { Growth } from '@/sections/Growth';
 import { Services } from '@/sections/Services';
 import { Fares } from '@/sections/Fares';
@@ -29,6 +31,9 @@ function useEnquire() {
   return useCallback(() => {
     const target = document.getElementById('enquiry');
     if (!target) return;
+    // Real heights for everything above it first, or the scroll is aimed
+    // at a placeholder (components/settle.ts).
+    settleAll();
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     // Land the caret in the first field rather than leaving someone to find it.
     window.setTimeout(() => {
@@ -40,6 +45,7 @@ function useEnquire() {
 function Body({ locale, page }: { locale: Locale; page: Page }) {
   const onEnquire = useEnquire();
   const t = content[locale];
+  useEffect(() => startSettling(), []);
 
   return (
     <MotionProvider>
@@ -67,15 +73,16 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 -- and it is the one block that must be readable the instant
                 the prerendered HTML lands. */}
             <Hero onEnquire={onEnquire} />
-            <Reveal><ServiceChart /></Reveal>
-            <Reveal><DayCharts /></Reveal>
-            <Reveal><Manifest /></Reveal>
-            <Reveal><Growth /></Reveal>
-            <Reveal><Services /></Reveal>
-            <Reveal><Fares onEnquire={onEnquire} /></Reveal>
-            <Reveal><About /></Reveal>
-            <Reveal><Conditions /></Reveal>
-            <Reveal><Enquiry /></Reveal>
+            <Reveal defer><ServiceChart /></Reveal>
+            <Reveal defer><DayCharts /></Reveal>
+            <Reveal defer><Route /></Reveal>
+            <Reveal defer><Manifest /></Reveal>
+            <Reveal defer><Growth /></Reveal>
+            <Reveal defer><Services /></Reveal>
+            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><About /></Reveal>
+            <Reveal defer><Conditions /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
           </>
         )}
 
@@ -91,11 +98,11 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 </p>
               </Board>
             </section>
-            <Reveal><Fares onEnquire={onEnquire} /></Reveal>
-            <Reveal><Services /></Reveal>
-            <Reveal><About /></Reveal>
-            <Reveal><Conditions /></Reveal>
-            <Reveal><Enquiry /></Reveal>
+            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><Services /></Reveal>
+            <Reveal defer><About /></Reveal>
+            <Reveal defer><Conditions /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
           </>
         )}
 

@@ -152,6 +152,33 @@ export const en = {
     announce: 'An emergency was admitted and placed ahead of everyone waiting.',
   },
 
+  routePanel: {
+    bandTitle: 'Route',
+    bandDetail: 'Six desks, one record',
+    heading: 'Entered once. Every desk reads it.',
+    lede:
+      'Follow one sale round. It is entered once at the counter, and every desk after it reads the same record — nobody types any of it twice.',
+    record: 'One record',
+    stops: [
+      'Rings up the sale once: what was sold, the price, who served.',
+      'Reads the same sale and takes those items off the count.',
+      'Writes the next visit against a person, a room or a chair; the counter reads it on the day.',
+      'Reads the sale and writes what was paid, and what is still owed.',
+      'Reads every line above: what they had, what they owe, when they are due back.',
+      'Reads the same price list as the counter, so a price changed once is changed there too.',
+    ],
+    note: 'A sample route, not a real customer. A clinic works this way today; for the other trades the records exist and the screens are being built.',
+  },
+
+  motionControls: {
+    pauseBoard: 'Pause the departure board',
+    playBoard: 'Play the departure board',
+    againBoard: 'Run the departure board again',
+    pauseRoute: 'Pause the route',
+    playRoute: 'Play the route',
+    againRoute: 'Run the route again',
+  },
+
   manifestPanel: {
     bandTitle: 'Manifest',
     heading: 'Everything the day needs, in one place',
