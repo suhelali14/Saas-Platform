@@ -231,7 +231,7 @@ export function requirePharmacyAuth(request: FastifyRequest, reply: FastifyReply
   return auth;
 }
 
-const BILLING_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN"]);
+export const BILLING_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN"]);
 
 /** Invoices, payments, daily cash closing -- reception's own workflow (plus
  * doctor/admin oversight). Nurse/pharmacist have no reason to touch money. */

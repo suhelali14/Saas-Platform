@@ -407,7 +407,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               className="w-full px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary"
             />
             {(suggestions[i]?.length ?? 0) > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/20 bg-popover text-popover-foreground shadow-lg max-h-40 overflow-y-auto">
                 {suggestions[i].map((d) => (
                   <button type="button" key={d.id} onClick={() => { setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, drugName: d.name, drugId: d.id } : it))); setSuggestions((s) => ({ ...s, [i]: [] })); }} className="block w-full text-left px-2 py-1.5 text-xs hover:bg-foreground/5">
                     <div className="flex items-center gap-1.5">
@@ -432,7 +432,7 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
               </div>
             )}
             {searchedEmpty[i] && item.drugName.length >= 2 && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-ink-success/30 bg-[#14171f] p-2">
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-ink-success/30 bg-popover text-popover-foreground shadow-lg p-2">
                 <Button
                   type="button"
                   variant="ghost"

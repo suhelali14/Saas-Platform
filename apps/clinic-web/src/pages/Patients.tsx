@@ -4,6 +4,7 @@ import { Plus, Search, Phone } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { PATIENT_CATEGORIES, CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
+import { GENDERS } from '../lib/patient-fields';
 
 interface Patient {
   id: string;
@@ -17,14 +18,6 @@ interface Patient {
 }
 
 
-/** The options a patient's gender field offers. One list, shared by the
- *  create and the edit form -- they were two literal copies, which is how
- *  one screen ends up offering a choice the other does not. */
-const GENDERS = [
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-  { value: 'Other', label: 'Other' },
-];
 
 export function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);

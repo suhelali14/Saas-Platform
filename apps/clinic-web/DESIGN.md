@@ -2,7 +2,8 @@
 
 Written for: engineers and designers working on `apps/clinic-web`.
 
-This is a working spec, not aspiration. Where the current code disagrees
+This is a working spec, not aspiration. Last revised 9 November 2026,
+when the portal moved to the Nayaverse look shared with Growth. Where the current code disagrees
 with it, the code is wrong and should be brought here — each such gap is
 marked **⚠ gap** so it can be found and closed.
 
@@ -32,72 +33,67 @@ design and deliberately does **not** follow this document.
 
 ## 2. Colour
 
-### Dark is the default, and why
+### The Nayaverse look
 
-Staff stare at this for eight hours. Dark reduces glare in a consulting
-room that is often dimly lit for examinations. Light is offered
-(`theme.css`) and follows the OS preference on first visit.
+The portal shares its visual world with Nayaverse Growth: warm paper,
+near-black ink and one amber. It is a tool used all day at a front desk
+in daylight, so **light is the default** and dark is a warm-dark option
+for an evening clinic. Both come from the same palette.
 
-### Tokens
+The tokens are CSS variables (HSL triplets) in `src/index.css`, mapped to
+Tailwind in `tailwind.config.js`. Dark sits on `:root` and light under
+`:root.theme-light` only because the portal was written dark-first;
+`ThemeContext` decides which applies. **Use the tokens, never a hex.**
+The public patient site is excluded: it keeps each clinic's own palette
+and typeface (`lib/site-design.ts`).
 
-Tailwind is loaded from CDN, so these are utility classes, not CSS
-variables. Use these and only these.
+| Purpose | Class | Light | Dark |
+|---|---|---|---|
+| Page ground | `bg-background` | paper `42 36% 95%` | `40 8% 8%` |
+| Panel, row, card | `bg-card` | warm white `43 100% 99%` | `40 7% 11%` |
+| Selected, quiet fill | `bg-accent` | tan `40 32% 89%` | `40 6% 18%` |
+| Text | `text-foreground` | ink `45 8% 10%` | `40 25% 93%` |
+| Secondary text | `text-muted-foreground` | `39 10% 38%` | `40 10% 66%` |
+| Lines | `border-border/15`, `/10` for dividers | strong warm brown, thinned | |
+| Main action | `bg-primary` | **ink** | **amber** |
 
-**Surfaces**
+Every text token clears 4.5:1 on both the page ground and the card in its
+theme.
 
-| Purpose | Class | Notes |
-|---|---|---|
-| Page ground | `bg-[#0b0d12]` | The one hardcoded hex. Everything else is an overlay on it. |
-| Raised panel | `bg-white/[0.02]` | Cards, panels, list rows. |
-| Input / inset | `bg-white/5` | Fields, tabs at rest. |
-| Interactive rest | `bg-white/10` | Secondary buttons, chips. |
-| Interactive hover | `bg-white/20` | |
-| Table header | `bg-white/[0.03]` | |
-
-**Lines**
-
-| Purpose | Class |
-|---|---|
-| Panel / card border | `border-white/10` |
-| Subtle divider | `border-white/5`, `divide-white/5` |
-
-**Text** — the ramp runs light→dark as the number rises. All four clear
-WCAG AA on the page ground.
-
-| Level | Class | Use for |
-|---|---|---|
-| Primary | `text-white` | Headings, values, the thing being read |
-| Body | `text-gray-300` | Nav labels, body copy |
-| Secondary | `text-gray-400` | Descriptions, column headers |
-| Muted | `text-gray-500` | Hints, timestamps |
-| Faint | `text-gray-600` | Placeholders, disabled |
-
-Do not invent `text-gray-700` or lower — it fails contrast on `#0b0d12`.
+**One strong button per screen, or per row.** In light the main action is
+an ink button, as in Growth; amber is kept for what needs noticing. A
+queue with four equal "Call in" buttons says nothing about who is next,
+so only the first in each doctor's line gets the strong one.
 
 ### Semantic colour carries meaning. Never decorate with it.
 
-| Colour | Means | Classes |
-|---|---|---|
-| **Emerald** | Primary action, success, "active" | `bg-emerald-500 text-black` (solid) · `bg-emerald-500/15 text-emerald-400` (badge) |
-| **Red** | Allergy, destructive, failure | `bg-red-500/10 text-red-400` |
-| **Amber** | Needs attention, unreviewed, warning | `bg-amber-500/15 text-amber-400` |
-| **Blue** | Nurse role, informational | `bg-blue-500/15 text-blue-400` |
-| **Purple** | Pharmacist role | `bg-purple-500/15 text-purple-400` |
+One class per meaning, defined in `index.css` (`.tone-*`): the tint is
+derived from the ink, so the pair cannot drift.
 
-A red badge on this product means *clinical risk*. Never use red for a
-neutral count or an accent — the moment red becomes decorative, the
+| Class | Means |
+|---|---|
+| `tone-danger`, `text-ink-danger` | Allergy, emergency, destructive, failure |
+| `tone-warning`, `text-ink-warning` | Needs attention: a long wait, money owed, a result awaited |
+| `tone-success`, `text-ink-success` | Done: vitals recorded, paid |
+| `tone-info` | Informational, the Child priority |
+| `tone-pink` | The Pregnant priority |
+| `tone-neutral` | Absence of a state: cancelled, inactive |
+
+A red mark on this product means *clinical risk*. Never use red for a
+neutral count or an accent; the moment red becomes decorative, the
 allergy banner stops working.
 
-**Patient category colours are fixed** and shared with the backend via
-`lib/categories.ts` so the two cannot drift: Emergency red, Pregnant pink,
-Senior amber, Child blue, General grey.
+**Priority colours are fixed** and shared through `lib/categories.ts`:
+Emergency red, Pregnant pink, Senior amber, Child blue, General none.
 
 ### Visual weight follows exception, not norm
 
 The **default state should be quiet; the exception should be loud.** A list
 of ten sections that are all "Shown" with ten green badges gives the eye
 nowhere to rest and makes the one Hidden row invisible. Invert it: Shown is
-muted text, Hidden is an amber chip.
+muted text, Hidden is an amber chip. On the queue, an ordinary wait is
+plain text and a wait over 30 minutes turns amber; only an emergency row
+gets a red edge.
 
 > **Was a real bug.** The Website builder shipped with nine emerald "Shown"
 > badges dominating the screen. Fixed in `Website.tsx`.
@@ -106,25 +102,35 @@ muted text, Hidden is an amber chip.
 
 ## 3. Typography
 
-One family (system sans, via Tailwind default). Size *and weight* carry
-hierarchy — never colour alone.
+Two families, both self-hosted through `@fontsource` (no network request
+to a font CDN):
 
-| Role | Class | Notes |
-|---|---|---|
-| Page title | `text-xl font-bold` | One per screen, with a lucide icon at `size={20}` in emerald |
-| Section heading | `text-sm font-semibold` | Inside a panel |
-| Body | `text-sm` | |
-| Table cell / dense | `text-[13px]` | |
-| Secondary / meta | `text-xs` | |
-| Label above a field | `text-xs font-medium text-gray-400` | |
-| Micro (badges, hints) | `text-[11px]` | **Floor.** Nothing smaller. |
-| Uppercase micro-label | `text-[10px] uppercase tracking-wide` | Only inside dense data blocks |
+- **IBM Plex Sans** for everything (`font-portal`, applied by the
+  `.portal` class on the shell and the sign-in page). Its Devanagari
+  companion is loaded too, so a patient's name typed in Marathi or Hindi
+  sits on the same line height as one in English.
+- **Barlow Condensed**, semibold, uppercase, for page titles only
+  (`font-display`). Every `h1` inside `#main` gets it automatically from
+  `index.css`; do not restyle page titles per screen. Token numbers on the
+  queue use it too, because they are read across a room.
 
-**Never below 11px.** The existing `text-[10px]` uses are the absolute
-limit and only for all-caps labels, which read larger than their size.
+| Role | Style |
+|---|---|
+| Page title | `<h1>` inside `#main`. Nothing else needed. |
+| Section heading | `text-[16px] font-semibold`, sentence case, with a muted count: "Waiting · 4" |
+| Body | 15px (set on `.portal`) |
+| Row meta, hints | `text-[13px] text-muted-foreground` |
+| Labels on fields | `text-[13px] font-medium`, above the field, never a placeholder |
+| Floor | 11px. Nothing smaller. |
+
+**No small-caps eyebrows** above headings, and no database constants on
+screen: "With the doctor", not "IN_PROGRESS"; "Did not come", not
+"NO_SHOW".
+
+Figures that line up (times, amounts, tokens) use `tabular-nums`.
 
 **Inputs are exempt on touch devices.** `theme.css` forces every input to
-16px under `@media (pointer: coarse)` — below that, iOS Safari zooms the
+16px under `@media (pointer: coarse)`: below that, iOS Safari zooms the
 viewport on focus and leaves it zoomed. That is the threshold, not a
 stylistic choice; do not "fix" it.
 
@@ -171,9 +177,45 @@ max-w-6xl                ← side-by-side editor + preview
 
 ### Navigation
 
+Grouped by job, as in Growth, and filtered by role so each person sees
+only what they use:
+
+| Group | Items | Who |
+|---|---|---|
+| (first, no caption) | Queue, Overview, Booking requests, Follow-ups due | Everyone; booking requests for the front desk |
+| Patients | All patients | Everyone |
+| Clinical | Lab orders, Pharmacy | Pharmacy for pharmacist, doctor, admin |
+| Money | Billing, Expenses, Reports | Billing roles; Reports also for admins |
+| Clinic | Website, Staff, Settings, Audit log | Website and audit log for admins |
+| Open in a new tab | Waiting-room screen, Clinic website | Everyone |
+
+The active item is a tan ground with ink text, never a solid colour bar.
+The clinic's own name is the mark, in condensed capitals.
+
 Below `md`: top bar + slide-over drawer, ≥44px targets, closes on
 navigate / Escape / backdrop, body scroll-locked while open.
 At `md`+: fixed 240px sidebar, `sticky top-0`, independently scrollable.
+
+### The queue and the patient record
+
+- **Queue** is one list in the order the day runs: with the doctor,
+  waiting (in triage order, with token, place in that doctor's line, time
+  waited and an estimate), booked and not here yet, seen, and a collapsed
+  cancelled/did-not-come group. Each row has one obvious next step; the
+  rest sits behind the row's menu.
+- **Tokens** are given at check-in, one sequence a day for the whole
+  clinic, never reissued (`clinic-api/src/lib/queue.ts`).
+- **The wait estimate** is the middle consultation length among today's
+  finished visits, and is not shown until there are three
+  (`lib/queue-time.ts`). Rounded to five minutes: a wait stated to the
+  minute is a promise.
+- **Walk-in** takes a name, phone or file number in one box; Enter picks
+  the first match; a new patient is three fields. A phone already in the
+  register is pointed out before a duplicate is made.
+- **The patient record** shows one card per day: why they came, vitals,
+  diagnosis, medicines, tests, certificates and the bill. Allergies sit
+  above everything. "At a glance" answers when they were last here, what
+  they were last given, and whether anything is owed.
 
 ---
 

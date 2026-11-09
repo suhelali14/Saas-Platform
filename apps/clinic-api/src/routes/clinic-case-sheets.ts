@@ -67,9 +67,16 @@ export async function clinicCaseSheetRoutes(app: FastifyInstance) {
     });
 
     if (parsed.data.appointmentId) {
+      // Saving the case sheet finishes the visit. The finishing time is set
+      // once: a second case sheet for the same visit, written later, must
+      // not stretch the consultation's recorded length.
       await prisma.appointment.update({
         where: { id: parsed.data.appointmentId },
         data: { status: "COMPLETED" },
+      }).catch(() => {});
+      await prisma.appointment.updateMany({
+        where: { id: parsed.data.appointmentId, completedAt: null },
+        data: { completedAt: new Date() },
       }).catch(() => {});
     }
 

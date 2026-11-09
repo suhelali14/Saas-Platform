@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { apiFetch } from '../lib/api';
 import { Button } from '../components/Button';
 // Direct paths, not the barrel: this is the only page that is eagerly
 // imported, so anything it reaches lands in the startup chunk.
-import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
@@ -60,18 +59,40 @@ export function Login() {
     }
   };
 
+  const name = clinicName || 'Clinic portal';
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-      <Card className="w-full max-w-sm">
-        {/* A form, not a div with a button: pressing Enter in the password
-            field has to submit, which is how most people sign in. */}
-        <form onSubmit={handleSubmit} noValidate={false}>
-          <CardContent className="p-7">
-            <div className="mb-1 flex items-center gap-2">
-              <Stethoscope size={20} className="text-primary" aria-hidden="true" />
-              <h1 className="text-xl font-semibold tracking-tight">{clinicName || 'Clinic Portal'}</h1>
-            </div>
-            <p className="mb-6 text-sm text-muted-foreground">Sign in with your staff credentials.</p>
+    <div className="portal grid min-h-dvh bg-background text-foreground lg:grid-cols-[1fr_minmax(0,520px)]">
+      {/* The clinic's side: its own name, and what this screen is for. No
+          feature list and no figures: the people signing in already work
+          here. */}
+      <div className="hidden bg-[hsl(45_8%_10%)] text-[hsl(42_36%_95%)] lg:block">
+        <div className="flex h-full flex-col justify-between gap-10 p-12 xl:p-16">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[hsl(42_36%_95%/0.6)]">Nayaverse Clinic</p>
+          <div>
+            <p className="max-w-[14ch] font-display text-[3rem] font-semibold uppercase leading-[0.98] tracking-[0.01em]">{name}</p>
+            <p className="mt-6 max-w-[40ch] text-[15px] leading-relaxed text-[hsl(42_36%_95%/0.72)]">
+              Today's queue, every patient's visits day by day, prescriptions, bills and the pharmacy, in one place.
+            </p>
+          </div>
+          <p className="max-w-[52ch] text-[13px] text-[hsl(42_36%_95%/0.55)]">
+            Patient records are private. Every time a record is opened, the clinic's audit log notes who opened it and when.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col px-4 pb-10 pt-[max(32px,env(safe-area-inset-top))] sm:px-10 lg:justify-center lg:pt-10">
+        <div className="mx-auto w-full max-w-[400px]">
+          <div className="mb-8 lg:hidden">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nayaverse Clinic</p>
+            <p className="mt-1.5 font-display text-[1.8rem] font-semibold uppercase leading-none tracking-[0.01em]">{name}</p>
+          </div>
+
+          {/* A form, not a div with a button: pressing Enter in the password
+              field has to submit, which is how most people sign in. */}
+          <form onSubmit={handleSubmit} noValidate={false}>
+            <h1 className="font-display text-[1.9rem] font-semibold uppercase leading-none tracking-[0.01em]">Sign in</h1>
+            <p className="mb-6 mt-2 text-[15px] text-muted-foreground">Use the email and password your clinic gave you.</p>
 
             {error && (
               <div
@@ -119,11 +140,11 @@ export function Login() {
               busyLabel="Signing in…"
               className="mt-6 w-full"
             >
-              Sign In
+              Sign in
             </Button>
-          </CardContent>
-        </form>
-      </Card>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

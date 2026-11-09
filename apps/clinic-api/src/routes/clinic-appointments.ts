@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AppointmentStatus } from "../generated/prisma-client/index.js";
 import { prisma } from "../lib/prisma.js";
 import { byTriage, VISIT_PRIORITIES } from "../lib/triage.js";
+import { dayBounds, nextToken, stampsFor } from "../lib/queue.js";
 import { requireClinicAuth, requireVitalsAuth } from "../plugins/auth.js";
 
 const createSchema = z.object({
@@ -23,6 +24,14 @@ const updateSchema = z.object({
   doctorId: z.string().nullable().optional(),
   // Nullable: clearing it falls back to the patient's usual priority.
   priority: z.enum(VISIT_PRIORITIES).nullable().optional(),
+});
+
+/** Someone who is here now, without a booking. */
+const walkInSchema = z.object({
+  patientId: z.string().min(1),
+  doctorId: z.string().optional(),
+  reason: z.string().max(500).optional(),
+  priority: z.enum(VISIT_PRIORITIES).optional(),
 });
 
 const vitalsSchema = z.object({
@@ -71,11 +80,7 @@ export async function clinicAppointmentRoutes(app: FastifyInstance) {
     if (!auth) return;
 
     const { date, status, doctorId } = request.query as { date?: string; status?: string; doctorId?: string };
-    const day = date ? new Date(date) : new Date();
-    const startOfDay = new Date(day);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(day);
-    endOfDay.setHours(23, 59, 59, 999);
+    const { start: startOfDay, end: endOfDay } = dayBounds(date ? new Date(date) : new Date());
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -139,15 +144,105 @@ export async function clinicAppointmentRoutes(app: FastifyInstance) {
     const existing = await prisma.appointment.findUnique({ where: { id } });
     if (!existing) return reply.status(404).send({ error: "Not found" });
 
-    const appointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        ...parsed.data,
-        scheduledAt: parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : undefined,
-      },
-      include: APPOINTMENT_INCLUDE,
-    });
+    // The times each stage was reached, and a token on arrival. Only when
+    // the status actually changes: re-saving a row with the same status
+    // must not move its check-in time and reset somebody's wait.
+    const scheduledAt = parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : undefined;
+    const statusChanged = parsed.data.status !== undefined && parsed.data.status !== existing.status;
+    const { needsToken, ...times } = statusChanged
+      ? stampsFor(existing, parsed.data.status!, new Date())
+      : { needsToken: false };
+    const data = { ...parsed.data, scheduledAt, ...times };
+
+    const appointment = needsToken
+      ? await prisma.$transaction(async (tx) => {
+          const tokenNumber = await nextToken(tx, scheduledAt ?? existing.scheduledAt);
+          return tx.appointment.update({ where: { id }, data: { ...data, tokenNumber }, include: APPOINTMENT_INCLUDE });
+        })
+      : await prisma.appointment.update({ where: { id }, data, include: APPOINTMENT_INCLUDE });
     return appointment;
+  });
+
+  /*
+   * A walk-in: the patient is at the desk now.
+   *
+   * Arrives checked in, with a token, in one call, because the front desk
+   * is doing this with someone standing in front of them. Booking for "now"
+   * and then checking in was two steps and a time to type.
+   *
+   * If the patient already has a booking today that they have not arrived
+   * for, that booking is the visit: it is checked in, rather than a second
+   * appointment made beside it, which would leave the doctor with two rows
+   * for one person and the booked one forever "not arrived". If they are
+   * already in the queue, that is said, with their token, rather than a
+   * second token issued.
+   */
+  app.post("/api/clinic/appointments/walk-in", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const parsed = walkInSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.flatten() });
+    }
+    const patient = await prisma.patient.findUnique({ where: { id: parsed.data.patientId } });
+    if (!patient) return reply.status(404).send({ error: "Patient not found" });
+    if (parsed.data.doctorId) {
+      const doctor = await prisma.clinicUser.findFirst({ where: { id: parsed.data.doctorId, role: "DOCTOR", isActive: true } });
+      if (!doctor) return reply.status(400).send({ error: "Selected doctor not found" });
+    }
+
+    const now = new Date();
+    const { start, end } = dayBounds(now);
+    const today = await prisma.appointment.findMany({
+      where: { patientId: patient.id, scheduledAt: { gte: start, lte: end }, status: { in: ["SCHEDULED", "CHECKED_IN", "IN_PROGRESS"] } },
+      orderBy: { scheduledAt: "asc" },
+    });
+    const waiting = today.find((a) => a.status !== "SCHEDULED");
+    if (waiting) {
+      return reply.status(409).send({
+        error: waiting.tokenNumber
+          ? `${patient.name} is already in today's queue, token ${waiting.tokenNumber}.`
+          : `${patient.name} is already in today's queue.`,
+        appointmentId: waiting.id,
+      });
+    }
+    const booked = today[0];
+
+    const appointment = await prisma.$transaction(async (tx) => {
+      if (booked) {
+        const { needsToken, ...times } = stampsFor(booked, "CHECKED_IN", now);
+        const tokenNumber = needsToken ? await nextToken(tx, booked.scheduledAt) : undefined;
+        return tx.appointment.update({
+          where: { id: booked.id },
+          data: {
+            status: "CHECKED_IN",
+            ...times,
+            ...(tokenNumber ? { tokenNumber } : {}),
+            // What reception chose now is the more recent statement.
+            ...(parsed.data.doctorId ? { doctorId: parsed.data.doctorId } : {}),
+            ...(parsed.data.priority ? { priority: parsed.data.priority } : {}),
+            ...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+          },
+          include: APPOINTMENT_INCLUDE,
+        });
+      }
+      const tokenNumber = await nextToken(tx, now);
+      return tx.appointment.create({
+        data: {
+          patientId: patient.id,
+          doctorId: parsed.data.doctorId,
+          scheduledAt: now,
+          status: "CHECKED_IN",
+          checkedInAt: now,
+          tokenNumber,
+          reason: parsed.data.reason,
+          priority: parsed.data.priority ?? null,
+        },
+        include: APPOINTMENT_INCLUDE,
+      });
+    });
+    return reply.status(201).send({ ...appointment, matchedBooking: !!booked });
   });
 
   // Nurse (or doctor/admin) can record pre-consult vitals without full

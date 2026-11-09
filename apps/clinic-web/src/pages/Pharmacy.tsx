@@ -220,7 +220,7 @@ function Inventory() {
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
           />
           {drugOptions.length > 0 && !selectedDrug && (
-            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/10 bg-[#14171f] max-h-40 overflow-y-auto">
+            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border/20 bg-popover text-popover-foreground shadow-lg max-h-40 overflow-y-auto">
               {drugOptions.map((d) => (
                 <button key={d.id} onClick={() => selectDrug(d)} className="block w-full text-left px-3 py-2 text-sm hover:bg-foreground/5">{d.name}</button>
               ))}

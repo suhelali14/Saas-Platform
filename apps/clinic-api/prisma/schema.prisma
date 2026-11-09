@@ -302,6 +302,16 @@ model Appointment {
   /// lib/triage.ts.
   priority            PatientCategory?
   vitals              Json?
+  /// The number on the patient's slip and on the waiting-room screen.
+  /// One sequence per day for the whole clinic; given at check-in and
+  /// never reissued, so undoing a check-in keeps the number. See
+  /// lib/queue.ts.
+  tokenNumber         Int?
+  /// When the visit reached each stage. Null on visits from before these
+  /// existed: a made-up time would be a wrong waiting time on screen.
+  checkedInAt         DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
   followUpOfCaseSheetId String?
   followUpOfCaseSheet CaseSheet?        @relation("FollowUpAppointments", fields: [followUpOfCaseSheetId], references: [id])
   createdAt           DateTime          @default(now())

@@ -216,7 +216,11 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
     const appointments = await prisma.appointment.findMany({
       where: {
         scheduledAt: { gte: startOfDay, lte: endOfDay },
-        status: { in: ["SCHEDULED", "CHECKED_IN", "IN_PROGRESS"] },
+        // Only people who are here. A booking for 4 pm used to appear on
+        // the waiting-room screen at 10 am as "Waiting", and a pregnant
+        // patient booked for the afternoon sat at position 2 all morning,
+        // ahead of everyone actually in the room.
+        status: { in: ["CHECKED_IN", "IN_PROGRESS"] },
       },
       include: {
         patient: { select: { uhid: true, category: true } },
@@ -228,11 +232,15 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
       byTriage,
     );
 
+    // The token is what the patient is holding. The UHID tail is only for
+    // a visit checked in before tokens existed, which has none. Neither
+    // identifies anyone to a stranger reading the screen.
     const queue = sorted.map((appt, index) => ({
       position: index + 1,
       status: appt.status,
       doctorName: appt.doctor?.name ?? null,
-      patientLabel: `···${appt.patient.uhid.slice(-4)}`,
+      tokenNumber: appt.tokenNumber ?? null,
+      patientLabel: appt.tokenNumber ? `Token ${appt.tokenNumber}` : `···${appt.patient.uhid.slice(-4)}`,
     }));
 
     return {

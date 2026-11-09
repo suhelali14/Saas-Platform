@@ -85,6 +85,35 @@ export function redis(): Redis {
   return client;
 }
 
+/**
+ * Opens the connection before the server takes its first request.
+ *
+ * The client used to be created by the first command that needed it.
+ * With the offline queue off, that command ran before the socket was
+ * open and failed, so after every restart the first sign-in answered
+ * "temporarily unavailable" and, worse, the first request from someone
+ * already signed in failed its session check, came back 401, and signed
+ * them out. Every deploy logged out whoever happened to click first.
+ *
+ * Bounded, so a Redis that is genuinely down delays boot by seconds, not
+ * forever. Requests then fail closed as they always have.
+ */
+export async function connectRedis(timeoutMs = 5000): Promise<boolean> {
+  const r = redis();
+  if (r.status === "ready") return true;
+  return new Promise((resolve) => {
+    const onReady = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    const timer = setTimeout(() => {
+      r.off("ready", onReady);
+      resolve(false);
+    }, timeoutMs);
+    r.once("ready", onReady);
+  });
+}
+
 export interface SessionRecord {
   userId: string;
   role: string;

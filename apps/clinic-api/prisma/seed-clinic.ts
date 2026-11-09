@@ -172,10 +172,18 @@ async function main() {
   const resetRequested = process.env.CLINIC_SEED_RESET_PASSWORD === "1";
   let passwordWritten = false;
 
+  // The first login is the clinic's admin. The admin-flag migration
+  // promotes doctors that already exist, but on a new clinic it runs
+  // before this seed has created anyone, so the first doctor used to
+  // arrive with no admin rights at all: no Staff, no Settings, no way to
+  // add the receptionist. Re-running provisioning repairs a clinic left
+  // in that state, and never demotes anybody.
+  const anyAdmin = await prisma.clinicUser.findFirst({ where: { isAdmin: true, isActive: true }, select: { id: true } });
+
   let doctor;
   if (!existingDoctor) {
     doctor = await prisma.clinicUser.create({
-      data: { email, passwordHash: await bcrypt.hash(password, 10), name: doctorName, role: "DOCTOR" },
+      data: { email, passwordHash: await bcrypt.hash(password, 10), name: doctorName, role: "DOCTOR", isAdmin: true },
     });
     passwordWritten = true;
     console.log(`Doctor login created: ${doctor.email}`);
@@ -185,6 +193,7 @@ async function main() {
       data: {
         name: doctorName,
         role: "DOCTOR",
+        ...(anyAdmin ? {} : { isAdmin: true }),
         ...(resetRequested ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
       },
     });

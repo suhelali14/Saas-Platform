@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  CalendarClock, Users, UserCog, LogOut, Stethoscope, BarChart3, Pill, Bell,
+  CalendarClock, Users, UserCog, LogOut, BarChart3, Pill, Bell,
   IndianRupee, FlaskConical, Radio, Settings as SettingsIcon, Globe, Wallet,
   ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink, LayoutDashboard,
   CalendarCheck} from 'lucide-react';
@@ -14,12 +14,13 @@ import { SetupPrompt } from './SetupPrompt';
 import { QuickSwitcher } from './QuickSwitcher';
 import { SkeletonPage } from './Skeleton';
 
-const ROLE_COLORS: Record<string, string> = {
-  DOCTOR: 'tone-success',
-  ADMIN: 'tone-success',
-  NURSE: 'tone-info',
-  RECEPTIONIST: 'tone-warning',
-  PHARMACIST: 'tone-violet',
+/** How a role reads in the sidebar: a word, not a code. */
+const ROLE_WORDS: Record<string, string> = {
+  DOCTOR: 'Doctor',
+  ADMIN: 'Clinic admin',
+  NURSE: 'Nurse',
+  RECEPTIONIST: 'Reception',
+  PHARMACIST: 'Pharmacist',
 };
 
 const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
@@ -96,49 +97,58 @@ export function Layout() {
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
 
+  const isFrontDesk = !!user && FRONT_DESK_ROLES.has(user.role);
+  const canBill = !!user && BILLING_ROLES.has(user.role);
+  const canDispense = !!user && PHARMACY_ROLES.has(user.role);
   const navItems = (
     <>
-      <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-      <NavItem to="/queue" icon={CalendarClock} label="Today&rsquo;s Queue" />
-      <NavItem to="/patients" icon={Users} label="Patients" />
-      <NavItem to="/reminders" icon={Bell} label="Reminders" badge={dueReminders} />
-      {user && FRONT_DESK_ROLES.has(user.role) && (
-        <NavItem to="/requests" icon={CalendarCheck} label="Requests" badge={newRequests} />
+      <NavGroup>
+        <NavItem to="/queue" icon={CalendarClock} label="Queue" />
+        <NavItem to="/" icon={LayoutDashboard} label="Overview" />
+        {isFrontDesk && <NavItem to="/requests" icon={CalendarCheck} label="Booking requests" badge={newRequests} />}
+        <NavItem to="/reminders" icon={Bell} label="Follow-ups due" badge={dueReminders} />
+      </NavGroup>
+      <NavGroup caption="Patients">
+        <NavItem to="/patients" icon={Users} label="All patients" />
+      </NavGroup>
+      <NavGroup caption="Clinical">
+        <NavItem to="/labs" icon={FlaskConical} label="Lab orders" />
+        {canDispense && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
+      </NavGroup>
+      {(canBill || isAdmin) && (
+        <NavGroup caption="Money">
+          {canBill && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
+          {canBill && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
+          <NavItem to="/analytics" icon={BarChart3} label="Reports" />
+        </NavGroup>
       )}
-      <NavItem to="/analytics" icon={BarChart3} label="Analytics" />
-      {user && BILLING_ROLES.has(user.role) && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
-      {user && BILLING_ROLES.has(user.role) && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
-      {user && PHARMACY_ROLES.has(user.role) && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
-      <NavItem to="/labs" icon={FlaskConical} label="Labs" />
-      {isAdmin && <NavItem to="/website" icon={LayoutTemplate} label="Website" />}
-      {isAdmin && <NavItem to="/audit" icon={ShieldCheck} label="Audit Log" />}
-      <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
-      {enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
-
-      <div className="my-2 border-t border-border/10" />
-      <ExternalNavItem href={publicSiteUrl('/live-queue')} icon={Radio} label="Live Queue Display" />
-      <ExternalNavItem href={publicSiteUrl('/')} icon={Globe} label="Public Clinic Page" />
+      <NavGroup caption="Clinic">
+        {isAdmin && <NavItem to="/website" icon={LayoutTemplate} label="Website" />}
+        {enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
+        <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
+        {isAdmin && <NavItem to="/audit" icon={ShieldCheck} label="Audit log" />}
+      </NavGroup>
+      <NavGroup caption="Open in a new tab">
+        <ExternalNavItem href={publicSiteUrl('/live-queue')} icon={Radio} label="Waiting-room screen" />
+        <ExternalNavItem href={publicSiteUrl('/')} icon={Globe} label="Clinic website" />
+      </NavGroup>
     </>
   );
 
   const userFooter = (
-    <div className="border-t border-border/10 pt-3 mt-3">
-      <div className="px-2 mb-2">
-        <div className="text-xs font-medium text-foreground truncate">{user?.name}</div>
-        {user && (
-          <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${ROLE_COLORS[user.role] || 'bg-foreground/10 text-foreground/80'}`}>
-            {user.role}
-          </span>
-        )}
+    <div className="border-t border-border/15 pt-3 mt-4">
+      <div className="px-3 mb-1.5">
+        <div className="text-[14px] font-semibold text-foreground truncate">{user?.name}</div>
+        {user && <div className="text-[13px] text-muted-foreground">{ROLE_WORDS[user.role] || user.role}</div>}
       </div>
-      <button onClick={logout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-foreground/10 w-full">
+      <button onClick={logout} className="flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] font-medium text-foreground/75 hover:bg-foreground/[0.06] hover:text-foreground w-full">
         <LogOut size={15} /> Sign out
       </button>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
+    <div className="portal min-h-screen bg-background text-foreground md:flex">
       {/*
         Past the nav, in one key.
 
@@ -161,7 +171,7 @@ export function Layout() {
 
       {/* ── Mobile top bar ──────────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/10 bg-card/95 backdrop-blur"
+        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-3 h-14 border-b border-border/15 bg-background/95 backdrop-blur"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <button
@@ -172,9 +182,8 @@ export function Layout() {
         >
           <Menu size={20} />
         </button>
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Stethoscope size={17} className="text-primary shrink-0" />
-          <span className="font-bold text-sm tracking-tight truncate" title={clinicName || 'Clinic Portal'}>{clinicName || 'Clinic Portal'}</span>
+        <div className="min-w-0 flex-1">
+          <ClinicMark name={clinicName} compact />
         </div>
         <IconButtons theme={theme} toggleTheme={toggleTheme} dueReminders={dueReminders} onBell={() => navigate('/reminders')} />
       </header>
@@ -184,35 +193,29 @@ export function Layout() {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <aside
-            className="relative w-[82%] max-w-[300px] bg-card shadow-overlay border-r border-border/10 flex flex-col p-4 overflow-y-auto"
+            className="relative w-[82%] max-w-[300px] bg-background shadow-overlay border-r border-border/15 flex flex-col px-3 py-4 overflow-y-auto"
             role="dialog"
             aria-label="Navigation"
           >
-            <div className="flex items-center justify-between gap-2 mb-6">
-              <div className="flex items-center gap-2 min-w-0">
-                <Stethoscope size={18} className="text-primary shrink-0" />
-                <span className="font-bold text-sm truncate">{clinicName || 'Clinic Portal'}</span>
-              </div>
+            <div className="flex items-start justify-between gap-2 mb-5 px-2">
+              <ClinicMark name={clinicName} />
               <button onClick={() => setDrawerOpen(false)} className="p-2 -mr-1 rounded-lg text-muted-foreground hover:bg-foreground/10" aria-label="Close menu">
                 <X size={18} />
               </button>
             </div>
-            <nav className="flex flex-col gap-1 flex-1">{navItems}</nav>
+            <nav className="flex flex-col flex-1">{navItems}</nav>
             {userFooter}
           </aside>
         </div>
       )}
 
       {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
-      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-border/10 bg-card flex-col p-4 overflow-y-auto">
-        <div className="flex items-center justify-between gap-2 mb-8 px-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Stethoscope size={20} className="text-primary shrink-0" />
-            <span className="font-bold text-sm tracking-tight truncate" title={clinicName || 'Clinic Portal'}>{clinicName || 'Clinic Portal'}</span>
-          </div>
+      <aside className="hidden md:flex md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-border/15 bg-background flex-col px-3 py-4 overflow-y-auto">
+        <div className="flex items-start justify-between gap-2 mb-5 px-2">
+          <ClinicMark name={clinicName} />
           <IconButtons theme={theme} toggleTheme={toggleTheme} dueReminders={dueReminders} onBell={() => navigate('/reminders')} />
         </div>
-        <nav className="flex flex-col gap-1 flex-1">{navItems}</nav>
+        <nav className="flex flex-col flex-1">{navItems}</nav>
         {userFooter}
       </aside>
 
@@ -286,10 +289,10 @@ function NavItem({ to, icon: Icon, label, badge }: { to: string; icon: any; labe
       // you were on Billing.
       end={to === '/'}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium transition-colors ${
+        `flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-[7px] rounded-lg text-[14px] transition-colors ${
           isActive
-            ? 'bg-primary text-primary-foreground'
-            : 'text-foreground/75 hover:bg-foreground/[0.06] hover:text-foreground'
+            ? 'bg-accent text-foreground font-semibold'
+            : 'font-medium text-foreground/75 hover:bg-foreground/[0.05] hover:text-foreground'
         }`
       }
     >
@@ -310,11 +313,32 @@ function ExternalNavItem({ href, icon: Icon, label }: { href: string; icon: any;
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-2 rounded-lg text-sm font-medium text-foreground/80 hover:bg-foreground/10"
+      className="flex items-center gap-2.5 px-3 min-h-[44px] md:min-h-0 md:py-[7px] rounded-lg text-[14px] font-medium text-foreground/75 hover:bg-foreground/[0.05] hover:text-foreground"
     >
       <Icon size={16} className="shrink-0" />
       <span className="truncate" title={label}>{label}</span>
       <ExternalLink size={11} className="ml-auto text-muted-foreground/60 shrink-0" />
     </a>
+  );
+}
+
+/** A labelled group in the sidebar; the first group has no caption. */
+function NavGroup({ caption, children }: { caption?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3">
+      {caption && <p className="mb-1 px-3 text-[12px] font-medium text-muted-foreground">{caption}</p>}
+      <div className="flex flex-col gap-0.5">{children}</div>
+    </div>
+  );
+}
+
+/** The clinic's own name, set like Nayaverse Growth's mark. */
+function ClinicMark({ name, compact }: { name?: string | null; compact?: boolean }) {
+  const label = name || 'Clinic portal';
+  return (
+    <div className="min-w-0 leading-none" title={label}>
+      <span className={`block font-semibold uppercase tracking-[0.12em] text-muted-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}>Nayaverse Clinic</span>
+      <span className={`block truncate font-display font-semibold uppercase tracking-[0.02em] text-foreground ${compact ? 'mt-0.5 text-[17px]' : 'mt-1 text-[19px]'}`}>{label}</span>
+    </div>
   );
 }

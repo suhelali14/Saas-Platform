@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth } from "../plugins/auth.js";
-import { byTriage } from "../lib/triage.js";
+import { effectivePriority, byTriage } from "../lib/triage.js";
 import { summarize } from "./clinic-billing.js";
 
 /**
@@ -75,6 +75,11 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
       where: { scheduledAt: { gte: start, lt: end } },
       select: {
         id: true, status: true, scheduledAt: true, vitals: true,
+        // The visit's own priority: without it the sort below fell back
+        // to the patient's usual case, so an emergency walk-in for an
+        // ordinary patient was never shown as next here while the queue
+        // screen put them first.
+        priority: true, tokenNumber: true, checkedInAt: true,
         doctor: { select: { id: true, name: true } },
         patient: {
           select: {
@@ -96,8 +101,10 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
      * dashboard, and two copies of a sort rule drift the first time one
      * is changed.
      */
+    // Waiting means here. Bookings not yet arrived were counted too, so
+    // the dashboard said seven waiting while the waiting room held four.
     const waiting = todaysAppointments
-      .filter((a) => a.status === "CHECKED_IN" || a.status === "SCHEDULED")
+      .filter((a) => a.status === "CHECKED_IN")
       .sort((a, b) => {
         const tier = byTriage(a, b);
         return tier !== 0 ? tier : a.scheduledAt.getTime() - b.scheduledAt.getTime();
@@ -165,6 +172,8 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
 
     const today = {
       waiting: waiting.length,
+      /** Booked for today and not here yet. */
+      notArrived: byStatus("SCHEDULED"),
       inProgress: byStatus("IN_PROGRESS"),
       completed: byStatus("COMPLETED"),
       noShow: byStatus("NO_SHOW"),
@@ -183,15 +192,18 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
       // Named with their allergies, because that is the one fact a doctor
       // must not have to click to discover.
       nowServing: inProgress && {
+        tokenNumber: inProgress.tokenNumber,
         patientName: inProgress.patient.name,
         uhid: inProgress.patient.uhid,
         allergies: inProgress.patient.allergies,
         doctorName: inProgress.doctor?.name ?? null,
       },
       next: next && {
+        tokenNumber: next.tokenNumber,
         patientName: next.patient.name,
         uhid: next.patient.uhid,
-        category: next.patient.category,
+        // What this visit is today, which is what the queue sorts by.
+        category: effectivePriority(next),
         allergies: next.patient.allergies,
         chronicConditions: next.patient.chronicConditions,
         doctorName: next.doctor?.name ?? null,

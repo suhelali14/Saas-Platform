@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle, Info, RefreshCw, ArrowRight, Activity, Stethoscope,
-} from 'lucide-react';
+import { AlertTriangle, ArrowRight, Info, RefreshCw } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '../components/Button';
 import { Card, CardContent } from '../components/ui';
 import { SkeletonStats } from '../components/Skeleton';
-import { BarList, Sparkline, StageFlow } from '../components/charts';
+import { Sparkline } from '../components/charts';
 import { CATEGORY_BADGES } from '../lib/categories';
 import { usePolling } from '../lib/usePolling';
 
@@ -23,8 +21,8 @@ import { usePolling } from '../lib/usePolling';
  *
  * ── What it is not ───────────────────────────────────────────────────
  *
- * Not a chart. The data's job here is a handful of single headlines, and
- * a stat tile *is* the chart for that — Analytics already owns the trend
+ * Not a chart. The data's job here is a handful of single headlines,
+ * written as sentences and short lists rather than a grid of tiles — Analytics already owns the trend
  * line, and a plot to interpret is the wrong thing to put in front of
  * someone with a patient waiting.
  *
@@ -67,14 +65,15 @@ type DashboardData = {
   generatedAt: string;
   role: string;
   today: {
-    waiting: number; inProgress: number; completed: number; noShow: number;
+    waiting: number; notArrived?: number; inProgress: number; completed: number; noShow: number;
     cancelled: number; booked: number; awaitingVitals: number;
     /** Who is carrying today. Empty on a single-doctor practice. */
     loadByDoctor: { doctorId: string; doctorName: string; booked: number; seen: number }[];
     /** The last 14 days including today, so today's count has a scale. */
     dailyContext: { date: string; count: number }[];
-    nowServing: { patientName: string; uhid: string; allergies: string | null; doctorName: string | null } | null;
+    nowServing: { tokenNumber?: number | null; patientName: string; uhid: string; allergies: string | null; doctorName: string | null } | null;
     next: {
+      tokenNumber?: number | null;
       patientName: string; uhid: string; category: string;
       allergies: string | null; chronicConditions: string | null;
       doctorName: string | null; scheduledAt: string;
@@ -154,16 +153,18 @@ export function Dashboard() {
   }
 
   const { today, attention, stock, money } = data;
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateLabel = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const notArrived = today.notArrived ?? 0;
+  const token = (n?: number | null) => (n ? `Token ${n} · ` : '');
+  const byMode = money ? Object.entries(money.byMode).filter(([, v]) => v > 0) : [];
 
   return (
-    <div className="max-w-[1600px] p-4 sm:p-6 md:p-8">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="max-w-[1100px] p-4 sm:p-6 md:p-8">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{greeting}</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            <Freshness iso={data.generatedAt} />
+          <h1>Overview</h1>
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            {dateLabel} · <Freshness iso={data.generatedAt} />
           </p>
         </div>
         <Button variant="ghost" size="sm" icon={<RefreshCw size={12} />} onClick={load}>
@@ -171,220 +172,174 @@ export function Dashboard() {
         </Button>
       </div>
 
-      {/* ── Who is waiting. The one hero figure. ───────────────────────── */}
-      <Card className="mb-4">
-        <CardContent className="flex flex-wrap items-center gap-x-10 gap-y-5 p-5">
-          <div>
-            {/* Proportional figures, deliberately: tabular-nums gives every
-                digit the width of a zero, which makes a number like 12 look
-                loose at this size. */}
-            <p className="text-5xl font-semibold leading-none">{today.waiting}</p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {today.waiting === 1 ? 'patient waiting' : 'patients waiting'}
-              {today.booked > 0 && ` · ${today.booked} booked today`}
-            </p>
+      {/* ── Right now: who is waiting, who is in, who is next. ────────── */}
+      <section className="mb-6 rounded-xl border border-border/15 bg-card">
+        <div className="flex flex-wrap items-stretch">
+          <div className="flex min-w-[180px] flex-col justify-center border-border/10 px-5 py-5 sm:border-r">
+            {/* The one big figure, because it decides the next minute. */}
+            <p className="font-display text-[3.4rem] font-semibold leading-none"><Changed value={String(today.waiting)} /></p>
+            <p className="mt-1.5 text-[14px] font-medium">{today.waiting === 1 ? 'patient waiting' : 'patients waiting'}</p>
+            {notArrived > 0 && <p className="text-[13px] text-muted-foreground">{notArrived} booked, not here yet</p>}
           </div>
-
-          {today.nowServing && (
-            <div className="min-w-0 border-l border-border/10 pl-6">
-              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <Activity size={11} aria-hidden="true" /> In consultation
-              </p>
-              <p className="mt-1 truncate text-sm font-medium">{today.nowServing.patientName}</p>
-              <p className="text-xs text-muted-foreground">
-                {today.nowServing.doctorName ? `Dr. ${today.nowServing.doctorName}` : 'Unassigned'}
-              </p>
-            </div>
-          )}
-
-          {today.next && (
-            <div className="min-w-0 border-l border-border/10 pl-6">
-              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <Stethoscope size={11} aria-hidden="true" /> Next
-              </p>
-              <p className="mt-1 flex items-center gap-2 truncate text-sm font-medium">
-                {today.next.patientName}
-                {today.next.category !== 'GENERAL' && CATEGORY_BADGES[today.next.category] && (
-                  // The shared badge map, so a triage tier is the same
-                  // colour here as on the queue and the patient list.
-                  <span className={cn('rounded-full px-1.5 py-0.5 text-[10px]', CATEGORY_BADGES[today.next.category]!.color)}>
-                    {CATEGORY_BADGES[today.next.category]!.label}
-                  </span>
-                )}
-              </p>
-              {/* The one fact a doctor must never have to click to find.
-                  Shown here for the same reason the encounter screen puts
-                  it above the fold. */}
-              {today.next.allergies ? (
-                <p className="mt-0.5 flex items-start gap-1 text-xs text-ink-danger">
-                  <AlertTriangle size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0">Allergic to {today.next.allergies}</span>
-                </p>
+          <dl className="grid min-w-0 flex-1 gap-x-6 gap-y-4 px-5 py-5 sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-[13px] text-muted-foreground">With the doctor</dt>
+              {today.nowServing ? (
+                <dd className="mt-0.5">
+                  <span className="block truncate text-[15px] font-semibold">{token(today.nowServing.tokenNumber)}{today.nowServing.patientName}</span>
+                  <span className="text-[13px] text-muted-foreground">{today.nowServing.doctorName ? `Dr. ${today.nowServing.doctorName}` : 'No doctor chosen'}</span>
+                </dd>
               ) : (
-                <p className="text-xs text-muted-foreground">{today.next.uhid}</p>
+                <dd className="mt-0.5 text-[15px] text-muted-foreground">No one</dd>
               )}
             </div>
+            <div className="min-w-0">
+              <dt className="text-[13px] text-muted-foreground">Next</dt>
+              {today.next ? (
+                <dd className="mt-0.5">
+                  <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold">
+                    <span className="truncate">{token(today.next.tokenNumber)}{today.next.patientName}</span>
+                    {today.next.category !== 'GENERAL' && CATEGORY_BADGES[today.next.category] && (
+                      <span className={cn('rounded px-1.5 py-0.5 text-[12px] font-semibold', CATEGORY_BADGES[today.next.category]!.color)}>
+                        {CATEGORY_BADGES[today.next.category]!.label}
+                      </span>
+                    )}
+                  </span>
+                  {/* The one fact a doctor must never have to click to find. */}
+                  {today.next.allergies ? (
+                    <span className="mt-0.5 flex items-start gap-1 text-[13px] font-medium text-ink-danger">
+                      <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> Allergic to {today.next.allergies}
+                    </span>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground">{today.next.doctorName ? `For Dr. ${today.next.doctorName}` : today.next.uhid}</span>
+                  )}
+                </dd>
+              ) : (
+                <dd className="mt-0.5 text-[15px] text-muted-foreground">No one waiting</dd>
+              )}
+            </div>
+          </dl>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border/10 px-5 py-2.5 text-[14px]">
+          <span className="text-muted-foreground">
+            {today.completed} seen{today.booked ? ` of ${today.booked} today` : ''}
+            {today.noShow > 0 ? ` · ${today.noShow} did not come` : ''}
+            {today.awaitingVitals > 0 ? ` · ${today.awaitingVitals} waiting without vitals` : ''}
+          </span>
+          <Link to="/queue" className="inline-flex shrink-0 items-center gap-1.5 font-medium underline-offset-4 hover:underline">
+            Open the queue <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* ── What needs doing, most urgent first ──────────────────────── */}
+        <section>
+          <h2 className="mb-2.5 text-[16px] font-semibold">Needs doing</h2>
+          {attention.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/25 px-4 py-5 text-[14px] text-muted-foreground">Nothing is waiting on anyone right now.</p>
+          ) : (
+            <ul className="divide-y divide-border/10 overflow-hidden rounded-xl border border-border/15 bg-card">
+              {attention.map((item) => (
+                <li key={item.key}>
+                  <Link to={item.href} className="flex items-center gap-3 px-4 py-3 hover:bg-foreground/[0.03]">
+                    {/* Colour never carries the meaning alone: an icon and
+                        the words say the same thing. */}
+                    {item.severity === 'warn'
+                      ? <AlertTriangle size={15} className="shrink-0 text-ink-warning" aria-hidden="true" />
+                      : <Info size={15} className="shrink-0 text-muted-foreground" aria-hidden="true" />}
+                    <span className="min-w-0 flex-1 text-[14px]">
+                      <span className="font-semibold">{item.count}</span> {item.label}
+                    </span>
+                    <ArrowRight size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {stock && (stock.expiringSoon > 0 || stock.lowStock > 0) && (
+            <p className="mt-3 text-[13px] text-muted-foreground">
+              Pharmacy:{' '}
+              {[
+                stock.expiringSoon > 0 && `${stock.expiringSoon} batch${stock.expiringSoon === 1 ? '' : 'es'} expiring within 30 days`,
+                stock.lowStock > 0 && `${stock.lowStock} medicine${stock.lowStock === 1 ? '' : 's'} at or below the reorder level`,
+              ].filter(Boolean).join(' · ')}
+              {'. '}
+              <Link to="/pharmacy" className="font-medium text-foreground underline underline-offset-4">Open stock</Link>
+            </p>
+          )}
+        </section>
+
+        <div className="space-y-6">
+          {money && (
+            <section>
+              <h2 className="mb-2.5 text-[16px] font-semibold">Money today</h2>
+              <dl className="divide-y divide-border/10 rounded-xl border border-border/15 bg-card text-[14px]">
+                <div className="flex items-baseline justify-between gap-3 px-4 py-3">
+                  <dt>Collected</dt>
+                  <dd className="text-right">
+                    <span className="font-display text-[1.6rem] font-semibold leading-none tabular-nums">{rupees(money.collectedToday)}</span>
+                    <span className="block text-[13px] text-muted-foreground">
+                      {byMode.length ? byMode.map(([k, v]) => `${k === 'UPI' ? 'UPI' : k.charAt(0) + k.slice(1).toLowerCase()} ${rupees(v)}`).join(' · ') : 'Nothing received yet'}
+                    </span>
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 px-4 py-3">
+                  <dt>Still owed by patients</dt>
+                  <dd className={money.outstanding > 0 ? 'font-semibold text-ink-warning tabular-nums' : 'font-medium tabular-nums'}>{rupees(money.outstanding)}</dd>
+                </div>
+              </dl>
+            </section>
           )}
 
-          <Link
-            to="/queue"
-            className="ml-auto inline-flex items-center gap-1.5 self-center text-xs text-primary underline-offset-4 hover:underline"
-          >
-            Open the queue <ArrowRight size={12} aria-hidden="true" />
-          </Link>
-        </CardContent>
-      </Card>
+          {(today.dailyContext?.length ?? 0) >= 2 && (
+            <section>
+              <h2 className="mb-2.5 text-[16px] font-semibold">The last two weeks</h2>
+              <div className="flex items-end justify-between gap-4 rounded-xl border border-border/15 bg-card px-4 py-3">
+                <p className="text-[14px] text-muted-foreground">
+                  Appointments a day. Today: <span className="font-semibold text-foreground">{today.booked}</span>
+                </p>
+                {/* A scale for today's figure, not a chart to study: the
+                    date-by-date question belongs to Reports. */}
+                <Sparkline data={today.dailyContext} />
+              </div>
+            </section>
+          )}
 
-      {/* ── What needs doing, most urgent first ────────────────────────── */}
-      {attention.length > 0 && (
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {attention.map((item) => (
-            <Link
-              key={item.key}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-2.5 rounded-lg border p-3 transition-colors',
-                item.severity === 'warn'
-                  ? 'border-ink-warning/30 bg-ink-warning/10 hover:bg-ink-warning/15'
-                  : 'border-border/10 bg-foreground/[0.02] hover:bg-foreground/5',
-              )}
-            >
-              {/* Status colour never carries meaning alone: an icon and a
-                  worded label say the same thing. */}
-              {item.severity === 'warn'
-                ? <AlertTriangle size={14} className="shrink-0 text-ink-warning" aria-hidden="true" />
-                : <Info size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />}
-              <span className="min-w-0 text-xs">
-                <span className="font-semibold">{item.count}</span>{' '}
-                <span className={item.severity === 'warn' ? 'text-foreground' : 'text-muted-foreground'}>
-                  {item.label}
-                </span>
-              </span>
-              <ArrowRight size={12} className="ml-auto shrink-0 text-muted-foreground/60" aria-hidden="true" />
-            </Link>
-          ))}
+          {/* Only with a second doctor; on a single-doctor practice this is
+              one row that says what they already know. */}
+          {today.loadByDoctor?.length > 1 && (
+            <section>
+              <h2 className="mb-2.5 text-[16px] font-semibold">By doctor</h2>
+              <ul className="divide-y divide-border/10 rounded-xl border border-border/15 bg-card text-[14px]">
+                {today.loadByDoctor.map((d) => (
+                  <li key={d.doctorId} className="px-4 py-3">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-medium">Dr. {d.doctorName}</span>
+                      <span className="tabular-nums text-muted-foreground">{d.seen} of {d.booked} seen</span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/[0.07]" aria-hidden="true">
+                      <div className="h-full rounded-full bg-[hsl(var(--chart-1))]" style={{ width: `${d.booked ? Math.round((d.seen / d.booked) * 100) : 0}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
-      )}
-
-      {/* ── The rest of today, then the money ──────────────────────────── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="Seen today"
-          value={String(today.completed)}
-          hint={today.booked ? `of ${today.booked} booked` : undefined}
-          // The fortnight behind the number. Without it "9" is unreadable:
-          // nobody can tell a quiet Tuesday from a rush without knowing
-          // what this clinic's days usually look like.
-          aside={
-            today.dailyContext?.length >= 2 ? <Sparkline data={today.dailyContext} /> : undefined
-          }
-        />
-        <Stat
-          label="Awaiting vitals"
-          value={String(today.awaitingVitals)}
-          hint={today.awaitingVitals ? 'taken at the desk, before the consult' : 'all up to date'}
-        />
-        {money && (
-          <>
-            <Stat
-              label="Collected today"
-              value={rupees(money.collectedToday)}
-              hint={
-                money.collectedToday
-                  ? Object.entries(money.byMode).filter(([, v]) => v > 0).map(([k, v]) => `${k.toLowerCase()} ${rupees(v)}`).join(' · ')
-                  : 'nothing received yet'
-              }
-            />
-            <Stat
-              label="Outstanding"
-              value={rupees(money.outstanding)}
-              hint="billed and not yet paid"
-            />
-          </>
-        )}
-        {!money && today.noShow > 0 && (
-          <Stat label="Did not arrive" value={String(today.noShow)} hint="marked no-show" />
-        )}
       </div>
 
-      {/* ── Where today has got to ────────────────────────────────────────
-          Shown only once there is a day to describe. On an empty morning
-          four bars at zero is furniture, and the hero card above already
-          says the clinic has nobody waiting. */}
-      {today.booked > 0 && (
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
-          <Card>
-            <CardContent className="p-4">
-              <h2 className="mb-3 text-[11px] text-muted-foreground">Today&apos;s flow</h2>
-              <StageFlow
-                total={today.booked}
-                stages={[
-                  { label: 'Booked', value: today.booked },
-                  { label: 'Waiting', value: today.waiting },
-                  { label: 'With doctor', value: today.inProgress },
-                  { label: 'Seen', value: today.completed },
-                ]}
-              />
-              {/* The ones that fell out of the flow rather than moved
-                  through it, named rather than drawn: a bar for "did not
-                  arrive" alongside the stages would read as a fifth stage,
-                  which is the opposite of what happened. */}
-              {(today.noShow > 0 || today.cancelled > 0) && (
-                <p className="mt-2.5 border-t border-border/10 pt-2.5 text-[11px] text-muted-foreground/70">
-                  {[
-                    today.noShow > 0 && `${today.noShow} did not arrive`,
-                    today.cancelled > 0 && `${today.cancelled} cancelled`,
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Only with a second doctor. On a single-doctor practice this is
-              one bar at 100%, which tells them something they know. */}
-          {today.loadByDoctor?.length > 1 && (
-            <Card>
-              <CardContent className="p-4">
-                <h2 className="mb-3 text-[11px] text-muted-foreground">
-                  Booked today, by doctor
-                </h2>
-                <BarList
-                  items={today.loadByDoctor.map((d) => ({
-                    label: d.doctorName,
-                    value: d.booked,
-                  }))}
-                />
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {stock && (stock.expiringSoon > 0 || stock.lowStock > 0) && (
-        <p className="mt-4 text-xs text-muted-foreground">
-          Pharmacy:{' '}
-          {[
-            stock.expiringSoon > 0 && `${stock.expiringSoon} batch${stock.expiringSoon === 1 ? '' : 'es'} expiring within 30 days`,
-            stock.lowStock > 0 && `${stock.lowStock} medicine${stock.lowStock === 1 ? '' : 's'} at or below its reorder level`,
-          ].filter(Boolean).join(' · ')}
-          {'. '}
-          <Link to="/pharmacy" className="text-primary underline-offset-4 hover:underline">Open inventory</Link>
-        </p>
-      )}
-
-      {error && <p className="mt-4 text-xs text-ink-danger">{error}</p>}
+      {error && <p className="mt-4 text-[13px] text-ink-danger">{error}</p>}
     </div>
   );
 }
 
-/**
- * One number and what it means.
- *
- * The label is sentence case with no trailing colon, the value is sans
- * semibold with the font's own proportional figures, and the hint says
- * what the number is measured against — a figure with nothing to compare
- * it to is trivia.
- */
+/** A figure that marks itself when a refresh changes it. */
+function Changed({ value }: { value: string }) {
+  const changed = useChanged(value);
+  return <span className={changed ? 'just-changed' : undefined}>{value}</span>;
+}
+
 /**
  * Marks itself when the figure changes.
  *
@@ -417,35 +372,4 @@ function useChanged(value: string): boolean {
   }, [value]);
 
   return changed;
-}
-
-function Stat({
-  label, value, hint, aside,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  /** A small mark that gives the figure a scale, such as a sparkline. */
-  aside?: React.ReactNode;
-}) {
-  const changed = useChanged(value);
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="text-[11px] text-muted-foreground">{label}</p>
-        {/* The figure and its scale on one baseline, the mark pushed right
-            so the numbers down the row of tiles still line up. `items-end`
-            rather than centre: a sparkline hangs off the number's baseline,
-            which is what makes it read as an annotation on the figure
-            rather than a second thing in the tile. */}
-        <div className="mt-1 flex items-end justify-between gap-3">
-          <p className="inline-block text-2xl font-semibold leading-none">
-            <span className={changed ? 'just-changed' : undefined}>{value}</span>
-          </p>
-          {aside && <span className="shrink-0 leading-none">{aside}</span>}
-        </div>
-        {hint && <p className="mt-1.5 text-[11px] text-muted-foreground/70">{hint}</p>}
-      </CardContent>
-    </Card>
-  );
 }

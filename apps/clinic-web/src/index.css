@@ -36,238 +36,141 @@
  * which one sits on :root; the two are easy to confuse and are not the
  * same question.
  */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/ibm-plex-sans-devanagari/devanagari-400.css";
+@import "@fontsource/ibm-plex-sans-devanagari/devanagari-600.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /*
+   * ── The Nayaverse look ────────────────────────────────────────────
+   *
+   * The portal shares its visual world with Nayaverse Growth: warm paper,
+   * near-black ink and one amber, set for a tool used all day at a front
+   * desk in daylight. Page titles are condensed capitals; body text is IBM
+   * Plex Sans, which has a Devanagari companion, so a patient's name typed
+   * in Marathi or Hindi sits on the same line height as one in English.
+   *
+   * Two themes, both from the same palette. Light ships by default (the
+   * front desk's scene); dark is a preference for an evening clinic.
+   * ThemeContext decides which one applies; dark sits on :root and light
+   * under .theme-light only because the portal was written dark-first.
+   *
+   * Every text token below is at least 4.5:1 on both the page ground and
+   * the card in its theme. --border is used at low alpha throughout
+   * (border-border/10 and the like), so it is a strong colour here and
+   * reads as a fine warm line once thinned.
+   */
   :root {
-    /* The portal. #0b0d12 is the ground every existing screen is written
-       against, kept exactly so a converted component and an unconverted
-       one sit on the same colour. */
-    --background: 220 22% 6%;
-    --foreground: 0 0% 100%;
+    --background: 40 8% 8%;
+    --foreground: 40 25% 93%;
+    --card: 40 7% 11%;
+    --card-foreground: 40 25% 93%;
+    --popover: 40 7% 10%;
+    --popover-foreground: 40 25% 93%;
 
-    --card: 220 18% 9%;
-    --card-foreground: 0 0% 100%;
+    /* The amber is the action colour in the dark: ink on amber. */
+    --primary: 36 81% 58%;
+    --primary-foreground: 45 8% 10%;
+    --secondary: 40 6% 16%;
+    --secondary-foreground: 40 25% 93%;
+    --muted: 40 6% 14%;
+    --muted-foreground: 40 10% 66%;
+    --accent: 40 6% 18%;
+    --accent-foreground: 40 25% 93%;
 
-    --popover: 220 20% 8%;
-    --popover-foreground: 0 0% 100%;
-
-    /* Sky blue. Both halves of the product share it, so the staff portal
-       and the clinic's public site do not look like two products.
-       Brighter here than in the light theme: the same hue at the same
-       lightness reads muddy on a dark ground and washed out on a white
-       one, so each theme carries its own value. */
-    --primary: 199 85% 55%;
-    --primary-foreground: 210 60% 12%;
-
-    --secondary: 220 14% 16%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 14% 14%;
-    --muted-foreground: 220 9% 65%;
-
-    --accent: 220 14% 18%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
+    --destructive: 3 70% 55%;
     --destructive-foreground: 0 0% 100%;
+    --success: 151 45% 45%;
+    --success-foreground: 151 60% 8%;
+    --warning: 36 81% 58%;
+    --warning-foreground: 35 80% 10%;
+    --info: 205 50% 62%;
+    --info-foreground: 205 60% 10%;
 
-    /* Clinical state. These are the two colours a nurse reads off a
-       screen to decide something, so they are tokens with names rather
-       than a hue chosen per component. */
-    --success: 158 64% 42%;
-    /* Dark, not white. White on a 42%-lightness green is 2.78:1 -- the
-       same trap --warning-foreground already avoids one line below. */
-    --success-foreground: 158 80% 8%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 92% 10%;
-    /* Neutral-informational: a note, a reference range, a role badge --
-       something to read, not to act on. Distinct from --primary, which
-       means "this is the action". */
-    --info: 212 90% 62%;
-    --info-foreground: 210 60% 10%;
+    /* Ink: the same tones as text on the dark ground. */
+    --ink-success: 151 45% 62%;
+    --ink-warning: 38 85% 66%;
+    --ink-danger: 4 80% 72%;
+    --ink-info: 205 60% 72%;
+    --ink-violet: 266 60% 76%;
+    --ink-pink: 334 65% 76%;
+    --ink-teal: 175 50% 62%;
 
-    /*
-     * ── Ink, as distinct from ground ──────────────────────────────────
-     *
-     * The four tokens above are GROUNDS: a solid fill with its own
-     * foreground painted on top, which is what a button or a solid badge
-     * needs. They cannot also serve as text colour, because the two jobs
-     * pull in opposite directions -- a red dark enough for white text on
-     * it is too dark to read AS text on a near-black page, and a red
-     * bright enough to read on black is too bright to put white on.
-     *
-     * Trying to make one token do both is why `text-red-400` was typed
-     * into sixty places instead: the token genuinely did not work there.
-     * So each meaning gets a second value, the colour of its TEXT, in
-     * this theme. Every pair below was checked against this theme's page
-     * ground, its card ground, and its own tint, and clears 4.5:1 on all
-     * three; the lowest in the set is 5.42:1.
-     */
-    --ink-success: 158 64% 56%;
-    --ink-warning: 38 95% 62%;
-    --ink-danger: 0 85% 72%;
-    --ink-info: 212 90% 70%;
-    /* Three more hues that carry meaning nothing above covers: a staff
-       role, a triage tier, an audit event class. They are not decoration
-       -- collapsing them into the four semantic tones would make
-       "pharmacist" and "dispensed" the same colour. */
-    --ink-violet: 265 90% 76%;
-    --ink-pink: 330 85% 74%;
-    --ink-teal: 175 70% 58%;
+    --chart-1: 36 81% 58%;
+    --chart-2: 205 50% 62%;
+    /* Waiting -> in progress -> seen: one hue, lighter as it goes on a dark ground. */
+    --stage-1: 36 50% 30%;
+    --stage-2: 36 60% 42%;
+    --stage-3: 36 72% 54%;
+    --stage-4: 38 80% 66%;
+    --chart-grid: 40 25% 93%;
 
-    /*
-     * ── Chart marks, which are NOT the ink above ──────────────────────
-     *
-     * Two different jobs. Ink is tuned for TEXT contrast, so on a dark
-     * ground it goes bright. A chart mark is a filled area, and the
-     * perceptual band it has to sit in for a dark surface is OKLCH
-     * lightness 0.48-0.67 -- which dark --primary (0.716) and dark
-     * --ink-warning (0.814) are both well above. Reusing them paints a
-     * chart that glares and loses its chroma against the panel.
-     *
-     * Blue and amber rather than blue and violet, and that choice was
-     * measured, not picked. Violet is blue plus red, so deuteranopia
-     * collapses it into the blue: the validator put the dark
-     * blue/violet pair at delta-E 1.4, effectively one colour for
-     * ~8% of men, while normal vision reads 16.7 and never notices.
-     * Blue against amber is the axis deuteranopia preserves, and the
-     * same pair measures 23.6.
-     *
-     * Both steps clear all five checks against this theme's panel
-     * surface -- lightness band, chroma floor, CVD separation,
-     * normal-vision floor, contrast. Re-run before changing either:
-     *   node validate_palette.js "#1197d4,#c27d05" --mode dark --surface "#13161b"
-     */
-    --chart-1: 199 85% 45%;
-    --chart-2: 38 95% 39%;
+    --shadow: 40 30% 2%;
+    --border: 40 25% 93%;
+    --input: 40 6% 22%;
+    --ring: 36 81% 58%;
 
-    /* An ORDINAL ramp, for a sequence whose order is the point: booked ->
-       waiting -> in progress -> seen. Not categorical, because swapping two
-       stages would change what the chart means, and not the status tokens,
-       because none of these stages is good or bad.
-       One hue, monotone lightness, and the anchor is FLIPPED here: on a
-       near-black ground "further along" has to read lighter, so the ramp
-       runs dark -> light. Checked, not chosen:
-         node validate_palette.js "#126991,#188abf,#25a8e4,#57bcea"            --ordinal --mode dark --surface "#13161b"
-       Re-run it before changing a step. The first attempt failed the
-       adjacent-delta-L gate twice at a glance-identical spacing. */
-    --stage-1: 199 78% 32%;
-    --stage-2: 199 78% 42%;
-    --stage-3: 199 78% 52%;
-    --stage-4: 199 78% 63%;
-
-    /* Grid and axis are structure, not data, so they recede. Derived
-       from the foreground at low alpha in use, not stated as a colour,
-       so they follow the theme. */
-    --chart-grid: 0 0% 100%;
-
-    /* The colour shadows are cast IN, not the shadow itself. A shadow is
-       a darkening of the ground, so on a near-black ground it has to be
-       nearly black to register at all -- the card shadow used to be a
-       light-theme navy hardcoded into the component, which meant every
-       panel in the dark theme had no elevation whatsoever. */
-    --shadow: 220 60% 2%;
-
-    --border: 0 0% 100%;  /* used at low opacity, as border-white/10 was */
-    --input: 220 14% 18%;
-    --ring: 199 85% 58%;
-
-    /* 12px. The reference design's cards are noticeably rounder than
-       shadcn's 8px default, and the portal is mostly cards. */
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
-  /* Reception works in daylight at a front desk, so the portal offers a
-     light theme. Applied by ThemeContext as a class on <html>. */
   :root.theme-light {
-    /* A soft blue-grey page with white cards floating on it, rather than
-       white-on-white. That separation is what makes a dense screen
-       readable without drawing a border around everything. */
-    --background: 225 45% 96%;
-    --foreground: 215 55% 18%;
+    /* Paper ground, a warmer white for cards, near-black ink. */
+    --background: 42 36% 95%;
+    --foreground: 45 8% 10%;
+    --card: 43 100% 99%;
+    --card-foreground: 45 8% 10%;
+    --popover: 43 100% 99%;
+    --popover-foreground: 45 8% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 55% 18%;
+    /* The main action is ink, as in Growth: one dark button per screen,
+       and the amber kept for what needs noticing. */
+    --primary: 45 8% 10%;
+    --primary-foreground: 43 100% 99%;
+    --secondary: 40 30% 91%;
+    --secondary-foreground: 45 8% 10%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 39 10% 38%;
+    --accent: 40 32% 89%;
+    --accent-foreground: 45 8% 10%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 55% 18%;
+    /* Solid fills carry white text at 4.5:1 or more. */
+    --destructive: 3 75% 38%;
+    --destructive-foreground: 43 100% 99%;
+    --success: 151 58% 25%;
+    --success-foreground: 43 100% 99%;
+    --warning: 35 79% 29%;
+    --warning-foreground: 43 100% 99%;
+    --info: 205 45% 32%;
+    --info-foreground: 43 100% 99%;
 
-    /* Deeper than the dark theme's blue: the same sky blue that reads
-       bright on near-black fails contrast as a link on white. 44% was
-       still not deep enough -- measured, it came to 3.91:1 as text on a
-       white card, so every `text-primary` link in the portal failed on
-       the theme that ships by default. 38% measures 5.03:1 on the card
-       and 4.51:1 on the page ground, and white on it as a button reads
-       5.03:1. */
-    --primary: 203 85% 38%;
-    --primary-foreground: 0 0% 100%;
+    --ink-success: 151 58% 25%;
+    --ink-warning: 35 79% 29%;
+    --ink-danger: 3 75% 38%;
+    --ink-info: 205 45% 32%;
+    --ink-violet: 266 45% 40%;
+    --ink-pink: 334 55% 38%;
+    --ink-teal: 184 60% 24%;
 
-    --secondary: 225 40% 93%;
-    --secondary-foreground: 215 55% 18%;
+    --chart-1: 35 79% 38%;
+    --chart-2: 205 45% 32%;
+    /* The same ordinal ramp, darker as it goes on paper; the light end
+       still clears 2:1 against the card. */
+    --stage-1: 37 65% 60%;
+    --stage-2: 36 70% 48%;
+    --stage-3: 35 76% 38%;
+    --stage-4: 35 79% 28%;
+    --chart-grid: 45 8% 10%;
 
-    --muted: 225 40% 95%;
-    /* 48% measured 4.15:1 against the blue-grey PAGE ground -- it passed
-       on a white card and failed everywhere a muted line sat directly on
-       the page, which is most of them. */
-    --muted-foreground: 215 20% 44%;
-
-    --accent: 225 40% 91%;
-    --accent-foreground: 215 55% 18%;
-
-    --destructive: 0 72% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Both darkened so that white text on them clears 4.5:1: at 34% and
-       40% a solid success or warning button measured 4.4:1 and 3.9:1. */
-    --success: 158 64% 30%;
-    --success-foreground: 0 0% 100%;
-    --warning: 32 92% 34%;
-    --warning-foreground: 0 0% 100%;
-    --info: 212 80% 40%;
-    --info-foreground: 0 0% 100%;
-
-    /* Ink for this theme -- see the dark block for why ground and ink are
-       two different tokens. Lowest in this set is 4.93:1. */
-    --ink-success: 160 72% 26%;
-    --ink-warning: 28 88% 33%;
-    --ink-danger: 0 72% 42%;
-    --ink-info: 212 80% 40%;
-    --ink-violet: 266 70% 45%;
-    --ink-pink: 334 70% 42%;
-    --ink-teal: 184 75% 26%;
-
-    /* Chart marks for the white panel. Validated the same way:
-         node validate_palette.js "#0f74b3,#9e4f0a" --mode light --surface "#ffffff"
-       These happen to coincide with --primary and --ink-warning here,
-       because the light band and the text-contrast target agree on a
-       white ground. They do NOT agree on a dark one, which is why these
-       are separate tokens rather than aliases. */
-    --chart-1: 203 85% 38%;
-    --chart-2: 28 88% 33%;
-
-    /* The same ordinal ramp on a white ground, running light -> dark. Its
-       own steps rather than an inversion of the dark ones: the light end
-       has to clear 2:1 against white, which is a different constraint from
-       clearing a near-black surface, and the first version of this failed
-       that gate at 1.76:1.
-         node validate_palette.js "#6cb6e5,#40a1dd,#2388c7,#1c6b9c"            --ordinal --mode light */
-    --stage-1: 203 70% 66%;
-    --stage-2: 203 70% 56%;
-    --stage-3: 203 70% 46%;
-    --stage-4: 203 70% 36%;
-
-    --chart-grid: 215 55% 18%;
-
-    /* Tinted toward the page's own blue rather than neutral grey: a grey
-       shadow on a blue-grey ground reads as dirt. */
-    --shadow: 215 55% 28%;
-
-    --border: 215 55% 18%;
-    --input: 220 30% 88%;
-    --ring: 203 85% 48%;
+    /* Shadows tinted toward the paper, never grey. */
+    --shadow: 40 30% 30%;
+    --border: 38 35% 28%;
+    --input: 40 20% 65%;
+    --ring: 35 79% 29%;
   }
 
   * {
@@ -484,6 +387,30 @@
   /* Right-aligned numbers that do not jitter as they change. Used on
      money and on counts. */
   .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── The portal's type, shared with Nayaverse Growth ────────────────
+   Scoped to the portal's root so the patient site keeps each clinic's
+   typeface. Page titles are condensed capitals; figures line up. */
+@layer components {
+  .portal {
+    font-family: theme('fontFamily.portal');
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .portal #main h1 {
+    font-family: theme('fontFamily.display');
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    font-size: 1.9rem;
+  }
+  .portal [data-num],
+  .portal td,
+  .portal .tabular {
     font-variant-numeric: tabular-nums;
   }
 }

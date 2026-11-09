@@ -3,7 +3,8 @@ import { z } from "zod";
 import { PatientCategory } from "../generated/prisma-client/index.js";
 import { prisma } from "../lib/prisma.js";
 import { DURABLE_CATEGORIES } from "../lib/triage.js";
-import { requireClinicAuth, requirePatientAdminAuth } from "../plugins/auth.js";
+import { BILLING_ROLES, requireClinicAuth, requirePatientAdminAuth } from "../plugins/auth.js";
+import { summarize } from "./clinic-billing.js";
 import { generatePatientUhid } from "../lib/uhid.js";
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
@@ -202,7 +203,11 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     const patient = await prisma.patient.findUnique({ where: { id } });
     if (!patient) return reply.status(404).send({ error: "Not found" });
 
-    const [caseSheets, prescriptions, certificates, appointments] = await Promise.all([
+    // Bills only for the roles that may see money anyway: a nurse gets 403
+    // from /invoices, and the patient's page must not be a way round that.
+    const canSeeBills = BILLING_ROLES.has(auth.role);
+
+    const [caseSheets, prescriptions, certificates, appointments, labOrders, invoices] = await Promise.all([
       prisma.caseSheet.findMany({
         where: { patientId: id },
         include: { doctor: { select: { name: true } }, attachments: true },
@@ -220,11 +225,34 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
       }),
       prisma.appointment.findMany({
         where: { patientId: id },
+        include: { doctor: { select: { name: true } } },
         orderBy: { scheduledAt: "desc" },
       }),
+      // Lab orders and bills, so the profile can show each visit as one
+      // day: what was found, what was prescribed, what was tested and
+      // what was paid, without opening four screens.
+      prisma.labOrder.findMany({
+        where: { patientId: id },
+        include: { items: { select: { id: true, testName: true, resultText: true, resultFileName: true, completedAt: true } }, doctor: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      canSeeBills
+        ? prisma.invoice.findMany({
+            where: { patientId: id },
+            include: { items: { select: { amount: true, quantity: true } }, payments: { select: { amount: true } } },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
-    return { patient, caseSheets, prescriptions, certificates, appointments };
+    // The same arithmetic as the billing screen, so a balance here can
+    // never disagree with the one reception collects against.
+    const bills = invoices.map((inv) => {
+      const { subtotal, paid, balance, status } = summarize(inv.items, inv.payments);
+      return { id: inv.id, appointmentId: inv.appointmentId, createdAt: inv.createdAt, total: subtotal, paid, balance, status };
+    });
+
+    return { patient, caseSheets, prescriptions, certificates, appointments, labOrders, bills: canSeeBills ? bills : null };
   });
 
   // Full patient history as a printable/downloadable PDF -- "every patient

@@ -52,7 +52,7 @@ type Candidate = {
 
 type Patient = {
   id: string; uhid: string; name: string; phone: string | null;
-  dob?: string | null; age: number | null; gender: string | null; address: string | null;
+  dob?: string | null; age: number | null; gender: string | null; address?: string | null;
 };
 
 const date = (iso: string | null | undefined) =>

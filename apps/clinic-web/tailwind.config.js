@@ -125,6 +125,10 @@ export default {
         // installed locally.
         sans: ['"Inter Variable"', "Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        // The portal's own faces, shared with Nayaverse Growth. Applied at the
+        // portal's root only, so the patient site keeps each clinic's choice.
+        portal: ['"IBM Plex Sans Variable"', '"IBM Plex Sans"', '"IBM Plex Sans Devanagari"', "system-ui", "sans-serif"],
+        display: ['"Barlow Condensed"', '"Arial Narrow"', "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

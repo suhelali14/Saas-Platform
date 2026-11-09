@@ -31,6 +31,15 @@ interface PreviousVisit { createdAt: string; diagnosis: string | null; chiefComp
 const STATUS_FLOW = ['SCHEDULED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'];
 const VITALS_ROLES = new Set(['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN']);
 
+/** Statuses as words a person says, not database constants. */
+const STATUS_WORDS: Record<string, string> = {
+  SCHEDULED: 'Booked', CHECKED_IN: 'Waiting', IN_PROGRESS: 'With the doctor', COMPLETED: 'Seen', CANCELLED: 'Cancelled', NO_SHOW: 'Did not come',
+};
+const NEXT_ACTION: Record<string, string> = {
+  CHECKED_IN: 'Check in', IN_PROGRESS: 'Start consultation', COMPLETED: 'Finish visit',
+};
+const CERT_WORDS: Record<string, string> = { SICK_LEAVE: 'Sick leave certificate', FITNESS: 'Fitness certificate', REFERRAL: 'Referral letter' };
+
 export function Encounter() {
   const { id } = useParams<{ id: string }>();
   const { user, canWriteClinical } = useClinicAuth();
@@ -117,7 +126,7 @@ export function Encounter() {
               <Link to={`/patients/${appointment.patient.id}`} className="text-ink-success hover:underline">Full profile →</Link>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet shrink-0">{appointment.status.replace('_', ' ')}</span>
+          <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet shrink-0">{STATUS_WORDS[appointment.status] ?? appointment.status}</span>
         </div>
         <div className="text-xs text-muted-foreground/70 mt-3 flex items-center gap-3 flex-wrap">
           <span>{new Date(appointment.scheduledAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
@@ -126,7 +135,7 @@ export function Encounter() {
         </div>
         {nextStatus && (
           <button onClick={advanceStatus} className="mt-3 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20">
-            Mark {nextStatus.replace('_', ' ')}
+            {NEXT_ACTION[nextStatus] ?? `Mark ${nextStatus}`}
           </button>
         )}
       </div>
@@ -161,7 +170,7 @@ export function Encounter() {
       {/* Continuity of care -- what happened last time, without leaving this screen. */}
       {previousVisit && (
         <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-6">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"><History size={12} /> Last Visit</div>
+          <div className="flex items-center gap-1.5 text-[14px] font-semibold mb-2"><History size={14} /> Last visit</div>
           <div className="text-xs text-muted-foreground/70 mb-1">{new Date(previousVisit.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
           {previousVisit.chiefComplaint && <div className="text-sm"><span className="text-muted-foreground">Complaint:</span> {previousVisit.chiefComplaint}</div>}
           {previousVisit.diagnosis && <div className="text-sm"><span className="text-muted-foreground">Diagnosis:</span> {previousVisit.diagnosis}</div>}
@@ -203,7 +212,7 @@ export function Encounter() {
         <LabOrderForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
       )}
 
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 mt-8">This Visit</h2>
+      <h2 className="text-[16px] font-semibold mb-3 mt-8">This visit</h2>
       <div className="flex flex-col gap-3">
         {caseSheets.length === 0 && prescriptions.length === 0 && certificates.length === 0 && labOrders.length === 0 && (
           <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing recorded for this visit yet.</div>
@@ -252,7 +261,7 @@ export function Encounter() {
         {certificates.map((c) => (
           <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {c.type.replace('_', ' ')} · {c.doctor.name}</div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {CERT_WORDS[c.type] ?? c.type} · {c.doctor.name}</div>
               <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline"><Download size={11} /> PDF</button>
             </div>
             <p className="text-sm text-foreground/80">{c.content}</p>
