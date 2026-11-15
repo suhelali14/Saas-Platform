@@ -109,7 +109,18 @@ function PharmacyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
+// The hospital's cashier and billing clerk bill too; the API's billing set
+// includes both, and the menu offers them Billing.
+const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'CASHIER', 'BILLING_CLERK']);
+// Expenses are the clinic's own spending, not bills: the API keeps them to
+// the original three, so the route does too.
+const EXPENSE_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
+
+function ExpenseRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAdmin } = useClinicAuth();
+  if (!user || (!EXPENSE_ROLES.has(user.role) && !isAdmin)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 /** Appointment requests carry names and phone numbers typed in by people
  *  who are not yet patients. Front-desk work, and the same set the API
@@ -200,7 +211,7 @@ function portalRoutes() {
       <Route path="/pharmacy" element={<ModuleRoute module="pharmacy"><PharmacyRoute><Pharmacy /></PharmacyRoute></ModuleRoute>} />
       <Route path="/labs" element={<ModuleRoute module="labs"><Labs /></ModuleRoute>} />
       <Route path="/billing" element={<ModuleRoute module="billing"><BillingRoute><Billing /></BillingRoute></ModuleRoute>} />
-      <Route path="/expenses" element={<ModuleRoute module="expenses"><BillingRoute><Expenses /></BillingRoute></ModuleRoute>} />
+      <Route path="/expenses" element={<ModuleRoute module="expenses"><ExpenseRoute><Expenses /></ExpenseRoute></ModuleRoute>} />
       <Route path="/audit" element={<AdminRoute><AuditLog /></AdminRoute>} />
       <Route path="/website" element={<AdminRoute><Website /></AdminRoute>} />
       <Route path="/settings" element={<Settings />} />

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { COUNTER_ROLES, requireClinicAuth, requireRoles } from "../plugins/auth.js";
 import { summarize } from "./clinic-billing.js";
+import { lockMoney } from "../lib/money-lock.js";
+import type { Prisma } from "../generated/prisma-client/index.js";
 
 /**
  * The cash counter.
@@ -49,8 +51,8 @@ async function sessionTotals(sessionId: string, openingCash: number) {
 }
 
 /** A patient's advance: in, refunded, applied, and what is left. */
-export async function depositBalance(patientId: string, admissionId?: string | null) {
-  const rows = await prisma.deposit.findMany({ where: { patientId, ...(admissionId ? { admissionId } : {}) }, orderBy: { at: "asc" } });
+export async function depositBalance(patientId: string, admissionId?: string | null, db: Prisma.TransactionClient = prisma) {
+  const rows = await db.deposit.findMany({ where: { patientId, ...(admissionId ? { admissionId } : {}) }, orderBy: { at: "asc" } });
   let held = 0;
   for (const r of rows) held += r.kind === "ADVANCE" ? Number(r.amount) : -Number(r.amount);
   return { held: Math.round(held * 100) / 100, entries: rows };
@@ -147,16 +149,24 @@ export async function clinicCounterRoutes(app: FastifyInstance) {
     if (!session) return reply.status(409).send({ error: "Open your counter first." });
     const patient = await prisma.patient.findUnique({ where: { id: parsed.data.patientId }, select: { id: true } });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
-    if (parsed.data.kind === "REFUND") {
-      const { held } = await depositBalance(parsed.data.patientId, parsed.data.admissionId);
-      if (parsed.data.amount > held + 0.001) {
-        return reply.status(400).send({ error: `Only ₹${held} of advance is held for this patient; a refund cannot be more than that.` });
+    const byName = await staffName(auth.clinicUserId);
+    // The refund check and the write happen under a lock on this patient's
+    // advance, so two refunds at once cannot both pass against one balance.
+    const result = await prisma.$transaction(async (tx) => {
+      await lockMoney(tx, `patient:${parsed.data.patientId}`);
+      if (parsed.data.kind === "REFUND") {
+        const { held } = await depositBalance(parsed.data.patientId, parsed.data.admissionId, tx);
+        if (parsed.data.amount > held + 0.001) return { overHeld: held };
       }
-    }
-    const deposit = await prisma.deposit.create({
-      data: { ...parsed.data, counterSessionId: session.id, byId: auth.clinicUserId, byName: await staffName(auth.clinicUserId) },
+      const deposit = await tx.deposit.create({
+        data: { ...parsed.data, counterSessionId: session.id, byId: auth.clinicUserId, byName },
+      });
+      return { deposit };
     });
-    return reply.status(201).send({ deposit, ...(await depositBalance(parsed.data.patientId)) });
+    if ("overHeld" in result) {
+      return reply.status(400).send({ error: `Only ₹${result.overHeld} of advance is held for this patient; a refund cannot be more than that.` });
+    }
+    return reply.status(201).send({ deposit: result.deposit, ...(await depositBalance(parsed.data.patientId)) });
   });
 
   /** Pay a bill from the patient's advance: no new money, so no counter. */
@@ -166,17 +176,24 @@ export async function clinicCounterRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const parsed = z.object({ amount: money.refine((v) => v > 0) }).safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "Say how much of the advance to use." });
-    const invoice = await prisma.invoice.findUnique({ where: { id }, include: { items: true, payments: true } });
-    if (!invoice) return reply.status(404).send({ error: "Not found" });
-    const { balance } = summarize(invoice.items, invoice.payments, invoice);
-    const { held } = await depositBalance(invoice.patientId);
-    const amount = Math.min(parsed.data.amount, balance, held);
-    if (amount <= 0) return reply.status(400).send({ error: held <= 0 ? "This patient has no advance held." : "This bill has nothing left to pay." });
+    const found = await prisma.invoice.findUnique({ where: { id }, select: { patientId: true } });
+    if (!found) return reply.status(404).send({ error: "Not found" });
     const byName = await staffName(auth.clinicUserId);
-    await prisma.$transaction([
-      prisma.payment.create({ data: { invoiceId: id, amount, mode: "DEPOSIT", receivedById: auth.clinicUserId } }),
-      prisma.deposit.create({ data: { patientId: invoice.patientId, admissionId: invoice.admissionId, kind: "APPLIED", amount, invoiceId: id, byId: auth.clinicUserId, byName } }),
-    ]);
-    return { applied: amount, ...(await depositBalance(invoice.patientId)) };
+    // Both balances are read again under locks on the advance and the
+    // bill, so two applications at once cannot spend the same advance or
+    // pay the same bill twice.
+    const result = await prisma.$transaction(async (tx) => {
+      await lockMoney(tx, `patient:${found.patientId}`, `invoice:${id}`);
+      const invoice = (await tx.invoice.findUnique({ where: { id }, include: { items: true, payments: true } }))!;
+      const { balance } = summarize(invoice.items, invoice.payments, invoice);
+      const { held } = await depositBalance(invoice.patientId, null, tx);
+      const amount = Math.min(parsed.data.amount, balance, held);
+      if (amount <= 0) return { refused: held <= 0 ? "This patient has no advance held." : "This bill has nothing left to pay." };
+      await tx.payment.create({ data: { invoiceId: id, amount, mode: "DEPOSIT", receivedById: auth.clinicUserId } });
+      await tx.deposit.create({ data: { patientId: invoice.patientId, admissionId: invoice.admissionId, kind: "APPLIED", amount, invoiceId: id, byId: auth.clinicUserId, byName } });
+      return { applied: amount };
+    });
+    if ("refused" in result) return reply.status(400).send({ error: result.refused });
+    return { applied: result.applied, ...(await depositBalance(found.patientId)) };
   });
 }

@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
-import { requireBillingAuth, requireAdminAuth } from "../plugins/auth.js";
+import { requireAdminAuth, requireRoles } from "../plugins/auth.js";
+import { summarize } from "./clinic-billing.js";
 
 /**
  * Expense ledger + profit/loss -- the other half of the SRS's billing
@@ -48,15 +49,25 @@ function dayRange(from?: string, to?: string) {
   return { start, end };
 }
 
+/**
+ * Who may read and add to the expense ledger: the people who ran the money
+ * before hospitals existed. Not the shared billing set -- a cashier or a
+ * billing clerk takes payments on bills, which is not the clinic's own
+ * spending, so they are deliberately left out here even though they bill.
+ */
+const EXPENSE_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN"]);
+const requireExpenseAuth = (request: Parameters<typeof requireRoles>[0], reply: Parameters<typeof requireRoles>[1]) =>
+  requireRoles(request, reply, EXPENSE_ROLES, "Only reception, doctors and admins keep the expense ledger.", { allowAdmin: true });
+
 export async function clinicExpenseRoutes(app: FastifyInstance) {
   app.get("/api/clinic/expenses/categories", async (request, reply) => {
-    const auth = requireBillingAuth(request, reply);
+    const auth = requireExpenseAuth(request, reply);
     if (!auth) return;
     return { categories: EXPENSE_CATEGORIES };
   });
 
   app.get("/api/clinic/expenses", async (request, reply) => {
-    const auth = requireBillingAuth(request, reply);
+    const auth = requireExpenseAuth(request, reply);
     if (!auth) return;
 
     const { from, to, category } = request.query as { from?: string; to?: string; category?: string };
@@ -86,7 +97,7 @@ export async function clinicExpenseRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/clinic/expenses", async (request, reply) => {
-    const auth = requireBillingAuth(request, reply);
+    const auth = requireExpenseAuth(request, reply);
     if (!auth) return;
 
     const parsed = createSchema.safeParse(request.body);
@@ -131,10 +142,16 @@ export async function clinicExpenseRoutes(app: FastifyInstance) {
     const { from, to } = request.query as { from?: string; to?: string };
     const { start, end } = dayRange(from, to);
 
-    const [payments, expenses, outstandingInvoices] = await Promise.all([
+    const [payments, deposits, expenses, outstandingInvoices] = await Promise.all([
+      // A payment made FROM an advance is not new money: the advance was
+      // counted when it was taken. Counting both would earn it twice.
       prisma.payment.findMany({
-        where: { paidAt: { gte: start, lte: end } },
+        where: { paidAt: { gte: start, lte: end }, mode: { not: "DEPOSIT" } },
         select: { amount: true, mode: true },
+      }),
+      prisma.deposit.findMany({
+        where: { at: { gte: start, lte: end }, kind: { in: ["ADVANCE", "REFUND"] } },
+        select: { amount: true, mode: true, kind: true },
       }),
       prisma.expense.findMany({
         where: { paidAt: { gte: start, lte: end } },
@@ -146,11 +163,16 @@ export async function clinicExpenseRoutes(app: FastifyInstance) {
       }),
     ]);
 
-    const revenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    // Cash basis, the same as the day close: bill payments, plus advances
+    // taken, less advances refunded.
+    const signed = (d: { amount: unknown; kind: string }) => (d.kind === "REFUND" ? -Number(d.amount) : Number(d.amount));
+    const revenue =
+      payments.reduce((sum, p) => sum + Number(p.amount), 0) + deposits.reduce((sum, d) => sum + signed(d), 0);
     const expenseTotal = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
     const revenueByMode = new Map<string, number>();
     for (const p of payments) revenueByMode.set(p.mode, (revenueByMode.get(p.mode) ?? 0) + Number(p.amount));
+    for (const d of deposits) if (d.mode) revenueByMode.set(d.mode, (revenueByMode.get(d.mode) ?? 0) + signed(d));
 
     const expenseByCategory = new Map<string, number>();
     for (const e of expenses) {
@@ -159,11 +181,9 @@ export async function clinicExpenseRoutes(app: FastifyInstance) {
 
     // Money billed in this period but not yet collected. Shown separately
     // from revenue, never folded into it.
-    const outstanding = outstandingInvoices.reduce((sum, inv) => {
-      const billed = inv.items.reduce((s, i) => s + Number(i.amount) * i.quantity, 0);
-      const paid = inv.payments.reduce((s, p) => s + Number(p.amount), 0);
-      return sum + Math.max(0, billed - paid);
-    }, 0);
+    // The same arithmetic as every other screen, so an approved discount is
+    // not reported here as money still owed.
+    const outstanding = outstandingInvoices.reduce((sum, inv) => sum + summarize(inv.items, inv.payments, inv).balance, 0);
 
     return {
       from: start.toISOString(),

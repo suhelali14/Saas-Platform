@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { Prisma } from "../generated/prisma-client/index.js";
 import { prisma } from "../lib/prisma.js";
 import { resolvedSchema } from "../lib/db-schema.js";
 import { IPD_ROLES, requireAdminAuth, requireClinicAuth, requireRoles } from "../plugins/auth.js";
@@ -30,9 +31,10 @@ const ADMISSION_INCLUDE = {
   bed: { include: { ward: { select: { id: true, name: true, kind: true } } } },
 } as const;
 
-/** The running bill for one admission, through now (or discharge). */
-async function billFor(admissionId: string) {
-  const a = await prisma.admission.findUnique({
+/** The running bill for one admission, through now (or discharge). Takes
+ *  a transaction client when it must read inside one, as discharge does. */
+async function billFor(admissionId: string, db: Prisma.TransactionClient = prisma) {
+  const a = await db.admission.findUnique({
     where: { id: admissionId },
     include: { moves: { orderBy: { at: "asc" } }, charges: { orderBy: { at: "asc" } }, deposits: true },
   });
@@ -220,6 +222,12 @@ export async function clinicIpdRoutes(app: FastifyInstance) {
       if (code === "BED_TAKEN") return reply.status(409).send({ error: "That bed has just been taken. Choose another." });
       if (code === "BED_BLOCKED") return reply.status(409).send({ error: "That bed is out of use." });
       if (code === "BED_GONE") return reply.status(404).send({ error: "That bed no longer exists." });
+      if (isUniqueViolation(e)) {
+        const target = String((e as Prisma.PrismaClientKnownRequestError).meta?.target ?? "");
+        return reply.status(409).send({
+          error: target.includes("patient") ? `${patient.name} is already admitted.` : "That bed has just been taken. Choose another.",
+        });
+      }
       throw e;
     }
   });
@@ -270,6 +278,7 @@ export async function clinicIpdRoutes(app: FastifyInstance) {
       if (code === "BED_BLOCKED") return reply.status(409).send({ error: "That bed is out of use." });
       if (code === "SAME_BED") return reply.status(400).send({ error: "The patient is already in that bed." });
       if (code === "NOT_ADMITTED") return reply.status(409).send({ error: "This patient is not admitted." });
+      if (isUniqueViolation(e)) return reply.status(409).send({ error: "That bed is taken." });
       throw e;
     }
   });
@@ -326,29 +335,51 @@ export async function clinicIpdRoutes(app: FastifyInstance) {
     if (!a) return reply.status(404).send({ error: "Not found" });
     if (a.status !== "ADMITTED") return reply.status(409).send({ error: "This patient has already been discharged." });
 
+    /*
+     * One step, which only one request can win. Closing the stay is a
+     * conditional update -- still ADMITTED, or nothing happens -- so a
+     * double-tapped Discharge or two desks at once cannot both make a
+     * bill; and the bill is made in the same transaction, so a failure
+     * cannot leave a discharged patient with no bill to settle.
+     */
     const dischargedAt = new Date();
-    await prisma.admission.update({
-      where: { id },
-      data: {
-        ...parsed.data,
-        followUpDate: parsed.data.followUpDate ? new Date(`${parsed.data.followUpDate.slice(0, 10)}T12:00:00+05:30`) : null,
-        status: "DISCHARGED",
-        dischargedAt,
-        // The bed frees the moment the patient leaves.
-        bedId: null,
-      },
-    });
-    const running = await billFor(id);
-    const items = [
-      ...running!.bill.room.filter((r) => r.days > 0).map((r) => ({ category: "OTHER" as const, description: `Room: ${r.wardName}, ${r.days} day${r.days === 1 ? "" : "s"} at ₹${r.dailyRate}`, quantity: r.days, amount: r.dailyRate })),
-      ...running!.charges.map((c) => ({
-        category: (c.category === "MEDICINE" || c.category === "CONSUMABLE" ? "MEDICINE" : c.category === "LAB" || c.category === "RADIOLOGY" ? "LAB" : c.category === "PROCEDURE" || c.category === "OT" ? "PROCEDURE" : c.category === "DOCTOR_VISIT" ? "CONSULTATION" : "OTHER") as never,
-        description: c.description, quantity: c.quantity, amount: c.rate,
-      })),
-    ];
-    const invoice = await prisma.invoice.create({
-      data: { patientId: a.patientId, admissionId: id, items: { create: items } },
-    });
-    return { dischargedAt, invoiceId: invoice.id, ...running };
+    try {
+      const { invoiceId, running } = await prisma.$transaction(async (tx) => {
+        const closed = await tx.admission.updateMany({
+          where: { id, status: "ADMITTED" },
+          data: {
+            ...parsed.data,
+            followUpDate: parsed.data.followUpDate ? new Date(`${parsed.data.followUpDate.slice(0, 10)}T12:00:00+05:30`) : null,
+            status: "DISCHARGED",
+            dischargedAt,
+            // The bed frees the moment the patient leaves.
+            bedId: null,
+          },
+        });
+        if (closed.count === 0) throw new Error("ALREADY_DISCHARGED");
+        const running = (await billFor(id, tx))!;
+        const items = [
+          ...running.bill.room.filter((r) => r.days > 0).map((r) => ({ category: "OTHER" as const, description: `Room: ${r.wardName}, ${r.days} day${r.days === 1 ? "" : "s"} at ₹${r.dailyRate}`, quantity: r.days, amount: r.dailyRate })),
+          ...running.charges.map((c) => ({
+            category: (c.category === "MEDICINE" || c.category === "CONSUMABLE" ? "MEDICINE" : c.category === "LAB" || c.category === "RADIOLOGY" ? "LAB" : c.category === "PROCEDURE" || c.category === "OT" ? "PROCEDURE" : c.category === "DOCTOR_VISIT" ? "CONSULTATION" : "OTHER") as never,
+            description: c.description, quantity: c.quantity, amount: c.rate,
+          })),
+        ];
+        const invoice = await tx.invoice.create({
+          data: { patientId: a.patientId, admissionId: id, items: { create: items } },
+        });
+        return { invoiceId: invoice.id, running };
+      });
+      return { dischargedAt, invoiceId, ...running };
+    } catch (e) {
+      if (e instanceof Error && e.message === "ALREADY_DISCHARGED") {
+        return reply.status(409).send({ error: "This patient has already been discharged." });
+      }
+      throw e;
+    }
   });
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 }

@@ -43,6 +43,22 @@ const BY_SERVICE: Record<string, Area[]> = {
   RECORDS: ['patients'],
 };
 
+/**
+ * Areas the API restricts by role, with the roles it lets in (the sets in
+ * apps/clinic-api/src/plugins/auth.ts and the expense routes). A desk
+ * assignment cannot add one of these to a role the API refuses -- a nurse
+ * put on the cash-counter desk would otherwise get a menu link to a screen
+ * that only says no. Areas not listed here are readable by any staff.
+ */
+const AREA_ROLES: Partial<Record<Area, ReadonlySet<string>>> = {
+  counter: new Set(['CASHIER', 'RECEPTIONIST', 'BILLING_CLERK', 'ADMIN', 'DOCTOR']),
+  billing: new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'CASHIER', 'BILLING_CLERK']),
+  claims: new Set(['BILLING_CLERK', 'RECEPTIONIST', 'ADMIN', 'DOCTOR']),
+  requests: new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']),
+  pharmacy: new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']),
+  expenses: new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']),
+};
+
 /** The module each area belongs to; an area whose module is off is never shown. */
 export const AREA_MODULE: Partial<Record<Area, string>> = {
   ipd: 'ipd', nursing: 'nursing', ot: 'ot', labs: 'labs', radiology: 'radiology', pharmacy: 'pharmacy',
@@ -57,8 +73,14 @@ export function areasFor(role: string | undefined, isAdmin: boolean, servicePoin
   if (hasModule('departments') && role === 'DOCTOR' && !isAdmin) {
     for (const a of ['billing', 'expenses', 'requests'] as Area[]) out.delete(a);
   }
+  for (const sp of servicePoints) {
+    for (const a of BY_SERVICE[sp] ?? []) {
+      const allowed = AREA_ROLES[a];
+      if (!allowed || (role && allowed.has(role))) out.add(a);
+    }
+  }
+  // Admins pass every role check in the API (allowAdmin), so they see it all.
   if (isAdmin) for (const a of BY_ROLE.ADMIN!) out.add(a);
-  for (const sp of servicePoints) for (const a of BY_SERVICE[sp] ?? []) out.add(a);
   for (const a of [...out]) {
     const m = AREA_MODULE[a];
     if (m && !hasModule(m)) out.delete(a);

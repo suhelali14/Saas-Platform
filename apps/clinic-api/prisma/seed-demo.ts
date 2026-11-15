@@ -507,6 +507,10 @@ async function hospital(people: Record<string, string>, pt: Record<string, strin
   await prisma.clinic.updateMany({ data: { discountApprovalAbove: 200 } });
   const anyBill = await prisma.invoice.findFirst({ where: { patientId: pt["Ramesh Joshi"]! }, orderBy: { createdAt: "desc" } });
   if (anyBill) {
+    // Asked for before he paid, as it is at a real counter: a discount
+    // cannot be approved on a bill already paid in full (the money would
+    // have to come back as a refund), so this bill is left unpaid.
+    await prisma.payment.deleteMany({ where: { invoiceId: anyBill.id } });
     await prisma.invoice.update({ where: { id: anyBill.id }, data: { discount: 300, discountReason: "Senior citizen, long-standing patient", discountStatus: "PENDING", discountRequestedBy: name("reception") } });
   }
 

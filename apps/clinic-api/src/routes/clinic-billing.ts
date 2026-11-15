@@ -10,6 +10,7 @@ import {
 import { resolveTemplate } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 import { isFeatureEnabled } from "../config/features.js";
+import { lockMoney } from "../lib/money-lock.js";
 
 /** Rupees on a printed bill. pdfkit's built-in Helvetica has no glyph
  * for the rupee sign, so "Rs." is used deliberately rather than the
@@ -65,7 +66,9 @@ export function summarize(
   const total = subtotal - discount;
   const paid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = Math.max(0, total - paid);
-  const status = paid <= 0 && total > 0 ? "PENDING" : balance > 0 ? "PARTIAL" : "PAID";
+  // A bill with nothing on it yet is pending, not paid. One brought to
+  // nothing by an approved discount is paid: nothing more is owed.
+  const status = subtotal <= 0 ? "PENDING" : balance <= 0 ? "PAID" : paid > 0 ? "PARTIAL" : "PENDING";
   // "discountApplied", not "discount": callers spread this over the
   // invoice, and a field named discount would overwrite the amount that
   // was asked for with 0 while it waits for approval.
@@ -185,7 +188,19 @@ export async function clinicBillingRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Use the patient's advance from the cash counter, so the deposit ledger is updated too." });
     }
 
-    await prisma.payment.create({ data: { invoiceId: id, amount: parsed.data.amount, mode: parsed.data.mode, receivedById: auth.clinicUserId, counterSessionId } });
+    // The balance is read again under a lock on this bill, so two payments
+    // at once (a double tap, two counters) cannot both fit into it.
+    const over = await prisma.$transaction(async (tx) => {
+      await lockMoney(tx, `invoice:${id}`);
+      const fresh = (await tx.invoice.findUnique({ where: { id }, include: INVOICE_INCLUDE }))!;
+      const { balance: now } = summarize(fresh.items, fresh.payments, fresh);
+      if (parsed.data.amount > now + 0.01) return now;
+      await tx.payment.create({ data: { invoiceId: id, amount: parsed.data.amount, mode: parsed.data.mode, receivedById: auth.clinicUserId, counterSessionId } });
+      return null;
+    });
+    if (over !== null) {
+      return reply.status(400).send({ error: `Payment of ${parsed.data.amount} exceeds the remaining balance of ${over.toFixed(2)}` });
+    }
     const updated = await prisma.invoice.findUnique({ where: { id }, include: INVOICE_INCLUDE });
     return reply.status(201).send({ ...updated!, ...summarize(updated!.items, updated!.payments, updated!) });
   });
@@ -346,8 +361,15 @@ export async function clinicBillingRoutes(app: FastifyInstance) {
     if (!parsed.success) return reply.status(400).send({ error: "Give an amount and a reason for the discount." });
     const invoice = await prisma.invoice.findUnique({ where: { id }, include: INVOICE_INCLUDE });
     if (!invoice) return reply.status(404).send({ error: "Not found" });
-    const { subtotal } = summarize(invoice.items, invoice.payments, invoice);
+    const { subtotal, paid } = summarize(invoice.items, invoice.payments, invoice);
     if (parsed.data.amount > subtotal) return reply.status(400).send({ error: "A discount cannot be more than the bill." });
+    // Nor more than is still owed. Past that the patient has overpaid, and
+    // the difference is a refund to give back at the counter -- a discount
+    // would make that money vanish from every total instead.
+    const owed = Math.max(0, subtotal - paid);
+    if (parsed.data.amount > owed) {
+      return reply.status(400).send({ error: `Only ${owed.toFixed(2)} is still owed on this bill, so the discount can be at most that. Anything beyond it is a refund.` });
+    }
     const clinic = await prisma.clinic.findFirst({ select: { discountApprovalAbove: true } });
     const limit = clinic?.discountApprovalAbove === null || clinic?.discountApprovalAbove === undefined ? 0 : Number(clinic.discountApprovalAbove);
     const me = await prisma.clinicUser.findUnique({ where: { id: auth.clinicUserId }, select: { name: true } });
@@ -371,9 +393,19 @@ export async function clinicBillingRoutes(app: FastifyInstance) {
     if (!auth) return;
     const { id } = request.params as { id: string };
     const { approve } = (request.body ?? {}) as { approve?: boolean };
-    const invoice = await prisma.invoice.findUnique({ where: { id } });
+    const invoice = await prisma.invoice.findUnique({ where: { id }, include: INVOICE_INCLUDE });
     if (!invoice) return reply.status(404).send({ error: "Not found" });
     if (invoice.discountStatus !== "PENDING") return reply.status(409).send({ error: "There is no discount waiting for approval on this bill." });
+    // A pending discount does not reduce the balance, so the bill may have
+    // been paid in full while it waited. Approving it then would turn the
+    // patient's overpayment into money that appears nowhere.
+    if (approve) {
+      const { subtotal, paid } = summarize(invoice.items, invoice.payments, invoice);
+      const owed = Math.max(0, subtotal - paid);
+      if (Number(invoice.discount ?? 0) > owed) {
+        return reply.status(409).send({ error: `This bill has been paid since the discount was asked for; only ${owed.toFixed(2)} is still owed. Turn the discount down, and refund any difference at the counter.` });
+      }
+    }
     const me = await prisma.clinicUser.findUnique({ where: { id: auth.clinicUserId }, select: { name: true } });
     await prisma.invoice.update({
       where: { id },
