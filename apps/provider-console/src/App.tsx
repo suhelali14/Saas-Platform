@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
-import { LogOut, Building2, Receipt } from "lucide-react";
+import { LogOut, Building2, Receipt, Presentation } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import { Login } from "./pages/Login";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Billing } from "./pages/Billing";
+import { Demos } from "./pages/Demos";
 import { InvoiceView } from "./pages/InvoiceView";
 
 function Booting({ label }: { label: string }) {
@@ -55,6 +56,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const onClinics = pathname === "/" || pathname.startsWith("/clinics");
   const onBilling = pathname.startsWith("/billing") || pathname.startsWith("/invoices");
+  const onDemos = pathname.startsWith("/demos");
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,6 +97,18 @@ function Shell({ children }: { children: React.ReactNode }) {
               <Receipt className="size-4" />
               Billing
             </Link>
+            <Link
+              to="/demos"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+                onDemos
+                  ? "bg-accent font-semibold text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              )}
+            >
+              <Presentation className="size-4" />
+              Demos
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -121,6 +135,7 @@ export default function App() {
             <Route path="/" element={<Protected><Shell><Accounts /></Shell></Protected>} />
             <Route path="/clinics/:id" element={<Protected><Shell><AccountDetail /></Shell></Protected>} />
             <Route path="/billing" element={<Protected><Shell><Billing /></Shell></Protected>} />
+            <Route path="/demos" element={<Protected><Shell><Demos /></Shell></Protected>} />
             <Route path="/invoices/:id" element={<Protected><Shell><InvoiceView /></Shell></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

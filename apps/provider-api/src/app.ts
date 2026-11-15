@@ -10,6 +10,7 @@ import { provisionRoutes } from "./routes/provision.js";
 import { env } from "./config/env.js";
 import { isPlatformSubdomain } from "./lib/subdomain.js";
 import { billingRoutes } from "./routes/billing.js";
+import { demoRoutes } from "./routes/demos.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -81,6 +82,7 @@ export function buildApp() {
   app.register(accountRoutes);
   app.register(provisionRoutes);
   app.register(billingRoutes);
+  app.register(demoRoutes);
   // Public and unauthenticated: every clinic site calls this to boot.
   app.register(publicTenantRoutes);
 

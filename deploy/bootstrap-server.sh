@@ -215,9 +215,13 @@ install -m 644 "$ROOT/repo/deploy/systemd/clinic-api@.service" /etc/systemd/syst
 install -m 644 "$ROOT/repo/deploy/systemd/provider-api.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.timer" /etc/systemd/system/
+install -m 644 "$ROOT/repo/deploy/systemd/clinic-demo-reset.service" /etc/systemd/system/
+install -m 644 "$ROOT/repo/deploy/systemd/clinic-demo-reset.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now clinic-runner.timer > /dev/null 2>&1 || true
-info "clinic-api@.service (template), provider-api.service, clinic-runner.timer"
+# Resets demo clinics each morning; touches nothing without CLINIC_DEMO=1.
+systemctl enable --now clinic-demo-reset.timer > /dev/null 2>&1 || true
+info "clinic-api@.service (template), provider-api.service, clinic-runner.timer, clinic-demo-reset.timer"
 
 # Where the console asks for clinics to be created. Owned by the deploy
 # user because the API container writes here as that uid; read and acted

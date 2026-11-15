@@ -1,0 +1,15 @@
+# Every morning at 07:30, so a demo opened during the working day shows
+# a queue that started this morning. The console's "Reset now" re-runs it
+# right before a meeting, when the waiting times should be exact.
+#
+#   systemctl enable --now clinic-demo-reset.timer
+[Unit]
+Description=Reset the demo clinics every morning
+
+[Timer]
+OnCalendar=*-*-* 07:30:00 Asia/Kolkata
+Persistent=true
+Unit=clinic-demo-reset.service
+
+[Install]
+WantedBy=timers.target

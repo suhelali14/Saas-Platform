@@ -208,6 +208,7 @@ JWT_SECRET=$JWT
 REDIS_URL=redis://redis-$SLUG:6379
 
 CLINIC_PLAN=$PLAN
+${CLINIC_DEMO:+CLINIC_DEMO=1}
 CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN$EXTRA_ORIGINS
 ENVFILE
 chmod 600 "$ENV_DIR/$SLUG.env"
@@ -305,6 +306,17 @@ else
   warn "  until this is run. Re-run it any time with:"
   warn "    docker run --rm --env-file $ENV_DIR/$SLUG.env -w /app/apps/clinic-api \\"
   warn "      \$(cat $ROOT/.image) npx tsx prisma/seed-data/import-drugs.ts"
+fi
+
+# ── A demo clinic gets its made-up day ───────────────────────────────
+# Only when the job asked for a demo (CLINIC_DEMO=1), which also wrote
+# CLINIC_DEMO=1 into the env file above -- the seed script refuses to run
+# without it.
+if [ -n "${CLINIC_DEMO:-}" ]; then
+  log "Filling the demo with made-up patients"
+  docker run --rm --env-file "$ENV_DIR/$SLUG.env" -w /app/apps/clinic-api \
+    "$IMAGE" npx tsx prisma/seed-demo.ts \
+    || warn "The demo seed failed; the clinic works, but is empty. Re-run deploy/reset-demo.sh $SLUG."
 fi
 
 # ── nginx + TLS ───────────────────────────────────────────────────────

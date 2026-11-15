@@ -47,6 +47,9 @@ export type ProvisionRequest = {
    *  out of the CORS list the new env file is written with -- and the
    *  clinic would refuse the very address it was sold. */
   extraOrigins?: string[];
+  /** A demonstration deployment: CLINIC_DEMO=1 in its env file, filled
+   *  with made-up patients, reset every morning. */
+  demo?: boolean;
 };
 
 /**
@@ -156,11 +159,11 @@ export function jobsAvailable(): boolean {
 }
 
 export function enqueueProvision(req: ProvisionRequest): string {
-  const { extraOrigins, ...rest } = req;
+  const { extraOrigins, demo, ...rest } = req;
   return writeJob(
     // Flattened to a string for the same reason as sync-origins: the
     // runner reads this with a shell-side JSON reader.
-    { kind: "provision", ...rest, extraOrigins: (extraOrigins ?? []).join(",") },
+    { kind: "provision", ...rest, extraOrigins: (extraOrigins ?? []).join(","), demo: demo ? "1" : "0" },
     `Queued ${req.name}`,
   );
 }
@@ -188,6 +191,12 @@ export function enqueuePlanSync(req: PlanSyncRequest): string {
     },
     `Queued a plan update for ${req.slug}`,
   );
+}
+
+/** Put a demo clinic back to a fresh day. The host refuses any clinic
+ *  whose env file does not say CLINIC_DEMO=1. */
+export function enqueueDemoReset(slug: string): string {
+  return writeJob({ kind: "reset-demo", slug }, `Queued a reset of ${slug}`);
 }
 
 /**

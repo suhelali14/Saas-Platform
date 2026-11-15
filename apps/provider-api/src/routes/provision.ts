@@ -111,7 +111,8 @@ export async function provisionRoutes(app: FastifyInstance) {
         name: account.name,
         doctorName: parsed.data.doctorName,
         doctorEmail: parsed.data.doctorEmail,
-        plan: account.plan as "BASIC" | "STANDARD" | "PREMIUM",
+        plan: account.plan as "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE",
+        demo: account.isDemo,
         databaseUrl,
         extraOrigins: [account.publicDomain, account.portalDomain]
           .filter((d): d is string => Boolean(d))

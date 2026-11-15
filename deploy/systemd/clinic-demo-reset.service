@@ -1,0 +1,15 @@
+# Resets every demo clinic on this server to a fresh, believable day.
+# Only touches clinics whose env file says CLINIC_DEMO=1; see
+# deploy/reset-demo.sh.
+[Unit]
+Description=Reset the demo clinics
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/clinic/repo/deploy/reset-demo.sh --all
+TimeoutStartSec=900
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clinic-demo-reset

@@ -121,6 +121,7 @@ for job in "${JOB_FILES[@]}"; do
   plan="$(read_json "$job" plan)"
   dburl="$(read_json "$job" databaseUrl)"
   extra="$(read_json "$job" extraOrigins)"
+  demo="$(read_json "$job" demo)"
 
   # ── Changing which websites a clinic trusts ────────────────────────
   #
@@ -169,6 +170,32 @@ for job in "${JOB_FILES[@]}"; do
     continue
   fi
 
+  # ── Resetting a demo clinic ────────────────────────────────────────
+  #
+  # reset-demo.sh refuses any clinic whose env file does not say
+  # CLINIC_DEMO=1, so this job cannot empty a real clinic however it was
+  # written.
+  if [ "$kind" = "reset-demo" ]; then
+    if [ -z "$slug" ] || ! printf '%s' "$slug" | grep -qE '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'; then
+      write_status "$id" failed "slug is missing or invalid"
+      mv -f "$job" "$ARCHIVE/$id.json"
+      continue
+    fi
+    write_status "$id" running "Resetting the demo $slug"
+    out="$JOBS/.out-$id"
+    if "$ROOT/repo/deploy/reset-demo.sh" "$slug" > "$out" 2>&1; then
+      write_status "$id" succeeded "$(grep -m1 '^Demo ready' "$out" || printf 'Demo %s reset' "$slug")"
+      log "  succeeded: reset $slug"
+    else
+      tail="$(redact < "$out" | strip_ansi | tail -6 | tr '\n' ' ' | sed 's/  */ /g')"
+      write_status "$id" failed "$tail"
+      log "  FAILED: reset $slug"
+    fi
+    mv -f "$job" "$ARCHIVE/$id.json"
+    rm -f "$out"
+    continue
+  fi
+
   # ── Changing what a clinic is entitled to ──────────────────────────
   #
   # A plan change, a module added to a deal, a suspension or a
@@ -197,8 +224,7 @@ for job in "${JOB_FILES[@]}"; do
       write_status "$id" succeeded "$slug is now on $plan${features:+ with $features}$([ "${readonly_flag:-0}" = 1 ] && printf ', read-only')"
       log "  succeeded: $slug plan -> $plan"
     else
-      tail="$(redact < "$out" | strip_ansi | tail -8 | tr '
-' ' ' | sed 's/  */ /g')"
+      tail="$(redact < "$out" | strip_ansi | tail -8 | tr '\n' ' ' | sed 's/  */ /g')"
       write_status "$id" failed "$tail"
       log "  FAILED: $slug plan"
       redact < "$out" | tail -15 | sed 's/^/      /'
@@ -244,6 +270,7 @@ for job in "${JOB_FILES[@]}"; do
      CLINIC_DOCTOR_NAME="$doctor" \
      CLINIC_DOCTOR_EMAIL="$email" \
      CLINIC_EXTRA_ORIGINS="$extra" \
+     CLINIC_DEMO="$([ "$demo" = "1" ] && printf 1)" \
      "$ROOT/repo/deploy/add-clinic.sh" "$slug" --plan "$plan" > "$out" 2>&1; then
 
     password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"
