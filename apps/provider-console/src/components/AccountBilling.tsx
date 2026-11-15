@@ -45,8 +45,8 @@ const num = (v: string | number | null | undefined) => (v === null || v === unde
  * clinic" is the step that changes what the clinic can do, and the panel
  * says plainly when what the clinic runs differs from what is chosen.
  */
-export function PlanModulesPanel({ account, meta, features, pendingApply, onSaved }: {
-  account: Account; meta: Meta | null; features: string[]; pendingApply: boolean; onSaved: () => Promise<void>;
+export function PlanModulesPanel({ account, meta, features, pendingApply, wouldRemove, onSaved }: {
+  account: Account; meta: Meta | null; features: string[]; pendingApply: boolean; wouldRemove: string[]; onSaved: () => Promise<void>;
 }) {
   const toast = useToast();
   const [plan, setPlan] = useState<PlanTier>(account.plan);
@@ -116,10 +116,17 @@ export function PlanModulesPanel({ account, meta, features, pendingApply, onSave
     }
   };
 
+  const labelOf = (k: string) => meta?.features.find((f) => f.key === k)?.label ?? k;
   const apply = async () => {
+    // Taking a module away from a live clinic is allowed -- it may be the
+    // deal -- but never by surprise. An old clinic runs every legacy
+    // module until its first apply.
+    if (wouldRemove.length > 0 && !window.confirm(`Applying this switches off, for ${account.name}: ${wouldRemove.map(labelOf).join(", ")}.
+
+They use these now. Continue?`)) return;
     setApplying(true);
     try {
-      const res = await apiFetch<{ envLines: string; queued: boolean; jobId: string | null }>(`/accounts/${account.id}/apply-plan`, { method: "POST", data: {} });
+      const res = await apiFetch<{ envLines: string; queued: boolean; jobId: string | null }>(`/accounts/${account.id}/apply-plan`, { method: "POST", data: { confirmRemovals: wouldRemove.length > 0 } });
       setApplied(res);
       toast.success(res.queued ? "Sent to the clinic's server." : "Recorded. Apply the lines below on the server by hand.");
       await onSaved();
@@ -208,6 +215,12 @@ export function PlanModulesPanel({ account, meta, features, pendingApply, onSave
           )}
         </div>
         <p className="text-[11px] text-muted-foreground">Enabled: {features.length ? features.join(", ") : "only what every plan includes"}</p>
+        {wouldRemove.length > 0 && (
+          <p className="flex items-start gap-1 text-xs text-warning">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            Applying switches off what the clinic has now: {wouldRemove.map(labelOf).join(", ")}. Tick them to keep them.
+          </p>
+        )}
 
         {job && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

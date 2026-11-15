@@ -13,14 +13,15 @@ const ORDER: PlanTier[] = ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'];
  * where that conversation starts. It never pretends the page is broken,
  * and it never hides that the feature exists.
  */
-export function NotInPlan({ module }: { module: string }) {
+export function NotInPlan({ module, inline }: { module: string; inline?: boolean }) {
   const { entitlement } = useClinicAuth();
   const info = MODULE_INFO[module];
   const name = info?.label ?? 'This screen';
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
-      <h1>{name}</h1>
-      <div className="mt-5 rounded-xl border border-border/15 bg-card p-5">
+    // Inline, it sits inside another page (a tab), so no page padding or title.
+    <div className={inline ? 'max-w-2xl' : 'p-4 sm:p-6 md:p-8 max-w-2xl'}>
+      {!inline && <h1>{name}</h1>}
+      <div className={`${inline ? '' : 'mt-5 '}rounded-xl border border-border/15 bg-card p-5`}>
         <p className="text-[16px] font-semibold">Not part of your plan yet.</p>
         {info && <p className="mt-1.5 text-[15px] text-muted-foreground">{info.what}</p>}
         <p className="mt-3 text-[15px]">

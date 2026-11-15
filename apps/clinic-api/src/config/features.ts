@@ -131,7 +131,11 @@ export function planDefaults(tier: PlanTier): Set<Feature> {
  * env; `enabledModules()` below is the one the app uses.
  */
 export function resolveModules(tier: PlanTier, explicit: string | undefined): Set<Feature> {
-  if (explicit !== undefined && explicit.trim() !== "") {
+  // Present at all -- even empty -- is an explicit list. An empty line is
+  // what the console writes when a deal has every module removed, and
+  // reading it as "unset" switched every legacy module ON: the opposite
+  // of what was applied.
+  if (explicit !== undefined) {
     const list = explicit.split(",").map((s) => s.trim()).filter(Boolean);
     // Unknown names are dropped, not fatal: an env file written by a newer
     // console must not stop an older clinic API from booting.

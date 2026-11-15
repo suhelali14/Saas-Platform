@@ -47,8 +47,9 @@ test("unknown names in the list are dropped, not fatal", () => {
   assert.deepEqual([...on].sort(), ["billing", "labs"]);
 });
 
-test("an empty list means the plan decides", () => {
-  assert.deepEqual([...resolveModules("STANDARD", "  ")].sort(), [...resolveModules("STANDARD", undefined)].sort());
+test("an empty list means no modules, not the plan's", () => {
+  assert.equal(resolveModules("STANDARD", "").size, 0);
+  assert.equal(resolveModules("ENTERPRISE", "  ").size, 0);
 });
 
 test("each tier includes everything the tier below it does", () => {

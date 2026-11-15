@@ -5,7 +5,7 @@ import { requireProviderAuth, requireOwnerAuth } from "../plugins/auth.js";
 import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
 import {
   ALWAYS_INCLUDED, FEATURES, LIST_PRICES, PLAN_FITS, PLAN_LABELS, PLAN_MAX_USERS, SUGGESTED_MONTHLY_FEE,
-  resolveFeatures, type PlanTier,
+  resolveFeatures, runningFeatures, type PlanTier,
 } from "../lib/plans.js";
 import { STATE_CODES, stateFromGstin } from "../lib/billing.js";
 import { contractOf, monthlyValue } from "./billing.js";
@@ -203,14 +203,18 @@ export async function accountRoutes(app: FastifyInstance) {
 
     const features = resolveFeatures(account.plan as PlanTier, account.featureOverrides);
     const readOnly = account.status === "SUSPENDED";
+    const running = runningFeatures(account);
     return {
       account,
       features,
+      running,
+      // What applying the current choice would switch off.
+      wouldRemove: running.filter((k) => !features.includes(k)),
       // Has the clinic been told about the current choice? Compared as
       // strings because that is what was written to its env file.
       pendingApply:
         account.appliedPlan !== account.plan ||
-        (account.appliedFeatures ?? "") !== features.join(",") ||
+        running.join(",") !== features.join(",") ||
         (account.appliedReadOnly ?? false) !== readOnly,
       monthlyValue: Math.round(monthlyValue(contractOf(account))),
     };
@@ -275,6 +279,17 @@ export async function accountRoutes(app: FastifyInstance) {
     const existing = await prisma.clinicAccount.findUnique({ where: { id } });
     if (!existing) return reply.status(404).send({ error: "Not found" });
 
+    // Suspending or resuming changes what a live clinic can do the moment
+    // it is saved, and marking an account a demo makes it resettable --
+    // both owner decisions, as applying a plan already is.
+    const touchesSuspension =
+      parsed.data.status !== undefined && parsed.data.status !== existing.status &&
+      (parsed.data.status === "SUSPENDED" || existing.status === "SUSPENDED");
+    const touchesDemo = parsed.data.isDemo !== undefined && parsed.data.isDemo !== existing.isDemo;
+    if ((touchesSuspension || touchesDemo) && auth.role !== "OWNER") {
+      return reply.status(403).send({ error: "Only an owner can suspend, resume, or mark a clinic as a demo." });
+    }
+
     const {
       contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides, gstin, billingState,
       // Deliberately dropped here. Changing a website address has to
@@ -321,8 +336,11 @@ export async function accountRoutes(app: FastifyInstance) {
       (account.status === "LIVE" || account.status === "SUSPENDED");
     let planJobId: string | null = null;
     if (flipped && jobsAvailable()) {
+      // Exactly what the clinic runs now, read-only or not: a suspension
+      // is not a plan change, and must not become one. An old clinic that
+      // was never applied keeps every legacy module.
       const plan = (account.appliedPlan ?? account.plan) as PlanTier;
-      const features = account.appliedFeatures ? account.appliedFeatures.split(",").filter(Boolean) : resolveFeatures(plan, account.featureOverrides);
+      const features = runningFeatures(account);
       const readOnly = account.status === "SUSPENDED";
       planJobId = enqueuePlanSync({ slug: account.slug, plan, features, readOnly, maxUsers: account.maxUsersOverride ?? null });
       await prisma.clinicAccount.update({ where: { id }, data: { appliedReadOnly: readOnly, planJobId, appliedAt: new Date() } });

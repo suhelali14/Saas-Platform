@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { SECTIONS, SECTION_ORDER, type SectionKey } from '../lib/sections';
 import { Label, Textarea } from '../components/ui';
 import { SiteDesigner } from '../components/SiteDesigner';
+import { NotInPlan } from '../components/NotInPlan';
+import { useClinicAuth } from '../contexts/ClinicAuthContext';
 
 /**
  * The clinic admin's control over their own public website: which sections
@@ -43,6 +45,7 @@ const THEMES: { key: string; label: string; swatch: string }[] = [
 ];
 
 export function Website() {
+  const { hasModule } = useClinicAuth();
   const [tab, setTab] = useState<'layout' | 'canvas' | 'languages' | 'blog' | 'gallery' | 'feedback'>('layout');
   // The canvas editor needs its own section list to offer "start from my
   // current site", and it is the one tab that loads before being shown.
@@ -86,7 +89,7 @@ export function Website() {
 
       {tab === 'layout' && <LayoutBuilder />}
       {tab === 'canvas' && <CanvasEditor sections={sections} />}
-      {tab === 'languages' && <LanguageManager />}
+      {tab === 'languages' && (hasModule('multilingual') ? <LanguageManager /> : <NotInPlan module="multilingual" inline />)}
       {tab === 'blog' && <BlogManager />}
       {tab === 'gallery' && <GalleryManager />}
       {tab === 'feedback' && <FeedbackManager />}

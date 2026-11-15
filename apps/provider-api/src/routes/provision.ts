@@ -6,6 +6,7 @@ import { enqueueProvision, readJobStatus, queueHealth } from "../lib/provision-j
 import { reconcileJob } from "../lib/reconcile.js";
 import { createNeonProjectForClinic, connectionUriFor, neonConfigured } from "../lib/neon.js";
 import { validateSlug } from "../lib/subdomain.js";
+import { resolveFeatures, type PlanTier } from "../lib/plans.js";
 
 /**
  * One-click provisioning from the console.
@@ -106,6 +107,7 @@ export async function provisionRoutes(app: FastifyInstance) {
         data: { neonProjectId, status: "ONBOARDING" },
       });
 
+      const provisionFeatures = resolveFeatures(account.plan as PlanTier, account.featureOverrides);
       const jobId = enqueueProvision({
         slug: account.slug,
         name: account.name,
@@ -113,10 +115,18 @@ export async function provisionRoutes(app: FastifyInstance) {
         doctorEmail: parsed.data.doctorEmail,
         plan: account.plan as "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE",
         demo: account.isDemo,
+        features: provisionFeatures,
         databaseUrl,
         extraOrigins: [account.publicDomain, account.portalDomain]
           .filter((d): d is string => Boolean(d))
           .map((d) => `https://${d}`),
+      });
+
+      // The new clinic starts on exactly this list, written into its env
+      // file, so the console knows what it runs from the first minute.
+      await prisma.clinicAccount.update({
+        where: { id: account.id },
+        data: { appliedPlan: account.plan, appliedFeatures: provisionFeatures.join(","), appliedReadOnly: false, appliedAt: new Date() },
       });
 
       // actorName is denormalized on purpose: the entry has to still read

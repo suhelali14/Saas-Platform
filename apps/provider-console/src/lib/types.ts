@@ -134,6 +134,10 @@ export interface AccountDetail {
   features: string[];
   /** The chosen plan differs from what the clinic was last told. */
   pendingApply: boolean;
+  /** What the clinic runs now (an old, never-applied clinic runs every
+   *  legacy module), and what applying the current choice would remove. */
+  running: string[];
+  wouldRemove: string[];
   /** What the contract brings in a month, whatever its model. */
   monthlyValue: number;
 }

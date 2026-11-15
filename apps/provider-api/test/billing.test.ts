@@ -7,7 +7,7 @@ import { test } from "node:test";
 import {
   financialYear, invoiceLines, invoiceNumber, invoiceTotals, nextPeriodStart, stateFromGstin, type Contract,
 } from "../src/lib/billing.js";
-import { FEATURES } from "../src/lib/plans.js";
+import { FEATURES, LEGACY_MODULES, runningFeatures } from "../src/lib/plans.js";
 
 // The clinic API's config validates its environment on import; these are
 // placeholders so its module list can be read.
@@ -80,8 +80,14 @@ test("zero and missing amounts are left off the invoice", () => {
 });
 
 test("financial years turn over on 1 April", () => {
-  assert.equal(financialYear(new Date("2026-03-31T12:00:00")), "2526");
-  assert.equal(financialYear(new Date("2026-04-01T12:00:00")), "2627");
+  assert.equal(financialYear(new Date("2026-03-31T12:00:00+05:30")), "2526");
+  assert.equal(financialYear(new Date("2026-04-01T12:00:00+05:30")), "2627");
+});
+
+test("just after midnight IST on 1 April is the new year, whatever the server's zone", () => {
+  // 00:30 IST on 1 April 2027 is 19:00 UTC on 31 March.
+  assert.equal(financialYear(new Date("2027-03-31T19:00:00Z")), "2728");
+  assert.equal(financialYear(new Date("2027-03-31T18:00:00Z")), "2627"); // 23:30 IST, still March
 });
 
 test("invoice numbers stay within GST's 16 characters", () => {
@@ -95,4 +101,19 @@ test("a GSTIN gives its state; nonsense gives nothing", () => {
   assert.equal(stateFromGstin("27AAPFU0939F1Z"), null);
   assert.equal(stateFromGstin("99AAPFU0939F1ZV"), null);
   assert.equal(stateFromGstin(""), null);
+});
+
+test("the console's legacy list is the clinic API's", () => {
+  assert.deepEqual([...LEGACY_MODULES].sort(), MODULES.filter((m) => m.legacy).map((m) => m.key).sort());
+});
+
+test("an old clinic that was never applied runs its plan plus every legacy module", () => {
+  const on = runningFeatures({ plan: "BASIC", appliedFeatures: null, provisionedAt: null, status: "LIVE" });
+  for (const k of LEGACY_MODULES) assert.ok(on.includes(k), k);
+  assert.ok(!on.includes("ipd"));
+});
+
+test("once applied, exactly what was applied is running", () => {
+  assert.deepEqual(runningFeatures({ plan: "ENTERPRISE", appliedFeatures: "billing,labs", provisionedAt: new Date(), status: "LIVE" }), ["billing", "labs"]);
+  assert.deepEqual(runningFeatures({ plan: "ENTERPRISE", appliedFeatures: "", provisionedAt: new Date(), status: "LIVE" }), []);
 });

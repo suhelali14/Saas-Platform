@@ -176,6 +176,21 @@ if [ "$RESUMING" = "1" ]; then
   # in the old one.
   info "keeping the existing env file, secrets included"
 else
+# The modules this clinic starts with, from the console. "none" is a deal
+# with every module removed; an empty value means no list was sent, and
+# the clinic then runs its plan plus the legacy modules. Checked strictly:
+# it is written into an env file docker reads.
+FEATURES_LINE=""
+case "${CLINIC_FEATURES_IN:-}" in
+  "") ;;
+  none) FEATURES_LINE="CLINIC_FEATURES=" ;;
+  *)
+    printf '%s' "$CLINIC_FEATURES_IN" | grep -qE '^[a-z]+(,[a-z]+)*$' \
+      || die "CLINIC_FEATURES_IN '$CLINIC_FEATURES_IN' must be lowercase module names separated by commas"
+    FEATURES_LINE="CLINIC_FEATURES=$CLINIC_FEATURES_IN"
+    ;;
+esac
+
 log "Writing $ENV_DIR/$SLUG.env"
 JWT="$(openssl rand -base64 32)"
 install -o deploy -g deploy -m 600 /dev/null "$ENV_DIR/$SLUG.env"
@@ -208,6 +223,7 @@ JWT_SECRET=$JWT
 REDIS_URL=redis://redis-$SLUG:6379
 
 CLINIC_PLAN=$PLAN
+$FEATURES_LINE
 ${CLINIC_DEMO:+CLINIC_DEMO=1}
 CORS_ORIGINS=https://$SLUG.$PLATFORM_DOMAIN,https://$SLUG.portal.$PLATFORM_DOMAIN$EXTRA_ORIGINS
 ENVFILE

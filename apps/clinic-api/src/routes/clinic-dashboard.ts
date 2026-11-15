@@ -233,7 +233,7 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
       }
 
       // A lab order with no result is a patient waiting on an answer.
-      const openLabOrders = await prisma.labOrder.count({ where: { status: "ORDERED" } });
+      const openLabOrders = isFeatureEnabled("labs") ? await prisma.labOrder.count({ where: { status: "ORDERED" } }) : 0;
       if (openLabOrders) {
         attention.push({
           key: "labs", label: openLabOrders === 1 ? "lab order awaiting a result" : "lab orders awaiting results",
@@ -244,7 +244,7 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
 
     // Undispensed prescriptions: the pharmacy's queue, and a patient
     // standing at a counter.
-    if (STOCK_ROLES.has(role) || role === "RECEPTIONIST") {
+    if ((STOCK_ROLES.has(role) || role === "RECEPTIONIST") && isFeatureEnabled("pharmacy")) {
       const undispensed = await prisma.prescription.count({
         where: { dispensed: false, createdAt: { gte: start, lt: end } },
       });
@@ -258,7 +258,7 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
 
     // ── Stock, which is the only thing here with a deadline ──────────
     let stock: { expired: number; expiringSoon: number; lowStock: number } | null = null;
-    if (STOCK_ROLES.has(role)) {
+    if (STOCK_ROLES.has(role) && isFeatureEnabled("pharmacy")) {
       const batches = await prisma.drugBatch.findMany({
         where: { quantityInHand: { gt: 0 } },
         select: { drugId: true, expiryDate: true, quantityInHand: true, reorderThreshold: true },

@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { byTriage } from "../lib/triage.js";
 import { resolveDesign, resolveSections } from "../lib/site-design.js";
 import { resolveLayoutMode, readCanvas } from "../lib/site-canvas.js";
+import { isFeatureEnabled } from "../config/features.js";
 
 // Public, unauthenticated -- the "innovative" feature from the plan's Phase 4
 // research: real-world token/queue-transparency displays measurably cut
@@ -110,8 +111,12 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
 
     // ?lang=mr serves the stored Marathi copy where one exists, English
     // everywhere else. No API call, no cost -- just an indexed read.
-    const requested = (_request.query as { lang?: string } | undefined)?.lang;
-    const locale = requested ?? clinic.defaultLocale ?? "en";
+    // With the languages module off, the site is served in English
+    // whatever was switched on before: a module a clinic no longer has
+    // must not keep working on its public face.
+    const multilingual = isFeatureEnabled("multilingual");
+    const requested = multilingual ? (_request.query as { lang?: string } | undefined)?.lang : "en";
+    const locale = multilingual ? (requested ?? clinic.defaultLocale ?? "en") : "en";
     const t = await translationMap(locale, ["clinic", "post"]);
 
     const localized = t.size === 0 ? clinic : {
@@ -158,7 +163,7 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
       posts: localizedPosts,
       feedback,
       locale,
-      availableLocales: Array.isArray(clinic.enabledLocales) ? clinic.enabledLocales : [],
+      availableLocales: multilingual && Array.isArray(clinic.enabledLocales) ? clinic.enabledLocales : [],
     };
   });
 
@@ -177,7 +182,7 @@ export async function clinicPublicRoutes(app: FastifyInstance) {
     if (!post) return reply.status(404).send({ error: "Not found" });
 
     const requested = (request.query as { lang?: string } | undefined)?.lang;
-    if (!requested || requested === "en") return post;
+    if (!requested || requested === "en" || !isFeatureEnabled("multilingual")) return post;
 
     const t = await translationMap(requested, ["post"]);
     return {

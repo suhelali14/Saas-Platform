@@ -75,11 +75,31 @@ const NAMES: Record<typeof PLAN, string> = {
 const MIN = 60_000;
 const DAY = 24 * 60 * MIN;
 const now = Date.now();
-const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-/** A time `mins` ago, but never before 7 am today: a demo reset at dawn
- *  must not put patients in the waiting room overnight. */
-const ago = (mins: number) => new Date(Math.max(now - mins * MIN, dayStart.getTime() + 7 * 60 * MIN));
-const onDay = (daysAgo: number, h: number, m: number) => { const d = new Date(now - daysAgo * DAY); d.setHours(h, m, 0, 0); return d; };
+
+/*
+ * Clinic time is India's, worked out explicitly rather than from the
+ * server's own zone: a container with no TZ runs on UTC, and the 07:30 IST
+ * reset is 02:00 there, which put the whole morning queue five hours in
+ * the future.
+ */
+const IST = 330 * MIN;
+/** Midnight IST of the day `t` falls on. */
+const istMidnight = (t: number) => { const d = new Date(t + IST); d.setUTCHours(0, 0, 0, 0); return d.getTime() - IST; };
+/** h:m IST on the day `daysAgo` days back. */
+const onDay = (daysAgo: number, h: number, m: number) => new Date(istMidnight(now - daysAgo * DAY) + (h * 60 + m) * MIN);
+
+/*
+ * Today's visits are laid out over the last two and a half hours. Before
+ * about 9:30 IST there is not that much morning yet, so the timeline is
+ * squeezed into however much there is since 7:00 -- in order, each visit
+ * still its own moment -- rather than clamped, which put every early
+ * visit at the same 7:00.
+ */
+const MORNING = 160;
+const sinceOpen = Math.max(5, (now - (istMidnight(now) + 7 * 60 * MIN)) / MIN);
+const squeeze = Math.min(1, sinceOpen / MORNING);
+/** A time `mins` ago on the demo's clock. */
+const ago = (mins: number) => new Date(now - mins * squeeze * MIN);
 
 async function guard() {
   const total = await prisma.patient.count();
@@ -331,7 +351,7 @@ async function main() {
   await prisma.appointment.create({ data: { patientId: pt["Priya Shinde"]!, doctorId: docs.gynae, scheduledAt: later(45), reason: "Antenatal check, 10 weeks", priority: "PREGNANT" as never } });
   await prisma.appointment.create({ data: { patientId: pt["Sneha Patil"]!, doctorId: docs.gp, scheduledAt: later(95), reason: "Review after fever" } });
   await prisma.appointment.create({ data: { patientId: pt["Ishaan Kulkarni"]!, doctorId: docs.paeds, scheduledAt: later(130), reason: "Vaccination due" } });
-  const tomorrow = new Date(now + DAY); tomorrow.setHours(11, 0, 0, 0);
+  const tomorrow = new Date(istMidnight(now + DAY) + 11 * 60 * MIN); // 11:00 IST tomorrow
   await prisma.appointment.create({ data: { patientId: pt["Ramesh Joshi"]!, doctorId: docs.gp, scheduledAt: tomorrow, reason: "Chest X-ray review" } });
 
   // Two requests from the clinic's website, waiting for reception.
@@ -343,7 +363,9 @@ async function main() {
   });
 
   if (RANK >= 1) {
-    const monthStart = new Date(now); monthStart.setDate(1); monthStart.setHours(10, 0, 0, 0);
+    // 10:00 IST on the 1st of this month, in India.
+    const ist = new Date(now + IST);
+    const monthStart = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), 1, 10, 0) - IST);
     await prisma.expense.createMany({
       data: [
         { category: "Rent", description: "Clinic rent", amount: 45000, paidAt: monthStart, paymentMode: "UPI" as never, recordedById: people.doctor! },

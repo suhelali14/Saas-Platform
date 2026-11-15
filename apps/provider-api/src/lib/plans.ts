@@ -88,6 +88,31 @@ export const ALWAYS_INCLUDED = [
   "Audit log and full data export",
 ];
 
+/**
+ * Modules that existed before the clinic API enforced modules. A clinic
+ * whose env file has no CLINIC_FEATURES line runs all of these whatever
+ * its plan says (apps/clinic-api/src/config/features.ts), so the console
+ * must count them as running -- otherwise the first suspend, resume or
+ * apply on an old clinic would quietly switch its pharmacy off.
+ */
+export const LEGACY_MODULES = ["staff", "billing", "labs", "pharmacy", "analytics", "expenses", "multilingual", "aitranslate"];
+
+/**
+ * What a clinic is running now, as far as this console knows.
+ *
+ * Once a plan has been applied, exactly what was applied. Before that, a
+ * provisioned clinic runs its plan plus every legacy module, because its
+ * env file has no list; an account that was never provisioned runs
+ * nothing yet and is shown its plan.
+ */
+export function runningFeatures(a: { plan: string; appliedFeatures: string | null; provisionedAt: Date | null; status: string }): string[] {
+  if (a.appliedFeatures !== null) return a.appliedFeatures.split(",").filter(Boolean);
+  const provisioned = !!a.provisionedAt || a.status === "LIVE" || a.status === "SUSPENDED";
+  const base = new Set(featuresForPlan(a.plan as PlanTier));
+  if (provisioned) for (const k of LEGACY_MODULES) base.add(k);
+  return FEATURES.map((f) => f.key).filter((k) => base.has(k));
+}
+
 export function featuresForPlan(plan: PlanTier): string[] {
   const rank = PLAN_ORDER.indexOf(plan);
   return FEATURES.filter((f) => PLAN_ORDER.indexOf(f.from) <= rank).map((f) => f.key);

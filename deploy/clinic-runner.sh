@@ -122,6 +122,7 @@ for job in "${JOB_FILES[@]}"; do
   dburl="$(read_json "$job" databaseUrl)"
   extra="$(read_json "$job" extraOrigins)"
   demo="$(read_json "$job" demo)"
+  features="$(read_json "$job" features)"
 
   # ── Changing which websites a clinic trusts ────────────────────────
   #
@@ -271,6 +272,7 @@ for job in "${JOB_FILES[@]}"; do
      CLINIC_DOCTOR_EMAIL="$email" \
      CLINIC_EXTRA_ORIGINS="$extra" \
      CLINIC_DEMO="$([ "$demo" = "1" ] && printf 1)" \
+     CLINIC_FEATURES_IN="$features" \
      "$ROOT/repo/deploy/add-clinic.sh" "$slug" --plan "$plan" > "$out" 2>&1; then
 
     password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"

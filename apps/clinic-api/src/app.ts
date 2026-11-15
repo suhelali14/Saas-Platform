@@ -158,6 +158,10 @@ export function buildApp() {
       if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
       const path = request.url.split("?")[0] ?? "";
       if (ALLOWED_WRITES.has(path)) return;
+      // The public website is the patients', not the clinic's staff: a
+      // booking request or feedback goes through, and a patient is never
+      // shown a message about the clinic's account with Nayaverse.
+      if (path.startsWith("/api/clinic/public/")) return;
       return reply.status(423).send({
         error: "This clinic's account is paused, so nothing can be changed right now. Everything can still be viewed and exported. Please contact Nayaverse.",
         readOnly: true,

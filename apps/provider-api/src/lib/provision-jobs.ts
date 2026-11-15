@@ -50,6 +50,9 @@ export type ProvisionRequest = {
   /** A demonstration deployment: CLINIC_DEMO=1 in its env file, filled
    *  with made-up patients, reset every morning. */
   demo?: boolean;
+  /** The modules to write as CLINIC_FEATURES. Without it a new clinic
+   *  would be treated as one from before modules existed, and get them all. */
+  features?: string[];
 };
 
 /**
@@ -159,11 +162,16 @@ export function jobsAvailable(): boolean {
 }
 
 export function enqueueProvision(req: ProvisionRequest): string {
-  const { extraOrigins, demo, ...rest } = req;
+  const { extraOrigins, demo, features, ...rest } = req;
   return writeJob(
     // Flattened to a string for the same reason as sync-origins: the
     // runner reads this with a shell-side JSON reader.
-    { kind: "provision", ...rest, extraOrigins: (extraOrigins ?? []).join(","), demo: demo ? "1" : "0" },
+    {
+      kind: "provision", ...rest, extraOrigins: (extraOrigins ?? []).join(","), demo: demo ? "1" : "0",
+      // "none" when the deal has no modules, so the host can tell "an
+      // empty list" from "no list" (which would mean every legacy module).
+      features: features === undefined ? "" : features.length ? features.join(",") : "none",
+    },
     `Queued ${req.name}`,
   );
 }

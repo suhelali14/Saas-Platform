@@ -98,11 +98,17 @@ RUN test -f apps/clinic-api/dist/generated/prisma-client/index.js \
 FROM node:22-bookworm-slim AS runtime
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && apt-get install -y --no-install-recommends openssl ca-certificates tzdata \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV NODE_ENV=production
+# Every clinic this serves is in India, and "today" is Indian today: the
+# queue's day, the token sequence that resets with it, the dates printed
+# on prescriptions, and the financial year on invoices. Without this the
+# container ran on UTC, so the clinic's day began at 05:30 IST and a visit
+# before then was filed under yesterday.
+ENV TZ=Asia/Kolkata
 
 # node_modules is copied whole, dev dependencies included, deliberately.
 # `prisma migrate deploy` and `tsx` are needed to migrate a clinic and to

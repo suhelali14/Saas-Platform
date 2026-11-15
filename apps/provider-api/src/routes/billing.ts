@@ -7,7 +7,7 @@ import {
   invoiceLines, invoiceNumber, invoiceTotals, financialYear, nextPeriodStart, STATE_CODES, stateFromGstin,
   type Contract,
 } from "../lib/billing.js";
-import { PLAN_LABELS, PLAN_MAX_USERS, resolveFeatures, type PlanTier } from "../lib/plans.js";
+import { PLAN_LABELS, PLAN_MAX_USERS, resolveFeatures, runningFeatures, type PlanTier } from "../lib/plans.js";
 import { enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
 
 /**
@@ -89,7 +89,7 @@ export async function billingRoutes(app: FastifyInstance) {
     const auth = requireOwnerAuth(request, reply);
     if (!auth) return;
     const { id } = request.params as { id: string };
-    const { reason } = (request.body ?? {}) as { reason?: string };
+    const { reason, confirmRemovals } = (request.body ?? {}) as { reason?: string; confirmRemovals?: boolean };
 
     const account = await prisma.clinicAccount.findUnique({ where: { id } });
     if (!account) return reply.status(404).send({ error: "Not found" });
@@ -99,6 +99,20 @@ export async function billingRoutes(app: FastifyInstance) {
 
     const plan = account.plan as PlanTier;
     const features = resolveFeatures(plan, account.featureOverrides);
+
+    // What this takes away from what the clinic runs today. An older
+    // clinic runs every legacy module until its first apply, so applying
+    // its plan as written can switch off a pharmacy it uses daily. That
+    // is allowed -- it may be exactly the deal -- but never by surprise.
+    const running = runningFeatures(account);
+    const removed = running.filter((k) => !features.includes(k));
+    if (removed.length > 0 && confirmRemovals !== true) {
+      return reply.status(409).send({
+        error: `This switches off ${removed.join(", ")} for the clinic, which it has now. Add them to the deal to keep them, or confirm.`,
+        removed,
+        needsConfirmation: true,
+      });
+    }
     const readOnly = account.status === "SUSPENDED";
     const maxUsers = account.maxUsersOverride ?? null;
 
@@ -235,11 +249,13 @@ export async function billingRoutes(app: FastifyInstance) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // The lock comes first and the status is read after it: read before,
+      // two clicks on Issue both saw DRAFT, queued on the lock, and the
+      // second overwrote the first's number -- a gap in the GST series.
+      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${LOCK_INVOICE_SERIAL})`);
       const inv = await tx.invoice.findUnique({ where: { id: invoiceId } });
       if (!inv) return { error: 404 as const };
       if (inv.status !== "DRAFT") return { error: 409 as const };
-
-      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${LOCK_INVOICE_SERIAL})`);
       const now = new Date();
       const fy = financialYear(now);
       const max = await tx.invoice.aggregate({ _max: { serial: true }, where: { fy } });

@@ -131,10 +131,23 @@ export function invoiceTotals(lines: InvoiceLine[], sameState: boolean): Invoice
   return { subtotal: rupees(sub), cgst: 0, sgst: 0, igst: rupees(tax), total: rupees(sub + tax) };
 }
 
-/** The Indian financial year an invoice date falls in, as "2627" for
- *  1 April 2026 to 31 March 2027. */
+/** The date as it is in India, whatever the server's own time zone. */
+function istParts(d: Date): { y: number; m: number } {
+  const ist = new Date(d.getTime() + 330 * 60_000);
+  return { y: ist.getUTCFullYear(), m: ist.getUTCMonth() };
+}
+
+/**
+ * The Indian financial year an invoice date falls in, as "2627" for
+ * 1 April 2026 to 31 March 2027.
+ *
+ * Worked out in IST explicitly: on a server running UTC, an invoice issued
+ * at 00:30 IST on 1 April is still 31 March there, and took the old
+ * year's prefix and serial.
+ */
 export function financialYear(d: Date): string {
-  const y = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  const { y: year, m } = istParts(d);
+  const y = m >= 3 ? year : year - 1;
   return `${String(y % 100).padStart(2, "0")}${String((y + 1) % 100).padStart(2, "0")}`;
 }
 

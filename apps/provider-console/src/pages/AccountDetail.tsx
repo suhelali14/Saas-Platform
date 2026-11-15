@@ -110,7 +110,7 @@ export function AccountDetail() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Provisioning account={a} meta={meta} onDone={load} />
-          <PlanModulesPanel account={a} meta={meta} features={data.features} pendingApply={data.pendingApply} onSaved={load} />
+          <PlanModulesPanel account={a} meta={meta} features={data.features} pendingApply={data.pendingApply} wouldRemove={data.wouldRemove ?? []} onSaved={load} />
           <InvoicesPanel account={a} onChanged={load} />
           <Checklist accountId={a.id} steps={a.steps} onChange={load} />
           <Addresses account={a} meta={meta} onSave={save} onChanged={load} />

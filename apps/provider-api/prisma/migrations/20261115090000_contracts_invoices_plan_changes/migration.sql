@@ -1,10 +1,9 @@
 -- Contracts, Nayaverse's own GST invoices, and a history of plan changes.
 --
--- Additive only. Every existing account keeps its monthly fee and billing
--- cycle; the new pricing model defaults to SETUP_YEARLY, which an operator
--- reviews per account in the console. Nothing is backfilled into the new
--- fee columns, because a guessed fee on a real deal is worse than an empty
--- one the console asks to be filled in.
+-- Additive. Every existing account keeps its monthly fee and billing
+-- cycle and becomes a SUBSCRIPTION, which is what it already was; new
+-- accounts default to SETUP_YEARLY. Nothing is guessed into the new fee
+-- columns: a made-up fee on a real deal is worse than an empty one.
 
 CREATE TYPE "PricingModel" AS ENUM ('SETUP_YEARLY', 'SUBSCRIPTION', 'LICENCE_AMC');
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'ISSUED', 'PAID', 'VOID');
@@ -28,6 +27,11 @@ ALTER TABLE "ClinicAccount"
   ADD COLUMN IF NOT EXISTS "appliedAt" TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "planJobId" TEXT,
   ADD COLUMN IF NOT EXISTS "isDemo" BOOLEAN NOT NULL DEFAULT false;
+
+-- Every account that existed before this was on a monthly fee, so that is
+-- what it is: a subscription. Left on the new default (setup + yearly)
+-- with no yearly fee, each one counted as ₹0 a month in the console.
+UPDATE "ClinicAccount" SET "pricingModel" = 'SUBSCRIPTION' WHERE "monthlyFee" IS NOT NULL;
 
 CREATE TABLE "Invoice" (
     "id" TEXT NOT NULL,
