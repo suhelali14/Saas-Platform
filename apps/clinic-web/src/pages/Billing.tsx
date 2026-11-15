@@ -14,6 +14,10 @@ interface Invoice {
   patient: { id: string; name: string; uhid: string };
   items: InvoiceItem[]; payments: PaymentRow[];
   subtotal: number; paid: number; balance: number; status: string;
+  /** What the bill comes to after an approved discount. */
+  total?: number; discountApplied?: number;
+  /** The discount asked for, and where its approval stands. */
+  discount?: string | null; discountReason?: string | null; discountStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 }
 
 const CATEGORIES = [
@@ -103,7 +107,7 @@ export function Billing() {
                 <div className="text-xs text-muted-foreground/70">{new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-foreground/80">₹{inv.subtotal.toFixed(2)}</span>
+                <span className="text-sm text-foreground/80">₹{(inv.total ?? inv.subtotal).toFixed(2)}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[inv.status]}`}>{inv.status}</span>
               </div>
             </button>
@@ -125,6 +129,9 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
   const [payMode, setPayMode] = useState('CASH');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState('');
+  const [discountReason, setDiscountReason] = useState('');
 
   const refresh = async () => {
     const res = await apiFetch<Invoice>(`/invoices/${invoice.id}`);
@@ -174,6 +181,27 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
     }
   };
 
+  // A discount over the clinic's limit waits for an admin; under it, it
+  // applies at once. Either way the reason is kept on the bill.
+  const requestDiscount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch(`/invoices/${invoice.id}/discount`, { method: 'POST', data: { amount: Number(discountAmount || 0), reason: discountReason } });
+      setDiscountOpen(false);
+      setDiscountAmount('');
+      setDiscountReason('');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not apply the discount.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const requested = Number(invoice.discount ?? 0);
+  const applied = invoice.discountApplied ?? 0;
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-2xl">
       <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to invoices</button>
@@ -221,8 +249,32 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
 
       <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-4">
         <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">Subtotal</span><span>₹{invoice.subtotal.toFixed(2)}</span></div>
+        {applied > 0 && (
+          <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">Discount{invoice.discountReason ? ` · ${invoice.discountReason}` : ''}</span><span>−₹{applied.toFixed(2)}</span></div>
+        )}
         <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">Paid</span><span>₹{invoice.paid.toFixed(2)}</span></div>
         <div className="flex justify-between text-sm font-semibold"><span>Balance Due</span><span>₹{invoice.balance.toFixed(2)}</span></div>
+        {invoice.discountStatus === 'PENDING' && requested > 0 && (
+          <p className="mt-2 rounded-lg tone-warning px-3 py-2 text-[13px]">A discount of ₹{requested.toFixed(2)} is waiting for an admin to approve. The balance does not include it until then.</p>
+        )}
+        {invoice.discountStatus === 'REJECTED' && requested > 0 && (
+          <p className="mt-2 text-[13px] text-muted-foreground">The discount of ₹{requested.toFixed(2)} was not approved.</p>
+        )}
+        {invoice.balance > 0 && invoice.discountStatus !== 'PENDING' && !discountOpen && (
+          <button type="button" onClick={() => setDiscountOpen(true)} className="mt-2 text-[13px] font-medium underline-offset-4 hover:underline">
+            {applied > 0 ? 'Change the discount' : 'Give a discount'}
+          </button>
+        )}
+        {discountOpen && (
+          <form onSubmit={requestDiscount} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
+            <input aria-label="Discount, rupees" placeholder="₹" inputMode="decimal" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value.replace(/[^\d.]/g, ''))} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none" />
+            <input aria-label="Why" placeholder="Why — staff family, hardship, package…" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} className="px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none" />
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving || !discountReason.trim()} className="px-3 py-2 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20 disabled:opacity-50">Apply</button>
+              <button type="button" onClick={() => setDiscountOpen(false)} className="px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+            </div>
+          </form>
+        )}
       </div>
 
       {invoice.payments.length > 0 && (
@@ -231,7 +283,7 @@ function InvoiceDetail({ invoice, onBack, onChange }: { invoice: Invoice; onBack
           {invoice.payments.map((p) => (
             <div key={p.id} className="flex justify-between text-xs text-muted-foreground py-0.5">
               <span>{new Date(p.paidAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {p.receivedBy.name}</span>
-              <span>₹{Number(p.amount).toFixed(2)} ({p.mode})</span>
+              <span>₹{Number(p.amount).toFixed(2)} ({p.mode === 'DEPOSIT' ? 'from advance' : p.mode})</span>
             </div>
           ))}
         </div>

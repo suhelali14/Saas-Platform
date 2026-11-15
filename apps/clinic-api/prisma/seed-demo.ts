@@ -117,6 +117,15 @@ async function guard() {
 
 async function wipe() {
   // Children first; every table that refers to a patient or a visit.
+  await prisma.nursingEntry.deleteMany();
+  await prisma.radiologyOrder.deleteMany();
+  await prisma.otBooking.deleteMany();
+  await prisma.claimEvent.deleteMany();
+  await prisma.claim.deleteMany();
+  await prisma.schemePackage.deleteMany();
+  await prisma.admissionCharge.deleteMany();
+  await prisma.bedMove.deleteMany();
+  await prisma.deposit.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.invoiceItem.deleteMany();
   await prisma.invoice.deleteMany();
@@ -130,6 +139,13 @@ async function wipe() {
   await prisma.appointment.updateMany({ data: { followUpOfCaseSheetId: null } });
   await prisma.caseSheet.deleteMany();
   await prisma.appointment.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.admission.deleteMany();
+  await prisma.bed.deleteMany();
+  await prisma.ward.deleteMany();
+  await prisma.counterSession.deleteMany();
+  await prisma.departmentMember.deleteMany();
+  await prisma.department.deleteMany();
   await prisma.patient.updateMany({ data: { mergedIntoId: null } });
   await prisma.patient.deleteMany();
   await prisma.drugBatch.deleteMany();
@@ -153,6 +169,12 @@ async function staff() {
     ...(RANK >= 2 ? [
       { key: "gynae", name: "Anjali Mehta", role: "DOCTOR", isAdmin: false, specialization: "Obstetrics & Gynaecology", qualifications: "MBBS, MS (OBGY)" },
       { key: "ortho", name: "Rohan Joshi", role: "DOCTOR", isAdmin: false, specialization: "Orthopaedics", qualifications: "MBBS, MS (Ortho)" },
+      { key: "cashier", name: "Pooja Kale", role: "CASHIER", isAdmin: false },
+      { key: "billing", name: "Mahesh Patil", role: "BILLING_CLERK", isAdmin: false },
+      { key: "lab", name: "Sameer Khan", role: "LAB_TECH", isAdmin: false },
+    ] : []),
+    ...(RANK >= 3 ? [
+      { key: "radiology", name: "Neha Joshi", role: "RADIOGRAPHER", isAdmin: false },
     ] : []),
   ] as const;
   // Logins not on this plan's list are switched off, not deleted: a
@@ -376,9 +398,204 @@ async function main() {
     });
   }
 
+  if (RANK >= 2) await hospital(people, pt, docs);
+
   const logins = Object.keys(people).map((k) => `${k}@${DOMAIN}`);
   console.log(`Demo ready: ${NAMES[PLAN]} (${PLAN}), ${PATIENTS.length} patients, ${token} visits today.`);
   console.log(`Logins (password: ${PASSWORD}): ${logins.join(", ")}`);
+}
+
+/**
+ * A hospital's day: departments, wards, people admitted, a counter open,
+ * claims in progress, the theatre list. Hospital plan and up; the scheme
+ * desk, radiology and the nursing chart for Multi-specialty.
+ *
+ * Insurers and TPAs are invented ("Example Health Insurance"), and every
+ * scheme package is labelled an example with a made-up rate: a demo must
+ * never look like a real rate list someone could copy into a claim.
+ */
+async function hospital(people: Record<string, string>, pt: Record<string, string>, docs: Record<string, string>) {
+  const H = 60 * MIN;
+  const name = (k: string) => ({ doctor: "Meera Kulkarni", reception: "Sunita Pawar", nurse: "Rekha Shinde", cashier: "Pooja Kale", billing: "Mahesh Patil" } as Record<string, string>)[k] ?? "Staff";
+
+  // Departments, and who works where.
+  const dept = async (n: string, kind: "CLINICAL" | "SERVICE", service: string | null, members: (string | undefined)[], sortOrder: number) =>
+    prisma.department.create({
+      data: { name: n, kind, service: service as never, sortOrder, members: { create: members.filter(Boolean).map((userId) => ({ userId: userId! })) } },
+    });
+  const gm = await dept("General Medicine", "CLINICAL", null, [people.doctor], 1);
+  await dept("Paediatrics", "CLINICAL", null, [people.doctor2], 2);
+  const obgy = await dept("Obstetrics & Gynaecology", "CLINICAL", null, [people.gynae], 3);
+  const ortho = await dept("Orthopaedics", "CLINICAL", null, [people.ortho], 4);
+  await dept("Front desk", "SERVICE", "FRONT_DESK", [people.reception], 10);
+  await dept("Cash counter", "SERVICE", "CASH_COUNTER", [people.cashier, people.reception], 11);
+  await dept("Insurance desk", "SERVICE", "INSURANCE", [people.billing], 12);
+  if (RANK >= 3) await dept("Scheme desk", "SERVICE", "SCHEMES", [people.billing, people.reception], 13);
+  await dept("Pharmacy", "SERVICE", "PHARMACY", [people.pharmacy], 14);
+  await dept("Laboratory", "SERVICE", "LAB", [people.lab], 15);
+  if (RANK >= 3) await dept("Radiology", "SERVICE", "RADIOLOGY", [people.radiology], 16);
+  await dept("Ward A", "SERVICE", "WARD", [people.nurse], 17);
+  await dept("Operation theatre", "SERVICE", "OT", [people.nurse, people.ortho, people.gynae], 18);
+
+  // Wards and beds.
+  const ward = async (n: string, kind: string, dailyRate: number, prefix: string, beds: number, sortOrder: number) =>
+    prisma.ward.create({
+      data: { name: n, kind: kind as never, dailyRate, sortOrder, beds: { create: Array.from({ length: beds }, (_, i) => ({ label: `${prefix}-${i + 1}` })) } },
+      include: { beds: { orderBy: { label: "asc" } } },
+    });
+  const general = await ward("General Ward", "GENERAL", 1200, "G", 8, 1);
+  const semi = await ward("Semi-private", "SEMI_PRIVATE", 2500, "S", 4, 2);
+  const priv = await ward("Private", "PRIVATE", 4000, "P", 3, 3);
+  const icu = await ward("ICU", "ICU", 7500, "ICU", 4, 4);
+  await prisma.bed.update({ where: { id: general.beds[7]!.id }, data: { blockedReason: "Cleaning" } });
+
+  let ipSeq = 0;
+  const schema = new URL(DB_URL!).searchParams.get("schema") || "public";
+  async function admit(patient: string, o: {
+    hoursAgo: number; bed: { id: string; wardName: string; rate: number }; doctor: string; departmentId: string;
+    reason: string; diagnosis: string; payer?: "SELF" | "INSURANCE" | "SCHEME"; estimate?: number;
+  }) {
+    ipSeq += 1;
+    const at = new Date(now - o.hoursAgo * H);
+    return prisma.admission.create({
+      data: {
+        ipNumber: `IP-${new Date(now + IST).getUTCFullYear()}-${String(ipSeq).padStart(5, "0")}`,
+        patientId: pt[patient]!, admittingDoctorId: o.doctor, departmentId: o.departmentId, bedId: o.bed.id, admittedAt: at,
+        reason: o.reason, provisionalDiagnosis: o.diagnosis, payerType: o.payer ?? "SELF", estimatedCost: o.estimate ?? null,
+        moves: { create: [{ bedId: o.bed.id, wardName: o.bed.wardName, dailyRate: o.bed.rate, at, byName: name("reception") }] },
+      },
+    });
+  }
+  const bedOf = (w: { name: string; dailyRate: unknown; beds: { id: string }[] }, i: number) => ({ id: w.beds[i]!.id, wardName: w.name, rate: Number(w.dailyRate) });
+
+  const sanjay = await admit("Sanjay Bhosale", { hoursAgo: 3, bed: bedOf(icu, 0), doctor: docs.gp!, departmentId: gm.id, reason: "Breathless, SpO2 91%", diagnosis: "COPD, acute exacerbation", estimate: 60000 });
+  const ganesh = await admit("Ganesh Kamble", { hoursAgo: 52, bed: bedOf(general, 2), doctor: docs.gp!, departmentId: gm.id, reason: "Infected foot ulcer", diagnosis: "Diabetic foot, cellulitis", payer: "INSURANCE", estimate: 45000 });
+  const fatima = await admit("Fatima Sayyed", { hoursAgo: 30, bed: bedOf(priv, 0), doctor: docs.gynae!, departmentId: obgy.id, reason: "Term pregnancy, labour pains", diagnosis: "Term pregnancy, previous LSCS", payer: RANK >= 3 ? "SCHEME" : "SELF", estimate: 55000 });
+  const anita = await admit("Anita Jadhav", { hoursAgo: 4, bed: bedOf(semi, 1), doctor: docs.ortho!, departmentId: ortho.id, reason: "Planned knee replacement", diagnosis: "Osteoarthritis, right knee", estimate: 180000 });
+  // Moved out of ICU after the first night: two wards on one bill.
+  await prisma.bedMove.create({ data: { admissionId: ganesh.id, bedId: general.beds[2]!.id, wardName: "General Ward", dailyRate: 1200, at: new Date(now - 30 * H), byName: name("nurse") } });
+  await prisma.bedMove.updateMany({ where: { admissionId: ganesh.id, at: { lt: new Date(now - 40 * H) } }, data: { wardName: "ICU", dailyRate: 7500 } });
+
+  const charge = (admissionId: string, category: string, description: string, rate: number, quantity = 1, hoursAgo = 1) =>
+    prisma.admissionCharge.create({ data: { admissionId, category: category as never, description, rate, quantity, at: new Date(now - hoursAgo * H), byName: name("nurse") } });
+  await charge(sanjay.id, "DOCTOR_VISIT", "Physician visit", 800, 1, 2);
+  await charge(sanjay.id, "PROCEDURE", "Nebulisation", 300, 3, 1);
+  await charge(sanjay.id, "LAB", "Arterial blood gas", 1200, 1, 2);
+  await charge(ganesh.id, "DOCTOR_VISIT", "Physician visit", 800, 3, 10);
+  await charge(ganesh.id, "PROCEDURE", "Wound debridement and dressing", 3500, 1, 40);
+  await charge(ganesh.id, "MEDICINE", "IV antibiotics (Ceftriaxone)", 450, 4, 8);
+  await charge(ganesh.id, "LAB", "Pus culture and sensitivity", 900, 1, 45);
+  await charge(fatima.id, "OT", "Caesarean section: theatre and surgeon", 28000, 1, 20);
+  await charge(fatima.id, "NURSING", "Nursing care", 600, 2, 6);
+  await charge(anita.id, "LAB", "Pre-operative profile", 2400, 1, 3);
+
+  // The cash counter: open, with today's advances on it.
+  const session = await prisma.counterSession.create({
+    data: { counterName: "Counter 1", openedById: people.cashier!, openedByName: name("cashier"), openedAt: new Date(now - 5 * H), openingCash: 5000 },
+  });
+  const deposit = (patient: string, admissionId: string, amount: number, mode: string, hoursAgo: number, onCounter = true) =>
+    prisma.deposit.create({
+      data: { patientId: pt[patient]!, admissionId, kind: "ADVANCE", amount, mode: mode as never, byId: people.cashier!, byName: name("cashier"), at: new Date(now - hoursAgo * H), counterSessionId: onCounter ? session.id : null },
+    });
+  await deposit("Sanjay Bhosale", sanjay.id, 20000, "CASH", 2.5);
+  await deposit("Anita Jadhav", anita.id, 50000, "UPI", 3.5);
+  await deposit("Ganesh Kamble", ganesh.id, 10000, "CARD", 50, false);
+  await deposit("Fatima Sayyed", fatima.id, 5000, "CASH", 29, false);
+
+  // A discount over the limit, waiting for the admin.
+  // Discounts above ₹200 need the admin; this one is ₹300 on a ₹520 bill.
+  await prisma.clinic.updateMany({ data: { discountApprovalAbove: 200 } });
+  const anyBill = await prisma.invoice.findFirst({ where: { patientId: pt["Ramesh Joshi"]! }, orderBy: { createdAt: "desc" } });
+  if (anyBill) {
+    await prisma.invoice.update({ where: { id: anyBill.id }, data: { discount: 300, discountReason: "Senior citizen, long-standing patient", discountStatus: "PENDING", discountRequestedBy: name("reception") } });
+  }
+
+  // An insurance claim in progress.
+  await prisma.claim.create({
+    data: {
+      admissionId: ganesh.id, patientId: pt["Ganesh Kamble"]!, payer: "INSURANCE", payerName: "Example Health Insurance, via Example TPA", memberId: "EXH-2291-0045",
+      preauthStatus: "APPROVED", preauthNumber: "PA-778812", preauthAmount: 40000, preauthApprovedAt: new Date(now - 46 * H), preauthValidTill: new Date(now + 10 * 24 * H),
+      claimStatus: "NOT_SUBMITTED",
+      documents: [
+        { name: "Pre-authorisation form, signed", done: true }, { name: "Policy card and photo ID", done: true },
+        { name: "Doctor's notes and investigation reports", done: true }, { name: "Final bill with break-up", done: false },
+        { name: "Discharge summary", done: false }, { name: "Pharmacy bills", done: false },
+      ],
+      events: { create: [
+        { byName: name("billing"), what: "Claim opened", at: new Date(now - 50 * H) },
+        { byName: name("billing"), what: "Pre-auth submitted", at: new Date(now - 49 * H) },
+        { byName: name("billing"), what: "Pre-auth approved", note: "₹40,000 approved by the TPA", at: new Date(now - 46 * H) },
+      ] },
+    },
+  });
+  // And an older one, settled with a deduction, for the ageing view.
+  await prisma.claim.create({
+    data: {
+      patientId: pt["Nilesh Pawar"]!, payer: "INSURANCE", payerName: "Example General Insurance", memberId: "EGI-55-10293",
+      preauthStatus: "APPROVED", preauthAmount: 35000, claimStatus: "SUBMITTED", claimAmount: 32800, claimSubmittedAt: new Date(now - 41 * 24 * H),
+      documents: [{ name: "Final bill with break-up", done: true }, { name: "Discharge summary", done: true }],
+      events: { create: [{ byName: name("billing"), what: "Claim submitted", at: new Date(now - 41 * 24 * H) }] },
+    },
+  });
+
+  // The theatre: today and tomorrow.
+  const ot = (patient: string, o: { admissionId?: string; surgeon: string; theatre: string; procedure: string; at: Date; mins: number; status?: string; notes?: string }) =>
+    prisma.otBooking.create({
+      data: {
+        patientId: pt[patient]!, admissionId: o.admissionId ?? null, surgeonId: o.surgeon, theatre: o.theatre, procedure: o.procedure, scheduledAt: o.at, durationMins: o.mins,
+        status: (o.status ?? "SCHEDULED") as never, anaesthetist: "Dr. Kiran Bapat", anaesthesiaType: o.procedure.includes("Caesarean") ? "Spinal" : "General",
+        operationNotes: o.notes ?? null, startedAt: o.status === "DONE" ? o.at : null, endedAt: o.status === "DONE" ? new Date(o.at.getTime() + o.mins * MIN) : null,
+      },
+    });
+  await ot("Fatima Sayyed", { admissionId: fatima.id, surgeon: docs.gynae!, theatre: "OT 1", procedure: "Lower segment Caesarean section", at: new Date(now - 22 * H), mins: 60, status: "DONE", notes: "Healthy baby girl, 2.9 kg. Uneventful." });
+  await ot("Anita Jadhav", { admissionId: anita.id, surgeon: docs.ortho!, theatre: "OT 1", procedure: "Total knee replacement, right", at: onDay(-1, 9, 30), mins: 150 });
+  await ot("Rohit Chavan", { surgeon: docs.ortho!, theatre: "OT 2", procedure: "Removal of implant, left wrist", at: onDay(0, 16, 0), mins: 45 });
+
+  if (RANK >= 3) {
+    // The scheme desk: example packages, plainly labelled, and a claim.
+    const pkg = await prisma.schemePackage.create({
+      data: {
+        scheme: "MJPJAY", code: "EX-OBG-01", name: "Caesarean section (example; load your scheme's current list)", rate: 30000,
+        documents: ["Ration card / scheme card and photo ID", "Arogyamitra registration", "Pre-op USG report", "Discharge summary", "Baby's birth record"],
+      },
+    });
+    await prisma.schemePackage.create({ data: { scheme: "PMJAY", code: "EX-MED-01", name: "Acute exacerbation of COPD (example)", rate: 18000, documents: ["Beneficiary verification (BIS) and e-card", "Photo of the patient in the bed", "Chest X-ray", "ABG report"] } });
+    await prisma.schemePackage.create({ data: { scheme: "PMJAY", code: "EX-ORT-01", name: "Total knee replacement (example)", rate: 80000, documents: ["Beneficiary verification (BIS) and e-card", "Implant invoice and sticker", "Pre and post-op X-ray"] } });
+    await prisma.claim.create({
+      data: {
+        admissionId: fatima.id, patientId: pt["Fatima Sayyed"]!, payer: "SCHEME", payerName: "MJPJAY", scheme: "MJPJAY", memberId: "MH-27-55102938",
+        packageCode: pkg.code, packageName: pkg.name, packageRate: pkg.rate,
+        preauthStatus: "QUERY", preauthNumber: "MJP/PA/0091", claimStatus: "NOT_SUBMITTED",
+        documents: [
+          { name: "Ration card / scheme card and photo ID", done: true }, { name: "Arogyamitra registration", done: true },
+          { name: "Pre-op USG report", done: false }, { name: "Discharge summary", done: false }, { name: "Baby's birth record", done: false },
+        ],
+        events: { create: [
+          { byName: name("billing"), what: "Claim opened", at: new Date(now - 29 * H) },
+          { byName: name("billing"), what: "Pre-auth submitted", at: new Date(now - 28 * H) },
+          { byName: name("billing"), what: "Pre-auth query raised", note: "Insurer asks for the pre-op USG report", at: new Date(now - 6 * H) },
+        ] },
+      },
+    });
+
+    // Radiology worklist.
+    await prisma.radiologyOrder.create({ data: { patientId: pt["Sanjay Bhosale"]!, admissionId: sanjay.id, orderedById: docs.gp, modality: "XRAY", study: "Chest X-ray PA view", clinicalNotes: "Breathless, ?consolidation", status: "DONE", doneAt: new Date(now - 1.5 * H), createdAt: new Date(now - 2.5 * H) } });
+    await prisma.radiologyOrder.create({ data: { patientId: pt["Priya Shinde"]!, orderedById: docs.gynae, modality: "USG", study: "Obstetric ultrasound, 10 weeks", status: "ORDERED", createdAt: new Date(now - 0.5 * H) } });
+    await prisma.radiologyOrder.create({ data: { patientId: pt["Anita Jadhav"]!, admissionId: anita.id, orderedById: docs.ortho, modality: "XRAY", study: "X-ray right knee, AP and lateral", status: "REPORTED", doneAt: new Date(now - 3 * H), reportedAt: new Date(now - 2 * H), reportedByName: "Neha Joshi", report: "Reduced medial joint space with osteophytes. Subchondral sclerosis.", impression: "Advanced osteoarthritis, right knee.", createdAt: new Date(now - 3.5 * H) } });
+
+    // The ward chart.
+    const chart = (admissionId: string, kind: string, hoursAgo: number, extra: Record<string, unknown>) =>
+      prisma.nursingEntry.create({ data: { admissionId, kind: kind as never, at: new Date(now - hoursAgo * H), byName: name("nurse"), ...extra } });
+    await chart(sanjay.id, "VITALS", 2.8, { vitals: { bp: "150/92", pulse: "108", spo2: "91", rr: "28", temp: "99.2" } });
+    await chart(sanjay.id, "MEDICATION", 2.5, { drugName: "Salbutamol + Ipratropium", dose: "1 respule", route: "Nebulised" });
+    await chart(sanjay.id, "VITALS", 1, { vitals: { bp: "138/86", pulse: "96", spo2: "94", rr: "22", temp: "98.8" } });
+    await chart(sanjay.id, "NOTE", 0.8, { note: "Breathing easier after nebulisation. On 2 L oxygen. Family informed." });
+    await chart(ganesh.id, "VITALS", 6, { vitals: { bp: "136/84", pulse: "82", temp: "99.4", sugar: "212" } });
+    await chart(ganesh.id, "MEDICATION", 5, { drugName: "Ceftriaxone", dose: "1 g", route: "IV" });
+    await chart(fatima.id, "VITALS", 3, { vitals: { bp: "118/76", pulse: "84", temp: "98.6", pain: "3" } });
+    await chart(fatima.id, "NOTE", 2, { note: "Mother and baby well. Breastfeeding established. Mobilised to chair." });
+  }
+  await prisma.$executeRawUnsafe(`SELECT setval('"${schema}"."ip_number_seq"', ${ipSeq})`).catch(() => undefined);
 }
 
 main()

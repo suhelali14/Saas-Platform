@@ -122,7 +122,12 @@ export function Fares({ onEnquire }: { onEnquire: () => void }) {
         </div>
 
         <div className="rule-total flex flex-wrap items-center justify-between gap-5 px-4 py-6 sm:px-7">
-          <p className="t-prose text-sm text-[var(--ink-soft)]">{farePanel.note}</p>
+          <div className="max-w-[62ch]">
+            <p className="t-prose text-sm text-[var(--ink-soft)]">{farePanel.note}</p>
+            <p className="t-prose mt-2 text-sm text-[var(--ink)]">
+              <a href="#health" className="engraved">{farePanel.healthNote}</a>
+            </p>
+          </div>
           <button type="button" onClick={onEnquire} className="plate">
             {farePanel.action}
           </button>

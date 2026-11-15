@@ -30,6 +30,11 @@ import { clinicTranslationRoutes } from "./routes/clinic-translations.js";
 import { clinicDocTemplateRoutes } from "./routes/clinic-doc-template.js";
 import { isFeatureEnabled } from "./config/features.js";
 import { env } from "./config/env.js";
+import { clinicDepartmentRoutes } from "./routes/clinic-departments.js";
+import { clinicCounterRoutes } from "./routes/clinic-counter.js";
+import { clinicIpdRoutes } from "./routes/clinic-ipd.js";
+import { clinicClaimRoutes } from "./routes/clinic-claims.js";
+import { clinicOtRoutes, clinicRadiologyRoutes, clinicNursingRoutes } from "./routes/clinic-wards.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -201,6 +206,16 @@ export function buildApp() {
   if (isFeatureEnabled("analytics")) app.register(clinicAnalyticsRoutes);
   if (isFeatureEnabled("expenses")) app.register(clinicExpenseRoutes);
   if (isFeatureEnabled("multilingual")) app.register(clinicTranslationRoutes);
+  // Hospital modules.
+  if (isFeatureEnabled("departments")) app.register(clinicDepartmentRoutes);
+  if (isFeatureEnabled("cashcounter")) app.register(clinicCounterRoutes);
+  if (isFeatureEnabled("ipd")) app.register(clinicIpdRoutes);
+  if (isFeatureEnabled("insurance") || isFeatureEnabled("schemes")) app.register(clinicClaimRoutes);
+  if (isFeatureEnabled("ot")) app.register(clinicOtRoutes);
+  if (isFeatureEnabled("radiology")) app.register(clinicRadiologyRoutes);
+  // The ward list and chart need inpatients; writing on the chart is the
+  // nursing module, checked in the route.
+  if (isFeatureEnabled("nursing") && isFeatureEnabled("ipd")) app.register(clinicNursingRoutes);
 
   return app;
 }

@@ -21,6 +21,7 @@ import { Route } from '@/sections/Route';
 import { Growth } from '@/sections/Growth';
 import { Services } from '@/sections/Services';
 import { Fares } from '@/sections/Fares';
+import { HealthLine } from '@/sections/HealthLine';
 import { About } from '@/sections/About';
 import { Conditions } from '@/sections/Conditions';
 import { Enquiry } from '@/sections/Enquiry';
@@ -75,6 +76,10 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
             <Hero onEnquire={onEnquire} />
             <Reveal defer><ServiceChart /></Reveal>
             <Reveal defer><DayCharts /></Reveal>
+            {/* Straight after the live clinic chart: the reader who just
+                watched the queue re-rank is the one asking which class is
+                theirs and what a hospital gets. */}
+            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
             <Reveal defer><Route /></Reveal>
             <Reveal defer><Manifest /></Reveal>
             <Reveal defer><Growth /></Reveal>
@@ -99,6 +104,7 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
               </Board>
             </section>
             <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
             <Reveal defer><Services /></Reveal>
             <Reveal defer><About /></Reveal>
             <Reveal defer><Conditions /></Reveal>

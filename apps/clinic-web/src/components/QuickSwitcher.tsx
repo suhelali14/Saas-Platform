@@ -58,6 +58,13 @@ const DESTINATIONS: Destination[] = [
   { label: 'Reminders', to: '/reminders', keywords: 'reminders followups follow-up' },
   { label: 'Expenses', to: '/expenses', keywords: 'expenses spending profit loss' , module: 'expenses' },
   { label: 'Reports', to: '/analytics', keywords: 'analytics reports trends' , module: 'analytics' },
+  { label: 'Bed board', to: '/ipd', keywords: 'beds ward admit admission inpatient ipd discharge', module: 'ipd' },
+  { label: 'Nursing', to: '/nursing', keywords: 'nursing ward round vitals chart', module: 'nursing' },
+  { label: 'Operation theatre', to: '/ot', keywords: 'ot theatre surgery operation', module: 'ot' },
+  { label: 'Radiology', to: '/radiology', keywords: 'radiology xray x-ray ultrasound usg ct mri scan', module: 'radiology' },
+  { label: 'Cash counter', to: '/counter', keywords: 'counter cash deposit advance refund drawer', module: 'cashcounter' },
+  { label: 'Claims', to: '/claims', keywords: 'claims insurance tpa scheme pmjay mjpjay preauth', module: 'claims' },
+  { label: 'Departments', to: '/departments', keywords: 'departments specialities desks', module: 'departments' },
   { label: 'Website', to: '/website', keywords: 'website public page blog gallery' },
   { label: 'Settings', to: '/settings', keywords: 'settings clinic profile password documents' },
 ];
@@ -130,7 +137,7 @@ export function QuickSwitcher() {
   const term = query.trim().toLowerCase();
   const screens = term
     ? DESTINATIONS.filter(
-        (d) => (!d.module || hasModule(d.module)) && (d.label.toLowerCase().includes(term) || d.keywords.includes(term)),
+        (d) => (!d.module || (d.module === 'claims' ? hasModule('insurance') || hasModule('schemes') : hasModule(d.module))) &&(d.label.toLowerCase().includes(term) || d.keywords.includes(term)),
       ).slice(0, 4)
     : [];
 

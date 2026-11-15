@@ -59,6 +59,15 @@ const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m
 const AuditLog = lazy(() => import('./pages/AuditLog').then((m) => ({ default: m.AuditLog })));
 const Expenses = lazy(() => import('./pages/Expenses').then((m) => ({ default: m.Expenses })));
 const Website = lazy(() => import('./pages/Website').then((m) => ({ default: m.Website })));
+const Ipd = lazy(() => import('./pages/Ipd').then((m) => ({ default: m.Ipd })));
+const AdmissionPage = lazy(() => import('./pages/Admission').then((m) => ({ default: m.AdmissionPage })));
+const Counter = lazy(() => import('./pages/Counter').then((m) => ({ default: m.Counter })));
+const Claims = lazy(() => import('./pages/Claims').then((m) => ({ default: m.Claims })));
+const ClaimPage = lazy(() => import('./pages/Claims').then((m) => ({ default: m.ClaimPage })));
+const Ot = lazy(() => import('./pages/Wards').then((m) => ({ default: m.Ot })));
+const Radiology = lazy(() => import('./pages/Wards').then((m) => ({ default: m.Radiology })));
+const Nursing = lazy(() => import('./pages/Wards').then((m) => ({ default: m.Nursing })));
+const Departments = lazy(() => import('./pages/Wards').then((m) => ({ default: m.Departments })));
 
 const PublicQueue = lazy(() => import('./pages/PublicQueue').then((m) => ({ default: m.PublicQueue })));
 const PublicClinic = lazy(() => import('./pages/PublicClinic').then((m) => ({ default: m.PublicClinic })));
@@ -78,6 +87,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function ModuleRoute({ module, children }: { module: string; children: React.ReactNode }) {
   const { hasModule } = useClinicAuth();
   if (!hasModule(module)) return <NotInPlan module={module} />;
+  return <>{children}</>;
+}
+
+/** Claims belong to two desks; either one being on opens the screen. */
+function ClaimsRoute({ children }: { children: React.ReactNode }) {
+  const { hasModule } = useClinicAuth();
+  if (!hasModule('insurance') && !hasModule('schemes')) return <NotInPlan module="insurance" />;
   return <>{children}</>;
 }
 
@@ -189,6 +205,17 @@ function portalRoutes() {
       <Route path="/website" element={<AdminRoute><Website /></AdminRoute>} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/staff" element={<StaffRoute><Staff /></StaffRoute>} />
+      {/* Hospital desks. Each is its own module; the API also checks the
+          role on every call, so these only decide what renders. */}
+      <Route path="/ipd" element={<ModuleRoute module="ipd"><Ipd /></ModuleRoute>} />
+      <Route path="/ipd/:id" element={<ModuleRoute module="ipd"><AdmissionPage /></ModuleRoute>} />
+      <Route path="/nursing" element={<ModuleRoute module="nursing"><ModuleRoute module="ipd"><Nursing /></ModuleRoute></ModuleRoute>} />
+      <Route path="/ot" element={<ModuleRoute module="ot"><Ot /></ModuleRoute>} />
+      <Route path="/radiology" element={<ModuleRoute module="radiology"><Radiology /></ModuleRoute>} />
+      <Route path="/counter" element={<ModuleRoute module="cashcounter"><Counter /></ModuleRoute>} />
+      <Route path="/claims" element={<ClaimsRoute><Claims /></ClaimsRoute>} />
+      <Route path="/claims/:id" element={<ClaimsRoute><ClaimPage /></ClaimsRoute>} />
+      <Route path="/departments" element={<ModuleRoute module="departments"><Departments /></ModuleRoute>} />
     </Route>,
   ];
 }

@@ -195,6 +195,19 @@ export const clinicArrival: ChartRowDef = {
   cells: { token: '14', file: '···0355', age: '38 M', waited: '0m' },
 };
 
+/** The health line's four classes, in order. `live` is true only where every
+ *  part of the class runs in production for a business that pays for it; the
+ *  clinic in Sangli runs all of Clinic and Polyclinic. Hospital and
+ *  Multi-specialty are built and tested on a demo hospital and run nowhere
+ *  yet, and must not be marked live until one does. `logins` is the plan's
+ *  default seat count in apps/clinic-api/src/config/features.ts. */
+export const healthClasses: { code: string; plan: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE'; live: boolean; logins: string }[] = [
+  { code: 'H1', plan: 'BASIC', live: true, logins: '3' },
+  { code: 'H2', plan: 'STANDARD', live: true, logins: '10' },
+  { code: 'H3', plan: 'PREMIUM', live: false, logins: '40' },
+  { code: 'H4', plan: 'ENTERPRISE', live: false, logins: '∞' },
+];
+
 /** Fare bands, by the number of people who need a login. */
 export const fareSeats: [number, number][] = [
   [1, 2],

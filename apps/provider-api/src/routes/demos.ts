@@ -45,7 +45,12 @@ function demoLogins(plan: PlanTier) {
     { key: "reception", who: "Sunita Pawar, reception" },
     { key: "nurse", who: "Rekha Shinde, nurse" },
     ...(rank >= 1 ? [{ key: "doctor2", who: "Dr. Arjun Deshpande, paediatrics" }, { key: "pharmacy", who: "Imran Shaikh, pharmacist" }] : []),
-    ...(rank >= 2 ? [{ key: "gynae", who: "Dr. Anjali Mehta, gynaecology" }, { key: "ortho", who: "Dr. Rohan Joshi, orthopaedics" }] : []),
+    ...(rank >= 2 ? [
+      { key: "gynae", who: "Dr. Anjali Mehta, gynaecology" }, { key: "ortho", who: "Dr. Rohan Joshi, orthopaedics" },
+      { key: "cashier", who: "Pooja Kale, cash counter" }, { key: "billing", who: "Mahesh Patil, inpatient billing and claims" },
+      { key: "lab", who: "Sameer Khan, laboratory" },
+    ] : []),
+    ...(rank >= 3 ? [{ key: "radiology", who: "Neha Joshi, radiology" }] : []),
   ];
   return people.map((p) => ({ email: `${p.key}@${domain}`, who: p.who }));
 }

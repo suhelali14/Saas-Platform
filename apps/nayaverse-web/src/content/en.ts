@@ -33,6 +33,7 @@ export const en = {
     fares: 'Fares',
     about: 'About',
     questions: 'Questions',
+    health: 'Clinics',
     enquire: 'Enquire',
     skip: 'Skip to content',
     language: 'Language',
@@ -103,8 +104,8 @@ export const en = {
         'The deepest thing built. Triaged queue, file numbers, case sheets, prescriptions off a 2,46,000-medicine Indian database, certificates, labs, pharmacy stock, billing, and the clinic’s own site in twelve languages. Running in Sangli.',
     },
     '02': {
-      name: 'Small hospital — OPD',
-      detail: 'The same clinical system across departments and several doctors. Built; no hospital running it yet.',
+      name: 'Hospital — OPD and wards',
+      detail: 'Departments and desks, a cash counter, wards and beds, the theatre list, insurance and scheme claims, radiology and nursing. Built and tested on a demo hospital; no hospital running it yet.',
     },
     '03': { name: 'Pharmacy', detail: 'Batch stock with expiry-first dispensing, the medicine database, counter billing.' },
     '04': { name: 'Kirana store', detail: 'Counter billing, stock that falls as you sell, and khata for those who pay later.' },
@@ -133,6 +134,60 @@ export const en = {
       name: 'Something not on this chart',
       detail: 'There is a general type carrying catalogue, orders, stock, bookings, billing and customers. If that fits how you work, say so.',
     },
+  },
+
+  healthLine: {
+    bandTitle: 'Health line',
+    band: 'Clinic to multi-specialty · one record per patient',
+    heading: 'From one doctor to a hospital',
+    lede:
+      'Not every clinic needs every desk. Four classes, each switching on more of the same system. A cashier sees the counter, a ward nurse sees the ward, and nobody scrolls past screens that are not theirs.',
+    colClass: 'Class',
+    colCarries: 'What it switches on',
+    colStands: 'Where it stands',
+    logins: 'logins',
+    noLimit: 'No login limit',
+    built: 'Built',
+    classes: [
+      {
+        klass: 'Clinic',
+        forWhom: 'One doctor, or two, and the front desk.',
+        carries:
+          'A queue that sorts itself, tokens and walk-ins, the patient file with every visit day by day, case sheets, prescriptions off the 2,46,000-medicine database, certificates, lab orders, billing with the day’s close, and the clinic’s own website.',
+        stands: 'Running in Sangli, every part of it.',
+      },
+      {
+        klass: 'Polyclinic',
+        forWhom: 'Several doctors and a dispensary.',
+        carries:
+          'Everything in Clinic, plus pharmacy stock dispensed expiry-first, reports on visits and workload, expenses against what was collected, and the website in twelve Indian languages.',
+        stands: 'Every part of it runs at the clinic in Sangli. No polyclinic uses it yet.',
+      },
+      {
+        klass: 'Hospital',
+        forWhom: 'Beds, a theatre and a cash counter.',
+        carries:
+          'Everything in Polyclinic, plus departments and desks so each person sees only their own work; a cash counter with advances, refunds, discount approval and a counted close; wards and beds with admission, transfer, discharge and one final bill; the theatre list; and an insurance and TPA desk.',
+        stands: 'Built and tested on a demo hospital. No hospital runs it yet.',
+      },
+      {
+        klass: 'Multi-specialty',
+        forWhom: 'Many departments, scheme patients, imaging.',
+        carries:
+          'Everything in Hospital, plus a government-scheme desk for PM-JAY, MJPJAY, CGHS and ECHS, a radiology worklist with reports, and nursing stations with the vitals chart and the medicines given.',
+        stands: 'Built and tested on a demo hospital. No hospital runs it yet.',
+      },
+    ],
+    termsHeading: 'How a clinic or hospital pays',
+    terms: [
+      { label: 'Setup, once', detail: 'Your own database, your site on your own domain, your class’s desks switched on and your logins made. Paid once, at the start.' },
+      { label: 'Then a yearly fee', detail: 'Hosting, backups, updates and support, renewed each year. Quoted against the class you need after the walkthrough, and written into the agreement.' },
+      { label: 'Moving up a class', detail: 'A setting changed once we have agreed it in writing. The same records with more desks switched on: nothing typed again, nothing lost.' },
+      { label: 'Seeing it first', detail: 'The walkthrough runs on a demo of the class you are looking at, with made-up patients, so nothing real is ever on screen.' },
+    ],
+    honesty:
+      'Insurance and scheme claims here are the hospital’s own record of each case: pre-authorisation, documents, queries, settlement, and how long the payer has owed it. Filing still happens on the insurer’s or the scheme’s own portal. Scheme package rates are entered by the hospital from the current list; none are supplied.',
+    action: 'Book a walkthrough',
   },
 
   chartSection: {
@@ -298,6 +353,7 @@ export const en = {
     yourRow: 'Your row',
     action: 'Book a walkthrough',
     note: 'Billed monthly, per business. No setup fee. Your records are exportable in full from day one, so leaving costs nothing but the notice. Whoever is first on a row keeps the price they start on.',
+    healthNote: 'Clinics and hospitals are priced on the health line instead: a setup once, then a yearly fee.',
     pageHeading: 'What it costs',
     pageLede:
       'From ₹3,000 a month, per business, by the number of people who need a login. Billed monthly, no setup fee, and your records are exportable in full from the first day.',
@@ -325,11 +381,11 @@ export const en = {
     {
       code: 'C',
       klass: 'Multi-location',
-      forWhom: 'Several branches, or a small hospital running OPD across departments.',
+      forWhom: 'Several branches, or one location with many staff.',
       size: '11–40 logins',
       fare: '₹50,000',
       period: 'a month',
-      includes: 'Everything in Growing, plus your site in twelve Indian languages, the append-only access log and full export, the deeper clinical modules where it is a clinic — and all the counter services: site, listings, campaigns and print.',
+      includes: 'Everything in Growing, plus your site in twelve Indian languages, the append-only access log and full export — and all the counter services: site, listings, campaigns and print.',
     },
     {
       code: 'D',
@@ -393,6 +449,14 @@ export const en = {
     {
       q: 'Will it message my customers on WhatsApp?',
       a: 'Not yet, and this is the one we are asked most. The integration is written against Meta’s API but has never run against live credentials, so treat it as not working until we say otherwise. No SMS or email delivery either. Reminders are in-app.',
+    },
+    {
+      q: 'Can it run a hospital, or only a clinic?',
+      a: 'Both are built; only the clinic is running anywhere. Wards and beds, the cash counter, the theatre list, insurance and scheme claims, radiology and nursing are written and tested on a demo hospital with made-up patients. The first hospital to take it finds the rough edges, and we sit with you through them.',
+    },
+    {
+      q: 'Will it file our PM-JAY or insurance claims?',
+      a: 'No. It keeps your side of every claim — the pre-authorisation, the documents a payer asks for, queries, settlement, deductions, and how long the money has been owed — so nothing is lost between desks. The filing itself still happens on the scheme’s or the insurer’s own portal.',
     },
     {
       q: 'Can it print on my existing letterhead?',

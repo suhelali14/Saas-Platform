@@ -5,7 +5,7 @@ export interface ClinicStaffUser {
   id: string;
   email: string;
   name: string;
-  role: 'DOCTOR' | 'RECEPTIONIST' | 'NURSE' | 'PHARMACIST' | 'ADMIN';
+  role: 'DOCTOR' | 'RECEPTIONIST' | 'NURSE' | 'PHARMACIST' | 'ADMIN' | 'CASHIER' | 'BILLING_CLERK' | 'LAB_TECH' | 'RADIOGRAPHER';
   /** May administer staff, settings, the audit log and the website.
    *  Independent of `role`: a clinic head who is also a doctor is
    *  both, and a non-clinical practice manager is admin without any

@@ -4,12 +4,13 @@ import {
   CalendarClock, Users, UserCog, LogOut, BarChart3, Pill, Bell,
   IndianRupee, FlaskConical, Radio, Settings as SettingsIcon, Globe, Wallet,
   ShieldCheck, LayoutTemplate, Sun, Moon, Menu, X, ExternalLink, LayoutDashboard,
-  CalendarCheck} from 'lucide-react';
+  CalendarCheck, BedDouble, HeartPulse, Scissors, ScanLine, Landmark, FileCheck2, Building2} from 'lucide-react';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { publicSiteUrl } from '../lib/site-mode';
 import { apiFetch } from '../lib/api';
 import { usePolling } from '../lib/usePolling';
+import { areasFor, type Area } from '../lib/areas';
 import { SetupPrompt } from './SetupPrompt';
 import { QuickSwitcher } from './QuickSwitcher';
 import { SkeletonPage } from './Skeleton';
@@ -21,14 +22,15 @@ const ROLE_WORDS: Record<string, string> = {
   NURSE: 'Nurse',
   RECEPTIONIST: 'Reception',
   PHARMACIST: 'Pharmacist',
+  CASHIER: 'Cashier',
+  BILLING_CLERK: 'Billing',
+  LAB_TECH: 'Lab technician',
+  RADIOGRAPHER: 'Radiographer',
 };
 
-const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
-const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
-// Admin screens are gated on the isAdmin FLAG now, not on being a doctor.
-// This set used to include DOCTOR, so every doctor a clinic hired saw the
-// audit log -- which records who opened which patient's file -- along with
-// settings and the website builder.
+// Admin screens are gated on the isAdmin FLAG, not on being a doctor; the
+// rest of the menu comes from lib/areas.ts -- role plus the desks someone
+// is assigned to.
 const FRONT_DESK_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
 const REMINDER_POLL_MS = 60_000;
 
@@ -53,6 +55,17 @@ export function Layout() {
   const [dueReminders, setDueReminders] = useState(0);
   const [newRequests, setNewRequests] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [servicePoints, setServicePoints] = useState<string[]>([]);
+
+  // The desks this person works at add screens to their menu. Only asked
+  // when the hospital has departments; a clinic without them has none.
+  const departmentsOn = hasModule('departments');
+  useEffect(() => {
+    if (!departmentsOn || !user) { setServicePoints([]); return; }
+    apiFetch<{ servicePoints: string[] }>('/departments/mine')
+      .then((r) => setServicePoints(r.servicePoints))
+      .catch(() => setServicePoints([]));
+  }, [departmentsOn, user]);
 
   usePolling(async () => {
     try {
@@ -97,36 +110,51 @@ export function Layout() {
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
 
-  const isFrontDesk = !!user && FRONT_DESK_ROLES.has(user.role);
-  const canBill = !!user && BILLING_ROLES.has(user.role);
-  const canDispense = !!user && PHARMACY_ROLES.has(user.role);
+  const areas = areasFor(user?.role, isAdmin, servicePoints, hasModule);
+  const sees = (a: Area) => areas.has(a);
+  const inpatients = sees('ipd') || sees('nursing') || sees('ot');
+  const clinical = sees('labs') || sees('radiology') || sees('pharmacy');
+  const money = sees('billing') || sees('counter') || sees('claims') || sees('expenses') || sees('reports');
   const navItems = (
     <>
       <NavGroup>
-        <NavItem to="/queue" icon={CalendarClock} label="Queue" />
+        {sees('queue') && <NavItem to="/queue" icon={CalendarClock} label="Queue" />}
         <NavItem to="/" icon={LayoutDashboard} label="Overview" />
-        {isFrontDesk && <NavItem to="/requests" icon={CalendarCheck} label="Booking requests" badge={newRequests} />}
-        <NavItem to="/reminders" icon={Bell} label="Follow-ups due" badge={dueReminders} />
+        {sees('requests') && <NavItem to="/requests" icon={CalendarCheck} label="Booking requests" badge={newRequests} />}
+        {sees('queue') && <NavItem to="/reminders" icon={Bell} label="Follow-ups due" badge={dueReminders} />}
       </NavGroup>
       <NavGroup caption="Patients">
         <NavItem to="/patients" icon={Users} label="All patients" />
       </NavGroup>
-      {(hasModule('labs') || (canDispense && hasModule('pharmacy'))) && (
-        <NavGroup caption="Clinical">
-          {hasModule('labs') && <NavItem to="/labs" icon={FlaskConical} label="Lab orders" />}
-          {canDispense && hasModule('pharmacy') && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
+      {inpatients && (
+        <NavGroup caption="Inpatients">
+          {sees('ipd') && <NavItem to="/ipd" icon={BedDouble} label="Bed board" />}
+          {sees('nursing') && <NavItem to="/nursing" icon={HeartPulse} label="Nursing" />}
+          {sees('ot') && <NavItem to="/ot" icon={Scissors} label="Operation theatre" />}
         </NavGroup>
       )}
-      {((canBill && (hasModule('billing') || hasModule('expenses'))) || ((canBill || isAdmin) && hasModule('analytics'))) && (
+      {clinical && (
+        <NavGroup caption="Clinical">
+          {sees('labs') && <NavItem to="/labs" icon={FlaskConical} label="Lab orders" />}
+          {sees('radiology') && <NavItem to="/radiology" icon={ScanLine} label="Radiology" />}
+          {sees('pharmacy') && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
+        </NavGroup>
+      )}
+      {money && (
         <NavGroup caption="Money">
-          {canBill && hasModule('billing') && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
-          {canBill && hasModule('expenses') && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
-          {(canBill || isAdmin) && hasModule('analytics') && <NavItem to="/analytics" icon={BarChart3} label="Reports" />}
+          {sees('counter') && <NavItem to="/counter" icon={Landmark} label="Cash counter" />}
+          {sees('billing') && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
+          {sees('claims') && <NavItem to="/claims" icon={FileCheck2} label="Claims" />}
+          {sees('expenses') && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
+          {sees('reports') && <NavItem to="/analytics" icon={BarChart3} label="Reports" />}
         </NavGroup>
       )}
       <NavGroup caption="Clinic">
+        {sees('departments') && <NavItem to="/departments" icon={Building2} label="Departments" />}
         {isAdmin && <NavItem to="/website" icon={LayoutTemplate} label="Website" />}
-        {enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
+        {/* The staff list is admin-only in the API; showing it to everyone
+            only led them to a refusal. */}
+        {isAdmin && enabledFeatures.staff && <NavItem to="/staff" icon={UserCog} label="Staff" />}
         <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
         {isAdmin && <NavItem to="/audit" icon={ShieldCheck} label="Audit log" />}
       </NavGroup>
@@ -227,7 +255,9 @@ export function Layout() {
         <AccountBanner readOnly={entitlement.readOnly} demo={entitlement.demo} contact={entitlement.upgradeContact} />
         {/* Above every portal screen, because the person who can fill in
             the clinic's website did not come here to look at it. */}
-        <SetupPrompt />
+        {/* Only an admin can fill the website in, so only an admin is
+            asked to; a cashier cannot act on it. */}
+        {isAdmin && <SetupPrompt />}
         {/*
           Every portal screen is a separate chunk (see App.tsx), so the
           first visit to one has to wait for it. The boundary belongs
@@ -341,7 +371,10 @@ function ClinicMark({ name, compact }: { name?: string | null; compact?: boolean
   return (
     <div className="min-w-0 leading-none" title={label}>
       <span className={`block font-semibold uppercase tracking-[0.12em] text-muted-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}>Nayaverse Clinic</span>
-      <span className={`block truncate font-display font-semibold uppercase tracking-[0.02em] text-foreground ${compact ? 'mt-0.5 text-[17px]' : 'mt-1 text-[19px]'}`}>{label}</span>
+      {/* Two lines in the sidebar: a hospital's name is long ("Sai
+          Multispeciality Hospital") and cut to "SAI MULTISPECI…" it is not
+          the name. The phone bar stays one line. */}
+      <span className={`block font-display font-semibold uppercase tracking-[0.02em] text-foreground ${compact ? 'mt-0.5 truncate text-[17px]' : 'mt-1 line-clamp-2 text-[19px] leading-[1.1]'}`}>{label}</span>
     </div>
   );
 }

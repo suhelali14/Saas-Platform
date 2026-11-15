@@ -54,9 +54,18 @@ const ROLES = [
   { id: 'PHARMACIST', label: 'Pharmacist', hint: 'Dispenses prescriptions and manages stock.' },
 ];
 
+/** Jobs that only exist in a hospital: offered once its desks are switched on. */
+const HOSPITAL_ROLES = [
+  { id: 'CASHIER', label: 'Cashier', module: 'cashcounter', hint: 'Takes payments and deposits at the cash counter, and closes it.' },
+  { id: 'BILLING_CLERK', label: 'Billing', module: 'ipd', hint: 'Inpatient bills, charges and insurance or scheme claims.' },
+  { id: 'LAB_TECH', label: 'Lab technician', module: 'labs', hint: 'Enters lab results. No clinical writing.' },
+  { id: 'RADIOGRAPHER', label: 'Radiographer', module: 'radiology', hint: 'Does imaging studies and writes their reports.' },
+];
+
 export function Staff() {
   const toast = useToast();
-  const { user: me } = useClinicAuth();
+  const { user: me, hasModule } = useClinicAuth();
+  const roles = [...ROLES, ...HOSPITAL_ROLES.filter((r) => hasModule(r.module) && (r.module !== 'labs' || hasModule('departments')))];
   const [staff, setStaff] = useState<StaffUser[] | null>(null);
   const [seats, setSeats] = useState<Seats | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -193,7 +202,7 @@ export function Staff() {
 
               <Field label="What they do" hint="Decides what they may do to patient records.">
                 <div className="flex flex-wrap gap-1.5">
-                  {ROLES.map((r) => (
+                  {roles.map((r) => (
                     <button
                       key={r.id}
                       type="button"
@@ -247,7 +256,7 @@ export function Staff() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`font-medium ${!u.isActive && 'text-muted-foreground line-through'}`}>{u.name}</span>
                         <span className="tone-neutral rounded-full px-2 py-0.5 text-[11px] font-medium">
-                          {ROLES.find((r) => r.id === u.role)?.label ?? u.role}
+                          {[...ROLES, ...HOSPITAL_ROLES].find((r) => r.id === u.role)?.label ?? u.role}
                         </span>
                         {u.isAdmin && (
                           <span className="tone-violet flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">

@@ -70,14 +70,14 @@ export const FEATURES: FeatureSpec[] = [
   { key: "expenses", label: "Expenses & profit", description: "Expense ledger and profit-and-loss.", from: "STANDARD", enforced: true, built: true },
   { key: "multilingual", label: "Website languages", description: "Patient site in up to 12 Indian languages.", from: "STANDARD", enforced: true, built: true },
   { key: "aitranslate", label: "Machine translation", description: "Machine-drafted translations for the patient site.", from: "PREMIUM", enforced: true, built: true },
-  { key: "departments", label: "Departments & service points", description: "Specialities and counters; each person sees only their own work.", from: "PREMIUM", enforced: true, built: false },
-  { key: "cashcounter", label: "Cash counter", description: "Counter sessions, deposits, refunds, discount approval, day close.", from: "PREMIUM", enforced: true, built: false },
-  { key: "ipd", label: "Inpatients, wards & beds", description: "Admission, transfer, discharge, bed board, interim and final bills.", from: "PREMIUM", enforced: true, built: false },
-  { key: "ot", label: "Operation theatre", description: "Theatre bookings and surgery records.", from: "PREMIUM", enforced: true, built: false },
-  { key: "insurance", label: "Insurance & TPA desk", description: "Pre-authorisation, claims, settlements and ageing.", from: "PREMIUM", enforced: true, built: false },
-  { key: "schemes", label: "Government schemes desk", description: "PM-JAY, MJPJAY, CGHS and ECHS: packages, pre-auth, claims.", from: "ENTERPRISE", enforced: true, built: false },
-  { key: "radiology", label: "Radiology", description: "Imaging orders and reports.", from: "ENTERPRISE", enforced: true, built: false },
-  { key: "nursing", label: "Nursing stations", description: "Ward rounds, vitals charts, medicine given.", from: "ENTERPRISE", enforced: true, built: false },
+  { key: "departments", label: "Departments & service points", description: "Specialities and counters; each person sees only their own work.", from: "PREMIUM", enforced: true, built: true },
+  { key: "cashcounter", label: "Cash counter", description: "Counter sessions, deposits, refunds, discount approval, day close.", from: "PREMIUM", enforced: true, built: true },
+  { key: "ipd", label: "Inpatients, wards & beds", description: "Admission, transfer, discharge, bed board, interim and final bills.", from: "PREMIUM", enforced: true, built: true },
+  { key: "ot", label: "Operation theatre", description: "Theatre bookings and surgery records.", from: "PREMIUM", enforced: true, built: true },
+  { key: "insurance", label: "Insurance & TPA desk", description: "Pre-authorisation, claims, settlements and ageing.", from: "PREMIUM", enforced: true, built: true },
+  { key: "schemes", label: "Government schemes desk", description: "PM-JAY, MJPJAY, CGHS and ECHS: packages, pre-auth, claims.", from: "ENTERPRISE", enforced: true, built: true },
+  { key: "radiology", label: "Radiology", description: "Imaging orders and reports.", from: "ENTERPRISE", enforced: true, built: true },
+  { key: "nursing", label: "Nursing stations", description: "Ward rounds, vitals charts, medicine given.", from: "ENTERPRISE", enforced: true, built: true },
 ];
 
 /** In every plan, never a module. Shown on the plan sheet. */

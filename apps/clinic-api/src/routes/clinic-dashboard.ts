@@ -305,12 +305,17 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
     } | null = null;
 
     if (MONEY_ROLES.has(role) && isFeatureEnabled("billing")) {
-      const payments = await prisma.payment.findMany({
-        where: { paidAt: { gte: start, lt: end } },
-        select: { amount: true, mode: true },
-      });
+      const [payments, deposits] = await Promise.all([
+        prisma.payment.findMany({ where: { paidAt: { gte: start, lt: end }, mode: { not: "DEPOSIT" } }, select: { amount: true, mode: true } }),
+        prisma.deposit.findMany({ where: { at: { gte: start, lt: end }, kind: { in: ["ADVANCE", "REFUND"] } }, select: { amount: true, mode: true, kind: true } }),
+      ]);
       const byMode: Record<string, number> = { CASH: 0, UPI: 0, CARD: 0 };
       for (const p of payments) byMode[p.mode] = (byMode[p.mode] ?? 0) + Number(p.amount);
+      // Advances in and refunds out are money through the counter too.
+      for (const d of deposits) {
+        if (!d.mode || d.mode === "DEPOSIT") continue;
+        byMode[d.mode] = (byMode[d.mode] ?? 0) + (d.kind === "ADVANCE" ? Number(d.amount) : -Number(d.amount));
+      }
 
       // Every invoice, because status is computed rather than stored --
       // there is no column to filter on, by design. The balance uses the
@@ -320,9 +325,11 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
         select: {
           items: { select: { amount: true, quantity: true } },
           payments: { select: { amount: true } },
+          discount: true,
+          discountStatus: true,
         },
       });
-      const outstanding = invoices.reduce((sum, inv) => sum + summarize(inv.items, inv.payments).balance, 0);
+      const outstanding = invoices.reduce((sum, inv) => sum + summarize(inv.items, inv.payments, inv).balance, 0);
 
       // A completed consultation with no invoice is revenue walking out
       // of the door, and is invisible on every other screen.

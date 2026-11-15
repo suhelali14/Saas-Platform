@@ -231,7 +231,9 @@ export function requirePharmacyAuth(request: FastifyRequest, reply: FastifyReply
   return auth;
 }
 
-export const BILLING_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN"]);
+// The cashier takes the money and the billing clerk prepares ward bills
+// and claims; both are billing work, and neither is clinical.
+export const BILLING_ROLES = new Set(["RECEPTIONIST", "DOCTOR", "ADMIN", "CASHIER", "BILLING_CLERK"]);
 
 /** Invoices, payments, daily cash closing -- reception's own workflow (plus
  * doctor/admin oversight). Nurse/pharmacist have no reason to touch money. */
@@ -245,7 +247,7 @@ export function requireBillingAuth(request: FastifyRequest, reply: FastifyReply)
   return auth;
 }
 
-const LAB_RESULT_ROLES = new Set(["RECEPTIONIST", "NURSE", "DOCTOR", "ADMIN"]);
+const LAB_RESULT_ROLES = new Set(["RECEPTIONIST", "NURSE", "DOCTOR", "ADMIN", "LAB_TECH"]);
 
 /** Who may see and act on appointments a stranger has requested. The list
  *  carries names, phone numbers and a stated reason for visiting, typed in
@@ -294,3 +296,38 @@ export function requireFrontDeskAuth(request: FastifyRequest, reply: FastifyRepl
   }
   return auth;
 }
+
+/*
+ * ── Hospital modules ─────────────────────────────────────────────────
+ *
+ * One helper rather than a function per module: each module states which
+ * roles may do what next to the route, where a reviewer reads it.
+ * Administering the clinic (isAdmin) never adds clinical rights; it is
+ * accepted where a route says so.
+ */
+export function requireRoles(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  roles: ReadonlySet<string>,
+  message: string,
+  opts: { allowAdmin?: boolean } = {},
+): ClinicAuthContext | null {
+  const auth = requireClinicAuth(request, reply);
+  if (!auth) return null;
+  if (roles.has(auth.role) || (opts.allowAdmin && auth.isAdmin)) return auth;
+  reply.status(403).send({ error: message });
+  return null;
+}
+
+/** Who may open a counter and take money. */
+export const COUNTER_ROLES = new Set(["CASHIER", "RECEPTIONIST", "BILLING_CLERK", "ADMIN", "DOCTOR"]);
+/** Who may admit, transfer and post charges to an inpatient account. */
+export const IPD_ROLES = new Set(["DOCTOR", "NURSE", "RECEPTIONIST", "BILLING_CLERK", "ADMIN"]);
+/** Who works claims with insurers, TPAs and schemes. */
+export const CLAIM_ROLES = new Set(["BILLING_CLERK", "RECEPTIONIST", "ADMIN", "DOCTOR"]);
+/** Who may book the theatre and write operation notes. */
+export const OT_ROLES = new Set(["DOCTOR", "NURSE", "ADMIN"]);
+/** Who may do and report imaging. Ordering is a doctor's, like labs. */
+export const RADIOLOGY_ROLES = new Set(["RADIOGRAPHER", "DOCTOR", "ADMIN"]);
+/** Who writes on the ward chart. */
+export const NURSING_ROLES = new Set(["NURSE", "DOCTOR", "ADMIN"]);

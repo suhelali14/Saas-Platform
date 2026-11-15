@@ -26,6 +26,12 @@ enum ClinicRole {
   NURSE
   PHARMACIST
   ADMIN
+  // Hospital roles. Appended, never inserted: Postgres orders enum values
+  // by declaration and existing rows must keep meaning what they meant.
+  CASHIER       // takes money at a counter, nothing clinical
+  BILLING_CLERK // ward billing, insurance and scheme claims
+  LAB_TECH      // lab results
+  RADIOGRAPHER  // imaging and its reports
 }
 
 enum AppointmentStatus {
@@ -78,6 +84,7 @@ enum PaymentMode {
   CASH
   UPI
   CARD
+  DEPOSIT // settled from the patient's advance, not new money
 }
 
 // ── Phase 4: lab orders ─────────────────────────────────────────────────
@@ -160,6 +167,10 @@ model Clinic {
   metaDescription    String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  /// Discounts above this many rupees need an admin's approval. Null means
+  /// every discount does.
+  discountApprovalAbove Decimal? @db.Decimal(10, 2)
 }
 
 model ClinicUser {
@@ -213,6 +224,12 @@ model ClinicUser {
   recordedExpenses        Expense[]      @relation("RecordedExpenses")
   authoredPosts           BlogPost[]     @relation("AuthoredPosts")
   handledRequests     AppointmentRequest[] @relation("HandledRequests")
+
+  // Hospital modules
+  departments       DepartmentMember[]
+  admissionsAdmitted Admission[]      @relation("AdmittingDoctor")
+  otSurgeries       OtBooking[]       @relation("OtSurgeon")
+  radiologyOrdered  RadiologyOrder[]  @relation("RadiologyOrders")
 }
 
 // Patients are looked up constantly at the front desk -- by name, by UHID, by
@@ -284,6 +301,13 @@ model Patient {
   // registrations of the same person most often share exactly.
   @@index([phone, name])
   appointmentRequests AppointmentRequest[]
+
+  // Hospital modules
+  deposits        Deposit[]
+  admissions      Admission[]
+  claims          Claim[]
+  otBookings      OtBooking[]
+  radiologyOrders RadiologyOrder[]
 }
 
 model Appointment {
@@ -327,6 +351,10 @@ model Appointment {
   @@index([patientId])
   @@index([doctorId])
   appointmentRequests AppointmentRequest[]
+
+  /// The OPD department this visit is for, when the clinic has departments.
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 }
 
 model CaseSheet {
@@ -494,6 +522,18 @@ model Invoice {
 
   @@index([patientId])
   @@index([appointmentId])
+
+  /// The inpatient stay this bill closes, for a final bill.
+  admissionId String?
+  admission   Admission? @relation(fields: [admissionId], references: [id], onDelete: SetNull)
+  /// A discount on the whole bill. Above the clinic's limit it waits for
+  /// an admin to approve it, and only an approved discount reduces what
+  /// is owed. Who asked and who approved are kept, by name.
+  discount              Decimal        @default(0) @db.Decimal(10, 2)
+  discountReason        String?
+  discountStatus        DiscountStatus @default(NONE)
+  discountRequestedBy   String?
+  discountApprovedBy    String?
 }
 
 model InvoiceItem {
@@ -517,6 +557,11 @@ model Payment {
   paidAt       DateTime    @default(now())
 
   @@index([invoiceId])
+
+  /// The counter session this was taken at, when the clinic runs a cash
+  /// counter. A payment is always attributable to an open counter.
+  counterSessionId String?
+  counterSession   CounterSession? @relation(fields: [counterSessionId], references: [id], onDelete: SetNull)
 }
 
 // ── Phase 4: lab orders ─────────────────────────────────────────────────
@@ -781,4 +826,462 @@ enum RequestStatus {
   NEW
   CONFIRMED
   DECLINED
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Hospital modules: departments, cash counter, inpatients, claims,
+// operation theatre, radiology, nursing. Each is switched on by the
+// clinic's plan (src/config/features.ts); the tables exist everywhere so
+// a plan change never needs a migration.
+// ════════════════════════════════════════════════════════════════════
+
+enum DepartmentKind {
+  CLINICAL // medicine, paediatrics, orthopaedics...
+  SERVICE  // a counter or desk where work is done
+}
+
+/// What a service department does, which decides the screens its staff see.
+enum ServicePoint {
+  FRONT_DESK
+  CASH_COUNTER
+  INSURANCE
+  SCHEMES
+  PHARMACY
+  LAB
+  RADIOLOGY
+  OT
+  WARD
+  RECORDS
+}
+
+model Department {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  kind      DepartmentKind
+  service   ServicePoint?
+  isActive  Boolean        @default(true)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+
+  members      DepartmentMember[]
+  appointments Appointment[]
+  admissions   Admission[]
+}
+
+/// Who works where. A person can belong to several departments; what they
+/// see in the portal is the union of their role and these.
+model DepartmentMember {
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         ClinicUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([departmentId, userId])
+  @@index([userId])
+}
+
+// ── Cash counter ──────────────────────────────────────────────────────
+
+/// One person's shift at a counter. Only the person who opened it takes
+/// money on it; closing it counts the cash against what it should hold.
+model CounterSession {
+  id           String    @id @default(cuid())
+  counterName  String
+  openedById   String
+  openedByName String
+  openedAt     DateTime  @default(now())
+  openingCash  Decimal   @default(0) @db.Decimal(10, 2)
+  closedAt     DateTime?
+  closedByName String?
+  /// What the cashier counted in the drawer at close.
+  countedCash  Decimal?  @db.Decimal(10, 2)
+  /// What the drawer should hold: opening cash + cash in - cash refunded.
+  expectedCash Decimal?  @db.Decimal(10, 2)
+  notes        String?
+
+  payments Payment[]
+  deposits Deposit[]
+
+  @@index([openedById, closedAt])
+  @@index([openedAt])
+}
+
+enum DepositKind {
+  ADVANCE // money taken in ahead of the bill
+  REFUND  // money given back at discharge
+  APPLIED // part of the advance used to pay a bill
+}
+
+/// A patient's advance account, as a ledger. The balance is
+/// ADVANCE - REFUND - APPLIED, never stored, so it cannot drift.
+model Deposit {
+  id               String          @id @default(cuid())
+  patientId        String
+  patient          Patient         @relation(fields: [patientId], references: [id])
+  admissionId      String?
+  admission        Admission?      @relation(fields: [admissionId], references: [id], onDelete: SetNull)
+  kind             DepositKind
+  /// Always positive; the kind says which way it moves.
+  amount           Decimal         @db.Decimal(10, 2)
+  mode             PaymentMode?
+  invoiceId        String?
+  counterSessionId String?
+  counterSession   CounterSession? @relation(fields: [counterSessionId], references: [id], onDelete: SetNull)
+  byId             String
+  byName           String
+  at               DateTime        @default(now())
+  notes            String?
+
+  @@index([patientId, at])
+  @@index([admissionId])
+}
+
+enum DiscountStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ── Inpatients ────────────────────────────────────────────────────────
+
+enum WardKind {
+  GENERAL
+  SEMI_PRIVATE
+  PRIVATE
+  ICU
+  NICU
+  DAYCARE
+}
+
+model Ward {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  kind      WardKind
+  /// Room charge per day, in rupees.
+  dailyRate Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  beds Bed[]
+}
+
+model Bed {
+  id            String  @id @default(cuid())
+  wardId        String
+  ward          Ward    @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  label         String
+  isActive      Boolean @default(true)
+  /// Set while a bed cannot take a patient: cleaning, repair.
+  blockedReason String?
+
+  admissions Admission[]
+  moves      BedMove[]
+
+  @@unique([wardId, label])
+}
+
+enum AdmissionStatus {
+  ADMITTED
+  DISCHARGED
+  CANCELLED
+}
+
+enum PayerType {
+  SELF
+  INSURANCE
+  SCHEME
+}
+
+model Admission {
+  id                   String          @id @default(cuid())
+  /// IP-2026-00001. From a sequence, so two admissions at the same second
+  /// never share a number.
+  ipNumber             String          @unique
+  patientId            String
+  patient              Patient         @relation(fields: [patientId], references: [id])
+  admittingDoctorId    String?
+  admittingDoctor      ClinicUser?     @relation("AdmittingDoctor", fields: [admittingDoctorId], references: [id], onDelete: SetNull)
+  departmentId         String?
+  department           Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  /// The bed now. History is in BedMove.
+  bedId                String?
+  bed                  Bed?            @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  admittedAt           DateTime        @default(now())
+  reason               String?
+  provisionalDiagnosis String?
+  status               AdmissionStatus @default(ADMITTED)
+  payerType            PayerType       @default(SELF)
+  estimatedCost        Decimal?        @db.Decimal(10, 2)
+
+  // The discharge summary.
+  dischargedAt         DateTime?
+  finalDiagnosis       String?
+  treatmentGiven       String?
+  conditionAtDischarge String?
+  dischargeAdvice      String?
+  followUpDate         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  moves           BedMove[]
+  charges         AdmissionCharge[]
+  deposits        Deposit[]
+  invoices        Invoice[]
+  claims          Claim[]
+  otBookings      OtBooking[]
+  radiologyOrders RadiologyOrder[]
+  nursingEntries  NursingEntry[]
+
+  @@index([status])
+  @@index([patientId])
+}
+
+/// Every bed a patient has been in, and the day rate when they moved in --
+/// so a later change to a ward's rate never rewrites a bill already running.
+model BedMove {
+  id          String    @id @default(cuid())
+  admissionId String
+  admission   Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  bedId       String
+  bed         Bed       @relation(fields: [bedId], references: [id])
+  wardName    String
+  dailyRate   Decimal   @db.Decimal(10, 2)
+  at          DateTime  @default(now())
+  byName      String
+
+  @@index([admissionId, at])
+}
+
+enum ChargeCategory {
+  NURSING
+  DOCTOR_VISIT
+  PROCEDURE
+  MEDICINE
+  CONSUMABLE
+  LAB
+  RADIOLOGY
+  OT
+  OTHER
+}
+
+/// A service posted to the patient's running account. Room charges are
+/// not posted; they are worked out from the bed moves.
+model AdmissionCharge {
+  id          String         @id @default(cuid())
+  admissionId String
+  admission   Admission      @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  category    ChargeCategory
+  description String
+  quantity    Int            @default(1)
+  rate        Decimal        @db.Decimal(10, 2)
+  at          DateTime       @default(now())
+  byName      String
+
+  @@index([admissionId, at])
+}
+
+// ── Insurance and government schemes ──────────────────────────────────
+
+enum ClaimPayer {
+  INSURANCE
+  SCHEME
+}
+
+enum PreauthStatus {
+  NOT_NEEDED
+  DRAFT
+  SUBMITTED
+  QUERY
+  APPROVED
+  ENHANCEMENT
+  REJECTED
+}
+
+enum ClaimStatus {
+  NOT_SUBMITTED
+  SUBMITTED
+  QUERY
+  APPROVED
+  SETTLED
+  REJECTED
+}
+
+/// The hospital's own record of a cashless claim. The claim itself is
+/// filed on the payer's portal (PM-JAY's TMS, an insurer's or TPA's
+/// system); this keeps what was asked, what was approved, what is still
+/// owed, and the documents the package needs.
+model Claim {
+  id                String        @id @default(cuid())
+  admissionId       String?
+  admission         Admission?    @relation(fields: [admissionId], references: [id], onDelete: SetNull)
+  patientId         String
+  patient           Patient       @relation(fields: [patientId], references: [id])
+  payer             ClaimPayer
+  /// "PM-JAY", "MJPJAY", "CGHS", "ECHS", or the insurer and TPA.
+  payerName         String
+  /// For schemes: PMJAY | MJPJAY | CGHS | ECHS | OTHER.
+  scheme            String?
+  /// Policy number, beneficiary ID or card number.
+  memberId          String?
+  packageCode       String?
+  packageName       String?
+  packageRate       Decimal?      @db.Decimal(10, 2)
+
+  preauthStatus     PreauthStatus @default(DRAFT)
+  preauthNumber     String?
+  preauthAmount     Decimal?      @db.Decimal(10, 2)
+  preauthApprovedAt DateTime?
+  preauthValidTill  DateTime?
+
+  claimStatus       ClaimStatus   @default(NOT_SUBMITTED)
+  claimAmount       Decimal?      @db.Decimal(10, 2)
+  claimSubmittedAt  DateTime?
+  approvedAmount    Decimal?      @db.Decimal(10, 2)
+  settledAmount     Decimal?      @db.Decimal(10, 2)
+  settledAt         DateTime?
+  settlementRef     String?
+  deductionReason   String?
+
+  /// [{ name, done }]: the documents this package or payer needs.
+  documents         Json?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  events ClaimEvent[]
+
+  @@index([payer, claimStatus])
+  @@index([patientId])
+}
+
+model ClaimEvent {
+  id      String   @id @default(cuid())
+  claimId String
+  claim   Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  at      DateTime @default(now())
+  byName  String
+  what    String
+  note    String?
+
+  @@index([claimId, at])
+}
+
+/// The hospital's own copy of a scheme's package rates. Loaded by the
+/// hospital from the scheme's current list; this product ships none,
+/// because a package rate copied from an old circular is a wrong claim.
+model SchemePackage {
+  id        String   @id @default(cuid())
+  scheme    String
+  code      String
+  name      String
+  rate      Decimal  @db.Decimal(10, 2)
+  /// The documents a claim for this package needs, one per line.
+  documents Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([scheme, code])
+}
+
+// ── Operation theatre ─────────────────────────────────────────────────
+
+enum OtStatus {
+  SCHEDULED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model OtBooking {
+  id              String      @id @default(cuid())
+  patientId       String
+  patient         Patient     @relation(fields: [patientId], references: [id])
+  admissionId     String?
+  admission       Admission?  @relation(fields: [admissionId], references: [id], onDelete: SetNull)
+  surgeonId       String?
+  surgeon         ClinicUser? @relation("OtSurgeon", fields: [surgeonId], references: [id], onDelete: SetNull)
+  anaesthetist    String?
+  theatre         String
+  procedure       String
+  scheduledAt     DateTime
+  durationMins    Int         @default(60)
+  status          OtStatus    @default(SCHEDULED)
+  anaesthesiaType String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  operationNotes  String?
+  createdAt       DateTime    @default(now())
+
+  @@index([scheduledAt])
+}
+
+// ── Radiology ─────────────────────────────────────────────────────────
+
+enum Modality {
+  XRAY
+  USG
+  CT
+  MRI
+  ECG
+  ECHO
+  OTHER
+}
+
+enum RadiologyStatus {
+  ORDERED
+  DONE
+  REPORTED
+  CANCELLED
+}
+
+model RadiologyOrder {
+  id             String          @id @default(cuid())
+  patientId      String
+  patient        Patient         @relation(fields: [patientId], references: [id])
+  appointmentId  String?
+  admissionId    String?
+  admission      Admission?      @relation(fields: [admissionId], references: [id], onDelete: SetNull)
+  orderedById    String?
+  orderedBy      ClinicUser?     @relation("RadiologyOrders", fields: [orderedById], references: [id], onDelete: SetNull)
+  modality       Modality
+  study          String
+  clinicalNotes  String?
+  status         RadiologyStatus @default(ORDERED)
+  doneAt         DateTime?
+  report         String?
+  impression     String?
+  reportedByName String?
+  reportedAt     DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@index([status, createdAt])
+  @@index([patientId])
+}
+
+// ── Nursing ───────────────────────────────────────────────────────────
+
+enum NursingKind {
+  VITALS
+  NOTE
+  MEDICATION
+}
+
+/// The ward's chart: vitals taken, notes written, medicine given.
+model NursingEntry {
+  id          String      @id @default(cuid())
+  admissionId String
+  admission   Admission   @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  kind        NursingKind
+  at          DateTime    @default(now())
+  byName      String
+  vitals      Json?
+  note        String?
+  drugName    String?
+  dose        String?
+  route       String?
+
+  @@index([admissionId, at])
 }

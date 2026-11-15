@@ -248,7 +248,7 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     // The same arithmetic as the billing screen, so a balance here can
     // never disagree with the one reception collects against.
     const bills = invoices.map((inv) => {
-      const { subtotal, paid, balance, status } = summarize(inv.items, inv.payments);
+      const { total: subtotal, paid, balance, status } = summarize(inv.items, inv.payments, inv);
       return { id: inv.id, appointmentId: inv.appointmentId, createdAt: inv.createdAt, total: subtotal, paid, balance, status };
     });
 
