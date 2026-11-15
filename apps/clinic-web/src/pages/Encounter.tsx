@@ -42,7 +42,7 @@ const CERT_WORDS: Record<string, string> = { SICK_LEAVE: 'Sick leave certificate
 
 export function Encounter() {
   const { id } = useParams<{ id: string }>();
-  const { user, canWriteClinical } = useClinicAuth();
+  const { user, canWriteClinical, hasModule } = useClinicAuth();
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [caseSheets, setCaseSheets] = useState<CaseSheet[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -193,9 +193,11 @@ export function Encounter() {
           <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <Award size={14} /> Certificate
           </button>
+{hasModule('labs') && (
           <button onClick={() => setPanel(panel === 'labs' ? 'none' : 'labs')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
             <FlaskConical size={14} /> Order Labs
           </button>
+          )}
         </div>
       )}
 

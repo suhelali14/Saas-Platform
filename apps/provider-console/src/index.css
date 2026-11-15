@@ -127,3 +127,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Printing an invoice: only the sheet, on white paper. The console's own
+   chrome and dark ground are for the screen. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; }
+  body > div header, .print\:hidden { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; }
+}

@@ -46,7 +46,7 @@ const REMINDER_POLL_MS = 60_000;
  * which is about the smallest a fingertip hits reliably one-handed.
  */
 export function Layout() {
-  const { user, clinicName, enabledFeatures, isAdmin, logout } = useClinicAuth();
+  const { user, clinicName, enabledFeatures, entitlement, hasModule, isAdmin, logout } = useClinicAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,15 +111,17 @@ export function Layout() {
       <NavGroup caption="Patients">
         <NavItem to="/patients" icon={Users} label="All patients" />
       </NavGroup>
-      <NavGroup caption="Clinical">
-        <NavItem to="/labs" icon={FlaskConical} label="Lab orders" />
-        {canDispense && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
-      </NavGroup>
-      {(canBill || isAdmin) && (
+      {(hasModule('labs') || (canDispense && hasModule('pharmacy'))) && (
+        <NavGroup caption="Clinical">
+          {hasModule('labs') && <NavItem to="/labs" icon={FlaskConical} label="Lab orders" />}
+          {canDispense && hasModule('pharmacy') && <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" />}
+        </NavGroup>
+      )}
+      {((canBill && (hasModule('billing') || hasModule('expenses'))) || ((canBill || isAdmin) && hasModule('analytics'))) && (
         <NavGroup caption="Money">
-          {canBill && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
-          {canBill && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
-          <NavItem to="/analytics" icon={BarChart3} label="Reports" />
+          {canBill && hasModule('billing') && <NavItem to="/billing" icon={IndianRupee} label="Billing" />}
+          {canBill && hasModule('expenses') && <NavItem to="/expenses" icon={Wallet} label="Expenses" />}
+          {(canBill || isAdmin) && hasModule('analytics') && <NavItem to="/analytics" icon={BarChart3} label="Reports" />}
         </NavGroup>
       )}
       <NavGroup caption="Clinic">
@@ -221,7 +223,8 @@ export function Layout() {
 
       {/* min-w-0 stops a wide table inside from stretching the flex row and
           pushing the sidebar off screen. */}
-      <main id="main" className="flex-1 min-w-0">
+      <main id="main" data-readonly={entitlement.readOnly ? '' : undefined} className="flex-1 min-w-0">
+        <AccountBanner readOnly={entitlement.readOnly} demo={entitlement.demo} contact={entitlement.upgradeContact} />
         {/* Above every portal screen, because the person who can fill in
             the clinic's website did not come here to look at it. */}
         <SetupPrompt />
@@ -339,6 +342,33 @@ function ClinicMark({ name, compact }: { name?: string | null; compact?: boolean
     <div className="min-w-0 leading-none" title={label}>
       <span className={`block font-semibold uppercase tracking-[0.12em] text-muted-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}>Nayaverse Clinic</span>
       <span className={`block truncate font-display font-semibold uppercase tracking-[0.02em] text-foreground ${compact ? 'mt-0.5 text-[17px]' : 'mt-1 text-[19px]'}`}>{label}</span>
+    </div>
+  );
+}
+
+/**
+ * The account's state, above every screen, when it is not the normal one.
+ *
+ * Read-only says what still works before what does not: a receptionist
+ * who finds the Save button refusing needs to know the records are all
+ * still there. Demo says the patients are made up, so nobody mistakes a
+ * demonstration for a real clinic's data or types a real patient into it.
+ */
+function AccountBanner({ readOnly, demo, contact }: { readOnly: boolean; demo: boolean; contact: string | null }) {
+  if (!readOnly && !demo) return null;
+  return (
+    <div className="px-4 pt-4 sm:px-6 md:px-8">
+      {readOnly && (
+        <div role="status" className="rounded-xl tone-warning tone-block px-4 py-3 text-[14px]">
+          <p className="font-semibold">This clinic's account is paused.</p>
+          <p className="mt-0.5">Every record can still be viewed, printed and exported. Nothing can be added or changed until it is resumed.{contact ? ` Contact ${contact}.` : ''}</p>
+        </div>
+      )}
+      {demo && !readOnly && (
+        <div role="status" className="rounded-xl border border-border/20 bg-accent/60 px-4 py-2.5 text-[14px]">
+          <span className="font-semibold">Demo clinic.</span> Every patient here is made up, and the data resets each night. Please do not enter real patient details.
+        </div>
+      )}
     </div>
   );
 }

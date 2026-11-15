@@ -3,13 +3,18 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireProviderAuth, requireOwnerAuth } from "../plugins/auth.js";
 import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
-import { FEATURES, SUGGESTED_MONTHLY_FEE, resolveFeatures, type PlanTier } from "../lib/plans.js";
+import {
+  ALWAYS_INCLUDED, FEATURES, LIST_PRICES, PLAN_FITS, PLAN_LABELS, PLAN_MAX_USERS, SUGGESTED_MONTHLY_FEE,
+  resolveFeatures, type PlanTier,
+} from "../lib/plans.js";
+import { STATE_CODES, stateFromGstin } from "../lib/billing.js";
+import { contractOf, monthlyValue } from "./billing.js";
 // provisionClinic is gone with the route that used it; the remaining
 // two report whether provisioning is configured.
 import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
 import { validateSlug, publicHostFor, portalHostFor } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
-import { queueHealth, enqueueDomainSync } from "../lib/provision-jobs.js";
+import { queueHealth, enqueueDomainSync, enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -43,6 +48,29 @@ const accountSchema = z.object({
   publicDomain: domain,
   portalDomain: domain,
   apiDomain: domain,
+
+  // The deal. See src/lib/billing.ts.
+  pricingModel: z.enum(["SETUP_YEARLY", "SUBSCRIPTION", "LICENCE_AMC"]).optional(),
+  setupFee: z.coerce.number().min(0).max(100_000_000).optional().nullable(),
+  yearlyFee: z.coerce.number().min(0).max(100_000_000).optional().nullable(),
+  licenceFee: z.coerce.number().min(0).max(100_000_000).optional().nullable(),
+  amcPercent: z.coerce.number().min(0).max(100).optional().nullable(),
+  hostingFee: z.coerce.number().min(0).max(100_000_000).optional().nullable(),
+  maxUsersOverride: z.coerce.number().int().min(0).max(500).optional().nullable(),
+
+  // Who the invoice is made out to.
+  billingName: z.string().max(200).optional().nullable(),
+  billingAddress: z.string().max(500).optional().nullable(),
+  gstin: z
+    .string()
+    .trim()
+    .transform((v) => v.toUpperCase())
+    .refine((v) => v === "" || stateFromGstin(v) !== null, "That is not a valid GSTIN (15 characters, starting with a state code)")
+    .optional()
+    .nullable(),
+  billingState: z.string().regex(/^\d{2}$/).optional().nullable(),
+
+  isDemo: z.boolean().optional(),
 });
 
 /**
@@ -106,6 +134,13 @@ export async function accountRoutes(app: FastifyInstance) {
       statuses: STATUSES,
       features: FEATURES,
       suggestedFees: SUGGESTED_MONTHLY_FEE,
+      planLabels: PLAN_LABELS,
+      planFits: PLAN_FITS,
+      planSeats: PLAN_MAX_USERS,
+      listPrices: LIST_PRICES,
+      alwaysIncluded: ALWAYS_INCLUDED,
+      states: STATE_CODES,
+      supplierStateCode: env.PROVIDER_STATE_CODE,
       onboardingTemplate: ONBOARDING_TEMPLATE,
       provisioning: { ...provisioningAvailable(), dryRun: isDryRun() },
       // So the console can show a clinic's real hostnames instead of a
@@ -140,9 +175,14 @@ export async function accountRoutes(app: FastifyInstance) {
       }),
       // Revenue is only counted for accounts actually being served. A LEAD
       // is a hope, not income, and a SUSPENDED account is not paying.
-      mrr: accounts
-        .filter((a) => a.status === "LIVE")
-        .reduce((sum, a) => sum + Number(a.monthlyFee ?? 0), 0),
+      // Each model turned into a month: a yearly fee is a twelfth of
+      // itself, a licence's recurring part is its AMC and hosting. The
+      // one-time setup and licence are not recurring and are left out.
+      mrr: Math.round(
+        accounts
+          .filter((a) => a.status === "LIVE" && !a.isDemo)
+          .reduce((sum, a) => sum + monthlyValue(contractOf(a)), 0),
+      ),
     };
   });
 
@@ -161,9 +201,18 @@ export async function accountRoutes(app: FastifyInstance) {
     });
     if (!account) return reply.status(404).send({ error: "Not found" });
 
+    const features = resolveFeatures(account.plan as PlanTier, account.featureOverrides);
+    const readOnly = account.status === "SUSPENDED";
     return {
       account,
-      features: resolveFeatures(account.plan as PlanTier, account.featureOverrides),
+      features,
+      // Has the clinic been told about the current choice? Compared as
+      // strings because that is what was written to its env file.
+      pendingApply:
+        account.appliedPlan !== account.plan ||
+        (account.appliedFeatures ?? "") !== features.join(",") ||
+        (account.appliedReadOnly ?? false) !== readOnly,
+      monthlyValue: Math.round(monthlyValue(contractOf(account))),
     };
   });
 
@@ -227,7 +276,7 @@ export async function accountRoutes(app: FastifyInstance) {
     if (!existing) return reply.status(404).send({ error: "Not found" });
 
     const {
-      contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides,
+      contactEmail, startedAt, renewsAt, monthlyFee, featureOverrides, gstin, billingState,
       // Deliberately dropped here. Changing a website address has to
       // check uniqueness and then tell the clinic's API about itself,
       // which is what PUT /accounts/:id/domains does. Accepting them
@@ -250,8 +299,40 @@ export async function accountRoutes(app: FastifyInstance) {
         ...(startedAt !== undefined ? { startedAt: startedAt ? new Date(startedAt) : null } : {}),
         ...(renewsAt !== undefined ? { renewsAt: renewsAt ? new Date(renewsAt) : null } : {}),
         ...(featureOverrides !== undefined ? { featureOverrides } : {}),
+        // The GSTIN, when there is one, decides the state: a typed state
+        // that disagrees with the registration would put the wrong tax on
+        // the invoice.
+        ...(gstin !== undefined ? { gstin: gstin || null, ...(gstin ? { billingState: stateFromGstin(gstin) } : {}) } : {}),
+        ...(billingState !== undefined && !gstin ? { billingState } : {}),
       },
     });
+
+    /*
+     * Suspending or resuming is applied straight away, because it is the
+     * whole point of the action: an operator who suspends a clinic for
+     * non-payment and finds it still fully working tomorrow has been
+     * misled by the console. A plan change waits for "Apply to clinic",
+     * so a half-finished edit never reaches a live clinic.
+     */
+    const flipped =
+      parsed.data.status !== undefined &&
+      parsed.data.status !== existing.status &&
+      (parsed.data.status === "SUSPENDED" || existing.status === "SUSPENDED") &&
+      (account.status === "LIVE" || account.status === "SUSPENDED");
+    let planJobId: string | null = null;
+    if (flipped && jobsAvailable()) {
+      const plan = (account.appliedPlan ?? account.plan) as PlanTier;
+      const features = account.appliedFeatures ? account.appliedFeatures.split(",").filter(Boolean) : resolveFeatures(plan, account.featureOverrides);
+      const readOnly = account.status === "SUSPENDED";
+      planJobId = enqueuePlanSync({ slug: account.slug, plan, features, readOnly, maxUsers: account.maxUsersOverride ?? null });
+      await prisma.clinicAccount.update({ where: { id }, data: { appliedReadOnly: readOnly, planJobId, appliedAt: new Date() } });
+      await prisma.planChange.create({
+        data: {
+          accountId: id, fromPlan: account.appliedPlan, toPlan: plan, fromFeatures: account.appliedFeatures,
+          toFeatures: features.join(","), readOnly, reason: readOnly ? "Suspended" : "Resumed", actorName: auth.name, jobId: planJobId,
+        },
+      });
+    }
 
     // A plan change is the one edit worth calling out on its own: it
     // changes what the clinic's deployment will register at next boot.
@@ -260,7 +341,7 @@ export async function accountRoutes(app: FastifyInstance) {
     if (parsed.data.status && parsed.data.status !== existing.status) changes.push(`status ${existing.status} → ${parsed.data.status}`);
     await log(id, auth, "account.updated", changes.join(", ") || undefined);
 
-    return account;
+    return planJobId ? { ...account, planJobId } : account;
   });
 
   /**
@@ -458,6 +539,13 @@ export async function accountRoutes(app: FastifyInstance) {
     // deployments — those hold a real clinic's patient records and are
     // never deleted by this console. Said plainly in the response so nobody
     // assumes a tidy console means tidy infrastructure.
+    // An issued tax invoice has to outlive its customer, so an account
+    // that has any cannot be removed -- mark it churned instead.
+    const issued = await prisma.invoice.count({ where: { accountId: id, status: { not: "DRAFT" } } });
+    if (issued > 0) {
+      return reply.status(409).send({ error: `This clinic has ${issued} issued invoice${issued === 1 ? "" : "s"}, which must be kept. Mark it Churned instead of deleting it.` });
+    }
+    await prisma.invoice.deleteMany({ where: { accountId: id, status: "DRAFT" } });
     await prisma.clinicAccount.delete({ where: { id } });
     await log(null, auth, "account.deleted", account.name);
     return {

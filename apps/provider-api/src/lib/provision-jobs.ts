@@ -68,6 +68,24 @@ export type DomainSyncRequest = {
   origins: string[];
 };
 
+/**
+ * Tell a clinic what it is entitled to.
+ *
+ * A plan change, a module added to a deal, a suspension and a
+ * resumption are all the same thing to the clinic: four lines in its env
+ * file (CLINIC_PLAN, CLINIC_FEATURES, CLINIC_READ_ONLY, CLINIC_MAX_USERS)
+ * and a restart. deploy/set-plan.sh does exactly that and nothing else.
+ */
+export type PlanSyncRequest = {
+  slug: string;
+  plan: "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE";
+  /** The resolved module list, plan plus the deal's overrides. */
+  features: string[];
+  readOnly: boolean;
+  /** null leaves the plan's own seat cap; 0 is unlimited. */
+  maxUsers: number | null;
+};
+
 /** The runner must have checked in this recently for the queue to be
  *  considered live. Its timer fires every 15s, so two minutes allows
  *  for a slow provisioning run holding the lock. */
@@ -154,6 +172,21 @@ export function enqueueDomainSync(req: DomainSyncRequest): string {
   return writeJob(
     { kind: "sync-origins", slug: req.slug, origins: req.origins.join(",") },
     `Queued an origin update for ${req.slug}`,
+  );
+}
+
+export function enqueuePlanSync(req: PlanSyncRequest): string {
+  // Flat strings for the shell-side JSON reader, as with sync-origins.
+  return writeJob(
+    {
+      kind: "set-plan",
+      slug: req.slug,
+      plan: req.plan,
+      features: req.features.join(","),
+      readOnly: req.readOnly ? "1" : "0",
+      maxUsers: req.maxUsers === null ? "" : String(req.maxUsers),
+    },
+    `Queued a plan update for ${req.slug}`,
   );
 }
 

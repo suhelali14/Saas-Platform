@@ -115,7 +115,7 @@ export function PatientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-  const { user, canWriteClinical } = useClinicAuth();
+  const { user, canWriteClinical, hasModule } = useClinicAuth();
   const [data, setData] = useState<History | null>(null);
   const [vitalsTrend, setVitalsTrend] = useState<VitalsPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +236,7 @@ export function PatientDetail() {
           ) : (
             <Button variant="primary" icon={<UserCheck size={15} />} onClick={checkInNow} busyLabel="Checking in…">Check in today</Button>
           )}
-          {user && BILLING_ROLES.has(user.role) && (
+          {user && BILLING_ROLES.has(user.role) && hasModule('billing') && (
             <Button variant="secondary" icon={<IndianRupee size={14} />} onClick={createInvoice}>New bill</Button>
           )}
           <Button variant="ghost" icon={<Pencil size={14} />} onClick={() => setEditing((v) => !v)} aria-expanded={editing}>Edit</Button>

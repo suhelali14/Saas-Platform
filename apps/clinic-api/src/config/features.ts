@@ -1,89 +1,169 @@
 import { env } from "./env.js";
 
 /**
- * What each plan includes.
+ * What each plan includes, and what this deployment has switched on.
  *
- * "Features according to money they give" -- which modules a deployment
- * registers at boot is driven by CLINIC_PLAN in that deployment's own .env.
- * A lower-tier clinic doesn't get a 403 on gated routes, the routes are
- * never registered at all (see app.ts), so there's nothing to probe.
+ * ── The ladder ────────────────────────────────────────────────────────
  *
- * ── Seats, not modules, are the ladder ───────────────────────────────
+ * Four tiers, named for the kind of place they fit. The enum keys are the
+ * old ones (BASIC, STANDARD, PREMIUM, ENTERPRISE) because every live
+ * deployment's env file and the provider console's database already say
+ * them; renaming a key would be a migration on both sides and on every
+ * server for no change in behaviour. Only the labels moved:
  *
- * Staff management used to be the STANDARD+ differentiator, which meant a
- * BASIC clinic could not create a second login at all. That is wrong for
- * the product it actually is: a ₹3,000/month single-doctor practice still
- * has a receptionist, and telling them to share the doctor's password is
- * both a worse experience and a worse audit trail -- every action in the
- * log would read as the doctor's. So every tier can add staff now, and
- * what the money buys is how many.
+ *   BASIC       Clinic           one doctor, a desk
+ *   STANDARD    Polyclinic       several doctors, a pharmacy
+ *   PREMIUM     Hospital         beds, departments, a cash counter
+ *   ENTERPRISE  Multi-specialty  government schemes, radiology, wards
  *
- * The prices below are the LIST price, recorded so the ladder is legible
- * in one place. The amount actually charged lives per-account in the
- * provider console's `monthlyFee`, because real deals differ.
+ * ── Which modules are on ──────────────────────────────────────────────
+ *
+ * CLINIC_FEATURES, when set, is the exact list -- written by the provider
+ * console, which has already applied the plan and any per-deal overrides
+ * ("Polyclinic, plus the cash counter"). A plan change reaches a running
+ * clinic by rewriting that line and restarting it (deploy/set-plan.sh),
+ * not by a redeploy.
+ *
+ * Unset, the plan decides -- with one exception that matters. Clinics
+ * provisioned before modules were enforced had every module, whatever
+ * their plan said, because nothing checked. Taking pharmacy away from a
+ * live clinic on a deploy because its env file says BASIC would break a
+ * paying customer's dispensary in the middle of a day. So without an
+ * explicit list, every module that existed then stays on, and only the
+ * hospital modules added since follow the plan.
+ *
+ * ── Never gated ───────────────────────────────────────────────────────
+ *
+ * Patients, appointments, the queue, case sheets, prescriptions,
+ * certificates, the public website, the audit log and data export. The
+ * first six are what every tier is for. The audit log is a legal duty
+ * (DPDP, and NABH for those seeking it), not an upsell, and data export is
+ * how a clinic leaves -- a clinic that cannot take its own records with it
+ * is locked in, which is the one thing this product must never do.
+ *
+ * ── How a disabled module looks ───────────────────────────────────────
+ *
+ * Its routes are never registered (see app.ts), so they 404 like any
+ * other path and there is nothing to probe. The portal hides it from the
+ * menu and, if someone follows an old link, says which plan includes it
+ * and how to ask for it.
  */
 
-export type Feature = "staff";
-
 export type PlanTier = "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE";
+
+export const PLAN_ORDER: readonly PlanTier[] = ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"];
+
+export const PLAN_LABELS: Record<PlanTier, string> = {
+  BASIC: "Clinic",
+  STANDARD: "Polyclinic",
+  PREMIUM: "Hospital",
+  ENTERPRISE: "Multi-specialty",
+};
+
+export interface ModuleSpec {
+  readonly key: string;
+  readonly label: string;
+  /** The first tier that includes it. */
+  readonly from: PlanTier;
+  /** Existed before modules were enforced, so stays on for a deployment
+   *  with no explicit CLINIC_FEATURES. See the note above. */
+  readonly legacy: boolean;
+}
+
+/**
+ * The catalogue. Order is the order the provider console lists them.
+ *
+ * Keep in step with apps/provider-api/src/lib/plans.ts -- a test there
+ * fails if the two lists disagree, because a module the console can sell
+ * but the clinic cannot switch on is a promise the software does not keep.
+ */
+export const MODULES = [
+  { key: "staff", label: "Staff accounts", from: "BASIC", legacy: true },
+  { key: "billing", label: "Billing & invoices", from: "BASIC", legacy: true },
+  { key: "labs", label: "Lab orders & results", from: "BASIC", legacy: true },
+  { key: "pharmacy", label: "Pharmacy & stock", from: "STANDARD", legacy: true },
+  { key: "analytics", label: "Reports", from: "STANDARD", legacy: true },
+  { key: "expenses", label: "Expenses & profit", from: "STANDARD", legacy: true },
+  { key: "multilingual", label: "Website in Indian languages", from: "STANDARD", legacy: true },
+  { key: "aitranslate", label: "Machine translation", from: "PREMIUM", legacy: true },
+  { key: "departments", label: "Departments & service points", from: "PREMIUM", legacy: false },
+  { key: "cashcounter", label: "Cash counter", from: "PREMIUM", legacy: false },
+  { key: "ipd", label: "Inpatients, wards & beds", from: "PREMIUM", legacy: false },
+  { key: "ot", label: "Operation theatre", from: "PREMIUM", legacy: false },
+  { key: "insurance", label: "Insurance & TPA desk", from: "PREMIUM", legacy: false },
+  { key: "schemes", label: "Government schemes desk", from: "ENTERPRISE", legacy: false },
+  { key: "radiology", label: "Radiology", from: "ENTERPRISE", legacy: false },
+  { key: "nursing", label: "Nursing stations", from: "ENTERPRISE", legacy: false },
+] as const satisfies readonly ModuleSpec[];
+
+export type Feature = (typeof MODULES)[number]["key"];
+
+const MODULE_KEYS = new Set<string>(MODULES.map((m) => m.key));
+
+export function isModuleKey(key: string): key is Feature {
+  return MODULE_KEYS.has(key);
+}
+
+/** Active logins each plan allows, counting the doctor. null is unlimited. */
+export const PLAN_MAX_USERS: Record<PlanTier, number | null> = {
+  // A doctor, a receptionist, and one more for a day off.
+  BASIC: 3,
+  STANDARD: 10,
+  PREMIUM: 40,
+  // A multi-specialty hospital's staff list is a negotiated number, and a
+  // figure here would be a guess at someone else's org chart.
+  ENTERPRISE: null,
+};
 
 export interface Plan {
   readonly tier: PlanTier;
   readonly label: string;
-  /** Monthly list price in rupees. The billed figure is per-deal. */
-  readonly monthlyFeeInr: number;
-  readonly features: ReadonlySet<Feature>;
-  /**
-   * Active logins this plan allows, counting the doctor.
-   *
-   * `null` is unlimited, which only ENTERPRISE gets -- a hospital with
-   * thirty staff is a negotiated deal, and a number in this table would
-   * be a guess at someone else's org chart.
-   */
   readonly maxUsers: number | null;
 }
 
-export const PLANS: Record<PlanTier, Plan> = {
-  BASIC: {
-    tier: "BASIC",
-    label: "Basic",
-    monthlyFeeInr: 3_000,
-    features: new Set<Feature>(["staff"]),
-    // A doctor, a receptionist, and one more -- the shape of a
-    // single-doctor practice with cover for a day off.
-    maxUsers: 3,
-  },
-  STANDARD: {
-    tier: "STANDARD",
-    label: "Standard",
-    monthlyFeeInr: 7_000,
-    features: new Set<Feature>(["staff"]),
-    maxUsers: 8,
-  },
-  PREMIUM: {
-    tier: "PREMIUM",
-    label: "Premium",
-    monthlyFeeInr: 12_000,
-    features: new Set<Feature>(["staff"]),
-    maxUsers: 20,
-  },
-  ENTERPRISE: {
-    tier: "ENTERPRISE",
-    label: "Enterprise",
-    monthlyFeeInr: 25_000,
-    features: new Set<Feature>(["staff"]),
-    maxUsers: null,
-  },
-};
+export function planDefaults(tier: PlanTier): Set<Feature> {
+  const rank = PLAN_ORDER.indexOf(tier);
+  return new Set(MODULES.filter((m) => PLAN_ORDER.indexOf(m.from) <= rank).map((m) => m.key));
+}
+
+/**
+ * The modules this deployment has on. Pure, so it can be tested with any
+ * env; `enabledModules()` below is the one the app uses.
+ */
+export function resolveModules(tier: PlanTier, explicit: string | undefined): Set<Feature> {
+  if (explicit !== undefined && explicit.trim() !== "") {
+    const list = explicit.split(",").map((s) => s.trim()).filter(Boolean);
+    // Unknown names are dropped, not fatal: an env file written by a newer
+    // console must not stop an older clinic API from booting.
+    return new Set(list.filter(isModuleKey));
+  }
+  const on = planDefaults(tier);
+  for (const m of MODULES) if (m.legacy) on.add(m.key);
+  return on;
+}
+
+let cached: Set<Feature> | null = null;
+
+export function enabledModules(): Set<Feature> {
+  if (!cached) cached = resolveModules(env.CLINIC_PLAN, env.CLINIC_FEATURES);
+  return cached;
+}
+
+export function isFeatureEnabled(feature: Feature): boolean {
+  return enabledModules().has(feature);
+}
+
+/** Every module and whether it is on, for /auth/me and the portal. */
+export function moduleStates(): Record<Feature, boolean> {
+  const on = enabledModules();
+  return Object.fromEntries(MODULES.map((m) => [m.key, on.has(m.key)])) as Record<Feature, boolean>;
+}
 
 export function currentPlan(): Plan {
   // env.CLINIC_PLAN is validated against these keys at boot, so an
   // unknown tier cannot reach here.
-  return PLANS[env.CLINIC_PLAN];
-}
-
-export function isFeatureEnabled(feature: Feature): boolean {
-  return currentPlan().features.has(feature);
+  const tier = env.CLINIC_PLAN;
+  return { tier, label: PLAN_LABELS[tier], maxUsers: PLAN_MAX_USERS[tier] };
 }
 
 /**

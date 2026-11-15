@@ -45,6 +45,22 @@ const envSchema = z.object({
   // per-account apiDomain when one is set, so a clinic on a custom domain
   // still works.
   CLINIC_API_URL_TEMPLATE: z.string().optional(),
+
+  // ── Who Nayaverse's own invoices come from ─────────────────────────
+  // Printed on every GST invoice the console issues. Until the GSTIN is
+  // set, invoices can be drafted but not issued: a "tax invoice" with no
+  // GSTIN on it is not one.
+  PROVIDER_LEGAL_NAME: z.string().default("Nayaverse"),
+  PROVIDER_ADDRESS: z.string().optional(),
+  PROVIDER_GSTIN: z.string().optional(),
+  // Two-digit GST state code of the provider's registration. Decides
+  // CGST+SGST (same state) against IGST (any other). 27 is Maharashtra.
+  PROVIDER_STATE_CODE: z.string().regex(/^\d{2}$/).default("27"),
+  PROVIDER_EMAIL: z.string().optional(),
+  PROVIDER_PHONE: z.string().optional(),
+  // PREFIX/FY/0001. Kept short: GST caps an invoice number at 16 characters.
+  INVOICE_PREFIX: z.string().max(6).default("NV"),
+  INVOICE_DUE_DAYS: z.coerce.number().int().min(0).max(120).default(15),
 });
 
 export const env = envSchema.parse(process.env);

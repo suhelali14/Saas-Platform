@@ -21,6 +21,35 @@ const envSchema = z.object({
   // plan's own number applies, which is the normal case.
   CLINIC_MAX_USERS: z.coerce.number().int().min(0).max(500).optional(),
 
+  // Optional. The exact modules this clinic has, comma-separated
+  // ("billing,labs,pharmacy,cashcounter"), written by the provider console
+  // after applying the plan and the deal's overrides. Unset, the plan
+  // decides -- see src/config/features.ts for why older clinics keep
+  // everything they already had.
+  CLINIC_FEATURES: z.string().optional(),
+
+  // Optional. Who a clinic asks when it wants a module its plan does not
+  // include: shown on the "not in your plan" screen. A phone number, an
+  // email address, or both, as the provider wants them shown.
+  UPGRADE_CONTACT: z.string().max(200).optional(),
+
+  // Optional. "1" makes the whole portal read-only: anything can be
+  // looked at, nothing can be changed. Set by the provider console when
+  // a clinic is suspended. Records are never deleted or hidden; a clinic
+  // that has not paid can still read and export its patients' data.
+  CLINIC_READ_ONLY: z
+    .string()
+    .optional()
+    .transform((v) => v === "1" || v === "true"),
+
+  // Optional. "1" marks a demonstration deployment: made-up patients, reset
+  // every night, and the only kind of database the demo reset script will
+  // touch. Never set on a real clinic.
+  CLINIC_DEMO: z
+    .string()
+    .optional()
+    .transform((v) => v === "1" || v === "true"),
+
   // Signing in on a second device ends the session on the first. On by
   // default: seats are what the plan sells, so one login being used by a
   // whole front desk is both a billing hole and an audit trail that

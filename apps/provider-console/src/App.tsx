@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
-import { ShieldCheck, LogOut, Building2 } from "lucide-react";
+import { ShieldCheck, LogOut, Building2, Receipt } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import { Login } from "./pages/Login";
@@ -8,6 +8,8 @@ import { AccountDetail } from "./pages/AccountDetail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Billing } from "./pages/Billing";
+import { InvoiceView } from "./pages/InvoiceView";
 
 function Booting({ label }: { label: string }) {
   return (
@@ -52,6 +54,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const onClinics = pathname === "/" || pathname.startsWith("/clinics");
+  const onBilling = pathname.startsWith("/billing") || pathname.startsWith("/invoices");
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,6 +79,18 @@ function Shell({ children }: { children: React.ReactNode }) {
             >
               <Building2 className="size-4" />
               Clinics
+            </Link>
+            <Link
+              to="/billing"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+                onBilling
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              )}
+            >
+              <Receipt className="size-4" />
+              Billing
             </Link>
           </nav>
 
@@ -102,6 +117,8 @@ export default function App() {
             <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
             <Route path="/" element={<Protected><Shell><Accounts /></Shell></Protected>} />
             <Route path="/clinics/:id" element={<Protected><Shell><AccountDetail /></Shell></Protected>} />
+            <Route path="/billing" element={<Protected><Shell><Billing /></Shell></Protected>} />
+            <Route path="/invoices/:id" element={<Protected><Shell><InvoiceView /></Shell></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

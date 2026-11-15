@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth } from "../plugins/auth.js";
+import { isFeatureEnabled } from "../config/features.js";
 import {
   SUPPORTED_LOCALES, LOCALE_CODES, translateBatch, activeProvider,
   TranslationUnavailableError, localeName, unavailableReason,
@@ -80,13 +81,18 @@ export async function clinicTranslationRoutes(app: FastifyInstance) {
       _count: { _all: true },
     });
 
+    // Machine translation is a module of its own: with it off, the
+    // screen says so instead of offering a button that would 404.
+    const aiInPlan = isFeatureEnabled("aitranslate");
     return {
-      provider: activeProvider(),
-      autoTranslateAvailable: activeProvider() !== null,
+      provider: aiInPlan ? activeProvider() : null,
+      autoTranslateAvailable: aiInPlan && activeProvider() !== null,
       // Why it's off, when it is -- so the UI can say "switched off for
       // this clinic" rather than telling an admin to add a key they
       // already have.
-      unavailableReason: activeProvider() === null ? unavailableReason() : null,
+      unavailableReason: !aiInPlan
+        ? "Machine translation is not part of this clinic's plan. Translations can still be typed in by hand."
+        : activeProvider() === null ? unavailableReason() : null,
       // Which content classes this deployment permits auto-translating,
       // and the per-run cap. Hand-entered translations are never limited.
       autoTranslatableNamespaces: allowedNamespaces(),
@@ -188,6 +194,9 @@ export async function clinicTranslationRoutes(app: FastifyInstance) {
   /** Machine-translate everything missing or stale for one language.
    * Runs on demand only -- never on a page load. */
   app.post("/api/clinic/translations/:locale/generate", async (request, reply) => {
+    // Typing translations in is part of the languages module; having a
+    // machine draft them is a module of its own.
+    if (!isFeatureEnabled("aitranslate")) return reply.status(404).send({ error: "Not found" });
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 

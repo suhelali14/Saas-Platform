@@ -62,6 +62,20 @@ enum BillingCycle {
   ANNUAL
 }
 
+/// How a clinic pays. See src/lib/billing.ts.
+enum PricingModel {
+  SETUP_YEARLY // one-time setup fee + yearly service fee (the default)
+  SUBSCRIPTION // monthly fee, billed by the billing cycle
+  LICENCE_AMC  // one-time licence, then yearly maintenance + hosting
+}
+
+enum InvoiceStatus {
+  DRAFT  // being prepared; no number yet
+  ISSUED // numbered and sent; a GST invoice from here on
+  PAID
+  VOID   // cancelled after issue; kept, because the number was used
+}
+
 /// One clinic customer.
 model ClinicAccount {
   id        String @id @default(cuid())
@@ -92,6 +106,38 @@ model ClinicAccount {
   startedAt    DateTime?
   renewsAt     DateTime?
 
+  // ── The deal ─────────────────────────────────────────────────────────
+  // What this clinic actually pays; the plan's list price is only where a
+  // deal starts. See src/lib/billing.ts for how each model is invoiced.
+  pricingModel PricingModel @default(SETUP_YEARLY)
+  setupFee     Decimal?     @db.Decimal(12, 2)
+  yearlyFee    Decimal?     @db.Decimal(12, 2)
+  licenceFee   Decimal?     @db.Decimal(12, 2)
+  amcPercent   Decimal?     @db.Decimal(5, 2)
+  hostingFee   Decimal?     @db.Decimal(12, 2)
+  /// Extra or fewer logins than the plan, agreed in the deal. 0 = unlimited.
+  maxUsersOverride Int?
+
+  // ── Who the invoice is made out to ───────────────────────────────────
+  billingName    String?
+  billingAddress String?
+  /// The clinic's GSTIN, if registered. Decides the place of supply.
+  gstin          String?
+  /// Two-digit GST state code. From the GSTIN when there is one.
+  billingState   String?
+
+  // ── What the clinic's server was last told ───────────────────────────
+  // So the console can say "the clinic is running X; you have changed it
+  // to Y and not applied it" instead of assuming an edit took effect.
+  appliedPlan     PlanTier?
+  appliedFeatures String?
+  appliedReadOnly Boolean?
+  appliedAt       DateTime?
+  planJobId       String?
+
+  /// A demonstration deployment: made-up patients, reset nightly.
+  isDemo Boolean @default(false)
+
   // ── Deployment ────────────────────────────────────────────────────────
   publicDomain String?   // drasif.in
   portalDomain String?   // dashboard.drasif.in
@@ -110,9 +156,11 @@ model ClinicAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  steps    OnboardingStep[]
-  activity ActivityLog[]
-  health   HealthCheck[]
+  steps       OnboardingStep[]
+  activity    ActivityLog[]
+  health      HealthCheck[]
+  invoices    Invoice[]
+  planChanges PlanChange[]
 
   @@index([status])
 }
@@ -180,4 +228,77 @@ model HealthCheck {
   checkedAt  DateTime @default(now())
 
   @@index([accountId, checkedAt])
+}
+
+/// One of Nayaverse's own invoices to a clinic. A GST tax invoice once it
+/// is ISSUED: from then on its lines and number are never edited, only
+/// marked paid or voided -- an invoice that changes after it was sent is
+/// not an invoice.
+model Invoice {
+  id        String        @id @default(cuid())
+  accountId String
+  account   ClinicAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  /// PREFIX/FY/0001. Null while a draft; given on issue, consecutive
+  /// within the financial year, as GST requires.
+  number    String?       @unique
+  fy        String?
+  serial    Int?
+  status    InvoiceStatus @default(DRAFT)
+
+  issuedAt    DateTime?
+  dueAt       DateTime?
+  periodStart DateTime?
+  /// True for the invoice that starts the contract (carries setup/licence).
+  isFirst     Boolean       @default(false)
+
+  // Copied at creation, so a later edit to the account does not rewrite
+  // an invoice already sent.
+  billingName    String?
+  billingAddress String?
+  gstin          String?
+  placeOfSupply  String?
+  planLabel      String
+
+  /// [{ description, sac, amount }]
+  lines    Json
+  subtotal Decimal @db.Decimal(12, 2)
+  cgst     Decimal @db.Decimal(12, 2)
+  sgst     Decimal @db.Decimal(12, 2)
+  igst     Decimal @db.Decimal(12, 2)
+  total    Decimal @db.Decimal(12, 2)
+
+  paidAt      DateTime?
+  paymentMode String?
+  paymentRef  String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fy, serial])
+  @@index([accountId, createdAt])
+  @@index([status, dueAt])
+}
+
+/// Every change to what a clinic is entitled to, and whether it reached
+/// the clinic. The answer to "when did they move to Hospital, and who
+/// agreed it" a year later.
+model PlanChange {
+  id        String        @id @default(cuid())
+  accountId String
+  account   ClinicAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  fromPlan     PlanTier?
+  toPlan       PlanTier
+  fromFeatures String?
+  toFeatures   String
+  readOnly     Boolean @default(false)
+  reason       String?
+  actorName    String
+  jobId        String?
+
+  at DateTime @default(now())
+
+  @@index([accountId, at])
 }

@@ -44,6 +44,21 @@ export type ActivityLog = $Result.DefaultSelection<Prisma.$ActivityLogPayload>
  * data, no counts, nothing behind auth.
  */
 export type HealthCheck = $Result.DefaultSelection<Prisma.$HealthCheckPayload>
+/**
+ * Model Invoice
+ * One of Nayaverse's own invoices to a clinic. A GST tax invoice once it
+ * is ISSUED: from then on its lines and number are never edited, only
+ * marked paid or voided -- an invoice that changes after it was sent is
+ * not an invoice.
+ */
+export type Invoice = $Result.DefaultSelection<Prisma.$InvoicePayload>
+/**
+ * Model PlanChange
+ * Every change to what a clinic is entitled to, and whether it reached
+ * the clinic. The answer to "when did they move to Hospital, and who
+ * agreed it" a year later.
+ */
+export type PlanChange = $Result.DefaultSelection<Prisma.$PlanChangePayload>
 
 /**
  * Enums
@@ -86,6 +101,25 @@ export const BillingCycle: {
 
 export type BillingCycle = (typeof BillingCycle)[keyof typeof BillingCycle]
 
+
+export const PricingModel: {
+  SETUP_YEARLY: 'SETUP_YEARLY',
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  LICENCE_AMC: 'LICENCE_AMC'
+};
+
+export type PricingModel = (typeof PricingModel)[keyof typeof PricingModel]
+
+
+export const InvoiceStatus: {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  PAID: 'PAID',
+  VOID: 'VOID'
+};
+
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus]
+
 }
 
 export type ProviderRole = $Enums.ProviderRole
@@ -103,6 +137,14 @@ export const PlanTier: typeof $Enums.PlanTier
 export type BillingCycle = $Enums.BillingCycle
 
 export const BillingCycle: typeof $Enums.BillingCycle
+
+export type PricingModel = $Enums.PricingModel
+
+export const PricingModel: typeof $Enums.PricingModel
+
+export type InvoiceStatus = $Enums.InvoiceStatus
+
+export const InvoiceStatus: typeof $Enums.InvoiceStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -271,6 +313,26 @@ export class PrismaClient<
     * ```
     */
   get healthCheck(): Prisma.HealthCheckDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.invoice`: Exposes CRUD operations for the **Invoice** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Invoices
+    * const invoices = await prisma.invoice.findMany()
+    * ```
+    */
+  get invoice(): Prisma.InvoiceDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.planChange`: Exposes CRUD operations for the **PlanChange** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlanChanges
+    * const planChanges = await prisma.planChange.findMany()
+    * ```
+    */
+  get planChange(): Prisma.PlanChangeDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -716,7 +778,9 @@ export namespace Prisma {
     ClinicAccount: 'ClinicAccount',
     OnboardingStep: 'OnboardingStep',
     ActivityLog: 'ActivityLog',
-    HealthCheck: 'HealthCheck'
+    HealthCheck: 'HealthCheck',
+    Invoice: 'Invoice',
+    PlanChange: 'PlanChange'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -735,7 +799,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "providerUser" | "clinicAccount" | "onboardingStep" | "activityLog" | "healthCheck"
+      modelProps: "providerUser" | "clinicAccount" | "onboardingStep" | "activityLog" | "healthCheck" | "invoice" | "planChange"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1109,6 +1173,154 @@ export namespace Prisma {
           }
         }
       }
+      Invoice: {
+        payload: Prisma.$InvoicePayload<ExtArgs>
+        fields: Prisma.InvoiceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.InvoiceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.InvoiceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          findFirst: {
+            args: Prisma.InvoiceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.InvoiceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          findMany: {
+            args: Prisma.InvoiceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>[]
+          }
+          create: {
+            args: Prisma.InvoiceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          createMany: {
+            args: Prisma.InvoiceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.InvoiceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>[]
+          }
+          delete: {
+            args: Prisma.InvoiceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          update: {
+            args: Prisma.InvoiceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          deleteMany: {
+            args: Prisma.InvoiceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.InvoiceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.InvoiceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>[]
+          }
+          upsert: {
+            args: Prisma.InvoiceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoicePayload>
+          }
+          aggregate: {
+            args: Prisma.InvoiceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateInvoice>
+          }
+          groupBy: {
+            args: Prisma.InvoiceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<InvoiceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.InvoiceCountArgs<ExtArgs>
+            result: $Utils.Optional<InvoiceCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlanChange: {
+        payload: Prisma.$PlanChangePayload<ExtArgs>
+        fields: Prisma.PlanChangeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlanChangeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlanChangeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          findFirst: {
+            args: Prisma.PlanChangeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlanChangeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          findMany: {
+            args: Prisma.PlanChangeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>[]
+          }
+          create: {
+            args: Prisma.PlanChangeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          createMany: {
+            args: Prisma.PlanChangeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlanChangeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>[]
+          }
+          delete: {
+            args: Prisma.PlanChangeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          update: {
+            args: Prisma.PlanChangeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          deleteMany: {
+            args: Prisma.PlanChangeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlanChangeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PlanChangeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>[]
+          }
+          upsert: {
+            args: Prisma.PlanChangeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanChangePayload>
+          }
+          aggregate: {
+            args: Prisma.PlanChangeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlanChange>
+          }
+          groupBy: {
+            args: Prisma.PlanChangeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlanChangeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlanChangeCountArgs<ExtArgs>
+            result: $Utils.Optional<PlanChangeCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1210,6 +1422,8 @@ export namespace Prisma {
     onboardingStep?: OnboardingStepOmit
     activityLog?: ActivityLogOmit
     healthCheck?: HealthCheckOmit
+    invoice?: InvoiceOmit
+    planChange?: PlanChangeOmit
   }
 
   /* Types for Logging */
@@ -1324,12 +1538,16 @@ export namespace Prisma {
     steps: number
     activity: number
     health: number
+    invoices: number
+    planChanges: number
   }
 
   export type ClinicAccountCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     steps?: boolean | ClinicAccountCountOutputTypeCountStepsArgs
     activity?: boolean | ClinicAccountCountOutputTypeCountActivityArgs
     health?: boolean | ClinicAccountCountOutputTypeCountHealthArgs
+    invoices?: boolean | ClinicAccountCountOutputTypeCountInvoicesArgs
+    planChanges?: boolean | ClinicAccountCountOutputTypeCountPlanChangesArgs
   }
 
   // Custom InputTypes
@@ -1362,6 +1580,20 @@ export namespace Prisma {
    */
   export type ClinicAccountCountOutputTypeCountHealthArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: HealthCheckWhereInput
+  }
+
+  /**
+   * ClinicAccountCountOutputType without action
+   */
+  export type ClinicAccountCountOutputTypeCountInvoicesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InvoiceWhereInput
+  }
+
+  /**
+   * ClinicAccountCountOutputType without action
+   */
+  export type ClinicAccountCountOutputTypeCountPlanChangesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanChangeWhereInput
   }
 
 
@@ -2479,10 +2711,22 @@ export namespace Prisma {
 
   export type ClinicAccountAvgAggregateOutputType = {
     monthlyFee: Decimal | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    licenceFee: Decimal | null
+    amcPercent: Decimal | null
+    hostingFee: Decimal | null
+    maxUsersOverride: number | null
   }
 
   export type ClinicAccountSumAggregateOutputType = {
     monthlyFee: Decimal | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    licenceFee: Decimal | null
+    amcPercent: Decimal | null
+    hostingFee: Decimal | null
+    maxUsersOverride: number | null
   }
 
   export type ClinicAccountMinAggregateOutputType = {
@@ -2501,6 +2745,23 @@ export namespace Prisma {
     billingCycle: $Enums.BillingCycle | null
     startedAt: Date | null
     renewsAt: Date | null
+    pricingModel: $Enums.PricingModel | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    licenceFee: Decimal | null
+    amcPercent: Decimal | null
+    hostingFee: Decimal | null
+    maxUsersOverride: number | null
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    billingState: string | null
+    appliedPlan: $Enums.PlanTier | null
+    appliedFeatures: string | null
+    appliedReadOnly: boolean | null
+    appliedAt: Date | null
+    planJobId: string | null
+    isDemo: boolean | null
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -2528,6 +2789,23 @@ export namespace Prisma {
     billingCycle: $Enums.BillingCycle | null
     startedAt: Date | null
     renewsAt: Date | null
+    pricingModel: $Enums.PricingModel | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    licenceFee: Decimal | null
+    amcPercent: Decimal | null
+    hostingFee: Decimal | null
+    maxUsersOverride: number | null
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    billingState: string | null
+    appliedPlan: $Enums.PlanTier | null
+    appliedFeatures: string | null
+    appliedReadOnly: boolean | null
+    appliedAt: Date | null
+    planJobId: string | null
+    isDemo: boolean | null
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -2556,6 +2834,23 @@ export namespace Prisma {
     billingCycle: number
     startedAt: number
     renewsAt: number
+    pricingModel: number
+    setupFee: number
+    yearlyFee: number
+    licenceFee: number
+    amcPercent: number
+    hostingFee: number
+    maxUsersOverride: number
+    billingName: number
+    billingAddress: number
+    gstin: number
+    billingState: number
+    appliedPlan: number
+    appliedFeatures: number
+    appliedReadOnly: number
+    appliedAt: number
+    planJobId: number
+    isDemo: number
     publicDomain: number
     portalDomain: number
     apiDomain: number
@@ -2571,10 +2866,22 @@ export namespace Prisma {
 
   export type ClinicAccountAvgAggregateInputType = {
     monthlyFee?: true
+    setupFee?: true
+    yearlyFee?: true
+    licenceFee?: true
+    amcPercent?: true
+    hostingFee?: true
+    maxUsersOverride?: true
   }
 
   export type ClinicAccountSumAggregateInputType = {
     monthlyFee?: true
+    setupFee?: true
+    yearlyFee?: true
+    licenceFee?: true
+    amcPercent?: true
+    hostingFee?: true
+    maxUsersOverride?: true
   }
 
   export type ClinicAccountMinAggregateInputType = {
@@ -2593,6 +2900,23 @@ export namespace Prisma {
     billingCycle?: true
     startedAt?: true
     renewsAt?: true
+    pricingModel?: true
+    setupFee?: true
+    yearlyFee?: true
+    licenceFee?: true
+    amcPercent?: true
+    hostingFee?: true
+    maxUsersOverride?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    billingState?: true
+    appliedPlan?: true
+    appliedFeatures?: true
+    appliedReadOnly?: true
+    appliedAt?: true
+    planJobId?: true
+    isDemo?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -2620,6 +2944,23 @@ export namespace Prisma {
     billingCycle?: true
     startedAt?: true
     renewsAt?: true
+    pricingModel?: true
+    setupFee?: true
+    yearlyFee?: true
+    licenceFee?: true
+    amcPercent?: true
+    hostingFee?: true
+    maxUsersOverride?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    billingState?: true
+    appliedPlan?: true
+    appliedFeatures?: true
+    appliedReadOnly?: true
+    appliedAt?: true
+    planJobId?: true
+    isDemo?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -2648,6 +2989,23 @@ export namespace Prisma {
     billingCycle?: true
     startedAt?: true
     renewsAt?: true
+    pricingModel?: true
+    setupFee?: true
+    yearlyFee?: true
+    licenceFee?: true
+    amcPercent?: true
+    hostingFee?: true
+    maxUsersOverride?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    billingState?: true
+    appliedPlan?: true
+    appliedFeatures?: true
+    appliedReadOnly?: true
+    appliedAt?: true
+    planJobId?: true
+    isDemo?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -2763,6 +3121,23 @@ export namespace Prisma {
     billingCycle: $Enums.BillingCycle
     startedAt: Date | null
     renewsAt: Date | null
+    pricingModel: $Enums.PricingModel
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    licenceFee: Decimal | null
+    amcPercent: Decimal | null
+    hostingFee: Decimal | null
+    maxUsersOverride: number | null
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    billingState: string | null
+    appliedPlan: $Enums.PlanTier | null
+    appliedFeatures: string | null
+    appliedReadOnly: boolean | null
+    appliedAt: Date | null
+    planJobId: string | null
+    isDemo: boolean
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -2810,6 +3185,23 @@ export namespace Prisma {
     billingCycle?: boolean
     startedAt?: boolean
     renewsAt?: boolean
+    pricingModel?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    licenceFee?: boolean
+    amcPercent?: boolean
+    hostingFee?: boolean
+    maxUsersOverride?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    billingState?: boolean
+    appliedPlan?: boolean
+    appliedFeatures?: boolean
+    appliedReadOnly?: boolean
+    appliedAt?: boolean
+    planJobId?: boolean
+    isDemo?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -2822,6 +3214,8 @@ export namespace Prisma {
     steps?: boolean | ClinicAccount$stepsArgs<ExtArgs>
     activity?: boolean | ClinicAccount$activityArgs<ExtArgs>
     health?: boolean | ClinicAccount$healthArgs<ExtArgs>
+    invoices?: boolean | ClinicAccount$invoicesArgs<ExtArgs>
+    planChanges?: boolean | ClinicAccount$planChangesArgs<ExtArgs>
     _count?: boolean | ClinicAccountCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["clinicAccount"]>
 
@@ -2842,6 +3236,23 @@ export namespace Prisma {
     billingCycle?: boolean
     startedAt?: boolean
     renewsAt?: boolean
+    pricingModel?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    licenceFee?: boolean
+    amcPercent?: boolean
+    hostingFee?: boolean
+    maxUsersOverride?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    billingState?: boolean
+    appliedPlan?: boolean
+    appliedFeatures?: boolean
+    appliedReadOnly?: boolean
+    appliedAt?: boolean
+    planJobId?: boolean
+    isDemo?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -2870,6 +3281,23 @@ export namespace Prisma {
     billingCycle?: boolean
     startedAt?: boolean
     renewsAt?: boolean
+    pricingModel?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    licenceFee?: boolean
+    amcPercent?: boolean
+    hostingFee?: boolean
+    maxUsersOverride?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    billingState?: boolean
+    appliedPlan?: boolean
+    appliedFeatures?: boolean
+    appliedReadOnly?: boolean
+    appliedAt?: boolean
+    planJobId?: boolean
+    isDemo?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -2898,6 +3326,23 @@ export namespace Prisma {
     billingCycle?: boolean
     startedAt?: boolean
     renewsAt?: boolean
+    pricingModel?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    licenceFee?: boolean
+    amcPercent?: boolean
+    hostingFee?: boolean
+    maxUsersOverride?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    billingState?: boolean
+    appliedPlan?: boolean
+    appliedFeatures?: boolean
+    appliedReadOnly?: boolean
+    appliedAt?: boolean
+    planJobId?: boolean
+    isDemo?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -2909,11 +3354,13 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ClinicAccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "contactName" | "contactEmail" | "contactPhone" | "city" | "notes" | "status" | "plan" | "featureOverrides" | "monthlyFee" | "currency" | "billingCycle" | "startedAt" | "renewsAt" | "publicDomain" | "portalDomain" | "apiDomain" | "neonProjectId" | "vercelWebProjectId" | "vercelApiProjectId" | "provisionedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["clinicAccount"]>
+  export type ClinicAccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "contactName" | "contactEmail" | "contactPhone" | "city" | "notes" | "status" | "plan" | "featureOverrides" | "monthlyFee" | "currency" | "billingCycle" | "startedAt" | "renewsAt" | "pricingModel" | "setupFee" | "yearlyFee" | "licenceFee" | "amcPercent" | "hostingFee" | "maxUsersOverride" | "billingName" | "billingAddress" | "gstin" | "billingState" | "appliedPlan" | "appliedFeatures" | "appliedReadOnly" | "appliedAt" | "planJobId" | "isDemo" | "publicDomain" | "portalDomain" | "apiDomain" | "neonProjectId" | "vercelWebProjectId" | "vercelApiProjectId" | "provisionedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["clinicAccount"]>
   export type ClinicAccountInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     steps?: boolean | ClinicAccount$stepsArgs<ExtArgs>
     activity?: boolean | ClinicAccount$activityArgs<ExtArgs>
     health?: boolean | ClinicAccount$healthArgs<ExtArgs>
+    invoices?: boolean | ClinicAccount$invoicesArgs<ExtArgs>
+    planChanges?: boolean | ClinicAccount$planChangesArgs<ExtArgs>
     _count?: boolean | ClinicAccountCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ClinicAccountIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2925,6 +3372,8 @@ export namespace Prisma {
       steps: Prisma.$OnboardingStepPayload<ExtArgs>[]
       activity: Prisma.$ActivityLogPayload<ExtArgs>[]
       health: Prisma.$HealthCheckPayload<ExtArgs>[]
+      invoices: Prisma.$InvoicePayload<ExtArgs>[]
+      planChanges: Prisma.$PlanChangePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2952,6 +3401,35 @@ export namespace Prisma {
       billingCycle: $Enums.BillingCycle
       startedAt: Date | null
       renewsAt: Date | null
+      pricingModel: $Enums.PricingModel
+      setupFee: Prisma.Decimal | null
+      yearlyFee: Prisma.Decimal | null
+      licenceFee: Prisma.Decimal | null
+      amcPercent: Prisma.Decimal | null
+      hostingFee: Prisma.Decimal | null
+      /**
+       * Extra or fewer logins than the plan, agreed in the deal. 0 = unlimited.
+       */
+      maxUsersOverride: number | null
+      billingName: string | null
+      billingAddress: string | null
+      /**
+       * The clinic's GSTIN, if registered. Decides the place of supply.
+       */
+      gstin: string | null
+      /**
+       * Two-digit GST state code. From the GSTIN when there is one.
+       */
+      billingState: string | null
+      appliedPlan: $Enums.PlanTier | null
+      appliedFeatures: string | null
+      appliedReadOnly: boolean | null
+      appliedAt: Date | null
+      planJobId: string | null
+      /**
+       * A demonstration deployment: made-up patients, reset nightly.
+       */
+      isDemo: boolean
       publicDomain: string | null
       portalDomain: string | null
       apiDomain: string | null
@@ -3368,6 +3846,8 @@ export namespace Prisma {
     steps<T extends ClinicAccount$stepsArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$stepsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OnboardingStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     activity<T extends ClinicAccount$activityArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$activityArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     health<T extends ClinicAccount$healthArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$healthArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HealthCheckPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    invoices<T extends ClinicAccount$invoicesArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    planChanges<T extends ClinicAccount$planChangesArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$planChangesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3413,6 +3893,23 @@ export namespace Prisma {
     readonly billingCycle: FieldRef<"ClinicAccount", 'BillingCycle'>
     readonly startedAt: FieldRef<"ClinicAccount", 'DateTime'>
     readonly renewsAt: FieldRef<"ClinicAccount", 'DateTime'>
+    readonly pricingModel: FieldRef<"ClinicAccount", 'PricingModel'>
+    readonly setupFee: FieldRef<"ClinicAccount", 'Decimal'>
+    readonly yearlyFee: FieldRef<"ClinicAccount", 'Decimal'>
+    readonly licenceFee: FieldRef<"ClinicAccount", 'Decimal'>
+    readonly amcPercent: FieldRef<"ClinicAccount", 'Decimal'>
+    readonly hostingFee: FieldRef<"ClinicAccount", 'Decimal'>
+    readonly maxUsersOverride: FieldRef<"ClinicAccount", 'Int'>
+    readonly billingName: FieldRef<"ClinicAccount", 'String'>
+    readonly billingAddress: FieldRef<"ClinicAccount", 'String'>
+    readonly gstin: FieldRef<"ClinicAccount", 'String'>
+    readonly billingState: FieldRef<"ClinicAccount", 'String'>
+    readonly appliedPlan: FieldRef<"ClinicAccount", 'PlanTier'>
+    readonly appliedFeatures: FieldRef<"ClinicAccount", 'String'>
+    readonly appliedReadOnly: FieldRef<"ClinicAccount", 'Boolean'>
+    readonly appliedAt: FieldRef<"ClinicAccount", 'DateTime'>
+    readonly planJobId: FieldRef<"ClinicAccount", 'String'>
+    readonly isDemo: FieldRef<"ClinicAccount", 'Boolean'>
     readonly publicDomain: FieldRef<"ClinicAccount", 'String'>
     readonly portalDomain: FieldRef<"ClinicAccount", 'String'>
     readonly apiDomain: FieldRef<"ClinicAccount", 'String'>
@@ -3879,6 +4376,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: HealthCheckScalarFieldEnum | HealthCheckScalarFieldEnum[]
+  }
+
+  /**
+   * ClinicAccount.invoices
+   */
+  export type ClinicAccount$invoicesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    where?: InvoiceWhereInput
+    orderBy?: InvoiceOrderByWithRelationInput | InvoiceOrderByWithRelationInput[]
+    cursor?: InvoiceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: InvoiceScalarFieldEnum | InvoiceScalarFieldEnum[]
+  }
+
+  /**
+   * ClinicAccount.planChanges
+   */
+  export type ClinicAccount$planChangesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    where?: PlanChangeWhereInput
+    orderBy?: PlanChangeOrderByWithRelationInput | PlanChangeOrderByWithRelationInput[]
+    cursor?: PlanChangeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlanChangeScalarFieldEnum | PlanChangeScalarFieldEnum[]
   }
 
   /**
@@ -7321,6 +7866,2546 @@ export namespace Prisma {
 
 
   /**
+   * Model Invoice
+   */
+
+  export type AggregateInvoice = {
+    _count: InvoiceCountAggregateOutputType | null
+    _avg: InvoiceAvgAggregateOutputType | null
+    _sum: InvoiceSumAggregateOutputType | null
+    _min: InvoiceMinAggregateOutputType | null
+    _max: InvoiceMaxAggregateOutputType | null
+  }
+
+  export type InvoiceAvgAggregateOutputType = {
+    serial: number | null
+    subtotal: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+  }
+
+  export type InvoiceSumAggregateOutputType = {
+    serial: number | null
+    subtotal: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+  }
+
+  export type InvoiceMinAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.InvoiceStatus | null
+    issuedAt: Date | null
+    dueAt: Date | null
+    periodStart: Date | null
+    isFirst: boolean | null
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    placeOfSupply: string | null
+    planLabel: string | null
+    subtotal: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+    paidAt: Date | null
+    paymentMode: string | null
+    paymentRef: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InvoiceMaxAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.InvoiceStatus | null
+    issuedAt: Date | null
+    dueAt: Date | null
+    periodStart: Date | null
+    isFirst: boolean | null
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    placeOfSupply: string | null
+    planLabel: string | null
+    subtotal: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+    paidAt: Date | null
+    paymentMode: string | null
+    paymentRef: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InvoiceCountAggregateOutputType = {
+    id: number
+    accountId: number
+    number: number
+    fy: number
+    serial: number
+    status: number
+    issuedAt: number
+    dueAt: number
+    periodStart: number
+    isFirst: number
+    billingName: number
+    billingAddress: number
+    gstin: number
+    placeOfSupply: number
+    planLabel: number
+    lines: number
+    subtotal: number
+    cgst: number
+    sgst: number
+    igst: number
+    total: number
+    paidAt: number
+    paymentMode: number
+    paymentRef: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type InvoiceAvgAggregateInputType = {
+    serial?: true
+    subtotal?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+  }
+
+  export type InvoiceSumAggregateInputType = {
+    serial?: true
+    subtotal?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+  }
+
+  export type InvoiceMinAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    issuedAt?: true
+    dueAt?: true
+    periodStart?: true
+    isFirst?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    placeOfSupply?: true
+    planLabel?: true
+    subtotal?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    paidAt?: true
+    paymentMode?: true
+    paymentRef?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InvoiceMaxAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    issuedAt?: true
+    dueAt?: true
+    periodStart?: true
+    isFirst?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    placeOfSupply?: true
+    planLabel?: true
+    subtotal?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    paidAt?: true
+    paymentMode?: true
+    paymentRef?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InvoiceCountAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    issuedAt?: true
+    dueAt?: true
+    periodStart?: true
+    isFirst?: true
+    billingName?: true
+    billingAddress?: true
+    gstin?: true
+    placeOfSupply?: true
+    planLabel?: true
+    lines?: true
+    subtotal?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    paidAt?: true
+    paymentMode?: true
+    paymentRef?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type InvoiceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Invoice to aggregate.
+     */
+    where?: InvoiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Invoices to fetch.
+     */
+    orderBy?: InvoiceOrderByWithRelationInput | InvoiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: InvoiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Invoices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Invoices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Invoices
+    **/
+    _count?: true | InvoiceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: InvoiceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: InvoiceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: InvoiceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: InvoiceMaxAggregateInputType
+  }
+
+  export type GetInvoiceAggregateType<T extends InvoiceAggregateArgs> = {
+        [P in keyof T & keyof AggregateInvoice]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateInvoice[P]>
+      : GetScalarType<T[P], AggregateInvoice[P]>
+  }
+
+
+
+
+  export type InvoiceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InvoiceWhereInput
+    orderBy?: InvoiceOrderByWithAggregationInput | InvoiceOrderByWithAggregationInput[]
+    by: InvoiceScalarFieldEnum[] | InvoiceScalarFieldEnum
+    having?: InvoiceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: InvoiceCountAggregateInputType | true
+    _avg?: InvoiceAvgAggregateInputType
+    _sum?: InvoiceSumAggregateInputType
+    _min?: InvoiceMinAggregateInputType
+    _max?: InvoiceMaxAggregateInputType
+  }
+
+  export type InvoiceGroupByOutputType = {
+    id: string
+    accountId: string
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.InvoiceStatus
+    issuedAt: Date | null
+    dueAt: Date | null
+    periodStart: Date | null
+    isFirst: boolean
+    billingName: string | null
+    billingAddress: string | null
+    gstin: string | null
+    placeOfSupply: string | null
+    planLabel: string
+    lines: JsonValue
+    subtotal: Decimal
+    cgst: Decimal
+    sgst: Decimal
+    igst: Decimal
+    total: Decimal
+    paidAt: Date | null
+    paymentMode: string | null
+    paymentRef: string | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: InvoiceCountAggregateOutputType | null
+    _avg: InvoiceAvgAggregateOutputType | null
+    _sum: InvoiceSumAggregateOutputType | null
+    _min: InvoiceMinAggregateOutputType | null
+    _max: InvoiceMaxAggregateOutputType | null
+  }
+
+  type GetInvoiceGroupByPayload<T extends InvoiceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<InvoiceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof InvoiceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], InvoiceGroupByOutputType[P]>
+            : GetScalarType<T[P], InvoiceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type InvoiceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    issuedAt?: boolean
+    dueAt?: boolean
+    periodStart?: boolean
+    isFirst?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    placeOfSupply?: boolean
+    planLabel?: boolean
+    lines?: boolean
+    subtotal?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    paidAt?: boolean
+    paymentMode?: boolean
+    paymentRef?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["invoice"]>
+
+  export type InvoiceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    issuedAt?: boolean
+    dueAt?: boolean
+    periodStart?: boolean
+    isFirst?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    placeOfSupply?: boolean
+    planLabel?: boolean
+    lines?: boolean
+    subtotal?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    paidAt?: boolean
+    paymentMode?: boolean
+    paymentRef?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["invoice"]>
+
+  export type InvoiceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    issuedAt?: boolean
+    dueAt?: boolean
+    periodStart?: boolean
+    isFirst?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    placeOfSupply?: boolean
+    planLabel?: boolean
+    lines?: boolean
+    subtotal?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    paidAt?: boolean
+    paymentMode?: boolean
+    paymentRef?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["invoice"]>
+
+  export type InvoiceSelectScalar = {
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    issuedAt?: boolean
+    dueAt?: boolean
+    periodStart?: boolean
+    isFirst?: boolean
+    billingName?: boolean
+    billingAddress?: boolean
+    gstin?: boolean
+    placeOfSupply?: boolean
+    planLabel?: boolean
+    lines?: boolean
+    subtotal?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    paidAt?: boolean
+    paymentMode?: boolean
+    paymentRef?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "accountId" | "number" | "fy" | "serial" | "status" | "issuedAt" | "dueAt" | "periodStart" | "isFirst" | "billingName" | "billingAddress" | "gstin" | "placeOfSupply" | "planLabel" | "lines" | "subtotal" | "cgst" | "sgst" | "igst" | "total" | "paidAt" | "paymentMode" | "paymentRef" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["invoice"]>
+  export type InvoiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+  export type InvoiceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+  export type InvoiceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+
+  export type $InvoicePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Invoice"
+    objects: {
+      account: Prisma.$ClinicAccountPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      accountId: string
+      /**
+       * PREFIX/FY/0001. Null while a draft; given on issue, consecutive
+       * within the financial year, as GST requires.
+       */
+      number: string | null
+      fy: string | null
+      serial: number | null
+      status: $Enums.InvoiceStatus
+      issuedAt: Date | null
+      dueAt: Date | null
+      periodStart: Date | null
+      /**
+       * True for the invoice that starts the contract (carries setup/licence).
+       */
+      isFirst: boolean
+      billingName: string | null
+      billingAddress: string | null
+      gstin: string | null
+      placeOfSupply: string | null
+      planLabel: string
+      /**
+       * [{ description, sac, amount }]
+       */
+      lines: Prisma.JsonValue
+      subtotal: Prisma.Decimal
+      cgst: Prisma.Decimal
+      sgst: Prisma.Decimal
+      igst: Prisma.Decimal
+      total: Prisma.Decimal
+      paidAt: Date | null
+      paymentMode: string | null
+      paymentRef: string | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["invoice"]>
+    composites: {}
+  }
+
+  type InvoiceGetPayload<S extends boolean | null | undefined | InvoiceDefaultArgs> = $Result.GetResult<Prisma.$InvoicePayload, S>
+
+  type InvoiceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<InvoiceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: InvoiceCountAggregateInputType | true
+    }
+
+  export interface InvoiceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Invoice'], meta: { name: 'Invoice' } }
+    /**
+     * Find zero or one Invoice that matches the filter.
+     * @param {InvoiceFindUniqueArgs} args - Arguments to find a Invoice
+     * @example
+     * // Get one Invoice
+     * const invoice = await prisma.invoice.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends InvoiceFindUniqueArgs>(args: SelectSubset<T, InvoiceFindUniqueArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Invoice that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {InvoiceFindUniqueOrThrowArgs} args - Arguments to find a Invoice
+     * @example
+     * // Get one Invoice
+     * const invoice = await prisma.invoice.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends InvoiceFindUniqueOrThrowArgs>(args: SelectSubset<T, InvoiceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Invoice that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceFindFirstArgs} args - Arguments to find a Invoice
+     * @example
+     * // Get one Invoice
+     * const invoice = await prisma.invoice.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends InvoiceFindFirstArgs>(args?: SelectSubset<T, InvoiceFindFirstArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Invoice that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceFindFirstOrThrowArgs} args - Arguments to find a Invoice
+     * @example
+     * // Get one Invoice
+     * const invoice = await prisma.invoice.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends InvoiceFindFirstOrThrowArgs>(args?: SelectSubset<T, InvoiceFindFirstOrThrowArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Invoices that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Invoices
+     * const invoices = await prisma.invoice.findMany()
+     * 
+     * // Get first 10 Invoices
+     * const invoices = await prisma.invoice.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const invoiceWithIdOnly = await prisma.invoice.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends InvoiceFindManyArgs>(args?: SelectSubset<T, InvoiceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Invoice.
+     * @param {InvoiceCreateArgs} args - Arguments to create a Invoice.
+     * @example
+     * // Create one Invoice
+     * const Invoice = await prisma.invoice.create({
+     *   data: {
+     *     // ... data to create a Invoice
+     *   }
+     * })
+     * 
+     */
+    create<T extends InvoiceCreateArgs>(args: SelectSubset<T, InvoiceCreateArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Invoices.
+     * @param {InvoiceCreateManyArgs} args - Arguments to create many Invoices.
+     * @example
+     * // Create many Invoices
+     * const invoice = await prisma.invoice.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends InvoiceCreateManyArgs>(args?: SelectSubset<T, InvoiceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Invoices and returns the data saved in the database.
+     * @param {InvoiceCreateManyAndReturnArgs} args - Arguments to create many Invoices.
+     * @example
+     * // Create many Invoices
+     * const invoice = await prisma.invoice.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Invoices and only return the `id`
+     * const invoiceWithIdOnly = await prisma.invoice.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends InvoiceCreateManyAndReturnArgs>(args?: SelectSubset<T, InvoiceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Invoice.
+     * @param {InvoiceDeleteArgs} args - Arguments to delete one Invoice.
+     * @example
+     * // Delete one Invoice
+     * const Invoice = await prisma.invoice.delete({
+     *   where: {
+     *     // ... filter to delete one Invoice
+     *   }
+     * })
+     * 
+     */
+    delete<T extends InvoiceDeleteArgs>(args: SelectSubset<T, InvoiceDeleteArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Invoice.
+     * @param {InvoiceUpdateArgs} args - Arguments to update one Invoice.
+     * @example
+     * // Update one Invoice
+     * const invoice = await prisma.invoice.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends InvoiceUpdateArgs>(args: SelectSubset<T, InvoiceUpdateArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Invoices.
+     * @param {InvoiceDeleteManyArgs} args - Arguments to filter Invoices to delete.
+     * @example
+     * // Delete a few Invoices
+     * const { count } = await prisma.invoice.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends InvoiceDeleteManyArgs>(args?: SelectSubset<T, InvoiceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Invoices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Invoices
+     * const invoice = await prisma.invoice.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends InvoiceUpdateManyArgs>(args: SelectSubset<T, InvoiceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Invoices and returns the data updated in the database.
+     * @param {InvoiceUpdateManyAndReturnArgs} args - Arguments to update many Invoices.
+     * @example
+     * // Update many Invoices
+     * const invoice = await prisma.invoice.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Invoices and only return the `id`
+     * const invoiceWithIdOnly = await prisma.invoice.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends InvoiceUpdateManyAndReturnArgs>(args: SelectSubset<T, InvoiceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Invoice.
+     * @param {InvoiceUpsertArgs} args - Arguments to update or create a Invoice.
+     * @example
+     * // Update or create a Invoice
+     * const invoice = await prisma.invoice.upsert({
+     *   create: {
+     *     // ... data to create a Invoice
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Invoice we want to update
+     *   }
+     * })
+     */
+    upsert<T extends InvoiceUpsertArgs>(args: SelectSubset<T, InvoiceUpsertArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Invoices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceCountArgs} args - Arguments to filter Invoices to count.
+     * @example
+     * // Count the number of Invoices
+     * const count = await prisma.invoice.count({
+     *   where: {
+     *     // ... the filter for the Invoices we want to count
+     *   }
+     * })
+    **/
+    count<T extends InvoiceCountArgs>(
+      args?: Subset<T, InvoiceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], InvoiceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Invoice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends InvoiceAggregateArgs>(args: Subset<T, InvoiceAggregateArgs>): Prisma.PrismaPromise<GetInvoiceAggregateType<T>>
+
+    /**
+     * Group by Invoice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends InvoiceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: InvoiceGroupByArgs['orderBy'] }
+        : { orderBy?: InvoiceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, InvoiceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInvoiceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Invoice model
+   */
+  readonly fields: InvoiceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Invoice.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__InvoiceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    account<T extends ClinicAccountDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccountDefaultArgs<ExtArgs>>): Prisma__ClinicAccountClient<$Result.GetResult<Prisma.$ClinicAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Invoice model
+   */
+  interface InvoiceFieldRefs {
+    readonly id: FieldRef<"Invoice", 'String'>
+    readonly accountId: FieldRef<"Invoice", 'String'>
+    readonly number: FieldRef<"Invoice", 'String'>
+    readonly fy: FieldRef<"Invoice", 'String'>
+    readonly serial: FieldRef<"Invoice", 'Int'>
+    readonly status: FieldRef<"Invoice", 'InvoiceStatus'>
+    readonly issuedAt: FieldRef<"Invoice", 'DateTime'>
+    readonly dueAt: FieldRef<"Invoice", 'DateTime'>
+    readonly periodStart: FieldRef<"Invoice", 'DateTime'>
+    readonly isFirst: FieldRef<"Invoice", 'Boolean'>
+    readonly billingName: FieldRef<"Invoice", 'String'>
+    readonly billingAddress: FieldRef<"Invoice", 'String'>
+    readonly gstin: FieldRef<"Invoice", 'String'>
+    readonly placeOfSupply: FieldRef<"Invoice", 'String'>
+    readonly planLabel: FieldRef<"Invoice", 'String'>
+    readonly lines: FieldRef<"Invoice", 'Json'>
+    readonly subtotal: FieldRef<"Invoice", 'Decimal'>
+    readonly cgst: FieldRef<"Invoice", 'Decimal'>
+    readonly sgst: FieldRef<"Invoice", 'Decimal'>
+    readonly igst: FieldRef<"Invoice", 'Decimal'>
+    readonly total: FieldRef<"Invoice", 'Decimal'>
+    readonly paidAt: FieldRef<"Invoice", 'DateTime'>
+    readonly paymentMode: FieldRef<"Invoice", 'String'>
+    readonly paymentRef: FieldRef<"Invoice", 'String'>
+    readonly notes: FieldRef<"Invoice", 'String'>
+    readonly createdAt: FieldRef<"Invoice", 'DateTime'>
+    readonly updatedAt: FieldRef<"Invoice", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Invoice findUnique
+   */
+  export type InvoiceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter, which Invoice to fetch.
+     */
+    where: InvoiceWhereUniqueInput
+  }
+
+  /**
+   * Invoice findUniqueOrThrow
+   */
+  export type InvoiceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter, which Invoice to fetch.
+     */
+    where: InvoiceWhereUniqueInput
+  }
+
+  /**
+   * Invoice findFirst
+   */
+  export type InvoiceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter, which Invoice to fetch.
+     */
+    where?: InvoiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Invoices to fetch.
+     */
+    orderBy?: InvoiceOrderByWithRelationInput | InvoiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Invoices.
+     */
+    cursor?: InvoiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Invoices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Invoices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Invoices.
+     */
+    distinct?: InvoiceScalarFieldEnum | InvoiceScalarFieldEnum[]
+  }
+
+  /**
+   * Invoice findFirstOrThrow
+   */
+  export type InvoiceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter, which Invoice to fetch.
+     */
+    where?: InvoiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Invoices to fetch.
+     */
+    orderBy?: InvoiceOrderByWithRelationInput | InvoiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Invoices.
+     */
+    cursor?: InvoiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Invoices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Invoices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Invoices.
+     */
+    distinct?: InvoiceScalarFieldEnum | InvoiceScalarFieldEnum[]
+  }
+
+  /**
+   * Invoice findMany
+   */
+  export type InvoiceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter, which Invoices to fetch.
+     */
+    where?: InvoiceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Invoices to fetch.
+     */
+    orderBy?: InvoiceOrderByWithRelationInput | InvoiceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Invoices.
+     */
+    cursor?: InvoiceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Invoices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Invoices.
+     */
+    skip?: number
+    distinct?: InvoiceScalarFieldEnum | InvoiceScalarFieldEnum[]
+  }
+
+  /**
+   * Invoice create
+   */
+  export type InvoiceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Invoice.
+     */
+    data: XOR<InvoiceCreateInput, InvoiceUncheckedCreateInput>
+  }
+
+  /**
+   * Invoice createMany
+   */
+  export type InvoiceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Invoices.
+     */
+    data: InvoiceCreateManyInput | InvoiceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Invoice createManyAndReturn
+   */
+  export type InvoiceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * The data used to create many Invoices.
+     */
+    data: InvoiceCreateManyInput | InvoiceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Invoice update
+   */
+  export type InvoiceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Invoice.
+     */
+    data: XOR<InvoiceUpdateInput, InvoiceUncheckedUpdateInput>
+    /**
+     * Choose, which Invoice to update.
+     */
+    where: InvoiceWhereUniqueInput
+  }
+
+  /**
+   * Invoice updateMany
+   */
+  export type InvoiceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Invoices.
+     */
+    data: XOR<InvoiceUpdateManyMutationInput, InvoiceUncheckedUpdateManyInput>
+    /**
+     * Filter which Invoices to update
+     */
+    where?: InvoiceWhereInput
+    /**
+     * Limit how many Invoices to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Invoice updateManyAndReturn
+   */
+  export type InvoiceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * The data used to update Invoices.
+     */
+    data: XOR<InvoiceUpdateManyMutationInput, InvoiceUncheckedUpdateManyInput>
+    /**
+     * Filter which Invoices to update
+     */
+    where?: InvoiceWhereInput
+    /**
+     * Limit how many Invoices to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Invoice upsert
+   */
+  export type InvoiceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Invoice to update in case it exists.
+     */
+    where: InvoiceWhereUniqueInput
+    /**
+     * In case the Invoice found by the `where` argument doesn't exist, create a new Invoice with this data.
+     */
+    create: XOR<InvoiceCreateInput, InvoiceUncheckedCreateInput>
+    /**
+     * In case the Invoice was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<InvoiceUpdateInput, InvoiceUncheckedUpdateInput>
+  }
+
+  /**
+   * Invoice delete
+   */
+  export type InvoiceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+    /**
+     * Filter which Invoice to delete.
+     */
+    where: InvoiceWhereUniqueInput
+  }
+
+  /**
+   * Invoice deleteMany
+   */
+  export type InvoiceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Invoices to delete
+     */
+    where?: InvoiceWhereInput
+    /**
+     * Limit how many Invoices to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Invoice without action
+   */
+  export type InvoiceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Invoice
+     */
+    select?: InvoiceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Invoice
+     */
+    omit?: InvoiceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlanChange
+   */
+
+  export type AggregatePlanChange = {
+    _count: PlanChangeCountAggregateOutputType | null
+    _min: PlanChangeMinAggregateOutputType | null
+    _max: PlanChangeMaxAggregateOutputType | null
+  }
+
+  export type PlanChangeMinAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    fromPlan: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier | null
+    fromFeatures: string | null
+    toFeatures: string | null
+    readOnly: boolean | null
+    reason: string | null
+    actorName: string | null
+    jobId: string | null
+    at: Date | null
+  }
+
+  export type PlanChangeMaxAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    fromPlan: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier | null
+    fromFeatures: string | null
+    toFeatures: string | null
+    readOnly: boolean | null
+    reason: string | null
+    actorName: string | null
+    jobId: string | null
+    at: Date | null
+  }
+
+  export type PlanChangeCountAggregateOutputType = {
+    id: number
+    accountId: number
+    fromPlan: number
+    toPlan: number
+    fromFeatures: number
+    toFeatures: number
+    readOnly: number
+    reason: number
+    actorName: number
+    jobId: number
+    at: number
+    _all: number
+  }
+
+
+  export type PlanChangeMinAggregateInputType = {
+    id?: true
+    accountId?: true
+    fromPlan?: true
+    toPlan?: true
+    fromFeatures?: true
+    toFeatures?: true
+    readOnly?: true
+    reason?: true
+    actorName?: true
+    jobId?: true
+    at?: true
+  }
+
+  export type PlanChangeMaxAggregateInputType = {
+    id?: true
+    accountId?: true
+    fromPlan?: true
+    toPlan?: true
+    fromFeatures?: true
+    toFeatures?: true
+    readOnly?: true
+    reason?: true
+    actorName?: true
+    jobId?: true
+    at?: true
+  }
+
+  export type PlanChangeCountAggregateInputType = {
+    id?: true
+    accountId?: true
+    fromPlan?: true
+    toPlan?: true
+    fromFeatures?: true
+    toFeatures?: true
+    readOnly?: true
+    reason?: true
+    actorName?: true
+    jobId?: true
+    at?: true
+    _all?: true
+  }
+
+  export type PlanChangeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanChange to aggregate.
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanChanges to fetch.
+     */
+    orderBy?: PlanChangeOrderByWithRelationInput | PlanChangeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlanChangeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanChanges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanChanges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlanChanges
+    **/
+    _count?: true | PlanChangeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlanChangeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlanChangeMaxAggregateInputType
+  }
+
+  export type GetPlanChangeAggregateType<T extends PlanChangeAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlanChange]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlanChange[P]>
+      : GetScalarType<T[P], AggregatePlanChange[P]>
+  }
+
+
+
+
+  export type PlanChangeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanChangeWhereInput
+    orderBy?: PlanChangeOrderByWithAggregationInput | PlanChangeOrderByWithAggregationInput[]
+    by: PlanChangeScalarFieldEnum[] | PlanChangeScalarFieldEnum
+    having?: PlanChangeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlanChangeCountAggregateInputType | true
+    _min?: PlanChangeMinAggregateInputType
+    _max?: PlanChangeMaxAggregateInputType
+  }
+
+  export type PlanChangeGroupByOutputType = {
+    id: string
+    accountId: string
+    fromPlan: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures: string | null
+    toFeatures: string
+    readOnly: boolean
+    reason: string | null
+    actorName: string
+    jobId: string | null
+    at: Date
+    _count: PlanChangeCountAggregateOutputType | null
+    _min: PlanChangeMinAggregateOutputType | null
+    _max: PlanChangeMaxAggregateOutputType | null
+  }
+
+  type GetPlanChangeGroupByPayload<T extends PlanChangeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlanChangeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlanChangeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlanChangeGroupByOutputType[P]>
+            : GetScalarType<T[P], PlanChangeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlanChangeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    fromPlan?: boolean
+    toPlan?: boolean
+    fromFeatures?: boolean
+    toFeatures?: boolean
+    readOnly?: boolean
+    reason?: boolean
+    actorName?: boolean
+    jobId?: boolean
+    at?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planChange"]>
+
+  export type PlanChangeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    fromPlan?: boolean
+    toPlan?: boolean
+    fromFeatures?: boolean
+    toFeatures?: boolean
+    readOnly?: boolean
+    reason?: boolean
+    actorName?: boolean
+    jobId?: boolean
+    at?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planChange"]>
+
+  export type PlanChangeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    fromPlan?: boolean
+    toPlan?: boolean
+    fromFeatures?: boolean
+    toFeatures?: boolean
+    readOnly?: boolean
+    reason?: boolean
+    actorName?: boolean
+    jobId?: boolean
+    at?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planChange"]>
+
+  export type PlanChangeSelectScalar = {
+    id?: boolean
+    accountId?: boolean
+    fromPlan?: boolean
+    toPlan?: boolean
+    fromFeatures?: boolean
+    toFeatures?: boolean
+    readOnly?: boolean
+    reason?: boolean
+    actorName?: boolean
+    jobId?: boolean
+    at?: boolean
+  }
+
+  export type PlanChangeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "accountId" | "fromPlan" | "toPlan" | "fromFeatures" | "toFeatures" | "readOnly" | "reason" | "actorName" | "jobId" | "at", ExtArgs["result"]["planChange"]>
+  export type PlanChangeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+  export type PlanChangeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+  export type PlanChangeIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+  }
+
+  export type $PlanChangePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlanChange"
+    objects: {
+      account: Prisma.$ClinicAccountPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      accountId: string
+      fromPlan: $Enums.PlanTier | null
+      toPlan: $Enums.PlanTier
+      fromFeatures: string | null
+      toFeatures: string
+      readOnly: boolean
+      reason: string | null
+      actorName: string
+      jobId: string | null
+      at: Date
+    }, ExtArgs["result"]["planChange"]>
+    composites: {}
+  }
+
+  type PlanChangeGetPayload<S extends boolean | null | undefined | PlanChangeDefaultArgs> = $Result.GetResult<Prisma.$PlanChangePayload, S>
+
+  type PlanChangeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PlanChangeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PlanChangeCountAggregateInputType | true
+    }
+
+  export interface PlanChangeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlanChange'], meta: { name: 'PlanChange' } }
+    /**
+     * Find zero or one PlanChange that matches the filter.
+     * @param {PlanChangeFindUniqueArgs} args - Arguments to find a PlanChange
+     * @example
+     * // Get one PlanChange
+     * const planChange = await prisma.planChange.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlanChangeFindUniqueArgs>(args: SelectSubset<T, PlanChangeFindUniqueArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PlanChange that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PlanChangeFindUniqueOrThrowArgs} args - Arguments to find a PlanChange
+     * @example
+     * // Get one PlanChange
+     * const planChange = await prisma.planChange.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlanChangeFindUniqueOrThrowArgs>(args: SelectSubset<T, PlanChangeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlanChange that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeFindFirstArgs} args - Arguments to find a PlanChange
+     * @example
+     * // Get one PlanChange
+     * const planChange = await prisma.planChange.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlanChangeFindFirstArgs>(args?: SelectSubset<T, PlanChangeFindFirstArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlanChange that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeFindFirstOrThrowArgs} args - Arguments to find a PlanChange
+     * @example
+     * // Get one PlanChange
+     * const planChange = await prisma.planChange.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlanChangeFindFirstOrThrowArgs>(args?: SelectSubset<T, PlanChangeFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PlanChanges that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlanChanges
+     * const planChanges = await prisma.planChange.findMany()
+     * 
+     * // Get first 10 PlanChanges
+     * const planChanges = await prisma.planChange.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const planChangeWithIdOnly = await prisma.planChange.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlanChangeFindManyArgs>(args?: SelectSubset<T, PlanChangeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PlanChange.
+     * @param {PlanChangeCreateArgs} args - Arguments to create a PlanChange.
+     * @example
+     * // Create one PlanChange
+     * const PlanChange = await prisma.planChange.create({
+     *   data: {
+     *     // ... data to create a PlanChange
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlanChangeCreateArgs>(args: SelectSubset<T, PlanChangeCreateArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PlanChanges.
+     * @param {PlanChangeCreateManyArgs} args - Arguments to create many PlanChanges.
+     * @example
+     * // Create many PlanChanges
+     * const planChange = await prisma.planChange.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlanChangeCreateManyArgs>(args?: SelectSubset<T, PlanChangeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlanChanges and returns the data saved in the database.
+     * @param {PlanChangeCreateManyAndReturnArgs} args - Arguments to create many PlanChanges.
+     * @example
+     * // Create many PlanChanges
+     * const planChange = await prisma.planChange.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlanChanges and only return the `id`
+     * const planChangeWithIdOnly = await prisma.planChange.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlanChangeCreateManyAndReturnArgs>(args?: SelectSubset<T, PlanChangeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PlanChange.
+     * @param {PlanChangeDeleteArgs} args - Arguments to delete one PlanChange.
+     * @example
+     * // Delete one PlanChange
+     * const PlanChange = await prisma.planChange.delete({
+     *   where: {
+     *     // ... filter to delete one PlanChange
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlanChangeDeleteArgs>(args: SelectSubset<T, PlanChangeDeleteArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PlanChange.
+     * @param {PlanChangeUpdateArgs} args - Arguments to update one PlanChange.
+     * @example
+     * // Update one PlanChange
+     * const planChange = await prisma.planChange.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlanChangeUpdateArgs>(args: SelectSubset<T, PlanChangeUpdateArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PlanChanges.
+     * @param {PlanChangeDeleteManyArgs} args - Arguments to filter PlanChanges to delete.
+     * @example
+     * // Delete a few PlanChanges
+     * const { count } = await prisma.planChange.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlanChangeDeleteManyArgs>(args?: SelectSubset<T, PlanChangeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanChanges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlanChanges
+     * const planChange = await prisma.planChange.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlanChangeUpdateManyArgs>(args: SelectSubset<T, PlanChangeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanChanges and returns the data updated in the database.
+     * @param {PlanChangeUpdateManyAndReturnArgs} args - Arguments to update many PlanChanges.
+     * @example
+     * // Update many PlanChanges
+     * const planChange = await prisma.planChange.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PlanChanges and only return the `id`
+     * const planChangeWithIdOnly = await prisma.planChange.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PlanChangeUpdateManyAndReturnArgs>(args: SelectSubset<T, PlanChangeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PlanChange.
+     * @param {PlanChangeUpsertArgs} args - Arguments to update or create a PlanChange.
+     * @example
+     * // Update or create a PlanChange
+     * const planChange = await prisma.planChange.upsert({
+     *   create: {
+     *     // ... data to create a PlanChange
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlanChange we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlanChangeUpsertArgs>(args: SelectSubset<T, PlanChangeUpsertArgs<ExtArgs>>): Prisma__PlanChangeClient<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PlanChanges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeCountArgs} args - Arguments to filter PlanChanges to count.
+     * @example
+     * // Count the number of PlanChanges
+     * const count = await prisma.planChange.count({
+     *   where: {
+     *     // ... the filter for the PlanChanges we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlanChangeCountArgs>(
+      args?: Subset<T, PlanChangeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlanChangeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlanChange.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlanChangeAggregateArgs>(args: Subset<T, PlanChangeAggregateArgs>): Prisma.PrismaPromise<GetPlanChangeAggregateType<T>>
+
+    /**
+     * Group by PlanChange.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanChangeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlanChangeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlanChangeGroupByArgs['orderBy'] }
+        : { orderBy?: PlanChangeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlanChangeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlanChangeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlanChange model
+   */
+  readonly fields: PlanChangeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlanChange.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlanChangeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    account<T extends ClinicAccountDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccountDefaultArgs<ExtArgs>>): Prisma__ClinicAccountClient<$Result.GetResult<Prisma.$ClinicAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlanChange model
+   */
+  interface PlanChangeFieldRefs {
+    readonly id: FieldRef<"PlanChange", 'String'>
+    readonly accountId: FieldRef<"PlanChange", 'String'>
+    readonly fromPlan: FieldRef<"PlanChange", 'PlanTier'>
+    readonly toPlan: FieldRef<"PlanChange", 'PlanTier'>
+    readonly fromFeatures: FieldRef<"PlanChange", 'String'>
+    readonly toFeatures: FieldRef<"PlanChange", 'String'>
+    readonly readOnly: FieldRef<"PlanChange", 'Boolean'>
+    readonly reason: FieldRef<"PlanChange", 'String'>
+    readonly actorName: FieldRef<"PlanChange", 'String'>
+    readonly jobId: FieldRef<"PlanChange", 'String'>
+    readonly at: FieldRef<"PlanChange", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlanChange findUnique
+   */
+  export type PlanChangeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanChange to fetch.
+     */
+    where: PlanChangeWhereUniqueInput
+  }
+
+  /**
+   * PlanChange findUniqueOrThrow
+   */
+  export type PlanChangeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanChange to fetch.
+     */
+    where: PlanChangeWhereUniqueInput
+  }
+
+  /**
+   * PlanChange findFirst
+   */
+  export type PlanChangeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanChange to fetch.
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanChanges to fetch.
+     */
+    orderBy?: PlanChangeOrderByWithRelationInput | PlanChangeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanChanges.
+     */
+    cursor?: PlanChangeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanChanges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanChanges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanChanges.
+     */
+    distinct?: PlanChangeScalarFieldEnum | PlanChangeScalarFieldEnum[]
+  }
+
+  /**
+   * PlanChange findFirstOrThrow
+   */
+  export type PlanChangeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanChange to fetch.
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanChanges to fetch.
+     */
+    orderBy?: PlanChangeOrderByWithRelationInput | PlanChangeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanChanges.
+     */
+    cursor?: PlanChangeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanChanges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanChanges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanChanges.
+     */
+    distinct?: PlanChangeScalarFieldEnum | PlanChangeScalarFieldEnum[]
+  }
+
+  /**
+   * PlanChange findMany
+   */
+  export type PlanChangeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanChanges to fetch.
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanChanges to fetch.
+     */
+    orderBy?: PlanChangeOrderByWithRelationInput | PlanChangeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlanChanges.
+     */
+    cursor?: PlanChangeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanChanges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanChanges.
+     */
+    skip?: number
+    distinct?: PlanChangeScalarFieldEnum | PlanChangeScalarFieldEnum[]
+  }
+
+  /**
+   * PlanChange create
+   */
+  export type PlanChangeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlanChange.
+     */
+    data: XOR<PlanChangeCreateInput, PlanChangeUncheckedCreateInput>
+  }
+
+  /**
+   * PlanChange createMany
+   */
+  export type PlanChangeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlanChanges.
+     */
+    data: PlanChangeCreateManyInput | PlanChangeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanChange createManyAndReturn
+   */
+  export type PlanChangeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * The data used to create many PlanChanges.
+     */
+    data: PlanChangeCreateManyInput | PlanChangeCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlanChange update
+   */
+  export type PlanChangeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlanChange.
+     */
+    data: XOR<PlanChangeUpdateInput, PlanChangeUncheckedUpdateInput>
+    /**
+     * Choose, which PlanChange to update.
+     */
+    where: PlanChangeWhereUniqueInput
+  }
+
+  /**
+   * PlanChange updateMany
+   */
+  export type PlanChangeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlanChanges.
+     */
+    data: XOR<PlanChangeUpdateManyMutationInput, PlanChangeUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanChanges to update
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * Limit how many PlanChanges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlanChange updateManyAndReturn
+   */
+  export type PlanChangeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * The data used to update PlanChanges.
+     */
+    data: XOR<PlanChangeUpdateManyMutationInput, PlanChangeUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanChanges to update
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * Limit how many PlanChanges to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlanChange upsert
+   */
+  export type PlanChangeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlanChange to update in case it exists.
+     */
+    where: PlanChangeWhereUniqueInput
+    /**
+     * In case the PlanChange found by the `where` argument doesn't exist, create a new PlanChange with this data.
+     */
+    create: XOR<PlanChangeCreateInput, PlanChangeUncheckedCreateInput>
+    /**
+     * In case the PlanChange was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlanChangeUpdateInput, PlanChangeUncheckedUpdateInput>
+  }
+
+  /**
+   * PlanChange delete
+   */
+  export type PlanChangeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+    /**
+     * Filter which PlanChange to delete.
+     */
+    where: PlanChangeWhereUniqueInput
+  }
+
+  /**
+   * PlanChange deleteMany
+   */
+  export type PlanChangeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanChanges to delete
+     */
+    where?: PlanChangeWhereInput
+    /**
+     * Limit how many PlanChanges to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlanChange without action
+   */
+  export type PlanChangeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanChange
+     */
+    select?: PlanChangeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlanChange
+     */
+    omit?: PlanChangeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanChangeInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -7364,6 +10449,23 @@ export namespace Prisma {
     billingCycle: 'billingCycle',
     startedAt: 'startedAt',
     renewsAt: 'renewsAt',
+    pricingModel: 'pricingModel',
+    setupFee: 'setupFee',
+    yearlyFee: 'yearlyFee',
+    licenceFee: 'licenceFee',
+    amcPercent: 'amcPercent',
+    hostingFee: 'hostingFee',
+    maxUsersOverride: 'maxUsersOverride',
+    billingName: 'billingName',
+    billingAddress: 'billingAddress',
+    gstin: 'gstin',
+    billingState: 'billingState',
+    appliedPlan: 'appliedPlan',
+    appliedFeatures: 'appliedFeatures',
+    appliedReadOnly: 'appliedReadOnly',
+    appliedAt: 'appliedAt',
+    planJobId: 'planJobId',
+    isDemo: 'isDemo',
     publicDomain: 'publicDomain',
     portalDomain: 'portalDomain',
     apiDomain: 'apiDomain',
@@ -7420,6 +10522,56 @@ export namespace Prisma {
   export type HealthCheckScalarFieldEnum = (typeof HealthCheckScalarFieldEnum)[keyof typeof HealthCheckScalarFieldEnum]
 
 
+  export const InvoiceScalarFieldEnum: {
+    id: 'id',
+    accountId: 'accountId',
+    number: 'number',
+    fy: 'fy',
+    serial: 'serial',
+    status: 'status',
+    issuedAt: 'issuedAt',
+    dueAt: 'dueAt',
+    periodStart: 'periodStart',
+    isFirst: 'isFirst',
+    billingName: 'billingName',
+    billingAddress: 'billingAddress',
+    gstin: 'gstin',
+    placeOfSupply: 'placeOfSupply',
+    planLabel: 'planLabel',
+    lines: 'lines',
+    subtotal: 'subtotal',
+    cgst: 'cgst',
+    sgst: 'sgst',
+    igst: 'igst',
+    total: 'total',
+    paidAt: 'paidAt',
+    paymentMode: 'paymentMode',
+    paymentRef: 'paymentRef',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+  export const PlanChangeScalarFieldEnum: {
+    id: 'id',
+    accountId: 'accountId',
+    fromPlan: 'fromPlan',
+    toPlan: 'toPlan',
+    fromFeatures: 'fromFeatures',
+    toFeatures: 'toFeatures',
+    readOnly: 'readOnly',
+    reason: 'reason',
+    actorName: 'actorName',
+    jobId: 'jobId',
+    at: 'at'
+  };
+
+  export type PlanChangeScalarFieldEnum = (typeof PlanChangeScalarFieldEnum)[keyof typeof PlanChangeScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -7434,6 +10586,13 @@ export namespace Prisma {
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -7586,6 +10745,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'PricingModel'
+   */
+  export type EnumPricingModelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PricingModel'>
+    
+
+
+  /**
+   * Reference to a field of type 'PricingModel[]'
+   */
+  export type ListEnumPricingModelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PricingModel[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -7596,6 +10769,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'InvoiceStatus'
+   */
+  export type EnumInvoiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvoiceStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'InvoiceStatus[]'
+   */
+  export type ListEnumInvoiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvoiceStatus[]'>
     
 
 
@@ -7701,6 +10888,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFilter<"ClinicAccount"> | $Enums.BillingCycle
     startedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
     renewsAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
+    pricingModel?: EnumPricingModelFilter<"ClinicAccount"> | $Enums.PricingModel
+    setupFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: IntNullableFilter<"ClinicAccount"> | number | null
+    billingName?: StringNullableFilter<"ClinicAccount"> | string | null
+    billingAddress?: StringNullableFilter<"ClinicAccount"> | string | null
+    gstin?: StringNullableFilter<"ClinicAccount"> | string | null
+    billingState?: StringNullableFilter<"ClinicAccount"> | string | null
+    appliedPlan?: EnumPlanTierNullableFilter<"ClinicAccount"> | $Enums.PlanTier | null
+    appliedFeatures?: StringNullableFilter<"ClinicAccount"> | string | null
+    appliedReadOnly?: BoolNullableFilter<"ClinicAccount"> | boolean | null
+    appliedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
+    planJobId?: StringNullableFilter<"ClinicAccount"> | string | null
+    isDemo?: BoolFilter<"ClinicAccount"> | boolean
     publicDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableFilter<"ClinicAccount"> | string | null
@@ -7713,6 +10917,8 @@ export namespace Prisma {
     steps?: OnboardingStepListRelationFilter
     activity?: ActivityLogListRelationFilter
     health?: HealthCheckListRelationFilter
+    invoices?: InvoiceListRelationFilter
+    planChanges?: PlanChangeListRelationFilter
   }
 
   export type ClinicAccountOrderByWithRelationInput = {
@@ -7732,6 +10938,23 @@ export namespace Prisma {
     billingCycle?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     renewsAt?: SortOrderInput | SortOrder
+    pricingModel?: SortOrder
+    setupFee?: SortOrderInput | SortOrder
+    yearlyFee?: SortOrderInput | SortOrder
+    licenceFee?: SortOrderInput | SortOrder
+    amcPercent?: SortOrderInput | SortOrder
+    hostingFee?: SortOrderInput | SortOrder
+    maxUsersOverride?: SortOrderInput | SortOrder
+    billingName?: SortOrderInput | SortOrder
+    billingAddress?: SortOrderInput | SortOrder
+    gstin?: SortOrderInput | SortOrder
+    billingState?: SortOrderInput | SortOrder
+    appliedPlan?: SortOrderInput | SortOrder
+    appliedFeatures?: SortOrderInput | SortOrder
+    appliedReadOnly?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    planJobId?: SortOrderInput | SortOrder
+    isDemo?: SortOrder
     publicDomain?: SortOrderInput | SortOrder
     portalDomain?: SortOrderInput | SortOrder
     apiDomain?: SortOrderInput | SortOrder
@@ -7744,6 +10967,8 @@ export namespace Prisma {
     steps?: OnboardingStepOrderByRelationAggregateInput
     activity?: ActivityLogOrderByRelationAggregateInput
     health?: HealthCheckOrderByRelationAggregateInput
+    invoices?: InvoiceOrderByRelationAggregateInput
+    planChanges?: PlanChangeOrderByRelationAggregateInput
   }
 
   export type ClinicAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -7766,6 +10991,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFilter<"ClinicAccount"> | $Enums.BillingCycle
     startedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
     renewsAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
+    pricingModel?: EnumPricingModelFilter<"ClinicAccount"> | $Enums.PricingModel
+    setupFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: DecimalNullableFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: IntNullableFilter<"ClinicAccount"> | number | null
+    billingName?: StringNullableFilter<"ClinicAccount"> | string | null
+    billingAddress?: StringNullableFilter<"ClinicAccount"> | string | null
+    gstin?: StringNullableFilter<"ClinicAccount"> | string | null
+    billingState?: StringNullableFilter<"ClinicAccount"> | string | null
+    appliedPlan?: EnumPlanTierNullableFilter<"ClinicAccount"> | $Enums.PlanTier | null
+    appliedFeatures?: StringNullableFilter<"ClinicAccount"> | string | null
+    appliedReadOnly?: BoolNullableFilter<"ClinicAccount"> | boolean | null
+    appliedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
+    planJobId?: StringNullableFilter<"ClinicAccount"> | string | null
+    isDemo?: BoolFilter<"ClinicAccount"> | boolean
     publicDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableFilter<"ClinicAccount"> | string | null
@@ -7778,6 +11020,8 @@ export namespace Prisma {
     steps?: OnboardingStepListRelationFilter
     activity?: ActivityLogListRelationFilter
     health?: HealthCheckListRelationFilter
+    invoices?: InvoiceListRelationFilter
+    planChanges?: PlanChangeListRelationFilter
   }, "id" | "slug">
 
   export type ClinicAccountOrderByWithAggregationInput = {
@@ -7797,6 +11041,23 @@ export namespace Prisma {
     billingCycle?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     renewsAt?: SortOrderInput | SortOrder
+    pricingModel?: SortOrder
+    setupFee?: SortOrderInput | SortOrder
+    yearlyFee?: SortOrderInput | SortOrder
+    licenceFee?: SortOrderInput | SortOrder
+    amcPercent?: SortOrderInput | SortOrder
+    hostingFee?: SortOrderInput | SortOrder
+    maxUsersOverride?: SortOrderInput | SortOrder
+    billingName?: SortOrderInput | SortOrder
+    billingAddress?: SortOrderInput | SortOrder
+    gstin?: SortOrderInput | SortOrder
+    billingState?: SortOrderInput | SortOrder
+    appliedPlan?: SortOrderInput | SortOrder
+    appliedFeatures?: SortOrderInput | SortOrder
+    appliedReadOnly?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    planJobId?: SortOrderInput | SortOrder
+    isDemo?: SortOrder
     publicDomain?: SortOrderInput | SortOrder
     portalDomain?: SortOrderInput | SortOrder
     apiDomain?: SortOrderInput | SortOrder
@@ -7833,6 +11094,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleWithAggregatesFilter<"ClinicAccount"> | $Enums.BillingCycle
     startedAt?: DateTimeNullableWithAggregatesFilter<"ClinicAccount"> | Date | string | null
     renewsAt?: DateTimeNullableWithAggregatesFilter<"ClinicAccount"> | Date | string | null
+    pricingModel?: EnumPricingModelWithAggregatesFilter<"ClinicAccount"> | $Enums.PricingModel
+    setupFee?: DecimalNullableWithAggregatesFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableWithAggregatesFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: DecimalNullableWithAggregatesFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: DecimalNullableWithAggregatesFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: DecimalNullableWithAggregatesFilter<"ClinicAccount"> | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: IntNullableWithAggregatesFilter<"ClinicAccount"> | number | null
+    billingName?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    billingAddress?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    gstin?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    billingState?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    appliedPlan?: EnumPlanTierNullableWithAggregatesFilter<"ClinicAccount"> | $Enums.PlanTier | null
+    appliedFeatures?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    appliedReadOnly?: BoolNullableWithAggregatesFilter<"ClinicAccount"> | boolean | null
+    appliedAt?: DateTimeNullableWithAggregatesFilter<"ClinicAccount"> | Date | string | null
+    planJobId?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
+    isDemo?: BoolWithAggregatesFilter<"ClinicAccount"> | boolean
     publicDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
@@ -8062,6 +11340,259 @@ export namespace Prisma {
     checkedAt?: DateTimeWithAggregatesFilter<"HealthCheck"> | Date | string
   }
 
+  export type InvoiceWhereInput = {
+    AND?: InvoiceWhereInput | InvoiceWhereInput[]
+    OR?: InvoiceWhereInput[]
+    NOT?: InvoiceWhereInput | InvoiceWhereInput[]
+    id?: StringFilter<"Invoice"> | string
+    accountId?: StringFilter<"Invoice"> | string
+    number?: StringNullableFilter<"Invoice"> | string | null
+    fy?: StringNullableFilter<"Invoice"> | string | null
+    serial?: IntNullableFilter<"Invoice"> | number | null
+    status?: EnumInvoiceStatusFilter<"Invoice"> | $Enums.InvoiceStatus
+    issuedAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    dueAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    periodStart?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    isFirst?: BoolFilter<"Invoice"> | boolean
+    billingName?: StringNullableFilter<"Invoice"> | string | null
+    billingAddress?: StringNullableFilter<"Invoice"> | string | null
+    gstin?: StringNullableFilter<"Invoice"> | string | null
+    placeOfSupply?: StringNullableFilter<"Invoice"> | string | null
+    planLabel?: StringFilter<"Invoice"> | string
+    lines?: JsonFilter<"Invoice">
+    subtotal?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    paidAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    paymentMode?: StringNullableFilter<"Invoice"> | string | null
+    paymentRef?: StringNullableFilter<"Invoice"> | string | null
+    notes?: StringNullableFilter<"Invoice"> | string | null
+    createdAt?: DateTimeFilter<"Invoice"> | Date | string
+    updatedAt?: DateTimeFilter<"Invoice"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+  }
+
+  export type InvoiceOrderByWithRelationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    status?: SortOrder
+    issuedAt?: SortOrderInput | SortOrder
+    dueAt?: SortOrderInput | SortOrder
+    periodStart?: SortOrderInput | SortOrder
+    isFirst?: SortOrder
+    billingName?: SortOrderInput | SortOrder
+    billingAddress?: SortOrderInput | SortOrder
+    gstin?: SortOrderInput | SortOrder
+    placeOfSupply?: SortOrderInput | SortOrder
+    planLabel?: SortOrder
+    lines?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    paidAt?: SortOrderInput | SortOrder
+    paymentMode?: SortOrderInput | SortOrder
+    paymentRef?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    account?: ClinicAccountOrderByWithRelationInput
+  }
+
+  export type InvoiceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    number?: string
+    fy_serial?: InvoiceFySerialCompoundUniqueInput
+    AND?: InvoiceWhereInput | InvoiceWhereInput[]
+    OR?: InvoiceWhereInput[]
+    NOT?: InvoiceWhereInput | InvoiceWhereInput[]
+    accountId?: StringFilter<"Invoice"> | string
+    fy?: StringNullableFilter<"Invoice"> | string | null
+    serial?: IntNullableFilter<"Invoice"> | number | null
+    status?: EnumInvoiceStatusFilter<"Invoice"> | $Enums.InvoiceStatus
+    issuedAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    dueAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    periodStart?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    isFirst?: BoolFilter<"Invoice"> | boolean
+    billingName?: StringNullableFilter<"Invoice"> | string | null
+    billingAddress?: StringNullableFilter<"Invoice"> | string | null
+    gstin?: StringNullableFilter<"Invoice"> | string | null
+    placeOfSupply?: StringNullableFilter<"Invoice"> | string | null
+    planLabel?: StringFilter<"Invoice"> | string
+    lines?: JsonFilter<"Invoice">
+    subtotal?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    paidAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    paymentMode?: StringNullableFilter<"Invoice"> | string | null
+    paymentRef?: StringNullableFilter<"Invoice"> | string | null
+    notes?: StringNullableFilter<"Invoice"> | string | null
+    createdAt?: DateTimeFilter<"Invoice"> | Date | string
+    updatedAt?: DateTimeFilter<"Invoice"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+  }, "id" | "number" | "fy_serial">
+
+  export type InvoiceOrderByWithAggregationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    status?: SortOrder
+    issuedAt?: SortOrderInput | SortOrder
+    dueAt?: SortOrderInput | SortOrder
+    periodStart?: SortOrderInput | SortOrder
+    isFirst?: SortOrder
+    billingName?: SortOrderInput | SortOrder
+    billingAddress?: SortOrderInput | SortOrder
+    gstin?: SortOrderInput | SortOrder
+    placeOfSupply?: SortOrderInput | SortOrder
+    planLabel?: SortOrder
+    lines?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    paidAt?: SortOrderInput | SortOrder
+    paymentMode?: SortOrderInput | SortOrder
+    paymentRef?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: InvoiceCountOrderByAggregateInput
+    _avg?: InvoiceAvgOrderByAggregateInput
+    _max?: InvoiceMaxOrderByAggregateInput
+    _min?: InvoiceMinOrderByAggregateInput
+    _sum?: InvoiceSumOrderByAggregateInput
+  }
+
+  export type InvoiceScalarWhereWithAggregatesInput = {
+    AND?: InvoiceScalarWhereWithAggregatesInput | InvoiceScalarWhereWithAggregatesInput[]
+    OR?: InvoiceScalarWhereWithAggregatesInput[]
+    NOT?: InvoiceScalarWhereWithAggregatesInput | InvoiceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Invoice"> | string
+    accountId?: StringWithAggregatesFilter<"Invoice"> | string
+    number?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    fy?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    serial?: IntNullableWithAggregatesFilter<"Invoice"> | number | null
+    status?: EnumInvoiceStatusWithAggregatesFilter<"Invoice"> | $Enums.InvoiceStatus
+    issuedAt?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
+    dueAt?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
+    periodStart?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
+    isFirst?: BoolWithAggregatesFilter<"Invoice"> | boolean
+    billingName?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    billingAddress?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    gstin?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    placeOfSupply?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    planLabel?: StringWithAggregatesFilter<"Invoice"> | string
+    lines?: JsonWithAggregatesFilter<"Invoice">
+    subtotal?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    paidAt?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
+    paymentMode?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    paymentRef?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    notes?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Invoice"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Invoice"> | Date | string
+  }
+
+  export type PlanChangeWhereInput = {
+    AND?: PlanChangeWhereInput | PlanChangeWhereInput[]
+    OR?: PlanChangeWhereInput[]
+    NOT?: PlanChangeWhereInput | PlanChangeWhereInput[]
+    id?: StringFilter<"PlanChange"> | string
+    accountId?: StringFilter<"PlanChange"> | string
+    fromPlan?: EnumPlanTierNullableFilter<"PlanChange"> | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFilter<"PlanChange"> | $Enums.PlanTier
+    fromFeatures?: StringNullableFilter<"PlanChange"> | string | null
+    toFeatures?: StringFilter<"PlanChange"> | string
+    readOnly?: BoolFilter<"PlanChange"> | boolean
+    reason?: StringNullableFilter<"PlanChange"> | string | null
+    actorName?: StringFilter<"PlanChange"> | string
+    jobId?: StringNullableFilter<"PlanChange"> | string | null
+    at?: DateTimeFilter<"PlanChange"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+  }
+
+  export type PlanChangeOrderByWithRelationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    fromPlan?: SortOrderInput | SortOrder
+    toPlan?: SortOrder
+    fromFeatures?: SortOrderInput | SortOrder
+    toFeatures?: SortOrder
+    readOnly?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    actorName?: SortOrder
+    jobId?: SortOrderInput | SortOrder
+    at?: SortOrder
+    account?: ClinicAccountOrderByWithRelationInput
+  }
+
+  export type PlanChangeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PlanChangeWhereInput | PlanChangeWhereInput[]
+    OR?: PlanChangeWhereInput[]
+    NOT?: PlanChangeWhereInput | PlanChangeWhereInput[]
+    accountId?: StringFilter<"PlanChange"> | string
+    fromPlan?: EnumPlanTierNullableFilter<"PlanChange"> | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFilter<"PlanChange"> | $Enums.PlanTier
+    fromFeatures?: StringNullableFilter<"PlanChange"> | string | null
+    toFeatures?: StringFilter<"PlanChange"> | string
+    readOnly?: BoolFilter<"PlanChange"> | boolean
+    reason?: StringNullableFilter<"PlanChange"> | string | null
+    actorName?: StringFilter<"PlanChange"> | string
+    jobId?: StringNullableFilter<"PlanChange"> | string | null
+    at?: DateTimeFilter<"PlanChange"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+  }, "id">
+
+  export type PlanChangeOrderByWithAggregationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    fromPlan?: SortOrderInput | SortOrder
+    toPlan?: SortOrder
+    fromFeatures?: SortOrderInput | SortOrder
+    toFeatures?: SortOrder
+    readOnly?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    actorName?: SortOrder
+    jobId?: SortOrderInput | SortOrder
+    at?: SortOrder
+    _count?: PlanChangeCountOrderByAggregateInput
+    _max?: PlanChangeMaxOrderByAggregateInput
+    _min?: PlanChangeMinOrderByAggregateInput
+  }
+
+  export type PlanChangeScalarWhereWithAggregatesInput = {
+    AND?: PlanChangeScalarWhereWithAggregatesInput | PlanChangeScalarWhereWithAggregatesInput[]
+    OR?: PlanChangeScalarWhereWithAggregatesInput[]
+    NOT?: PlanChangeScalarWhereWithAggregatesInput | PlanChangeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlanChange"> | string
+    accountId?: StringWithAggregatesFilter<"PlanChange"> | string
+    fromPlan?: EnumPlanTierNullableWithAggregatesFilter<"PlanChange"> | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierWithAggregatesFilter<"PlanChange"> | $Enums.PlanTier
+    fromFeatures?: StringNullableWithAggregatesFilter<"PlanChange"> | string | null
+    toFeatures?: StringWithAggregatesFilter<"PlanChange"> | string
+    readOnly?: BoolWithAggregatesFilter<"PlanChange"> | boolean
+    reason?: StringNullableWithAggregatesFilter<"PlanChange"> | string | null
+    actorName?: StringWithAggregatesFilter<"PlanChange"> | string
+    jobId?: StringNullableWithAggregatesFilter<"PlanChange"> | string | null
+    at?: DateTimeWithAggregatesFilter<"PlanChange"> | Date | string
+  }
+
   export type ProviderUserCreateInput = {
     id?: string
     email: string
@@ -8153,6 +11684,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -8165,6 +11713,8 @@ export namespace Prisma {
     steps?: OnboardingStepCreateNestedManyWithoutAccountInput
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
     health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateInput = {
@@ -8184,6 +11734,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -8196,6 +11763,8 @@ export namespace Prisma {
     steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUpdateInput = {
@@ -8215,6 +11784,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8227,6 +11813,8 @@ export namespace Prisma {
     steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateInput = {
@@ -8246,6 +11834,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8258,6 +11863,8 @@ export namespace Prisma {
     steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateManyInput = {
@@ -8277,6 +11884,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -8305,6 +11929,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8333,6 +11974,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8571,6 +12229,312 @@ export namespace Prisma {
     checkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type InvoiceCreateInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account: ClinicAccountCreateNestedOneWithoutInvoicesInput
+  }
+
+  export type InvoiceUncheckedCreateInput = {
+    id?: string
+    accountId: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InvoiceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneRequiredWithoutInvoicesNestedInput
+  }
+
+  export type InvoiceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InvoiceCreateManyInput = {
+    id?: string
+    accountId: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InvoiceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InvoiceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeCreateInput = {
+    id?: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
+    account: ClinicAccountCreateNestedOneWithoutPlanChangesInput
+  }
+
+  export type PlanChangeUncheckedCreateInput = {
+    id?: string
+    accountId: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
+  }
+
+  export type PlanChangeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneRequiredWithoutPlanChangesNestedInput
+  }
+
+  export type PlanChangeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeCreateManyInput = {
+    id?: string
+    accountId: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
+  }
+
+  export type PlanChangeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -8780,6 +12744,36 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type EnumPricingModelFilter<$PrismaModel = never> = {
+    equals?: $Enums.PricingModel | EnumPricingModelFieldRefInput<$PrismaModel>
+    in?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    not?: NestedEnumPricingModelFilter<$PrismaModel> | $Enums.PricingModel
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type EnumPlanTierNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanTier | EnumPlanTierFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPlanTierNullableFilter<$PrismaModel> | $Enums.PlanTier | null
+  }
+
+  export type BoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+
   export type OnboardingStepListRelationFilter = {
     every?: OnboardingStepWhereInput
     some?: OnboardingStepWhereInput
@@ -8792,6 +12786,18 @@ export namespace Prisma {
     none?: HealthCheckWhereInput
   }
 
+  export type InvoiceListRelationFilter = {
+    every?: InvoiceWhereInput
+    some?: InvoiceWhereInput
+    none?: InvoiceWhereInput
+  }
+
+  export type PlanChangeListRelationFilter = {
+    every?: PlanChangeWhereInput
+    some?: PlanChangeWhereInput
+    none?: PlanChangeWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -8802,6 +12808,14 @@ export namespace Prisma {
   }
 
   export type HealthCheckOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type InvoiceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PlanChangeOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -8822,6 +12836,23 @@ export namespace Prisma {
     billingCycle?: SortOrder
     startedAt?: SortOrder
     renewsAt?: SortOrder
+    pricingModel?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    licenceFee?: SortOrder
+    amcPercent?: SortOrder
+    hostingFee?: SortOrder
+    maxUsersOverride?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    billingState?: SortOrder
+    appliedPlan?: SortOrder
+    appliedFeatures?: SortOrder
+    appliedReadOnly?: SortOrder
+    appliedAt?: SortOrder
+    planJobId?: SortOrder
+    isDemo?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -8835,6 +12866,12 @@ export namespace Prisma {
 
   export type ClinicAccountAvgOrderByAggregateInput = {
     monthlyFee?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    licenceFee?: SortOrder
+    amcPercent?: SortOrder
+    hostingFee?: SortOrder
+    maxUsersOverride?: SortOrder
   }
 
   export type ClinicAccountMaxOrderByAggregateInput = {
@@ -8853,6 +12890,23 @@ export namespace Prisma {
     billingCycle?: SortOrder
     startedAt?: SortOrder
     renewsAt?: SortOrder
+    pricingModel?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    licenceFee?: SortOrder
+    amcPercent?: SortOrder
+    hostingFee?: SortOrder
+    maxUsersOverride?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    billingState?: SortOrder
+    appliedPlan?: SortOrder
+    appliedFeatures?: SortOrder
+    appliedReadOnly?: SortOrder
+    appliedAt?: SortOrder
+    planJobId?: SortOrder
+    isDemo?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -8880,6 +12934,23 @@ export namespace Prisma {
     billingCycle?: SortOrder
     startedAt?: SortOrder
     renewsAt?: SortOrder
+    pricingModel?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    licenceFee?: SortOrder
+    amcPercent?: SortOrder
+    hostingFee?: SortOrder
+    maxUsersOverride?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    billingState?: SortOrder
+    appliedPlan?: SortOrder
+    appliedFeatures?: SortOrder
+    appliedReadOnly?: SortOrder
+    appliedAt?: SortOrder
+    planJobId?: SortOrder
+    isDemo?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -8893,6 +12964,12 @@ export namespace Prisma {
 
   export type ClinicAccountSumOrderByAggregateInput = {
     monthlyFee?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    licenceFee?: SortOrder
+    amcPercent?: SortOrder
+    hostingFee?: SortOrder
+    maxUsersOverride?: SortOrder
   }
 
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -8997,6 +13074,50 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPricingModelWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PricingModel | EnumPricingModelFieldRefInput<$PrismaModel>
+    in?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    not?: NestedEnumPricingModelWithAggregatesFilter<$PrismaModel> | $Enums.PricingModel
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPricingModelFilter<$PrismaModel>
+    _max?: NestedEnumPricingModelFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPlanTierNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanTier | EnumPlanTierFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPlanTierNullableWithAggregatesFilter<$PrismaModel> | $Enums.PlanTier | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPlanTierNullableFilter<$PrismaModel>
+    _max?: NestedEnumPlanTierNullableFilter<$PrismaModel>
+  }
+
+  export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -9123,17 +13244,6 @@ export namespace Prisma {
     at?: SortOrder
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type HealthCheckCountOrderByAggregateInput = {
     id?: SortOrder
     accountId?: SortOrder
@@ -9174,20 +13284,250 @@ export namespace Prisma {
     latencyMs?: SortOrder
   }
 
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
+  export type EnumInvoiceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.InvoiceStatus | EnumInvoiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumInvoiceStatusFilter<$PrismaModel> | $Enums.InvoiceStatus
+  }
+  export type JsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type InvoiceFySerialCompoundUniqueInput = {
+    fy: string
+    serial: number
+  }
+
+  export type InvoiceCountOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    issuedAt?: SortOrder
+    dueAt?: SortOrder
+    periodStart?: SortOrder
+    isFirst?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    placeOfSupply?: SortOrder
+    planLabel?: SortOrder
+    lines?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    paidAt?: SortOrder
+    paymentMode?: SortOrder
+    paymentRef?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InvoiceAvgOrderByAggregateInput = {
+    serial?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+  }
+
+  export type InvoiceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    issuedAt?: SortOrder
+    dueAt?: SortOrder
+    periodStart?: SortOrder
+    isFirst?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    placeOfSupply?: SortOrder
+    planLabel?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    paidAt?: SortOrder
+    paymentMode?: SortOrder
+    paymentRef?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InvoiceMinOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    issuedAt?: SortOrder
+    dueAt?: SortOrder
+    periodStart?: SortOrder
+    isFirst?: SortOrder
+    billingName?: SortOrder
+    billingAddress?: SortOrder
+    gstin?: SortOrder
+    placeOfSupply?: SortOrder
+    planLabel?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    paidAt?: SortOrder
+    paymentMode?: SortOrder
+    paymentRef?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InvoiceSumOrderByAggregateInput = {
+    serial?: SortOrder
+    subtotal?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+  }
+
+  export type EnumInvoiceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.InvoiceStatus | EnumInvoiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumInvoiceStatusWithAggregatesFilter<$PrismaModel> | $Enums.InvoiceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumInvoiceStatusFilter<$PrismaModel>
+    _max?: NestedEnumInvoiceStatusFilter<$PrismaModel>
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type PlanChangeCountOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    fromPlan?: SortOrder
+    toPlan?: SortOrder
+    fromFeatures?: SortOrder
+    toFeatures?: SortOrder
+    readOnly?: SortOrder
+    reason?: SortOrder
+    actorName?: SortOrder
+    jobId?: SortOrder
+    at?: SortOrder
+  }
+
+  export type PlanChangeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    fromPlan?: SortOrder
+    toPlan?: SortOrder
+    fromFeatures?: SortOrder
+    toFeatures?: SortOrder
+    readOnly?: SortOrder
+    reason?: SortOrder
+    actorName?: SortOrder
+    jobId?: SortOrder
+    at?: SortOrder
+  }
+
+  export type PlanChangeMinOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    fromPlan?: SortOrder
+    toPlan?: SortOrder
+    fromFeatures?: SortOrder
+    toFeatures?: SortOrder
+    readOnly?: SortOrder
+    reason?: SortOrder
+    actorName?: SortOrder
+    jobId?: SortOrder
+    at?: SortOrder
   }
 
   export type ActivityLogCreateNestedManyWithoutActorInput = {
@@ -9269,6 +13609,20 @@ export namespace Prisma {
     connect?: HealthCheckWhereUniqueInput | HealthCheckWhereUniqueInput[]
   }
 
+  export type InvoiceCreateNestedManyWithoutAccountInput = {
+    create?: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput> | InvoiceCreateWithoutAccountInput[] | InvoiceUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: InvoiceCreateOrConnectWithoutAccountInput | InvoiceCreateOrConnectWithoutAccountInput[]
+    createMany?: InvoiceCreateManyAccountInputEnvelope
+    connect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+  }
+
+  export type PlanChangeCreateNestedManyWithoutAccountInput = {
+    create?: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput> | PlanChangeCreateWithoutAccountInput[] | PlanChangeUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: PlanChangeCreateOrConnectWithoutAccountInput | PlanChangeCreateOrConnectWithoutAccountInput[]
+    createMany?: PlanChangeCreateManyAccountInputEnvelope
+    connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+  }
+
   export type OnboardingStepUncheckedCreateNestedManyWithoutAccountInput = {
     create?: XOR<OnboardingStepCreateWithoutAccountInput, OnboardingStepUncheckedCreateWithoutAccountInput> | OnboardingStepCreateWithoutAccountInput[] | OnboardingStepUncheckedCreateWithoutAccountInput[]
     connectOrCreate?: OnboardingStepCreateOrConnectWithoutAccountInput | OnboardingStepCreateOrConnectWithoutAccountInput[]
@@ -9288,6 +13642,20 @@ export namespace Prisma {
     connectOrCreate?: HealthCheckCreateOrConnectWithoutAccountInput | HealthCheckCreateOrConnectWithoutAccountInput[]
     createMany?: HealthCheckCreateManyAccountInputEnvelope
     connect?: HealthCheckWhereUniqueInput | HealthCheckWhereUniqueInput[]
+  }
+
+  export type InvoiceUncheckedCreateNestedManyWithoutAccountInput = {
+    create?: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput> | InvoiceCreateWithoutAccountInput[] | InvoiceUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: InvoiceCreateOrConnectWithoutAccountInput | InvoiceCreateOrConnectWithoutAccountInput[]
+    createMany?: InvoiceCreateManyAccountInputEnvelope
+    connect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+  }
+
+  export type PlanChangeUncheckedCreateNestedManyWithoutAccountInput = {
+    create?: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput> | PlanChangeCreateWithoutAccountInput[] | PlanChangeUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: PlanChangeCreateOrConnectWithoutAccountInput | PlanChangeCreateOrConnectWithoutAccountInput[]
+    createMany?: PlanChangeCreateManyAccountInputEnvelope
+    connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
   }
 
   export type NullableStringFieldUpdateOperationsInput = {
@@ -9316,6 +13684,26 @@ export namespace Prisma {
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+  }
+
+  export type EnumPricingModelFieldUpdateOperationsInput = {
+    set?: $Enums.PricingModel
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableEnumPlanTierFieldUpdateOperationsInput = {
+    set?: $Enums.PlanTier | null
+  }
+
+  export type NullableBoolFieldUpdateOperationsInput = {
+    set?: boolean | null
   }
 
   export type OnboardingStepUpdateManyWithoutAccountNestedInput = {
@@ -9360,6 +13748,34 @@ export namespace Prisma {
     deleteMany?: HealthCheckScalarWhereInput | HealthCheckScalarWhereInput[]
   }
 
+  export type InvoiceUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput> | InvoiceCreateWithoutAccountInput[] | InvoiceUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: InvoiceCreateOrConnectWithoutAccountInput | InvoiceCreateOrConnectWithoutAccountInput[]
+    upsert?: InvoiceUpsertWithWhereUniqueWithoutAccountInput | InvoiceUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: InvoiceCreateManyAccountInputEnvelope
+    set?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    disconnect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    delete?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    connect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    update?: InvoiceUpdateWithWhereUniqueWithoutAccountInput | InvoiceUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: InvoiceUpdateManyWithWhereWithoutAccountInput | InvoiceUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: InvoiceScalarWhereInput | InvoiceScalarWhereInput[]
+  }
+
+  export type PlanChangeUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput> | PlanChangeCreateWithoutAccountInput[] | PlanChangeUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: PlanChangeCreateOrConnectWithoutAccountInput | PlanChangeCreateOrConnectWithoutAccountInput[]
+    upsert?: PlanChangeUpsertWithWhereUniqueWithoutAccountInput | PlanChangeUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: PlanChangeCreateManyAccountInputEnvelope
+    set?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    disconnect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    delete?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    update?: PlanChangeUpdateWithWhereUniqueWithoutAccountInput | PlanChangeUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: PlanChangeUpdateManyWithWhereWithoutAccountInput | PlanChangeUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
+  }
+
   export type OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput = {
     create?: XOR<OnboardingStepCreateWithoutAccountInput, OnboardingStepUncheckedCreateWithoutAccountInput> | OnboardingStepCreateWithoutAccountInput[] | OnboardingStepUncheckedCreateWithoutAccountInput[]
     connectOrCreate?: OnboardingStepCreateOrConnectWithoutAccountInput | OnboardingStepCreateOrConnectWithoutAccountInput[]
@@ -9400,6 +13816,34 @@ export namespace Prisma {
     update?: HealthCheckUpdateWithWhereUniqueWithoutAccountInput | HealthCheckUpdateWithWhereUniqueWithoutAccountInput[]
     updateMany?: HealthCheckUpdateManyWithWhereWithoutAccountInput | HealthCheckUpdateManyWithWhereWithoutAccountInput[]
     deleteMany?: HealthCheckScalarWhereInput | HealthCheckScalarWhereInput[]
+  }
+
+  export type InvoiceUncheckedUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput> | InvoiceCreateWithoutAccountInput[] | InvoiceUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: InvoiceCreateOrConnectWithoutAccountInput | InvoiceCreateOrConnectWithoutAccountInput[]
+    upsert?: InvoiceUpsertWithWhereUniqueWithoutAccountInput | InvoiceUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: InvoiceCreateManyAccountInputEnvelope
+    set?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    disconnect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    delete?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    connect?: InvoiceWhereUniqueInput | InvoiceWhereUniqueInput[]
+    update?: InvoiceUpdateWithWhereUniqueWithoutAccountInput | InvoiceUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: InvoiceUpdateManyWithWhereWithoutAccountInput | InvoiceUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: InvoiceScalarWhereInput | InvoiceScalarWhereInput[]
+  }
+
+  export type PlanChangeUncheckedUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput> | PlanChangeCreateWithoutAccountInput[] | PlanChangeUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: PlanChangeCreateOrConnectWithoutAccountInput | PlanChangeCreateOrConnectWithoutAccountInput[]
+    upsert?: PlanChangeUpsertWithWhereUniqueWithoutAccountInput | PlanChangeUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: PlanChangeCreateManyAccountInputEnvelope
+    set?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    disconnect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    delete?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+    update?: PlanChangeUpdateWithWhereUniqueWithoutAccountInput | PlanChangeUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: PlanChangeUpdateManyWithWhereWithoutAccountInput | PlanChangeUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
   }
 
   export type ClinicAccountCreateNestedOneWithoutStepsInput = {
@@ -9462,20 +13906,52 @@ export namespace Prisma {
     connect?: ClinicAccountWhereUniqueInput
   }
 
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type ClinicAccountUpdateOneRequiredWithoutHealthNestedInput = {
     create?: XOR<ClinicAccountCreateWithoutHealthInput, ClinicAccountUncheckedCreateWithoutHealthInput>
     connectOrCreate?: ClinicAccountCreateOrConnectWithoutHealthInput
     upsert?: ClinicAccountUpsertWithoutHealthInput
     connect?: ClinicAccountWhereUniqueInput
     update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutHealthInput, ClinicAccountUpdateWithoutHealthInput>, ClinicAccountUncheckedUpdateWithoutHealthInput>
+  }
+
+  export type ClinicAccountCreateNestedOneWithoutInvoicesInput = {
+    create?: XOR<ClinicAccountCreateWithoutInvoicesInput, ClinicAccountUncheckedCreateWithoutInvoicesInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutInvoicesInput
+    connect?: ClinicAccountWhereUniqueInput
+  }
+
+  export type EnumInvoiceStatusFieldUpdateOperationsInput = {
+    set?: $Enums.InvoiceStatus
+  }
+
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type ClinicAccountUpdateOneRequiredWithoutInvoicesNestedInput = {
+    create?: XOR<ClinicAccountCreateWithoutInvoicesInput, ClinicAccountUncheckedCreateWithoutInvoicesInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutInvoicesInput
+    upsert?: ClinicAccountUpsertWithoutInvoicesInput
+    connect?: ClinicAccountWhereUniqueInput
+    update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutInvoicesInput, ClinicAccountUpdateWithoutInvoicesInput>, ClinicAccountUncheckedUpdateWithoutInvoicesInput>
+  }
+
+  export type ClinicAccountCreateNestedOneWithoutPlanChangesInput = {
+    create?: XOR<ClinicAccountCreateWithoutPlanChangesInput, ClinicAccountUncheckedCreateWithoutPlanChangesInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutPlanChangesInput
+    connect?: ClinicAccountWhereUniqueInput
+  }
+
+  export type ClinicAccountUpdateOneRequiredWithoutPlanChangesNestedInput = {
+    create?: XOR<ClinicAccountCreateWithoutPlanChangesInput, ClinicAccountUncheckedCreateWithoutPlanChangesInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutPlanChangesInput
+    upsert?: ClinicAccountUpsertWithoutPlanChangesInput
+    connect?: ClinicAccountWhereUniqueInput
+    update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutPlanChangesInput, ClinicAccountUpdateWithoutPlanChangesInput>, ClinicAccountUncheckedUpdateWithoutPlanChangesInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -9632,6 +14108,36 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type NestedEnumPricingModelFilter<$PrismaModel = never> = {
+    equals?: $Enums.PricingModel | EnumPricingModelFieldRefInput<$PrismaModel>
+    in?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    not?: NestedEnumPricingModelFilter<$PrismaModel> | $Enums.PricingModel
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumPlanTierNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanTier | EnumPlanTierFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPlanTierNullableFilter<$PrismaModel> | $Enums.PlanTier | null
+  }
+
+  export type NestedBoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -9647,17 +14153,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedEnumAccountStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -9743,31 +14238,14 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+  export type NestedEnumPricingModelWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PricingModel | EnumPricingModelFieldRefInput<$PrismaModel>
+    in?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PricingModel[] | ListEnumPricingModelFieldRefInput<$PrismaModel>
+    not?: NestedEnumPricingModelWithAggregatesFilter<$PrismaModel> | $Enums.PricingModel
     _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+    _min?: NestedEnumPricingModelFilter<$PrismaModel>
+    _max?: NestedEnumPricingModelFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9795,6 +14273,118 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumPlanTierNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanTier | EnumPlanTierFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PlanTier[] | ListEnumPlanTierFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPlanTierNullableWithAggregatesFilter<$PrismaModel> | $Enums.PlanTier | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPlanTierNullableFilter<$PrismaModel>
+    _max?: NestedEnumPlanTierNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumInvoiceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.InvoiceStatus | EnumInvoiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumInvoiceStatusFilter<$PrismaModel> | $Enums.InvoiceStatus
+  }
+
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type NestedEnumInvoiceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.InvoiceStatus | EnumInvoiceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.InvoiceStatus[] | ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumInvoiceStatusWithAggregatesFilter<$PrismaModel> | $Enums.InvoiceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumInvoiceStatusFilter<$PrismaModel>
+    _max?: NestedEnumInvoiceStatusFilter<$PrismaModel>
+  }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
   }
 
   export type ActivityLogCreateWithoutActorInput = {
@@ -9947,6 +14537,110 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type InvoiceCreateWithoutAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InvoiceUncheckedCreateWithoutAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InvoiceCreateOrConnectWithoutAccountInput = {
+    where: InvoiceWhereUniqueInput
+    create: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput>
+  }
+
+  export type InvoiceCreateManyAccountInputEnvelope = {
+    data: InvoiceCreateManyAccountInput | InvoiceCreateManyAccountInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlanChangeCreateWithoutAccountInput = {
+    id?: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
+  }
+
+  export type PlanChangeUncheckedCreateWithoutAccountInput = {
+    id?: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
+  }
+
+  export type PlanChangeCreateOrConnectWithoutAccountInput = {
+    where: PlanChangeWhereUniqueInput
+    create: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput>
+  }
+
+  export type PlanChangeCreateManyAccountInputEnvelope = {
+    data: PlanChangeCreateManyAccountInput | PlanChangeCreateManyAccountInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OnboardingStepUpsertWithWhereUniqueWithoutAccountInput = {
     where: OnboardingStepWhereUniqueInput
     update: XOR<OnboardingStepUpdateWithoutAccountInput, OnboardingStepUncheckedUpdateWithoutAccountInput>
@@ -10023,6 +14717,88 @@ export namespace Prisma {
     checkedAt?: DateTimeFilter<"HealthCheck"> | Date | string
   }
 
+  export type InvoiceUpsertWithWhereUniqueWithoutAccountInput = {
+    where: InvoiceWhereUniqueInput
+    update: XOR<InvoiceUpdateWithoutAccountInput, InvoiceUncheckedUpdateWithoutAccountInput>
+    create: XOR<InvoiceCreateWithoutAccountInput, InvoiceUncheckedCreateWithoutAccountInput>
+  }
+
+  export type InvoiceUpdateWithWhereUniqueWithoutAccountInput = {
+    where: InvoiceWhereUniqueInput
+    data: XOR<InvoiceUpdateWithoutAccountInput, InvoiceUncheckedUpdateWithoutAccountInput>
+  }
+
+  export type InvoiceUpdateManyWithWhereWithoutAccountInput = {
+    where: InvoiceScalarWhereInput
+    data: XOR<InvoiceUpdateManyMutationInput, InvoiceUncheckedUpdateManyWithoutAccountInput>
+  }
+
+  export type InvoiceScalarWhereInput = {
+    AND?: InvoiceScalarWhereInput | InvoiceScalarWhereInput[]
+    OR?: InvoiceScalarWhereInput[]
+    NOT?: InvoiceScalarWhereInput | InvoiceScalarWhereInput[]
+    id?: StringFilter<"Invoice"> | string
+    accountId?: StringFilter<"Invoice"> | string
+    number?: StringNullableFilter<"Invoice"> | string | null
+    fy?: StringNullableFilter<"Invoice"> | string | null
+    serial?: IntNullableFilter<"Invoice"> | number | null
+    status?: EnumInvoiceStatusFilter<"Invoice"> | $Enums.InvoiceStatus
+    issuedAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    dueAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    periodStart?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    isFirst?: BoolFilter<"Invoice"> | boolean
+    billingName?: StringNullableFilter<"Invoice"> | string | null
+    billingAddress?: StringNullableFilter<"Invoice"> | string | null
+    gstin?: StringNullableFilter<"Invoice"> | string | null
+    placeOfSupply?: StringNullableFilter<"Invoice"> | string | null
+    planLabel?: StringFilter<"Invoice"> | string
+    lines?: JsonFilter<"Invoice">
+    subtotal?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    paidAt?: DateTimeNullableFilter<"Invoice"> | Date | string | null
+    paymentMode?: StringNullableFilter<"Invoice"> | string | null
+    paymentRef?: StringNullableFilter<"Invoice"> | string | null
+    notes?: StringNullableFilter<"Invoice"> | string | null
+    createdAt?: DateTimeFilter<"Invoice"> | Date | string
+    updatedAt?: DateTimeFilter<"Invoice"> | Date | string
+  }
+
+  export type PlanChangeUpsertWithWhereUniqueWithoutAccountInput = {
+    where: PlanChangeWhereUniqueInput
+    update: XOR<PlanChangeUpdateWithoutAccountInput, PlanChangeUncheckedUpdateWithoutAccountInput>
+    create: XOR<PlanChangeCreateWithoutAccountInput, PlanChangeUncheckedCreateWithoutAccountInput>
+  }
+
+  export type PlanChangeUpdateWithWhereUniqueWithoutAccountInput = {
+    where: PlanChangeWhereUniqueInput
+    data: XOR<PlanChangeUpdateWithoutAccountInput, PlanChangeUncheckedUpdateWithoutAccountInput>
+  }
+
+  export type PlanChangeUpdateManyWithWhereWithoutAccountInput = {
+    where: PlanChangeScalarWhereInput
+    data: XOR<PlanChangeUpdateManyMutationInput, PlanChangeUncheckedUpdateManyWithoutAccountInput>
+  }
+
+  export type PlanChangeScalarWhereInput = {
+    AND?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
+    OR?: PlanChangeScalarWhereInput[]
+    NOT?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
+    id?: StringFilter<"PlanChange"> | string
+    accountId?: StringFilter<"PlanChange"> | string
+    fromPlan?: EnumPlanTierNullableFilter<"PlanChange"> | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFilter<"PlanChange"> | $Enums.PlanTier
+    fromFeatures?: StringNullableFilter<"PlanChange"> | string | null
+    toFeatures?: StringFilter<"PlanChange"> | string
+    readOnly?: BoolFilter<"PlanChange"> | boolean
+    reason?: StringNullableFilter<"PlanChange"> | string | null
+    actorName?: StringFilter<"PlanChange"> | string
+    jobId?: StringNullableFilter<"PlanChange"> | string | null
+    at?: DateTimeFilter<"PlanChange"> | Date | string
+  }
+
   export type ClinicAccountCreateWithoutStepsInput = {
     id?: string
     slug: string
@@ -10040,6 +14816,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10051,6 +14844,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
     health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutStepsInput = {
@@ -10070,6 +14865,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10081,6 +14893,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutStepsInput = {
@@ -10116,6 +14930,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10127,6 +14958,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutStepsInput = {
@@ -10146,6 +14979,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10157,6 +15007,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateWithoutActivityInput = {
@@ -10176,6 +15028,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10187,6 +15056,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     steps?: OnboardingStepCreateNestedManyWithoutAccountInput
     health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutActivityInput = {
@@ -10206,6 +15077,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10217,6 +15105,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutActivityInput = {
@@ -10277,6 +15167,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10288,6 +15195,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutActivityInput = {
@@ -10307,6 +15216,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10318,6 +15244,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ProviderUserUpsertWithoutActivityInput = {
@@ -10368,6 +15296,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10379,6 +15324,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     steps?: OnboardingStepCreateNestedManyWithoutAccountInput
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutHealthInput = {
@@ -10398,6 +15345,23 @@ export namespace Prisma {
     billingCycle?: $Enums.BillingCycle
     startedAt?: Date | string | null
     renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -10409,6 +15373,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutHealthInput = {
@@ -10444,6 +15410,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10455,6 +15438,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutHealthInput = {
@@ -10474,6 +15459,23 @@ export namespace Prisma {
     billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10485,6 +15487,432 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountCreateWithoutInvoicesInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogCreateNestedManyWithoutAccountInput
+    health?: HealthCheckCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountUncheckedCreateWithoutInvoicesInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
+    health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountCreateOrConnectWithoutInvoicesInput = {
+    where: ClinicAccountWhereUniqueInput
+    create: XOR<ClinicAccountCreateWithoutInvoicesInput, ClinicAccountUncheckedCreateWithoutInvoicesInput>
+  }
+
+  export type ClinicAccountUpsertWithoutInvoicesInput = {
+    update: XOR<ClinicAccountUpdateWithoutInvoicesInput, ClinicAccountUncheckedUpdateWithoutInvoicesInput>
+    create: XOR<ClinicAccountCreateWithoutInvoicesInput, ClinicAccountUncheckedCreateWithoutInvoicesInput>
+    where?: ClinicAccountWhereInput
+  }
+
+  export type ClinicAccountUpdateToOneWithWhereWithoutInvoicesInput = {
+    where?: ClinicAccountWhereInput
+    data: XOR<ClinicAccountUpdateWithoutInvoicesInput, ClinicAccountUncheckedUpdateWithoutInvoicesInput>
+  }
+
+  export type ClinicAccountUpdateWithoutInvoicesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountUncheckedUpdateWithoutInvoicesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountCreateWithoutPlanChangesInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogCreateNestedManyWithoutAccountInput
+    health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountUncheckedCreateWithoutPlanChangesInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
+    health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountCreateOrConnectWithoutPlanChangesInput = {
+    where: ClinicAccountWhereUniqueInput
+    create: XOR<ClinicAccountCreateWithoutPlanChangesInput, ClinicAccountUncheckedCreateWithoutPlanChangesInput>
+  }
+
+  export type ClinicAccountUpsertWithoutPlanChangesInput = {
+    update: XOR<ClinicAccountUpdateWithoutPlanChangesInput, ClinicAccountUncheckedUpdateWithoutPlanChangesInput>
+    create: XOR<ClinicAccountCreateWithoutPlanChangesInput, ClinicAccountUncheckedCreateWithoutPlanChangesInput>
+    where?: ClinicAccountWhereInput
+  }
+
+  export type ClinicAccountUpdateToOneWithWhereWithoutPlanChangesInput = {
+    where?: ClinicAccountWhereInput
+    data: XOR<ClinicAccountUpdateWithoutPlanChangesInput, ClinicAccountUncheckedUpdateWithoutPlanChangesInput>
+  }
+
+  export type ClinicAccountUpdateWithoutPlanChangesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountUncheckedUpdateWithoutPlanChangesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ActivityLogCreateManyActorInput = {
@@ -10555,6 +15983,48 @@ export namespace Prisma {
     latencyMs?: number | null
     error?: string | null
     checkedAt?: Date | string
+  }
+
+  export type InvoiceCreateManyAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.InvoiceStatus
+    issuedAt?: Date | string | null
+    dueAt?: Date | string | null
+    periodStart?: Date | string | null
+    isFirst?: boolean
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    placeOfSupply?: string | null
+    planLabel: string
+    lines: JsonNullValueInput | InputJsonValue
+    subtotal: Decimal | DecimalJsLike | number | string
+    cgst: Decimal | DecimalJsLike | number | string
+    sgst: Decimal | DecimalJsLike | number | string
+    igst: Decimal | DecimalJsLike | number | string
+    total: Decimal | DecimalJsLike | number | string
+    paidAt?: Date | string | null
+    paymentMode?: string | null
+    paymentRef?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlanChangeCreateManyAccountInput = {
+    id?: string
+    fromPlan?: $Enums.PlanTier | null
+    toPlan: $Enums.PlanTier
+    fromFeatures?: string | null
+    toFeatures: string
+    readOnly?: boolean
+    reason?: string | null
+    actorName: string
+    jobId?: string | null
+    at?: Date | string
   }
 
   export type OnboardingStepUpdateWithoutAccountInput = {
@@ -10645,6 +16115,132 @@ export namespace Prisma {
     latencyMs?: NullableIntFieldUpdateOperationsInput | number | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     checkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InvoiceUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InvoiceUncheckedUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InvoiceUncheckedUpdateManyWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumInvoiceStatusFieldUpdateOperationsInput | $Enums.InvoiceStatus
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    periodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isFirst?: BoolFieldUpdateOperationsInput | boolean
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    placeOfSupply?: NullableStringFieldUpdateOperationsInput | string | null
+    planLabel?: StringFieldUpdateOperationsInput | string
+    lines?: JsonNullValueInput | InputJsonValue
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paymentMode?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentRef?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeUncheckedUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanChangeUncheckedUpdateManyWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    toPlan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    fromFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    toFeatures?: StringFieldUpdateOperationsInput | string
+    readOnly?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    actorName?: StringFieldUpdateOperationsInput | string
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

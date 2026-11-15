@@ -169,6 +169,46 @@ for job in "${JOB_FILES[@]}"; do
     continue
   fi
 
+  # ── Changing what a clinic is entitled to ──────────────────────────
+  #
+  # A plan change, a module added to a deal, a suspension or a
+  # resumption: four lines of the clinic's env file and a restart, done
+  # by set-plan.sh. Its own branch for the same reason as sync-origins --
+  # it touches a live clinic.
+  if [ "$kind" = "set-plan" ]; then
+    features="$(read_json "$job" features)"
+    readonly_flag="$(read_json "$job" readOnly)"
+    max_users="$(read_json "$job" maxUsers)"
+    fault=""
+    [ -n "$slug" ] || fault="slug is missing"
+    [ -z "$fault" ] && ! printf '%s' "$slug" | grep -qE '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'       && fault="slug '$slug' is not a valid hostname label"
+    case "$plan" in BASIC|STANDARD|PREMIUM|ENTERPRISE) ;; *) [ -z "$fault" ] && fault="plan '$plan' is not a plan" ;; esac
+
+    if [ -n "$fault" ]; then
+      log "  rejected: $fault"
+      write_status "$id" failed "$fault"
+      mv -f "$job" "$ARCHIVE/$id.json"
+      continue
+    fi
+
+    write_status "$id" running "Applying the $plan plan to $slug"
+    out="$JOBS/.out-$id"
+    if "$ROOT/repo/deploy/set-plan.sh" "$slug" "$plan" "$features" "${readonly_flag:-0}" "$max_users" > "$out" 2>&1; then
+      write_status "$id" succeeded "$slug is now on $plan${features:+ with $features}$([ "${readonly_flag:-0}" = 1 ] && printf ', read-only')"
+      log "  succeeded: $slug plan -> $plan"
+    else
+      tail="$(redact < "$out" | strip_ansi | tail -8 | tr '
+' ' ' | sed 's/  */ /g')"
+      write_status "$id" failed "$tail"
+      log "  FAILED: $slug plan"
+      redact < "$out" | tail -15 | sed 's/^/      /'
+    fi
+    # Kept: a record of who changed what a live clinic may do.
+    mv -f "$job" "$ARCHIVE/$id.json"
+    rm -f "$out"
+    continue
+  fi
+
   # Validate before acting. These values came from an HTTP request, and
   # the slug in particular becomes a hostname, a filename and a
   # container name.
@@ -180,7 +220,13 @@ for job in "${JOB_FILES[@]}"; do
   [ -z "$fault" ] && [ -z "$email" ] && fault="doctor email is missing"
   [ -z "$fault" ] && ! printf '%s' "$dburl" | grep -qE '^postgres(ql)?://' \
     && fault="databaseUrl is not a Postgres connection string"
-  case "$plan" in BASIC|STANDARD|PREMIUM) ;; *) plan=STANDARD ;; esac
+  # ENTERPRISE was missing here, so a Multi-specialty clinic was quietly
+  # provisioned as STANDARD. An unknown plan is now refused, not guessed.
+  case "$plan" in
+    BASIC|STANDARD|PREMIUM|ENTERPRISE) ;;
+    "") plan=STANDARD ;;
+    *) [ -z "$fault" ] && fault="plan '$plan' is not one of BASIC, STANDARD, PREMIUM, ENTERPRISE" ;;
+  esac
 
   if [ -n "$fault" ]; then
     log "  rejected: $fault"

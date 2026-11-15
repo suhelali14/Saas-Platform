@@ -9,7 +9,7 @@ import {
 import { env } from "../config/env.js";
 import { requireClinicAuth } from "../plugins/auth.js";
 import { auditAuth } from "../lib/audit.js";
-import { isFeatureEnabled } from "../config/features.js";
+import { currentPlan, moduleStates } from "../config/features.js";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -152,9 +152,11 @@ export async function clinicAuthRoutes(app: FastifyInstance) {
       user,
       clinic: clinic ? { name: clinic.name, doctorName: clinic.doctorName } : null,
       plan: env.CLINIC_PLAN,
-      enabledFeatures: {
-        staff: isFeatureEnabled("staff"),
-      },
+      planLabel: currentPlan().label,
+      enabledFeatures: moduleStates(),
+      readOnly: env.CLINIC_READ_ONLY,
+      demo: env.CLINIC_DEMO,
+      upgradeContact: env.UPGRADE_CONTACT ?? null,
     };
   });
 }

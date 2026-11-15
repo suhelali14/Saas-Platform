@@ -148,6 +148,23 @@ exports.Prisma.ClinicAccountScalarFieldEnum = {
   billingCycle: 'billingCycle',
   startedAt: 'startedAt',
   renewsAt: 'renewsAt',
+  pricingModel: 'pricingModel',
+  setupFee: 'setupFee',
+  yearlyFee: 'yearlyFee',
+  licenceFee: 'licenceFee',
+  amcPercent: 'amcPercent',
+  hostingFee: 'hostingFee',
+  maxUsersOverride: 'maxUsersOverride',
+  billingName: 'billingName',
+  billingAddress: 'billingAddress',
+  gstin: 'gstin',
+  billingState: 'billingState',
+  appliedPlan: 'appliedPlan',
+  appliedFeatures: 'appliedFeatures',
+  appliedReadOnly: 'appliedReadOnly',
+  appliedAt: 'appliedAt',
+  planJobId: 'planJobId',
+  isDemo: 'isDemo',
   publicDomain: 'publicDomain',
   portalDomain: 'portalDomain',
   apiDomain: 'apiDomain',
@@ -192,6 +209,50 @@ exports.Prisma.HealthCheckScalarFieldEnum = {
   checkedAt: 'checkedAt'
 };
 
+exports.Prisma.InvoiceScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  number: 'number',
+  fy: 'fy',
+  serial: 'serial',
+  status: 'status',
+  issuedAt: 'issuedAt',
+  dueAt: 'dueAt',
+  periodStart: 'periodStart',
+  isFirst: 'isFirst',
+  billingName: 'billingName',
+  billingAddress: 'billingAddress',
+  gstin: 'gstin',
+  placeOfSupply: 'placeOfSupply',
+  planLabel: 'planLabel',
+  lines: 'lines',
+  subtotal: 'subtotal',
+  cgst: 'cgst',
+  sgst: 'sgst',
+  igst: 'igst',
+  total: 'total',
+  paidAt: 'paidAt',
+  paymentMode: 'paymentMode',
+  paymentRef: 'paymentRef',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlanChangeScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  fromPlan: 'fromPlan',
+  toPlan: 'toPlan',
+  fromFeatures: 'fromFeatures',
+  toFeatures: 'toFeatures',
+  readOnly: 'readOnly',
+  reason: 'reason',
+  actorName: 'actorName',
+  jobId: 'jobId',
+  at: 'at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -199,6 +260,10 @@ exports.Prisma.SortOrder = {
 
 exports.Prisma.NullableJsonNullValueInput = {
   DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -243,12 +308,27 @@ exports.BillingCycle = exports.$Enums.BillingCycle = {
   ANNUAL: 'ANNUAL'
 };
 
+exports.PricingModel = exports.$Enums.PricingModel = {
+  SETUP_YEARLY: 'SETUP_YEARLY',
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  LICENCE_AMC: 'LICENCE_AMC'
+};
+
+exports.InvoiceStatus = exports.$Enums.InvoiceStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  PAID: 'PAID',
+  VOID: 'VOID'
+};
+
 exports.Prisma.ModelName = {
   ProviderUser: 'ProviderUser',
   ClinicAccount: 'ClinicAccount',
   OnboardingStep: 'OnboardingStep',
   ActivityLog: 'ActivityLog',
-  HealthCheck: 'HealthCheck'
+  HealthCheck: 'HealthCheck',
+  Invoice: 'Invoice',
+  PlanChange: 'PlanChange'
 };
 
 /**

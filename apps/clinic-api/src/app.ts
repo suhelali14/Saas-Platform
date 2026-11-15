@@ -141,6 +141,30 @@ export function buildApp() {
     },
   });
 
+  /*
+   * A suspended clinic is read-only, not locked out.
+   *
+   * Anything can be looked at, printed or exported; nothing can be
+   * changed. Signing in and out still work, or nobody could reach the
+   * records to read them. Patient data is never hidden or deleted for
+   * non-payment: the clinic still has patients, and a doctor who cannot
+   * see an allergy because an invoice is late is a safety problem, not a
+   * billing lever.
+   */
+  if (env.CLINIC_READ_ONLY) {
+    const ALLOWED_WRITES = new Set(["/api/clinic/auth/login", "/api/clinic/auth/logout"]);
+    app.addHook("onRequest", async (request, reply) => {
+      const method = request.method.toUpperCase();
+      if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
+      const path = request.url.split("?")[0] ?? "";
+      if (ALLOWED_WRITES.has(path)) return;
+      return reply.status(423).send({
+        error: "This clinic's account is paused, so nothing can be changed right now. Everything can still be viewed and exported. Please contact Nayaverse.",
+        readOnly: true,
+      });
+    });
+  }
+
   app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }); // matches lib/file-storage.ts's cap
   app.register(authPlugin);
   app.register(healthRoutes);
@@ -152,28 +176,27 @@ export function buildApp() {
   app.register(clinicPrescriptionRoutes);
   app.register(clinicCertificateRoutes);
   app.register(clinicReminderRoutes);
-  app.register(clinicAnalyticsRoutes);
   app.register(clinicDashboardRoutes);
-  app.register(clinicBillingRoutes);
-  app.register(clinicInventoryRoutes);
   app.register(clinicVitalsTrendRoutes);
-  app.register(clinicLabRoutes);
   app.register(clinicPublicRoutes);
   app.register(clinicSettingsRoutes);
+  // Never gated: a legal duty and the way out. See config/features.ts.
   app.register(clinicAuditRoutes);
-  app.register(clinicExpenseRoutes);
   app.register(clinicExportRoutes);
   app.register(clinicSiteRoutes);
   app.register(clinicBookingRoutes);
-  app.register(clinicTranslationRoutes);
   app.register(clinicDocTemplateRoutes);
 
-  // Plan-gated: a BASIC deployment never registers this module at all, so
-  // /api/clinic/staff simply doesn't exist for it (404, not 403) -- see
-  // config/features.ts and the plan's "Multi-client deployment model".
-  if (isFeatureEnabled("staff")) {
-    app.register(clinicStaffRoutes);
-  }
+  // Plan-gated modules. A module that is off is never registered, so its
+  // paths 404 like any other and there is nothing to probe -- see
+  // config/features.ts.
+  if (isFeatureEnabled("staff")) app.register(clinicStaffRoutes);
+  if (isFeatureEnabled("billing")) app.register(clinicBillingRoutes);
+  if (isFeatureEnabled("labs")) app.register(clinicLabRoutes);
+  if (isFeatureEnabled("pharmacy")) app.register(clinicInventoryRoutes);
+  if (isFeatureEnabled("analytics")) app.register(clinicAnalyticsRoutes);
+  if (isFeatureEnabled("expenses")) app.register(clinicExpenseRoutes);
+  if (isFeatureEnabled("multilingual")) app.register(clinicTranslationRoutes);
 
   return app;
 }

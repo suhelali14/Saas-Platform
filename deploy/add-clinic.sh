@@ -47,7 +47,8 @@ die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 warn() { printf '\033[33m    %s\033[0m\n' "$*" >&2; }
 
 [ "$(id -u)" = "0" ] || die "Run as root (sudo $0 <slug>)"
-[ -n "$SLUG" ] || die "Usage: sudo $0 <slug> [--plan BASIC|STANDARD|PREMIUM]"
+[ -n "$SLUG" ] || die "Usage: sudo $0 <slug> [--plan BASIC|STANDARD|PREMIUM|ENTERPRISE]"
+case "$PLAN" in BASIC|STANDARD|PREMIUM|ENTERPRISE) ;; *) die "Plan must be BASIC, STANDARD, PREMIUM or ENTERPRISE, not '$PLAN'." ;; esac
 [ -d "$ROOT/repo" ] || die "Run deploy/bootstrap-server.sh first"
 
 # ── Validate the slug as a hostname ───────────────────────────────────

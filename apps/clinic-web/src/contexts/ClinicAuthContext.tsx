@@ -13,17 +13,52 @@ export interface ClinicStaffUser {
   isAdmin?: boolean;
 }
 
+/** What this clinic's plan includes, and the account's state. */
+export interface Entitlement {
+  plan: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+  planLabel: string;
+  /** Every module and whether it is on. The API never registers one that
+   *  is off; this only keeps the menu honest. */
+  modules: Record<string, boolean>;
+  /** Suspended: everything can be viewed, nothing changed. */
+  readOnly: boolean;
+  /** A demonstration deployment with made-up patients. */
+  demo: boolean;
+  /** Who to ask for a module the plan does not include. */
+  upgradeContact: string | null;
+}
+
 interface MeResponse {
   user: ClinicStaffUser;
   clinic: { name: string; doctorName: string | null } | null;
-  plan: 'BASIC' | 'STANDARD' | 'PREMIUM';
-  enabledFeatures: { staff: boolean };
+  plan: Entitlement['plan'];
+  planLabel?: string;
+  enabledFeatures: Record<string, boolean>;
+  readOnly?: boolean;
+  demo?: boolean;
+  upgradeContact?: string | null;
+}
+
+const NO_ENTITLEMENT: Entitlement = { plan: 'BASIC', planLabel: 'Clinic', modules: {}, readOnly: false, demo: false, upgradeContact: null };
+
+function toEntitlement(me: MeResponse): Entitlement {
+  return {
+    plan: me.plan,
+    planLabel: me.planLabel ?? me.plan,
+    modules: me.enabledFeatures ?? {},
+    readOnly: !!me.readOnly,
+    demo: !!me.demo,
+    upgradeContact: me.upgradeContact ?? null,
+  };
 }
 
 interface ClinicAuthContextType {
   user: ClinicStaffUser | null;
   clinicName: string | null;
-  enabledFeatures: { staff: boolean };
+  /** Kept for existing call sites; the same map as entitlement.modules. */
+  enabledFeatures: Record<string, boolean>;
+  entitlement: Entitlement;
+  hasModule: (key: string) => boolean;
   isLoading: boolean;
   isAuthenticated: boolean;
   canWriteClinical: boolean;
@@ -37,7 +72,7 @@ const ClinicAuthContext = createContext<ClinicAuthContextType | undefined>(undef
 export function ClinicAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<ClinicStaffUser | null>(null);
   const [clinicName, setClinicName] = useState<string | null>(null);
-  const [enabledFeatures, setEnabledFeatures] = useState({ staff: false });
+  const [entitlement, setEntitlement] = useState<Entitlement>(NO_ENTITLEMENT);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +86,7 @@ export function ClinicAuthProvider({ children }: { children: ReactNode }) {
         const me = await apiFetch<MeResponse>('/auth/me');
         setUser(me.user);
         setClinicName(me.clinic?.name ?? null);
-        setEnabledFeatures(me.enabledFeatures);
+        setEntitlement(toEntitlement(me));
       } catch {
         localStorage.removeItem('clinicAccessToken');
       } finally {
@@ -66,7 +101,7 @@ export function ClinicAuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
     const me = await apiFetch<MeResponse>('/auth/me');
     setClinicName(me.clinic?.name ?? null);
-    setEnabledFeatures(me.enabledFeatures);
+    setEntitlement(toEntitlement(me));
   };
 
   const logout = () => {
@@ -82,9 +117,11 @@ export function ClinicAuthProvider({ children }: { children: ReactNode }) {
   // Hides the admin screens. The server enforces the same flag; this
   // only keeps the nav honest.
   const isAdmin = user?.isAdmin === true;
+  const enabledFeatures = entitlement.modules;
+  const hasModule = (key: string) => entitlement.modules[key] === true;
 
   return (
-    <ClinicAuthContext.Provider value={{ user, clinicName, enabledFeatures, isLoading, isAuthenticated: !!user, canWriteClinical, isAdmin, login, logout }}>
+    <ClinicAuthContext.Provider value={{ user, clinicName, enabledFeatures, entitlement, hasModule, isLoading, isAuthenticated: !!user, canWriteClinical, isAdmin, login, logout }}>
       {children}
     </ClinicAuthContext.Provider>
   );

@@ -1,4 +1,6 @@
-export type PlanTier = 'BASIC' | 'STANDARD' | 'PREMIUM';
+export type PlanTier = 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+export type PricingModel = 'SETUP_YEARLY' | 'SUBSCRIPTION' | 'LICENCE_AMC';
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'VOID';
 export type AccountStatus = 'LEAD' | 'ONBOARDING' | 'LIVE' | 'SUSPENDED' | 'CHURNED';
 
 export interface HealthCheck {
@@ -53,7 +55,70 @@ export interface ClinicAccount {
   neonProjectId: string | null;
   provisionedAt: string | null;
   createdAt: string;
+  // The deal.
+  pricingModel: PricingModel;
+  setupFee: string | null;
+  yearlyFee: string | null;
+  licenceFee: string | null;
+  amcPercent: string | null;
+  hostingFee: string | null;
+  maxUsersOverride: number | null;
+  billingName: string | null;
+  billingAddress: string | null;
+  gstin: string | null;
+  billingState: string | null;
+  // What the clinic's server was last told.
+  appliedPlan: PlanTier | null;
+  appliedFeatures: string | null;
+  appliedReadOnly: boolean | null;
+  appliedAt: string | null;
+  planJobId: string | null;
+  isDemo: boolean;
 }
+
+export interface InvoiceLine { description: string; sac: string; amount: number }
+
+export interface Invoice {
+  id: string;
+  accountId: string;
+  number: string | null;
+  status: InvoiceStatus;
+  issuedAt: string | null;
+  dueAt: string | null;
+  periodStart: string | null;
+  isFirst: boolean;
+  billingName: string | null;
+  billingAddress: string | null;
+  gstin: string | null;
+  placeOfSupply: string | null;
+  planLabel: string;
+  lines: InvoiceLine[];
+  subtotal: string;
+  cgst: string;
+  sgst: string;
+  igst: string;
+  total: string;
+  paidAt: string | null;
+  paymentMode: string | null;
+  paymentRef: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PlanChange {
+  id: string;
+  fromPlan: PlanTier | null;
+  toPlan: PlanTier;
+  fromFeatures: string | null;
+  toFeatures: string;
+  readOnly: boolean;
+  reason: string | null;
+  actorName: string;
+  jobId: string | null;
+  at: string;
+}
+
+export interface ListPrice { setupFee: number; yearlyFee: number; monthlyFee: number; licenceFee: number; amcPercent: number }
 
 export interface AccountListItem extends ClinicAccount {
   progress: { done: number; total: number };
@@ -67,6 +132,10 @@ export interface AccountDetail {
     health: HealthCheck[];
   };
   features: string[];
+  /** The chosen plan differs from what the clinic was last told. */
+  pendingApply: boolean;
+  /** What the contract brings in a month, whatever its model. */
+  monthlyValue: number;
 }
 
 export interface FeatureSpec {
@@ -78,6 +147,8 @@ export interface FeatureSpec {
    * descriptive — promising one of those in a sales call would be a promise
    * the software does not keep. */
   enforced: boolean;
+  /** Built and working, as opposed to sold-but-coming. */
+  built?: boolean;
 }
 
 export interface Meta {
@@ -93,6 +164,14 @@ export interface Meta {
    *  False means the host runner is missing or not sharing the queue,
    *  in which case provisioning would hang at "Queued" forever. */
   queue?: { ok: true } | { ok: false; reason: string };
+  planLabels: Record<PlanTier, string>;
+  planFits: Record<PlanTier, string>;
+  planSeats: Record<PlanTier, number | null>;
+  listPrices: Record<PlanTier, ListPrice>;
+  alwaysIncluded: string[];
+  /** GST state codes to names. */
+  states: Record<string, string>;
+  supplierStateCode: string;
 }
 
 export interface ProvisionStep {
@@ -130,6 +209,21 @@ export const PLAN_VARIANT: Record<PlanTier, 'default' | 'outline'> = {
   BASIC: 'outline',
   STANDARD: 'outline',
   PREMIUM: 'default',
+  ENTERPRISE: 'default',
+};
+
+/** Plan names as they are sold. The keys stay the old ones everywhere. */
+export const PLAN_LABEL: Record<PlanTier, string> = {
+  BASIC: 'Clinic',
+  STANDARD: 'Polyclinic',
+  PREMIUM: 'Hospital',
+  ENTERPRISE: 'Multi-specialty',
+};
+
+export const PRICING_LABEL: Record<PricingModel, string> = {
+  SETUP_YEARLY: 'Setup fee + yearly fee',
+  SUBSCRIPTION: 'Subscription',
+  LICENCE_AMC: 'Licence + AMC',
 };
 
 export function money(value: string | number | null, currency = 'INR'): string {

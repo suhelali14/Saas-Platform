@@ -4,6 +4,7 @@ import { Search, User, CornerDownLeft, AlertTriangle } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { cn } from '@/lib/utils';
 import { CATEGORY_BADGES } from '../lib/categories';
+import { useClinicAuth } from '../contexts/ClinicAuthContext';
 
 /**
  * Jump to any patient or screen by typing. Ctrl+K.
@@ -42,19 +43,21 @@ type PatientHit = {
   lastSeen: string | null;
 };
 
-type Destination = { label: string; to: string; keywords: string };
+/** `module` names the plan module a screen belongs to; a screen whose
+ *  module is off is not offered. */
+type Destination = { label: string; to: string; keywords: string; module?: string };
 
 /** The screens worth jumping to, with the words people actually type. */
 const DESTINATIONS: Destination[] = [
-  { label: 'Dashboard', to: '/', keywords: 'home today overview' },
-  { label: "Today's Queue", to: '/queue', keywords: 'queue waiting appointments today' },
+  { label: 'Overview', to: '/', keywords: 'home today overview dashboard' },
+  { label: 'Queue', to: '/queue', keywords: 'queue waiting appointments today' },
   { label: 'Patients', to: '/patients', keywords: 'patients records people' },
-  { label: 'Billing', to: '/billing', keywords: 'billing invoice payment money cash' },
-  { label: 'Pharmacy', to: '/pharmacy', keywords: 'pharmacy dispense stock inventory medicine' },
-  { label: 'Labs', to: '/labs', keywords: 'labs tests results pathology' },
+  { label: 'Billing', to: '/billing', keywords: 'billing invoice payment money cash' , module: 'billing' },
+  { label: 'Pharmacy', to: '/pharmacy', keywords: 'pharmacy dispense stock inventory medicine' , module: 'pharmacy' },
+  { label: 'Labs', to: '/labs', keywords: 'labs tests results pathology' , module: 'labs' },
   { label: 'Reminders', to: '/reminders', keywords: 'reminders followups follow-up' },
-  { label: 'Expenses', to: '/expenses', keywords: 'expenses spending profit loss' },
-  { label: 'Analytics', to: '/analytics', keywords: 'analytics reports trends' },
+  { label: 'Expenses', to: '/expenses', keywords: 'expenses spending profit loss' , module: 'expenses' },
+  { label: 'Reports', to: '/analytics', keywords: 'analytics reports trends' , module: 'analytics' },
   { label: 'Website', to: '/website', keywords: 'website public page blog gallery' },
   { label: 'Settings', to: '/settings', keywords: 'settings clinic profile password documents' },
 ];
@@ -67,6 +70,7 @@ export function QuickSwitcher() {
   const [searching, setSearching] = useState(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { hasModule } = useClinicAuth();
 
   // ── Opening ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -126,7 +130,7 @@ export function QuickSwitcher() {
   const term = query.trim().toLowerCase();
   const screens = term
     ? DESTINATIONS.filter(
-        (d) => d.label.toLowerCase().includes(term) || d.keywords.includes(term),
+        (d) => (!d.module || hasModule(d.module)) && (d.label.toLowerCase().includes(term) || d.keywords.includes(term)),
       ).slice(0, 4)
     : [];
 

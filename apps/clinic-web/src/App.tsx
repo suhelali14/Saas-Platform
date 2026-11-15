@@ -7,6 +7,7 @@ import { SkeletonPage } from './components/Skeleton';
 import { siteMode } from './lib/site-mode';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
+import { NotInPlan } from './components/NotInPlan';
 
 /**
  * ── Why every screen below is lazy ───────────────────────────────────
@@ -71,10 +72,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function StaffRoute({ children }: { children: React.ReactNode }) {
-  const { enabledFeatures } = useClinicAuth();
-  if (!enabledFeatures.staff) return <Navigate to="/queue" replace />;
+/** A screen that belongs to a module. Off, it says which plan includes
+ *  it and who to ask, instead of bouncing to the queue as if the link
+ *  were broken. */
+function ModuleRoute({ module, children }: { module: string; children: React.ReactNode }) {
+  const { hasModule } = useClinicAuth();
+  if (!hasModule(module)) return <NotInPlan module={module} />;
   return <>{children}</>;
+}
+
+function StaffRoute({ children }: { children: React.ReactNode }) {
+  return <ModuleRoute module="staff">{children}</ModuleRoute>;
 }
 
 const PHARMACY_ROLES = new Set(['PHARMACIST', 'DOCTOR', 'ADMIN']);
@@ -172,11 +180,11 @@ function portalRoutes() {
       <Route path="/appointments/:id/encounter" element={<Encounter />} />
       <Route path="/reminders" element={<Reminders />} />
       <Route path="/requests" element={<FrontDeskRoute><Requests /></FrontDeskRoute>} />
-      <Route path="/analytics" element={<Analytics />} />
-      <Route path="/pharmacy" element={<PharmacyRoute><Pharmacy /></PharmacyRoute>} />
-      <Route path="/labs" element={<Labs />} />
-      <Route path="/billing" element={<BillingRoute><Billing /></BillingRoute>} />
-      <Route path="/expenses" element={<BillingRoute><Expenses /></BillingRoute>} />
+      <Route path="/analytics" element={<ModuleRoute module="analytics"><Analytics /></ModuleRoute>} />
+      <Route path="/pharmacy" element={<ModuleRoute module="pharmacy"><PharmacyRoute><Pharmacy /></PharmacyRoute></ModuleRoute>} />
+      <Route path="/labs" element={<ModuleRoute module="labs"><Labs /></ModuleRoute>} />
+      <Route path="/billing" element={<ModuleRoute module="billing"><BillingRoute><Billing /></BillingRoute></ModuleRoute>} />
+      <Route path="/expenses" element={<ModuleRoute module="expenses"><BillingRoute><Expenses /></BillingRoute></ModuleRoute>} />
       <Route path="/audit" element={<AdminRoute><AuditLog /></AdminRoute>} />
       <Route path="/website" element={<AdminRoute><Website /></AdminRoute>} />
       <Route path="/settings" element={<Settings />} />

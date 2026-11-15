@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth } from "../plugins/auth.js";
 import { effectivePriority, byTriage } from "../lib/triage.js";
 import { summarize } from "./clinic-billing.js";
+import { isFeatureEnabled } from "../config/features.js";
 
 /**
  * The one screen somebody looks at between patients.
@@ -303,7 +304,7 @@ export async function clinicDashboardRoutes(app: FastifyInstance) {
       unbilledVisits: number;
     } | null = null;
 
-    if (MONEY_ROLES.has(role)) {
+    if (MONEY_ROLES.has(role) && isFeatureEnabled("billing")) {
       const payments = await prisma.payment.findMany({
         where: { paidAt: { gte: start, lt: end } },
         select: { amount: true, mode: true },

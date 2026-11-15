@@ -9,9 +9,10 @@ import {
   // Aliased: the type and this page's component share a name.
   type AccountDetail as Detail,
   type Meta, type PlanTier, type AccountStatus,
-  STATUS_VARIANT, PLAN_VARIANT, money,
+  STATUS_VARIANT, PLAN_VARIANT, PLAN_LABEL, money,
 } from "@/lib/types";
 import { useToast } from "@/components/Toast";
+import { DealPanel, InvoicesPanel, PlanHistory, PlanModulesPanel } from "@/components/AccountBilling";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,26 +94,30 @@ export function AccountDetail() {
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">{a.name}</h1>
             <Badge variant={STATUS_VARIANT[a.status]}>{a.status.toLowerCase()}</Badge>
-            <Badge variant={PLAN_VARIANT[a.plan]}>{a.plan.toLowerCase()}</Badge>
+            <Badge variant={PLAN_VARIANT[a.plan]}>{PLAN_LABEL[a.plan]}</Badge>
+            {a.isDemo && <Badge variant="outline">demo</Badge>}
           </div>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {a.slug}{a.city ? ` · ${a.city}` : ""}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold tabular">{money(a.monthlyFee, a.currency)}</p>
-          <p className="text-xs text-muted-foreground">{a.billingCycle.toLowerCase()}</p>
+          <p className="text-lg font-semibold tabular">{money(data.monthlyValue, a.currency)}</p>
+          <p className="text-xs text-muted-foreground">a month, recurring</p>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Provisioning account={a} meta={meta} onDone={load} />
+          <PlanModulesPanel account={a} meta={meta} features={data.features} pendingApply={data.pendingApply} onSaved={load} />
+          <InvoicesPanel account={a} onChanged={load} />
           <Checklist accountId={a.id} steps={a.steps} onChange={load} />
           <Addresses account={a} meta={meta} onSave={save} onChanged={load} />
         </div>
         <div className="space-y-4">
-          <Deal account={a} meta={meta} onSave={save} />
+          <DealPanel account={a} meta={meta} monthlyValue={data.monthlyValue} onSaved={load} />
+          <PlanHistory accountId={a.id} refreshKey={`${a.appliedAt ?? ""}${a.status}`} />
           <Health account={a} />
           <ActivityFeed entries={a.activity} />
         </div>
@@ -812,80 +817,6 @@ function Notice({ tone, children }: { tone: "warn" | "info"; children: React.Rea
       <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
       <div className="min-w-0">{children}</div>
     </div>
-  );
-}
-
-function Deal({
-  account, meta, onSave,
-}: {
-  account: Detail["account"];
-  meta: Meta | null;
-  onSave: (p: Record<string, unknown>) => Promise<void>;
-}) {
-  const [fee, setFee] = useState(account.monthlyFee ?? "");
-  const [status, setStatus] = useState(account.status);
-  const [plan, setPlan] = useState<PlanTier>(account.plan);
-  const [saving, setSaving] = useState(false);
-
-  const dirty =
-    fee !== (account.monthlyFee ?? "") || status !== account.status || plan !== account.plan;
-
-  return (
-    <Panel title="Deal" icon={Wallet}>
-      <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-            <SelectTrigger id="status"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(meta?.statuses ?? []).map((s: AccountStatus) => (
-                <SelectItem key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="dealPlan">Plan</Label>
-          <Select value={plan} onValueChange={(v) => setPlan(v as PlanTier)}>
-            <SelectTrigger id="dealPlan"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(meta?.plans ?? []).map((p: PlanTier) => (
-                <SelectItem key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="fee">Monthly fee (₹)</Label>
-          <Input
-            id="fee"
-            type="number"
-            min="0"
-            value={fee}
-            onChange={(e) => setFee(e.target.value)}
-            className="tabular"
-          />
-        </div>
-
-        <Button
-          className="w-full"
-          disabled={!dirty}
-          loading={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave({ status, plan, monthlyFee: fee === "" ? null : Number(fee) });
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          Save changes
-        </Button>
-      </div>
-    </Panel>
   );
 }
 
