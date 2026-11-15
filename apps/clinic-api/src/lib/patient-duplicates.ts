@@ -367,6 +367,12 @@ export async function mergePatients(
   if (surviving.mergedIntoId) {
     throw new Error(`${surviving.uhid} is itself a merged record -- merge into the record it points at instead.`);
   }
+  // One person cannot be in two beds. If both records have an open stay,
+  // one of them is a mistake to discharge before the records are joined.
+  const openStays = await prisma.admission.count({ where: { patientId: { in: [survivingId, duplicateId] }, status: "ADMITTED" } });
+  if (openStays > 1) {
+    throw new Error("Both records have an open hospital stay. Discharge or correct one of them before merging.");
+  }
 
   // One transaction. A merge that moved the case sheets and then failed
   // before the prescriptions would leave a patient's history split
@@ -388,6 +394,22 @@ export async function mergePatients(
     await move("certificates", (where, data) => tx.certificate.updateMany({ where, data }));
     await move("invoices", (where, data) => tx.invoice.updateMany({ where, data }));
     await move("lab orders", (where, data) => tx.labOrder.updateMany({ where, data }));
+    await move("booking requests", (where, data) => tx.appointmentRequest.updateMany({ where, data }));
+    // Hospital records. Left behind, a merged duplicate would keep a stay,
+    // an advance or a claim the surviving record no longer shows.
+    await move("deposits", (where, data) => tx.deposit.updateMany({ where, data }));
+    await move("admissions", (where, data) => tx.admission.updateMany({ where, data }));
+    await move("claims", (where, data) => tx.claim.updateMany({ where, data }));
+    await move("theatre bookings", (where, data) => tx.otBooking.updateMany({ where, data }));
+    await move("imaging orders", (where, data) => tx.radiologyOrder.updateMany({ where, data }));
+    // Specialty records, and the family links in both directions.
+    await move("specialty records", (where, data) => tx.specialtyRecord.updateMany({ where, data }));
+    await move("care episodes", (where, data) => tx.careEpisode.updateMany({ where, data }));
+    await move("family links", (where, data) => tx.patientRelation.updateMany({ where, data }));
+    const linked = await tx.patientRelation.updateMany({ where: { relatedPatientId: duplicateId }, data: { relatedPatientId: survivingId } });
+    if (linked.count) moved["links from other patients"] = linked.count;
+    // A link from the survivor to the duplicate is now a link to itself.
+    await tx.patientRelation.updateMany({ where: { patientId: survivingId, relatedPatientId: survivingId }, data: { relatedPatientId: null } });
 
     // Fill blanks on the survivor from the duplicate, and only blanks.
     // Overwriting is not the system's call: the operator chose which

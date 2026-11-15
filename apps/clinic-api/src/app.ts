@@ -6,6 +6,7 @@ import authPlugin from "./plugins/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { clinicAuthRoutes } from "./routes/clinic-auth.js";
 import { clinicPatientRoutes } from "./routes/clinic-patients.js";
+import { clinicSpecialtyRoutes } from "./routes/clinic-specialty.js";
 import { clinicAppointmentRoutes } from "./routes/clinic-appointments.js";
 import { clinicCaseSheetRoutes } from "./routes/clinic-case-sheets.js";
 import { clinicDrugRoutes } from "./routes/clinic-drugs.js";
@@ -179,6 +180,8 @@ export function buildApp() {
   app.register(healthRoutes);
   app.register(clinicAuthRoutes);
   app.register(clinicPatientRoutes);
+  // Specialty records are clinical records, so every plan has them.
+  app.register(clinicSpecialtyRoutes);
   app.register(clinicAppointmentRoutes);
   app.register(clinicCaseSheetRoutes);
   app.register(clinicDrugRoutes);

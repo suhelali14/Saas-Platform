@@ -14,6 +14,8 @@ import {
 import { resolveTemplate } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 import { findDuplicatesOf, mergePatients } from "../lib/patient-duplicates.js";
+import { formLibrary, recordsForHistory } from "./clinic-specialty.js";
+import { describe as describeRecord } from "../lib/specialty-forms.js";
 
 /** One consistent date format across every document. The report was
  * printing "21/9/2026" while the letterhead beside it printed
@@ -252,7 +254,12 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
       return { id: inv.id, appointmentId: inv.appointmentId, createdAt: inv.createdAt, total: subtotal, paid, balance, status };
     });
 
-    return { patient, caseSheets, prescriptions, certificates, appointments, labOrders, bills: canSeeBills ? bills : null };
+    // Specialty forms filled at each visit -- the antenatal check, the
+    // follicle scan, the growth visit -- so they sit in the day they
+    // happened. Not for the money-only roles, like the records themselves.
+    const specialtyRecords = auth.role === "CASHIER" || auth.role === "BILLING_CLERK" ? [] : await recordsForHistory(id);
+
+    return { patient, caseSheets, prescriptions, certificates, appointments, labOrders, bills: canSeeBills ? bills : null, specialtyRecords };
   });
 
   // Full patient history as a printable/downloadable PDF -- "every patient
@@ -267,12 +274,20 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     const patient = await prisma.patient.findUnique({ where: { id } });
     if (!patient) return reply.status(404).send({ error: "Not found" });
 
-    const [caseSheets, prescriptions, certificates, clinic] = await Promise.all([
+    // Specialty records go on the report too -- an antenatal card or a
+    // fertility workup is exactly what a referral letter needs -- but not
+    // for the money-only roles, who cannot see them on screen either.
+    const withSpecialty = auth.role !== "CASHIER" && auth.role !== "BILLING_CLERK";
+    const [caseSheets, prescriptions, certificates, clinic, forms, records, episodes] = await Promise.all([
       prisma.caseSheet.findMany({ where: { patientId: id }, include: { doctor: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.prescription.findMany({ where: { patientId: id }, include: { items: true, doctor: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.certificate.findMany({ where: { patientId: id }, include: { doctor: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.clinic.findFirst(),
+      withSpecialty ? formLibrary() : Promise.resolve([]),
+      withSpecialty ? prisma.specialtyRecord.findMany({ where: { patientId: id }, orderBy: { recordedOn: "asc" } }) : Promise.resolve([]),
+      withSpecialty ? prisma.careEpisode.findMany({ where: { patientId: id }, orderBy: { startedOn: "asc" } }) : Promise.resolve([]),
     ]);
+    const formByKey = new Map(forms.map((f) => [f.key, f]));
 
     reply.header("Content-Type", "application/pdf");
     reply.header("Content-Disposition", `inline; filename="patient-report-${patient.uhid}.pdf"`);
@@ -359,6 +374,33 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
           const kind = c.type.replace(/_/g, " ").toLowerCase();
           drawEntryHeading(doc, `${kind.charAt(0).toUpperCase()}${kind.slice(1)} certificate`, longDate(c.createdAt), `Dr. ${c.doctor.name}`);
           drawParagraph(doc, c.content, { size: 9.5 });
+        },
+      });
+    }
+
+    for (const e of episodes) {
+      const def = formByKey.get(e.formKey);
+      if (!def) continue;
+      entries.push({
+        date: e.startedOn,
+        render: () => {
+          ensureSpace(doc, 70);
+          drawEntryHeading(doc, `${def.title}${e.status === "ACTIVE" ? " (open)" : ""}`, longDate(e.startedOn), e.createdByName);
+          drawParagraph(doc, describeRecord(def, e.data as Record<string, unknown>, 14), { size: 9.5 });
+          const outcome = (e.outcome as Record<string, unknown> | null)?.outcome;
+          if (outcome) drawParagraph(doc, `Outcome: ${String(outcome)}${e.closedOn ? `, ${longDate(e.closedOn)}` : ""}`, { size: 9.5 });
+        },
+      });
+    }
+    for (const r of records) {
+      const def = formByKey.get(r.formKey);
+      if (!def) continue;
+      entries.push({
+        date: r.recordedOn,
+        render: () => {
+          ensureSpace(doc, 60);
+          drawEntryHeading(doc, def.title, longDate(r.recordedOn), r.recordedByName);
+          drawParagraph(doc, describeRecord(def, r.data as Record<string, unknown>, 14), { size: 9.5 });
         },
       });
     }

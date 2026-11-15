@@ -14,6 +14,8 @@ import { Button } from '../components/Button';
 import { Pick } from '../components/Field';
 import { DuplicatePanel } from '../components/DuplicatePanel';
 import { useToast } from '../components/Toast';
+import { CareRecords, useSpecialty } from '../components/CareRecords';
+import { longDate } from '../lib/specialty';
 
 interface Patient {
   id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
@@ -50,6 +52,8 @@ interface LabOrder {
   items: { id: string; testName: string; resultText: string | null; resultFileName: string | null; completedAt: string | null }[];
 }
 interface Bill { id: string; appointmentId: string | null; createdAt: string; total: number; paid: number; balance: number; status: string }
+/** A specialty form filled on a day: the antenatal check, the follicle scan. */
+interface DayRecord { id: string; formKey: string; title: string; recordedOn: string; summary: string; recordedByName: string }
 interface VitalsPoint { date: string; bp: { systolic: number; diastolic: number } | null; weight: number | null; pulse: number | null; spo2: number | null; temp: number | null }
 
 interface History {
@@ -60,6 +64,7 @@ interface History {
   appointments: Appointment[];
   labOrders: LabOrder[];
   bills: Bill[] | null;
+  specialtyRecords?: DayRecord[];
 }
 
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
@@ -94,6 +99,7 @@ interface Day {
   certificates: Certificate[];
   labOrders: LabOrder[];
   bills: Bill[];
+  records: DayRecord[];
 }
 
 /*
@@ -122,6 +128,8 @@ export function PatientDetail() {
   const [panel, setPanel] = useState<'none' | 'caseSheet' | 'prescription' | 'certificate'>('none');
   const [editing, setEditing] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const specialty = useSpecialty(id);
+  const reloadAll = async () => { await Promise.all([load(), specialty.reload()]); };
 
   const load = async () => {
     try {
@@ -147,7 +155,7 @@ export function PatientDetail() {
       const key = dayKey(iso);
       let d = map.get(key);
       if (!d) {
-        d = { key, appointments: [], caseSheets: [], prescriptions: [], certificates: [], labOrders: [], bills: [] };
+        d = { key, appointments: [], caseSheets: [], prescriptions: [], certificates: [], labOrders: [], bills: [], records: [] };
         map.set(key, d);
       }
       return d;
@@ -158,6 +166,8 @@ export function PatientDetail() {
     data.certificates.forEach((c) => day(c.createdAt).certificates.push(c));
     data.labOrders.forEach((l) => day(l.createdAt).labOrders.push(l));
     (data.bills ?? []).forEach((b) => day(b.createdAt).bills.push(b));
+    // recordedOn is already the clinic's calendar day, so it is used as is.
+    (data.specialtyRecords ?? []).forEach((r) => day(`${r.recordedOn}T12:00:00`).records.push(r));
     return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
   }, [data]);
 
@@ -173,10 +183,13 @@ export function PatientDetail() {
   const pastAndToday = days.filter((d) => d.key <= todayKey);
   const visible = showAll ? pastAndToday : pastAndToday.slice(0, 8);
   const todayVisit = data.appointments.find((a) => dayKey(a.scheduledAt) === todayKey && (a.status === 'CHECKED_IN' || a.status === 'IN_PROGRESS'));
-  const lastVisitDay = pastAndToday.find((d) => d.caseSheets.length || d.appointments.some((a) => a.status === 'COMPLETED'));
+  // A day counts as a visit if the patient was seen: a completed booking,
+  // a case sheet, or a specialty form such as an antenatal check.
+  const seen = (d: Day) => d.caseSheets.length > 0 || d.records.length > 0 || d.appointments.some((a) => a.status === 'COMPLETED');
+  const lastVisitDay = pastAndToday.find(seen);
   const lastRx = data.prescriptions[0];
   const owed = (data.bills ?? []).reduce((s, b) => s + b.balance, 0);
-  const visitCount = data.appointments.filter((a) => a.status === 'COMPLETED').length;
+  const visitCount = pastAndToday.filter(seen).length;
   const badge = CATEGORY_BADGES[patient.category];
 
   const checkInNow = async () => {
@@ -226,6 +239,13 @@ export function PatientDetail() {
             {badge && <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${badge.color}`}>{badge.label}</span>}
             <span>{visitCount ? `${visitCount} visit${visitCount === 1 ? '' : 's'}` : 'No visits yet'}</span>
           </p>
+          {/* Above everything a prescriber reads: a pregnancy changes what
+              may be given. */}
+          {specialty.data?.pregnancy && (
+            <p className="mt-2 inline-flex items-center gap-2 rounded-md tone-violet px-2.5 py-1 text-[14px] font-semibold">
+              Pregnant{specialty.data.pregnancy.ga ? ` · ${specialty.data.pregnancy.ga}` : ''}{specialty.data.pregnancy.edd ? ` · EDD ${longDate(specialty.data.pregnancy.edd)}` : ''}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {todayVisit ? (
@@ -275,6 +295,10 @@ export function PatientDetail() {
           {panel === 'caseSheet' && <CaseSheetForm patientId={patient.id} onDone={() => { setPanel('none'); load(); }} />}
           {panel === 'prescription' && <PrescriptionForm patientId={patient.id} onDone={() => { setPanel('none'); load(); }} />}
           {panel === 'certificate' && <CertificateForm patientId={patient.id} patientName={patient.name} onDone={() => { setPanel('none'); load(); }} />}
+
+          {specialty.data && (
+            <CareRecords patient={{ id: patient.id, name: patient.name, age: patient.age, gender: patient.gender, dob: patient.dob }} data={specialty.data} reload={reloadAll} />
+          )}
 
           <h2 className="mb-3 text-[16px] font-semibold">Visits, day by day</h2>
           {pastAndToday.length === 0 ? (
@@ -377,7 +401,7 @@ function DayCard({ day }: { day: Day }) {
     ...day.prescriptions.map((p) => p.doctor.name),
   ].filter(Boolean) as string[])];
   const missed = day.appointments.length > 0 && day.appointments.every((a) => a.status === 'NO_SHOW' || a.status === 'CANCELLED')
-    && !day.caseSheets.length && !day.prescriptions.length;
+    && !day.caseSheets.length && !day.prescriptions.length && !day.records.length;
   const status = appt && appt.status !== 'COMPLETED' ? STATUS_WORDS[appt.status] : null;
   const vitalBits = vitals
     ? [
@@ -439,6 +463,13 @@ function DayCard({ day }: { day: Day }) {
                 </div>
               )}
             </div>
+          ))}
+
+          {day.records.map((r) => (
+            <p key={r.id}>
+              <span className="font-medium">{r.title}</span>
+              {r.summary && <span className="text-muted-foreground"> · {r.summary}</span>}
+            </p>
           ))}
 
           {day.prescriptions.map((p) => (

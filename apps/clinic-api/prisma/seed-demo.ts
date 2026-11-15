@@ -39,6 +39,8 @@
 // a missing one.
 import type { PrismaClient as PrismaClientType } from "../src/generated/prisma-client/index.js";
 import bcrypt from "bcryptjs";
+import { compute } from "../src/lib/specialty-forms.js";
+import { LIBRARY_BY_KEY } from "../src/lib/specialty-library.js";
 
 const flag = (process.env.CLINIC_DEMO ?? "").toLowerCase();
 if (flag !== "1" && flag !== "true") {
@@ -117,6 +119,10 @@ async function guard() {
 
 async function wipe() {
   // Children first; every table that refers to a patient or a visit.
+  await prisma.specialtyRecord.deleteMany();
+  await prisma.careEpisode.deleteMany();
+  await prisma.patientRelation.deleteMany();
+  await prisma.clinicForm.deleteMany();
   await prisma.nursingEntry.deleteMany();
   await prisma.radiologyOrder.deleteMany();
   await prisma.otBooking.deleteMany();
@@ -202,7 +208,7 @@ async function staff() {
 const PATIENTS = [
   { name: "Ramesh Joshi", age: 64, gender: "Male", phone: "98220 41187", bloodGroup: "B+", allergies: "Penicillin", chronicConditions: "Hypertension, Type 2 diabetes", category: "SENIOR_CITIZEN" },
   { name: "Priya Shinde", age: 29, gender: "Female", phone: "99700 12304", bloodGroup: "O+" },
-  { name: "Aarav Kale", age: 7, gender: "Male", phone: "97300 55821", category: "CHILD" },
+  { name: "Aarav Kale", age: 7, gender: "Male", phone: "97300 55821", category: "CHILD", dob: new Date("2019-03-12T12:00:00+05:30") },
   { name: "Sneha Patil", age: 41, gender: "Female", phone: "98500 77310", allergies: "Sulfa drugs" },
   { name: "Vikram More", age: 52, gender: "Male", phone: "91580 30219", chronicConditions: "Asthma" },
   { name: "Kavita Gaikwad", age: 36, gender: "Female", phone: "98810 64422" },
@@ -213,7 +219,7 @@ const PATIENTS = [
   { name: "Nilesh Pawar", age: 48, gender: "Male", phone: "96230 77104" },
   { name: "Fatima Sayyed", age: 31, gender: "Female", phone: "98903 22671" },
   { name: "Ganesh Kamble", age: 58, gender: "Male", phone: "90210 55555", chronicConditions: "Type 2 diabetes" },
-  { name: "Ishaan Kulkarni", age: 4, gender: "Male", phone: "97661 40028", category: "CHILD" },
+  { name: "Ishaan Kulkarni", age: 4, gender: "Male", phone: "97661 40028", category: "CHILD", dob: new Date("2022-07-08T12:00:00+05:30") },
 ] as const;
 
 async function main() {
@@ -366,7 +372,7 @@ async function main() {
   await today("Kavita Gaikwad", 26, { reason: "Skin rash" });
   await today("Aarav Kale", 18, { reason: "Fever since last night", vitals: { temp: "101.4", weight: "22" }, doctor: docs.paeds });
   await today("Vikram More", 9, { reason: "Inhaler refill" });
-  await today("Fatima Sayyed", 4, { reason: "Antenatal check, 24 weeks", priority: "PREGNANT", doctor: docs.gynae });
+  await today("Fatima Sayyed", 4, { reason: "Antenatal check, 39 weeks", priority: "PREGNANT", doctor: docs.gynae });
 
   // Booked for later today, and tomorrow.
   const later = (mins: number) => new Date(now + mins * MIN);
@@ -398,6 +404,7 @@ async function main() {
     });
   }
 
+  await specialty(pt, docs, people.nurse!);
   if (RANK >= 2) await hospital(people, pt, docs);
 
   const logins = Object.keys(people).map((k) => `${k}@${DOMAIN}`);
@@ -609,3 +616,150 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
+
+/**
+ * Specialty records, in every plan: Priya ten weeks into her second
+ * pregnancy with her husband linked; Fatima's antenatal card to term after
+ * a previous caesarean; a couple in fertility treatment, both partners on
+ * the record; a toddler's growth, birth history and vaccines; Ramesh's
+ * diabetes reviews; an eye examination; a gynaecology visit.
+ */
+async function specialty(pt: Record<string, string>, docs: { gp: string; paeds: string; gynae: string; ortho: string }, nurse: string) {
+  const users = await prisma.clinicUser.findMany({ select: { id: true, name: true } });
+  const who = (id: string) => users.find((u) => u.id === id)?.name ?? "Staff";
+  const day = (daysAgo: number) => new Date(istMidnight(now - daysAgo * DAY) + 12 * 60 * MIN).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const noon = (d: string) => new Date(`${d}T12:00:00+05:30`);
+  const form = (k: string) => LIBRARY_BY_KEY.get(k)!;
+  const patientOf = async (id: string) => prisma.patient.findUnique({ where: { id }, select: { age: true, dob: true } });
+
+  async function relation(patient: string, kind: string, r: { name: string; age?: number; gender?: string; bloodGroup?: string; occupation?: string; phone?: string; relatedPatientId?: string }) {
+    return prisma.patientRelation.create({ data: { patientId: pt[patient]!, kind: kind as never, ...r } });
+  }
+  async function episode(patient: string, key: string, startedAgo: number, data: Record<string, unknown>, by: string, partnerId?: string) {
+    const def = form(key);
+    const filled = compute(def.sections, data, { recordedOn: day(startedAgo), patient: await patientOf(pt[patient]!) });
+    return prisma.careEpisode.create({
+      data: { patientId: pt[patient]!, formKey: key, formVersion: def.version, startedOn: noon(key === "pregnancy" && typeof data.lmp === "string" ? data.lmp : day(startedAgo)), partnerId: partnerId ?? null, data: filled as never, createdById: by, createdByName: who(by), createdAt: noon(day(startedAgo)) },
+    });
+  }
+  async function record(patient: string, key: string, daysAgo: number, data: Record<string, unknown>, by: string, ep?: { id: string; data: unknown }) {
+    const def = form(key);
+    const filled = compute(def.sections, data, { recordedOn: day(daysAgo), episode: ep?.data as Record<string, unknown> | undefined, patient: await patientOf(pt[patient]!) });
+    return prisma.specialtyRecord.create({
+      data: {
+        patientId: pt[patient]!, formKey: key, formVersion: def.version, scope: def.kind === "history" ? "HISTORY" : "VISIT",
+        episodeId: ep?.id ?? null, recordedOn: noon(day(daysAgo)), data: filled as never, recordedById: by, recordedByName: who(by), createdAt: noon(day(daysAgo)),
+      },
+    });
+  }
+
+  // Priya: second pregnancy, ten weeks.
+  const amit = await relation("Priya Shinde", "SPOUSE", { name: "Amit Shinde", age: 32, gender: "Male", bloodGroup: "B+", occupation: "School teacher", phone: "99700 12399" });
+  const priya = await episode("Priya Shinde", "pregnancy", 28, {
+    lmp: day(72), conception: "Naturally", gravida: 2, para: 1, living: 1, abortions: 0,
+    past: [{ year: 2023, outcome: "Normal delivery", weeks: 39, weight: 3.0 }],
+    pre_weight: 54, height: 158, consanguinity: false, high_risk: false,
+  }, docs.gynae, amit.id);
+  // Booked at six weeks: 72 days since the LMP, less 28.
+  await record("Priya Shinde", "antenatal", 28, {
+    complaints: ["Vomiting"], weight: 54.5, bp_systolic: 108, bp_diastolic: 70, pulse: 84, pallor: "None", oedema: "None",
+    presentation: "Not yet palpable", hb: 11.2, urine_albumin: "Nil", urine_sugar: "Nil",
+    usg: "Single live intrauterine pregnancy, size matches 6 weeks.", ifa: true, td: "None today",
+    advice: "Small frequent meals. Folic acid daily.", next_visit: day(2),
+  }, docs.gynae, priya);
+  await record("Priya Shinde", "antenatal", 2, {
+    complaints: ["None"], weight: 55, bp_systolic: 110, bp_diastolic: 72, pulse: 82, pallor: "None", oedema: "None",
+    presentation: "Not yet palpable", urine_albumin: "Nil", urine_sugar: "Nil", ifa: true, td: "None today",
+    advice: "Dating and NT scan between 11 and 13 weeks.", next_visit: day(-26),
+  }, nurse, priya);
+
+  // Fatima: to term after a caesarean, every antenatal visit on the card.
+  const salim = await relation("Fatima Sayyed", "SPOUSE", { name: "Salim Sayyed", age: 35, gender: "Male", bloodGroup: "A+", occupation: "Shopkeeper", phone: "98903 22600" });
+  const lmpAgo = 39 * 7 + 1;
+  const fatima = await episode("Fatima Sayyed", "pregnancy", lmpAgo - 12 * 7, {
+    lmp: day(lmpAgo), conception: "Naturally", gravida: 2, para: 1, living: 1, abortions: 0,
+    past: [{ year: 2022, outcome: "Caesarean (LSCS)", weeks: 38, weight: 2.9, notes: "Failed induction" }],
+    pre_weight: 57, height: 152, risks: ["Previous caesarean"], high_risk: true,
+    risk_notes: "Planned repeat caesarean at 39 weeks. Watch for scar tenderness.",
+  }, docs.gynae, salim.id);
+  const anc: [number, Record<string, unknown>][] = [
+    [12, { weight: 57.5, bp_systolic: 106, bp_diastolic: 68, presentation: "Not yet palpable", hb: 10.6, urine_albumin: "Nil", urine_sugar: "Nil", ifa: true, usg: "Single live fetus, NT normal." }],
+    [20, { weight: 60, bp_systolic: 110, bp_diastolic: 70, fundal_height: 20, fhr: 148, movements: "Felt well", hb: 10.9, urine_albumin: "Nil", urine_sugar: "Nil", td: "Td 1", ifa: true, calcium: true, usg: "Anomaly scan normal. Placenta upper segment, posterior." }],
+    [26, { weight: 63, bp_systolic: 112, bp_diastolic: 72, fundal_height: 26, fhr: 146, movements: "Felt well", hb: 11.2, urine_albumin: "Nil", urine_sugar: "Nil", td: "Td 2", ifa: true, calcium: true, other_tests: "OGTT normal" }],
+    [30, { weight: 65.5, bp_systolic: 114, bp_diastolic: 74, fundal_height: 30, presentation: "Cephalic", fhr: 144, movements: "Felt well", hb: 11.5, urine_albumin: "Nil", urine_sugar: "Nil", ifa: true, calcium: true }],
+    [34, { weight: 67.5, bp_systolic: 118, bp_diastolic: 76, fundal_height: 33, presentation: "Cephalic", fhr: 142, movements: "Felt well", oedema: "Feet", hb: 11.6, urine_albumin: "Trace", urine_sugar: "Nil", ifa: true, calcium: true, advice: "Rest with feet up. Report headache or blurred vision at once." }],
+    [37, { weight: 69, bp_systolic: 120, bp_diastolic: 78, fundal_height: 36, presentation: "Cephalic", fhr: 140, movements: "Felt well", oedema: "Feet", hb: 11.8, urine_albumin: "Nil", urine_sugar: "Nil", ifa: true }],
+    [38, { weight: 69.5, bp_systolic: 122, bp_diastolic: 80, fundal_height: 37, presentation: "Cephalic", fhr: 142, movements: "Felt well", oedema: "Feet", urine_albumin: "Nil", urine_sugar: "Nil", advice: "Admit at 39 weeks for planned caesarean." }],
+  ];
+  for (const [weeks, d] of anc) {
+    await record("Fatima Sayyed", "antenatal", lmpAgo - weeks * 7, { complaints: ["None"], pallor: weeks < 26 ? "Mild" : "None", pulse: 86, ...d }, weeks % 2 ? nurse : docs.gynae, fatima);
+  }
+
+  // A couple in fertility treatment: the wife's record, the husband linked.
+  const rahul = await relation("Meghna Deshmukh", "SPOUSE", { name: "Rahul Deshmukh", age: 36, gender: "Male", bloodGroup: "O+", occupation: "Software engineer", phone: "98600 90299" });
+  await record("Meghna Deshmukh", "menstrual", 60, {
+    menarche: 13, regularity: "Irregular", cycle_length: 42, period_days: 5, flow: "Normal", pain: "Mild",
+    intermenstrual: false, postcoital: false, lmp: day(12), contraception: "None",
+  }, docs.gynae);
+  const ivf = await episode("Meghna Deshmukh", "infertility", 60, {
+    treated: "Both", type: "Primary (never conceived)", married_years: 6, trying_years: 4, frequency: "2–3 times a week", consanguinity: false,
+    f_cycles: "Irregular", f_pcos: true, f_amh: 4.8, f_tsh: 2.1, f_prolactin: 14, f_hsg: "Both open",
+    f_previous: "Clomiphene for three cycles in 2025, no pregnancy.",
+    m_habits: ["Smoking"], m_conditions: "None known", plan: "Ovulation induction",
+    plan_notes: "Letrozole 2.5 mg, days 3–7. Follicle scans from day 9. Husband to stop smoking; repeat semen analysis in three months.",
+  }, docs.gynae, rahul.id);
+  await record("Meghna Deshmukh", "semen_analysis", 55, { abstinence: 3, volume: 2.4, count: 11, motility: 28, morphology: 3, impression: "Low count (oligozoospermia)", notes: "Counselled on smoking." }, docs.gynae, ivf);
+  await record("Meghna Deshmukh", "follicular", 3, {
+    cycle_lmp: day(12), drug: "Letrozole 2.5 mg, days 3–7", endometrium: 6.8, pattern: "Trilaminar",
+    follicles: [{ row: "Right ovary", count: 2, largest: 13, sizes: "13, 10" }, { row: "Left ovary", count: 1, largest: 11, sizes: "11" }],
+    trigger: false, procedure: "Nothing",
+  }, docs.gynae, ivf);
+  await record("Meghna Deshmukh", "follicular", 1, {
+    cycle_lmp: day(12), drug: "Letrozole 2.5 mg, days 3–7", endometrium: 8.4, pattern: "Trilaminar",
+    follicles: [{ row: "Right ovary", count: 2, largest: 17.5, sizes: "17.5, 12" }, { row: "Left ovary", count: 1, largest: 13, sizes: "13" }],
+    trigger: false, procedure: "Nothing", notes: "Scan again in two days; trigger expected at 18–20 mm.",
+  }, docs.gynae, ivf);
+
+  // Ishaan, four: birth history, vaccines to date, growth over a year.
+  await relation("Ishaan Kulkarni", "MOTHER", { name: "Shruti Kulkarni", age: 31, gender: "Female", bloodGroup: "B+", occupation: "Pharmacist", phone: "97661 40000" });
+  const dob = (await patientOf(pt["Ishaan Kulkarni"]!))?.dob;
+  const after = (days: number) => (dob ? new Date(dob.getTime() + days * DAY).toISOString().slice(0, 10) : day(0));
+  await record("Ishaan Kulkarni", "birth_history", 300, { birth_weight: 2.9, gestation: 38, delivery: "Caesarean", cried: true, nicu: false, jaundice: true, mother: "Gestational diabetes, diet-controlled." }, docs.paeds);
+  const given = (label: string, days: number) => ({ row: label, given_on: after(days) });
+  await record("Ishaan Kulkarni", "immunisation", 30, {
+    doses: [
+      given("BCG (birth)", 0), given("OPV 0 (birth)", 0), given("Hep B 1 (birth)", 0),
+      ...["DTwP/DTaP 1 (6 wk)", "IPV 1 (6 wk)", "Hib 1 (6 wk)", "Hep B 2 (6 wk)", "Rotavirus 1 (6 wk)", "PCV 1 (6 wk)"].map((v) => given(v, 42)),
+      ...["DTwP/DTaP 2 (10 wk)", "IPV 2 (10 wk)", "Hib 2 (10 wk)", "Hep B 3 (10 wk)", "Rotavirus 2 (10 wk)", "PCV 2 (10 wk)"].map((v) => given(v, 70)),
+      ...["DTwP/DTaP 3 (14 wk)", "IPV 3 (14 wk)", "Hib 3 (14 wk)", "Hep B 4 (14 wk)", "Rotavirus 3 (14 wk)", "PCV 3 (14 wk)"].map((v) => given(v, 98)),
+      given("Influenza 1 (6 mo)", 183), given("Influenza 2 (7 mo)", 213), given("Typhoid conjugate (6–9 mo)", 240), given("MMR 1 (9 mo)", 274),
+      given("Hep A 1 (12 mo)", 366), given("PCV booster (12–15 mo)", 400), given("MMR 2 (15 mo)", 457), given("Varicella 1 (15 mo)", 457),
+      given("DTwP/DTaP booster 1 (16–18 mo)", 500), given("Hib booster (16–18 mo)", 500), given("IPV booster (16–18 mo)", 500), given("Hep A 2 (18 mo)", 548),
+      given("Varicella 2 (3–4 yr)", 1150),
+    ],
+  }, nurse);
+  for (const [ago, w, h] of [[365, 13.1, 92.5], [180, 14.2, 97], [30, 15.4, 101.5]] as const) {
+    await record("Ishaan Kulkarni", "child_growth", ago, { weight: w, height: h, milestones: "As expected for age", feeding: "Family food", advice: ago === 30 ? "DTaP and MMR boosters due at 4–6 years." : undefined }, docs.paeds);
+  }
+
+  // Ramesh: diabetes reviews over six months.
+  for (const [ago, fbs, ppbs, a1c, w, s, dia] of [[180, 168, 240, 8.4, 82, 146, 90], [90, 142, 205, 7.6, 80.5, 138, 86], [3, 128, 182, 7.1, 79, 132, 84]] as const) {
+    await record("Ramesh Joshi", "diabetes_review", ago, {
+      fbs, ppbs, hba1c: a1c, weight: w, bp_systolic: s, bp_diastolic: dia, feet: "Normal", hypos: false,
+      adherence: ago === 180 ? "Missed some" : "As advised", eye_check: day(200), creatinine: 1.1,
+    }, docs.gp);
+  }
+
+  // An eye examination and a gynaecology visit.
+  await record("Vikram More", "eye_exam", 20, {
+    vision: [{ row: "Right eye", unaided: "6/9", glasses: "6/6", near: "N10" }, { row: "Left eye", unaided: "6/9", glasses: "6/6", near: "N10" }],
+    refraction: [{ row: "Right eye", sph: 0.5, add: 2 }, { row: "Left eye", sph: 0.25, cyl: -0.5, axis: 90, add: 2 }],
+    iop: [{ row: "Right eye", iop: 16 }, { row: "Left eye", iop: 17 }],
+    anterior: "Clear lens, quiet anterior chamber.", fundus: "Normal disc and macula.", diagnosis: "Presbyopia", advice: "Reading glasses; review in a year.",
+  }, docs.gp);
+  await record("Anita Jadhav", "menstrual", 20, { menarche: 12, regularity: "Regular", cycle_length: 26, period_days: 7, flow: "Heavy with clots", pain: "Moderate", lmp: day(20), contraception: "Tubectomy" }, docs.gynae);
+  await record("Anita Jadhav", "gynae_visit", 20, {
+    lmp: day(20), complaints: ["Heavy periods", "Pain in the lower abdomen"], upt: "Negative", abdomen: "Soft, no mass felt",
+    pv: "Uterus bulky, about 8 weeks size", usg: "Bulky uterus with a 2.5 cm intramural fibroid. Ovaries normal.", notes: "Hb and thyroid tests; review with reports.",
+  }, docs.gynae);
+}

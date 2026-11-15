@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList } from 'lucide-react';
+import { SpecialtySettings } from '../components/SpecialtySettings';
 import { useToast } from '../components/Toast';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
@@ -48,12 +49,12 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
 
 export function Settings() {
-  const { user } = useClinicAuth();
-  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents'>(ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile');
+  const { user, isAdmin } = useClinicAuth();
+  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents' | 'forms'>(ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile');
   const canEditClinic = user && ADMIN_ROLES.has(user.role);
 
   return (
-    <div className={`p-4 sm:p-6 md:p-8 ${tab === 'documents' ? 'max-w-6xl' : 'max-w-3xl'}`}>
+    <div className={`p-4 sm:p-6 md:p-8 ${tab === 'documents' ? 'max-w-6xl' : tab === 'forms' ? 'max-w-4xl' : 'max-w-3xl'}`}>
       <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><SettingsIcon size={20} className="text-muted-foreground" /> Settings</h1>
       <p className="text-sm text-muted-foreground mb-4">Clinic details, your profile, and your password.</p>
 
@@ -73,6 +74,9 @@ export function Settings() {
           { value: 'profile' as const, label: <><UserCircle size={13} /> My Profile</> },
           { value: 'security' as const, label: <><KeyRound size={13} /> Password</> },
           ...(canEditClinic ? [{ value: 'documents' as const, label: <><Printer size={13} /> Documents</> }] : []),
+          // The form library is the clinic's to change, so admins only -- the
+          // same rule the API applies.
+          ...(isAdmin ? [{ value: 'forms' as const, label: <><ClipboardList size={13} /> Specialty forms</> }] : []),
           ...(canEditClinic ? [{ value: 'data' as const, label: <><Database size={13} /> Data & Backup</> }] : []),
         ]}
       />
@@ -81,6 +85,7 @@ export function Settings() {
       {tab === 'profile' && <ProfileSettings />}
       {tab === 'security' && <PasswordSettings />}
       {tab === 'documents' && canEditClinic && <DocumentSettings />}
+      {tab === 'forms' && isAdmin && <SpecialtySettings />}
       {tab === 'data' && canEditClinic && <DataSettings />}
     </div>
   );

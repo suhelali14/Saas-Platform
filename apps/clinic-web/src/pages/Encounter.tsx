@@ -5,6 +5,8 @@ import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanel
 import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CaseSheetForm, PrescriptionForm, CertificateForm, LabOrderForm } from '../components/ClinicalForms';
+import { CareRecords, useSpecialty } from '../components/CareRecords';
+import { longDate } from '../lib/specialty';
 
 interface Vitals { bp?: string; temp?: string; spo2?: string; weight?: string; pulse?: string }
 interface Appointment {
@@ -12,7 +14,7 @@ interface Appointment {
   vitals: Vitals | null;
   patient: {
     id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
-    allergies: string | null; chronicConditions: string | null; bloodGroup: string | null;
+    allergies: string | null; chronicConditions: string | null; bloodGroup: string | null; dob?: string | null;
   };
   doctor: { id: string; name: string } | null;
 }
@@ -53,6 +55,9 @@ export function Encounter() {
   const [panel, setPanel] = useState<'none' | 'caseSheet' | 'prescription' | 'certificate' | 'vitals' | 'labs'>('none');
 
   const canRecordVitals = user && VITALS_ROLES.has(user.role);
+  // Specialty forms for this visit: the open pregnancy, the forms this
+  // doctor's speciality uses. Money-only roles never open this screen.
+  const specialty = useSpecialty(appointment?.patient.id, id);
 
   useEffect(() => {
     load();
@@ -125,6 +130,11 @@ export function Encounter() {
               {appointment.patient.phone && <span>{appointment.patient.phone}</span>}
               <Link to={`/patients/${appointment.patient.id}`} className="text-ink-success hover:underline">Full profile →</Link>
             </div>
+            {specialty.data?.pregnancy && (
+              <p className="mt-2 inline-flex rounded-md tone-violet px-2.5 py-1 text-[14px] font-semibold">
+                Pregnant{specialty.data.pregnancy.ga ? ` · ${specialty.data.pregnancy.ga}` : ''}{specialty.data.pregnancy.edd ? ` · EDD ${longDate(specialty.data.pregnancy.edd)}` : ''}
+              </p>
+            )}
           </div>
           <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet shrink-0">{STATUS_WORDS[appointment.status] ?? appointment.status}</span>
         </div>
@@ -178,6 +188,11 @@ export function Encounter() {
             <div className="text-sm text-ink-warning mt-1">Follow-up was due {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
           )}
         </div>
+      )}
+
+      {specialty.data && (
+        <CareRecords mode="visit" appointmentId={appointment.id} data={specialty.data} reload={specialty.reload}
+          patient={{ id: appointment.patient.id, name: appointment.patient.name, age: appointment.patient.age, gender: appointment.patient.gender, dob: appointment.patient.dob }} />
       )}
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}

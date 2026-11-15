@@ -308,6 +308,12 @@ model Patient {
   claims          Claim[]
   otBookings      OtBooking[]
   radiologyOrders RadiologyOrder[]
+
+  // Specialty records
+  relations        PatientRelation[] @relation("PatientRelations")
+  relatedAs        PatientRelation[] @relation("RelatedAsPatient")
+  careEpisodes     CareEpisode[]
+  specialtyRecords SpecialtyRecord[]
 }
 
 model Appointment {
@@ -346,6 +352,7 @@ model Appointment {
   certificates  Certificate[]  @relation("AppointmentCertificates")
   invoices      Invoice[]      @relation("AppointmentInvoices")
   labOrders     LabOrder[]     @relation("AppointmentLabOrders")
+  specialtyRecords SpecialtyRecord[]
 
   @@index([scheduledAt])
   @@index([patientId])
@@ -1284,4 +1291,118 @@ model NursingEntry {
   route       String?
 
   @@index([admissionId, at])
+}
+
+// ── Specialty records ─────────────────────────────────────────────────
+// One engine for every specialty: forms are versioned definitions in
+// src/lib/specialty-library.ts (plus a clinic's own, in ClinicForm), a
+// filled form is a SpecialtyRecord, and a pregnancy or an infertility
+// treatment is a CareEpisode its visits belong to.
+
+enum RelationKind {
+  SPOUSE
+  PARTNER
+  FATHER
+  MOTHER
+  CHILD
+  SIBLING
+  GUARDIAN
+  OTHER
+}
+
+enum EpisodeStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum RecordScope {
+  HISTORY
+  VISIT
+}
+
+/// Someone in a patient's life the record needs: the husband on an
+/// antenatal card, the other half of an infertility couple, a child's
+/// parent. Either a patient here (relatedPatientId) or just their details.
+model PatientRelation {
+  id               String       @id @default(cuid())
+  patientId        String
+  patient          Patient      @relation("PatientRelations", fields: [patientId], references: [id])
+  kind             RelationKind
+  relatedPatientId String?
+  relatedPatient   Patient?     @relation("RelatedAsPatient", fields: [relatedPatientId], references: [id])
+  name             String
+  age              Int?
+  gender           String?
+  phone            String?
+  bloodGroup       String?
+  occupation       String?
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  episodes         CareEpisode[]
+
+  @@index([patientId])
+  @@index([relatedPatientId])
+}
+
+/// A stretch of care with a start and an end -- a pregnancy, an infertility
+/// treatment. Its own answers (LMP, obstetric score, risk; the couple's
+/// workup) are `data`; what happened at the end is `outcome`.
+model CareEpisode {
+  id                String           @id @default(cuid())
+  patientId         String
+  patient           Patient          @relation(fields: [patientId], references: [id])
+  formKey           String
+  formVersion       Int
+  status            EpisodeStatus    @default(ACTIVE)
+  startedOn         DateTime
+  closedOn          DateTime?
+  partnerId         String?
+  partner           PatientRelation? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  data              Json
+  outcome           Json?
+  createdById       String
+  createdByName     String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  records           SpecialtyRecord[]
+
+  @@index([patientId, status])
+  @@index([partnerId])
+}
+
+/// One filled-in specialty form. A HISTORY record is one per patient and
+/// form, kept up to date; a VISIT record is one per visit.
+model SpecialtyRecord {
+  id             String       @id @default(cuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+  formKey        String
+  formVersion    Int
+  scope          RecordScope
+  episodeId      String?
+  episode        CareEpisode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  recordedOn     DateTime
+  data           Json
+  recordedById   String
+  recordedByName String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([patientId, formKey])
+  @@index([episodeId])
+  @@index([appointmentId])
+}
+
+/// A clinic's changes to the form library: a built-in form switched off or
+/// given extra fields, or a form of the clinic's own (custom = true).
+model ClinicForm {
+  key         String   @id
+  custom      Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  definition  Json?
+  extraFields Json?
+  updatedAt   DateTime @updatedAt
 }
