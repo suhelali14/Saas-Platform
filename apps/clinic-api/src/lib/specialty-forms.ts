@@ -33,6 +33,9 @@ export interface FormField {
   step?: number;
   /** select and multi */
   options?: string[];
+  /** choices a clinic has since removed: still accepted on old records,
+   *  no longer offered */
+  retiredOptions?: string[];
   /** computed */
   formula?: Formula;
   /** table: its columns, simple types only */
@@ -114,6 +117,9 @@ function parseDay(v: unknown): Date | null {
   return y >= 1900 && y <= 2100 && d.toISOString().slice(0, 10) === v ? d : null;
 }
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
+/** A real calendar day as YYYY-MM-DD: not 30 February, not month 13. */
+export const isValidDay = (v: unknown): v is string => parseDay(v) !== null;
 const daysBetween = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / DAY);
 
 /** Naegele's rule: the first day of the last period plus 280 days. */
@@ -224,13 +230,13 @@ function cleanValue(f: FormField, v: unknown, errors: string[]): unknown {
     }
     case "select": {
       const s = String(v);
-      if (!f.options?.includes(s)) { errors.push(`${f.label}: "${s.slice(0, 40)}" is not one of the choices.`); return undefined; }
+      if (!f.options?.includes(s) && !f.retiredOptions?.includes(s)) { errors.push(`${f.label}: "${s.slice(0, 40)}" is not one of the choices.`); return undefined; }
       return s;
     }
     case "multi": {
       if (!Array.isArray(v)) { errors.push(`${f.label} must be a list.`); return undefined; }
       const picked = [...new Set(v.map(String))];
-      const bad = picked.filter((x) => !f.options?.includes(x));
+      const bad = picked.filter((x) => !f.options?.includes(x) && !f.retiredOptions?.includes(x));
       if (bad.length) { errors.push(`${f.label}: "${bad[0]!.slice(0, 40)}" is not one of the choices.`); return undefined; }
       return picked.length ? picked : undefined;
     }
@@ -372,8 +378,14 @@ const OWN_TYPES = new Set<FieldType>(["text", "textarea", "number", "date", "sel
  * Checks fields a clinic defines for itself, and gives each a key that is
  * then never changed: `c_` and the label, so it cannot collide with a
  * built-in key and stays readable in an export.
+ *
+ * A key sent back by the client is kept only if it is one of this form's
+ * own earlier fields; a new field never gets a key that was ever used on
+ * the form, retired or not, so an old record's answer can never be read
+ * as the answer to a different question.
  */
-export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[] }): { fields: FormField[]; errors: string[] } {
+export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[] }, previous: FormField[] = []): { fields: FormField[]; errors: string[] } {
+  const earlier = new Set(previous.map((f) => f.key));
   const errors: string[] = [];
   const fields: FormField[] = [];
   if (!Array.isArray(raw)) return { fields, errors: ["Fields must be a list."] };
@@ -392,9 +404,9 @@ export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[
       if (no) errors.push(no);
     }
     if ((type === "select" || type === "multi") && !options?.length) { errors.push(`${label}: give the choices.`); continue; }
-    const given = typeof o.key === "string" && /^c_[a-z0-9_]{1,40}$/.test(o.key) ? o.key : null;
+    const given = typeof o.key === "string" && earlier.has(o.key) ? o.key : null;
     let key = given ?? `c_${label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 36) || "field"}`;
-    if (!given) { let n = 2; const base = key; while (used.has(key)) key = `${base}_${n++}`; }
+    if (!given) { let n = 2; const base = key; while (used.has(key) || earlier.has(key)) key = `${base}_${n++}`; }
     if (used.has(key)) { errors.push(`${label}: two fields share a key.`); continue; }
     used.add(key);
     const f: FormField = { key, label, type };
@@ -411,4 +423,38 @@ export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[
     fields.push(f);
   }
   return { fields, errors };
+}
+
+/**
+ * Lines a clinic's edited fields up against the ones it had, so no record
+ * is ever stranded:
+ *   - a field whose answer type changed becomes a new field with a new key,
+ *     and the old one is kept, retired, for the records that used it;
+ *   - choices taken off a list stay accepted on old records;
+ *   - a field left out is kept, retired.
+ */
+export function reconcileFields(next: FormField[], previous: FormField[] | null | undefined): FormField[] {
+  const prev = new Map((previous ?? []).map((f) => [f.key, f]));
+  const taken = new Set([...prev.keys(), ...next.map((f) => f.key)]);
+  const out: FormField[] = [];
+  for (const f of next) {
+    const old = prev.get(f.key);
+    if (old && old.type !== f.type) {
+      let n = 2;
+      let key = `${f.key}_${n}`;
+      while (taken.has(key)) key = `${f.key}_${++n}`;
+      taken.add(key);
+      out.push({ ...f, key });
+      continue;
+    }
+    if (old && (f.type === "select" || f.type === "multi")) {
+      const dropped = [...(old.options ?? []), ...(old.retiredOptions ?? [])].filter((o) => !f.options?.includes(o));
+      out.push(dropped.length ? { ...f, retiredOptions: [...new Set(dropped)] } : f);
+      continue;
+    }
+    out.push(f);
+  }
+  const kept = new Set(out.map((f) => f.key));
+  for (const old of previous ?? []) if (!kept.has(old.key)) out.push({ ...old, retired: true });
+  return out;
 }

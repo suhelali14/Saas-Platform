@@ -15,6 +15,9 @@ declare module "fastify" {
     /** The Redis session this request arrived on. */
     clinicSessionId: string | null;
     clinicUserName: string | null;
+    /** The patient a request concerns, when its route only learns it from
+     *  the database (`/records/:id`). Set by the route for the audit log. */
+    auditPatientId?: string;
     /** Why the session this request carried is gone, when we know. Lets the
      *  401 say something other than "expired" to somebody who was working
      *  thirty seconds ago. */

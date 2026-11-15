@@ -64,7 +64,6 @@ interface History {
   appointments: Appointment[];
   labOrders: LabOrder[];
   bills: Bill[] | null;
-  specialtyRecords?: DayRecord[];
 }
 
 const BILLING_ROLES = new Set(['RECEPTIONIST', 'DOCTOR', 'ADMIN']);
@@ -148,6 +147,19 @@ export function PatientDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // This patient's specialty forms, each to be filed on its day. Taken from
+  // the specialty records the page already loads; a partner's records on a
+  // shared couple's episode belong to the partner's days, not these.
+  const dayRecords = useMemo<DayRecord[]>(() => {
+    const s = specialty.data;
+    if (!s || !id) return [];
+    const titles = new Map(s.forms.map((f) => [f.key, f.title]));
+    const all = [...s.history, ...s.visits, ...s.episodes.flatMap((e) => e.records)].filter((r) => r.patientId === id);
+    const seen = new Set<string>();
+    return all.filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+      .map((r) => ({ id: r.id, formKey: r.formKey, title: titles.get(r.formKey) ?? r.formKey, recordedOn: r.recordedOn, summary: r.summary, recordedByName: r.recordedByName }));
+  }, [specialty.data, id]);
+
   const days = useMemo<Day[]>(() => {
     if (!data) return [];
     const map = new Map<string, Day>();
@@ -167,9 +179,9 @@ export function PatientDetail() {
     data.labOrders.forEach((l) => day(l.createdAt).labOrders.push(l));
     (data.bills ?? []).forEach((b) => day(b.createdAt).bills.push(b));
     // recordedOn is already the clinic's calendar day, so it is used as is.
-    (data.specialtyRecords ?? []).forEach((r) => day(`${r.recordedOn}T12:00:00`).records.push(r));
+    dayRecords.forEach((r) => day(`${r.recordedOn}T12:00:00`).records.push(r));
     return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
-  }, [data]);
+  }, [data, dayRecords]);
 
   if (!data) {
     return error

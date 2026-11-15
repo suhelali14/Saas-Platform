@@ -5,7 +5,7 @@
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { cleanData, cleanOwnFields, compute, describe, eddFromLmp, gestationalAge, pcpndtRefusal } from "../src/lib/specialty-forms.js";
+import { cleanData, cleanOwnFields, compute, describe, eddFromLmp, gestationalAge, isValidDay, pcpndtRefusal, reconcileFields } from "../src/lib/specialty-forms.js";
 import { LIBRARY, LIBRARY_BY_KEY } from "../src/lib/specialty-library.js";
 
 const form = (key: string) => LIBRARY_BY_KEY.get(key)!;
@@ -121,7 +121,7 @@ test("a clinic's own fields get stable keys that cannot collide with built-in on
     { label: "Husband's education", type: "text" },
     { label: "Kept key", type: "number", unit: "cm", key: "c_kept" },
     { label: "No choices", type: "select" },
-  ]);
+  ], undefined, [{ key: "c_kept", label: "Kept key", type: "number" }]);
   assert.deepEqual(fields.map((f) => f.key), ["c_husband_s_education", "c_husband_s_education_2", "c_kept"]);
   assert.equal(fields[2]!.unit, "cm");
   assert.equal(errors.length, 1);
@@ -143,4 +143,42 @@ test("every library form is well formed: unique keys, choices where needed, epis
     for (const v of f.visitForms ?? []) assert.equal(LIBRARY_BY_KEY.get(v)?.episodeKey, f.key, `${f.key} lists ${v}`);
     if (f.episodeKey) assert.equal(LIBRARY_BY_KEY.get(f.episodeKey)?.kind, "episode");
   }
+});
+
+test("a clinic's edited questions never strand an old answer", () => {
+  const before = [
+    { key: "c_notes", label: "Notes", type: "text" as const },
+    { key: "c_severity", label: "Severity", type: "select" as const, options: ["Mild", "Moderate", "Severe"] },
+    { key: "c_gone", label: "Gone", type: "text" as const },
+  ];
+  // Notes becomes yes/no, Severity loses "Severe", Gone is left out.
+  const { fields } = cleanOwnFields([
+    { key: "c_notes", label: "Notes", type: "yesno" },
+    { key: "c_severity", label: "Severity", type: "select", options: ["Mild", "Moderate"] },
+  ], undefined, before);
+  const out = reconcileFields(fields, before);
+  const byKey = new Map(out.map((f) => [f.key, f]));
+  assert.equal(byKey.get("c_notes")?.type, "text", "the old Notes keeps its key and type, retired");
+  assert.equal(byKey.get("c_notes")?.retired, true);
+  assert.equal(byKey.get("c_notes_2")?.type, "yesno", "the new Notes is a new key");
+  assert.deepEqual(byKey.get("c_severity")?.retiredOptions, ["Severe"]);
+  assert.equal(byKey.get("c_gone")?.retired, true);
+  // An old record still saves.
+  const { errors } = cleanData([{ title: "x", fields: out }], { c_notes: "free text", c_severity: "Severe", c_notes_2: true });
+  assert.deepEqual(errors, []);
+});
+
+test("a new question never takes a key the form used before, even a retired one", () => {
+  const before = [{ key: "c_notes", label: "Notes", type: "text" as const, retired: true }];
+  const { fields } = cleanOwnFields([{ label: "Notes", type: "yesno" }], undefined, before);
+  assert.equal(fields[0]!.key, "c_notes_2");
+  const forged = cleanOwnFields([{ key: "c_someone_elses", label: "Forged", type: "text" }], undefined, before);
+  assert.equal(forged.fields[0]!.key, "c_forged", "a key the form never had is not accepted from the client");
+});
+
+test("only real calendar days are dates", () => {
+  assert.equal(isValidDay("2026-02-28"), true);
+  assert.equal(isValidDay("2026-02-30"), false);
+  assert.equal(isValidDay("2026-13-01"), false);
+  assert.equal(isValidDay("2026-1-01"), false);
 });

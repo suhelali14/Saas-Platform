@@ -1396,6 +1396,27 @@ model SpecialtyRecord {
   @@index([appointmentId])
 }
 
+/// What a specialty record or episode said before it was corrected or
+/// removed. Corrections overwrite the record itself, so the earlier answers
+/// live here -- an antenatal BP changed from 150/100 to 120/80 must still be
+/// visible as having been 150/100.
+model SpecialtyRevision {
+  id          String   @id @default(cuid())
+  subjectKind String   // "record" | "episode"
+  subjectId   String
+  patientId   String
+  formKey     String
+  action      String   // "CORRECTED" | "REMOVED" | "CLOSED"
+  data        Json
+  recordedOn  DateTime?
+  byId        String
+  byName      String
+  at          DateTime @default(now())
+
+  @@index([subjectId])
+  @@index([patientId])
+}
+
 /// A clinic's changes to the form library: a built-in form switched off or
 /// given extra fields, or a form of the clinic's own (custom = true).
 model ClinicForm {

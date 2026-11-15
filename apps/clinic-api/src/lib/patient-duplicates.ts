@@ -373,6 +373,13 @@ export async function mergePatients(
   if (openStays > 1) {
     throw new Error("Both records have an open hospital stay. Discharge or correct one of them before merging.");
   }
+  // Nor be pregnant twice: two open records of one kind need a doctor to
+  // close the wrong one first.
+  const openKinds = await prisma.careEpisode.groupBy({ by: ["formKey"], where: { patientId: { in: [survivingId, duplicateId] }, status: "ACTIVE" }, _count: true });
+  const clash = openKinds.find((k) => k._count > 1);
+  if (clash) {
+    throw new Error(`Both records have an open ${clash.formKey} record. A doctor should close the wrong one before merging.`);
+  }
 
   // One transaction. A merge that moved the case sheets and then failed
   // before the prescriptions would leave a patient's history split
@@ -403,6 +410,13 @@ export async function mergePatients(
     await move("theatre bookings", (where, data) => tx.otBooking.updateMany({ where, data }));
     await move("imaging orders", (where, data) => tx.radiologyOrder.updateMany({ where, data }));
     // Specialty records, and the family links in both directions.
+    // A history the survivor already has (both kept a menstrual history):
+    // the duplicate's becomes a dated entry rather than a second history,
+    // so nothing written is lost and the survivor's stays the current one.
+    const kept = await tx.specialtyRecord.findMany({ where: { patientId: survivingId, scope: "HISTORY" }, select: { formKey: true } });
+    if (kept.length) {
+      await tx.specialtyRecord.updateMany({ where: { patientId: duplicateId, scope: "HISTORY", formKey: { in: kept.map((k) => k.formKey) } }, data: { scope: "VISIT" } });
+    }
     await move("specialty records", (where, data) => tx.specialtyRecord.updateMany({ where, data }));
     await move("care episodes", (where, data) => tx.careEpisode.updateMany({ where, data }));
     await move("family links", (where, data) => tx.patientRelation.updateMany({ where, data }));

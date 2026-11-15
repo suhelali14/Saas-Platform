@@ -177,7 +177,7 @@ function FormEditor({ form, specialties, onSaved, onCancel }: {
       <button type="button" onClick={() => setDrafts([...drafts, { label: '', type: 'text', unit: '', options: '' }])} className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium underline-offset-4 hover:underline">
         <Plus size={13} /> Add a question
       </button>
-      <p className="mt-3 text-[12.5px] text-muted-foreground">A question taken away stops being asked; what was already written with it stays on those records. Fetal sex cannot be recorded on any form (PC-PNDT Act).</p>
+      <p className="mt-3 text-[12.5px] text-muted-foreground">A question taken away stops being asked; what was already written with it stays on those records. Changing a question's answer type starts it afresh, and earlier answers stay with the old one. Fetal sex cannot be recorded on any form (PC-PNDT Act).</p>
       <div className="mt-4 flex gap-2">
         <Button variant="primary" onClick={save}>Save</Button>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>

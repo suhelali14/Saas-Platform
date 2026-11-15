@@ -37,6 +37,26 @@ const RESOURCE_BY_PREFIX: Array<[string, string]> = [
   ["/api/clinic/export", "export"],
   ["/api/clinic/inventory", "inventory"],
   ["/api/clinic/drugs", "drug"],
+  // Hospital desks.
+  ["/api/clinic/admissions", "admission"],
+  ["/api/clinic/wards", "ward"],
+  ["/api/clinic/beds", "ward"],
+  ["/api/clinic/ipd", "admission"],
+  ["/api/clinic/counter", "cash-counter"],
+  ["/api/clinic/deposits", "deposit"],
+  ["/api/clinic/discounts", "invoice"],
+  ["/api/clinic/claims", "claim"],
+  ["/api/clinic/claims-summary", "claim"],
+  ["/api/clinic/scheme-packages", "claim"],
+  ["/api/clinic/ot", "theatre"],
+  ["/api/clinic/radiology", "imaging"],
+  ["/api/clinic/nursing", "nursing"],
+  ["/api/clinic/departments", "department"],
+  // Specialty records.
+  ["/api/clinic/records", "specialty-record"],
+  ["/api/clinic/episodes", "care-episode"],
+  ["/api/clinic/relations", "family-link"],
+  ["/api/clinic/specialty", "specialty-form"],
 ];
 
 /**
@@ -100,6 +120,8 @@ function actionFor(method: string): string {
  * patient's access history as exhaustive when it isn't.
  */
 function patientIdFor(request: FastifyRequest): string | null {
+  // A route that looked the patient up names them itself.
+  if (request.auditPatientId) return request.auditPatientId;
   const path = request.url.split("?")[0] ?? "";
   const match = /^\/api\/clinic\/patients\/([^/]+)/.exec(path);
   if (match?.[1]) return match[1];

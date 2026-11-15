@@ -310,7 +310,10 @@ function EpisodeEditor({ def, episode, relations, ctx, onSave, onCancel }: {
   def: FormDef; episode?: Episode; relations: Relation[]; ctx: { recordedOn: string; dob: string | null; age: number | null };
   onSave: (values: Answers, partnerId: string) => Promise<void>; onCancel: () => void;
 }) {
-  const [partnerId, setPartnerId] = useState(episode?.partnerId ?? relations.find((r) => r.kind === 'SPOUSE' || r.kind === 'PARTNER')?.id ?? '');
+  // A new record suggests the spouse; an existing one keeps exactly what it
+  // has, including no partner -- a record left unlinked on purpose (the
+  // listed husband is not the father) must not be linked by an edit.
+  const [partnerId, setPartnerId] = useState(episode ? episode.partnerId ?? '' : relations.find((r) => r.kind === 'SPOUSE' || r.kind === 'PARTNER')?.id ?? '');
   const partners = relations.filter((r) => r.kind === 'SPOUSE' || r.kind === 'PARTNER');
   return (
     <RecordEditor title={episode ? `${def.title}: details` : `Start a ${def.title.toLowerCase()} record`} note={def.note} sections={def.sections}

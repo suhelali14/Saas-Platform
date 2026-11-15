@@ -5,7 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireAdminAuth, requireClinicAuth, requireRoles } from "../plugins/auth.js";
 import { LIBRARY } from "../lib/specialty-library.js";
 import {
-  cleanData, cleanOwnFields, compute, describe, gestationalAge,
+  cleanData, cleanOwnFields, compute, describe, gestationalAge, isValidDay, reconcileFields,
   type FormDef, type FormField,
 } from "../lib/specialty-forms.js";
 
@@ -50,10 +50,15 @@ const RECORD_ROLES = new Set(["DOCTOR", "NURSE"]);
 const RELATION_ROLES = new Set(["DOCTOR", "NURSE", "RECEPTIONIST"]);
 const DOCTOR = new Set(["DOCTOR"]);
 
+/** Who may see specialty records: the one rule, used by every route that shows them. */
+export function canReadSpecialty(auth: { role: string; isAdmin: boolean }): boolean {
+  return !NO_READ.has(auth.role) || auth.isAdmin;
+}
+
 function requireReader(request: FastifyRequest, reply: FastifyReply) {
   const auth = requireClinicAuth(request, reply);
   if (!auth) return null;
-  if (NO_READ.has(auth.role) && !auth.isAdmin) {
+  if (!canReadSpecialty(auth)) {
     reply.status(403).send({ error: "Specialty records are for clinical staff." });
     return null;
   }
@@ -83,14 +88,34 @@ function present(r: { recordedOn: Date; data: unknown; formKey: string }, forms:
   return { ...r, recordedOn: dayOf(r.recordedOn), summary: def ? describe(def, r.data as Record<string, unknown>) : "" };
 }
 
-/** Specialty records for the day-by-day history, each with its one-line summary. */
-export async function recordsForHistory(patientId: string) {
-  const [forms, rows] = await Promise.all([
-    formLibrary(),
-    prisma.specialtyRecord.findMany({ where: { patientId }, orderBy: { recordedOn: "desc" }, take: 300 }),
-  ]);
-  const byKey = new Map(forms.map((f) => [f.key, f]));
-  return rows.map((r) => ({ ...present(r, byKey), title: byKey.get(r.formKey)?.title ?? r.formKey }));
+/**
+ * A form for one sex is not opened for the other: a pregnancy record on a
+ * husband's file would put "Pregnant" above his name. Only a patient whose
+ * recorded gender plainly is the other one is refused; anyone else is not.
+ */
+function wrongSex(def: FormDef, gender: string | null | undefined): string | null {
+  const want = def.suggest?.gender;
+  const g = (gender ?? "").trim().toLowerCase();
+  if (!want || !g) return null;
+  const isMale = g === "m" || g.startsWith("male");
+  const isFemale = g === "f" || g.startsWith("female");
+  if ((want === "Female" && isMale) || (want === "Male" && isFemale)) return `${def.title} is for ${want.toLowerCase()} patients.`;
+  return null;
+}
+
+/** Keeps what a record said before it is corrected or removed. */
+async function revise(subjectKind: "record" | "episode", subject: { id: string; patientId: string; formKey: string; data: unknown; recordedOn?: Date | null }, action: string, byId: string, byName: string) {
+  await prisma.specialtyRevision.create({
+    data: { subjectKind, subjectId: subject.id, patientId: subject.patientId, formKey: subject.formKey, action, data: subject.data as never, recordedOn: subject.recordedOn ?? null, byId, byName },
+  });
+}
+
+const isUnique = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+
+/** A speciality or department matched against form tags as word beginnings, so "dent" is not found in "Accident". */
+function tagHit(text: string, tags: string[]): boolean {
+  const words = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  return tags.some((t) => words.some((w) => w.startsWith(t)));
 }
 
 const relationSchema = z.object({
@@ -104,12 +129,6 @@ const relationSchema = z.object({
   occupation: z.string().max(120).nullable().optional(),
   notes: z.string().max(1000).nullable().optional(),
 });
-
-/** Keeps a clinic's earlier fields as retired when they are left out, so records made with them still read. */
-function keepRetired(next: FormField[], previous: FormField[] | null | undefined): FormField[] {
-  const have = new Set(next.map((f) => f.key));
-  return [...next, ...(previous ?? []).filter((f) => !have.has(f.key)).map((f) => ({ ...f, retired: true }))];
-}
 
 export async function clinicSpecialtyRoutes(app: FastifyInstance) {
   // ── The library ─────────────────────────────────────────────────────
@@ -134,9 +153,9 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     if (builtIn) {
       let extraFields = (row?.extraFields as FormField[] | null) ?? null;
       if (body.extraFields !== undefined) {
-        const { fields, errors } = cleanOwnFields(body.extraFields, builtIn);
+        const { fields, errors } = cleanOwnFields(body.extraFields, builtIn, extraFields ?? []);
         if (errors.length) return reply.status(400).send({ error: errors[0], errors });
-        extraFields = keepRetired(fields, extraFields);
+        extraFields = reconcileFields(fields, extraFields);
       }
       await prisma.clinicForm.upsert({
         where: { key },
@@ -149,12 +168,13 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const def = row!.definition as unknown as FormDef;
     let next = def;
     if (body.fields !== undefined || body.title !== undefined || body.specialty !== undefined) {
-      const { fields, errors } = body.fields !== undefined ? cleanOwnFields(body.fields, def) : { fields: def.sections[0]?.fields ?? [], errors: [] };
+      const before = def.sections[0]?.fields ?? [];
+      const { fields, errors } = body.fields !== undefined ? cleanOwnFields(body.fields, def, before) : { fields: before.filter((f) => !f.retired), errors: [] };
       if (errors.length) return reply.status(400).send({ error: errors[0], errors });
       if (!fields.filter((f) => !f.retired).length) return reply.status(400).send({ error: "A form needs at least one field." });
       const title = typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 80) : def.title;
       const specialty = typeof body.specialty === "string" && body.specialty.trim() ? body.specialty.trim().slice(0, 60) : def.specialty;
-      const all = keepRetired(fields, def.sections[0]?.fields);
+      const all = reconcileFields(fields, before);
       next = { ...def, title, specialty, version: def.version + 1, sections: [{ title, fields: all }], summary: all.filter((f) => !f.retired).slice(0, 6).map((f) => f.key) };
     }
     await prisma.clinicForm.update({ where: { key }, data: { isActive, definition: next as never } });
@@ -210,10 +230,15 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
       // A couple's episode lives on one partner's record and shows on both.
       prisma.careEpisode.findMany({ where: { partner: { relatedPatientId: id } }, include: episodeInclude, orderBy: { startedOn: "desc" } }),
       prisma.specialtyRecord.findMany({ where: { patientId: id, scope: "HISTORY" }, orderBy: { updatedAt: "desc" } }),
-      prisma.specialtyRecord.findMany({ where: { patientId: id, scope: "VISIT", episodeId: null }, orderBy: { recordedOn: "desc" }, take: 150 }),
+      prisma.specialtyRecord.findMany({ where: { patientId: id, scope: "VISIT" }, orderBy: { recordedOn: "desc" }, take: 300 }),
     ]);
 
     const today = todayIst();
+    // A visit on an episode shown here appears on that episode's card. One
+    // on an episode that is not shown -- the husband's semen analysis after
+    // he was unlinked from the couple's record -- still belongs on his file.
+    const shownEpisodes = new Set([...own, ...viaPartner].map((e) => e.id));
+    const looseVisits = visits.filter((r) => !r.episodeId || !shownEpisodes.has(r.episodeId)).slice(0, 150);
     const episodes = [...own.map((e) => ({ e, viaPartner: false })), ...viaPartner.map((e) => ({ e, viaPartner: true }))].map(({ e, viaPartner: via }) => {
       const def = byKey.get(e.formKey);
       const data = e.data as Record<string, unknown>;
@@ -250,7 +275,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const suggested = forms
       .filter((f) => f.isActive && !f.episodeKey && !openKinds.has(f.key) && fits(f) && !(f.suggest?.unlessOpen?.some((k) => openKinds.has(k)) ?? false))
       .filter((f) =>
-        (words && f.tags.some((t) => words.includes(t))) ||
+        (words.trim() !== "" && tagHit(words, f.tags)) ||
         (f.suggest?.category && f.suggest.category === patient.category) ||
         (f.suggest?.conditions?.some((c) => conditions.includes(c)) ?? false))
       .map((f) => f.key);
@@ -263,7 +288,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
       linkedFrom,
       episodes,
       history: history.map((r) => present(r, byKey)),
-      visits: visits.map((r) => present(r, byKey)),
+      visits: looseVisits.map((r) => present(r, byKey)),
       suggested,
       pregnancy: pregnancy ? { episodeId: pregnancy.id, ga: pregnancy.gaToday, edd: (pd?.usg_edd as string | undefined) ?? (pd?.edd as string | undefined) ?? null } : null,
     };
@@ -303,6 +328,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const existing = await prisma.patientRelation.findUnique({ where: { id } });
     if (!existing) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = existing.patientId;
     const parsed = relationSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "Say how they are related, and who they are." });
     const r = await relationData(existing.patientId, parsed.data);
@@ -314,8 +340,14 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const auth = requireRoles(request, reply, RELATION_ROLES, "Only clinical and front-desk staff can remove family details.", { allowAdmin: true });
     if (!auth) return;
     const { id } = request.params as { id: string };
-    const { count } = await prisma.patientRelation.deleteMany({ where: { id } });
-    if (!count) return reply.status(404).send({ error: "Not found" });
+    const rel = await prisma.patientRelation.findUnique({ where: { id } });
+    if (!rel) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = rel.patientId;
+    // Taking a partner off a couple's record is a doctor's decision, made
+    // on that record; removing them here would quietly unlink it.
+    const onEpisodes = await prisma.careEpisode.count({ where: { partnerId: id } });
+    if (onEpisodes) return reply.status(409).send({ error: `${rel.name} is the partner on a pregnancy or treatment record. A doctor can unlink them there first.` });
+    await prisma.patientRelation.delete({ where: { id } });
     return { ok: true };
   });
 
@@ -326,10 +358,12 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     if (!auth) return;
     const { id } = request.params as { id: string };
     const body = (request.body ?? {}) as { formKey?: string; data?: unknown; partnerId?: string | null };
-    const patient = await prisma.patient.findUnique({ where: { id }, select: { id: true, age: true, dob: true } });
+    const patient = await prisma.patient.findUnique({ where: { id }, select: { id: true, age: true, dob: true, gender: true } });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
     const def = (await formLibrary()).find((f) => f.key === body.formKey && f.kind === "episode");
     if (!def || !def.isActive) return reply.status(400).send({ error: "Choose a pregnancy or treatment form that is switched on." });
+    const sexNo = wrongSex(def, patient.gender);
+    if (sexNo) return reply.status(400).send({ error: sexNo });
     const open = await prisma.careEpisode.findFirst({ where: { patientId: id, formKey: def.key, status: "ACTIVE" } });
     if (open) return reply.status(409).send({ error: `There is already an open ${def.title.toLowerCase()} record for this patient.`, episodeId: open.id });
     const { data, errors } = cleanData(def.sections, body.data);
@@ -342,14 +376,20 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const today = todayIst();
     const startedOn = (def.key === "pregnancy" ? pregnancyStart(data) : null) ?? today;
     const me = await staff(auth.clinicUserId);
-    const episode = await prisma.careEpisode.create({
-      data: {
-        patientId: id, formKey: def.key, formVersion: def.version, startedOn: atNoonIst(startedOn), partnerId: body.partnerId || null,
-        data: compute(def.sections, data, { recordedOn: today, patient }) as never,
-        createdById: auth.clinicUserId, createdByName: me?.name ?? "Doctor",
-      },
-    });
-    return reply.status(201).send(episode);
+    try {
+      const episode = await prisma.careEpisode.create({
+        data: {
+          patientId: id, formKey: def.key, formVersion: def.version, startedOn: atNoonIst(startedOn), partnerId: body.partnerId || null,
+          data: compute(def.sections, data, { recordedOn: today, patient }) as never,
+          createdById: auth.clinicUserId, createdByName: me?.name ?? "Doctor",
+        },
+      });
+      return reply.status(201).send(episode);
+    } catch (e) {
+      // Two submits at once: the database keeps one open record of a kind.
+      if (isUnique(e)) return reply.status(409).send({ error: `There is already an open ${def.title.toLowerCase()} record for this patient.` });
+      throw e;
+    }
   });
 
   app.put("/api/clinic/episodes/:id", async (request, reply) => {
@@ -359,6 +399,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const body = (request.body ?? {}) as { data?: unknown; partnerId?: string | null };
     const ep = await prisma.careEpisode.findUnique({ where: { id }, include: { patient: { select: { age: true, dob: true } } } });
     if (!ep) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = ep.patientId;
     const def = (await formLibrary()).find((f) => f.key === ep.formKey);
     if (!def) return reply.status(409).send({ error: "This record's form no longer exists." });
     let data = ep.data as Record<string, unknown>;
@@ -373,6 +414,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
       if (!partner) return reply.status(400).send({ error: "That partner is not linked to this patient." });
     }
     const start = def.key === "pregnancy" ? pregnancyStart(data) : null;
+    if (body.data !== undefined) await revise("episode", ep, "CORRECTED", auth.clinicUserId, (await staff(auth.clinicUserId))?.name ?? "Doctor");
     return prisma.careEpisode.update({
       where: { id },
       data: { data: data as never, formVersion: def.version, ...(body.partnerId !== undefined ? { partnerId: body.partnerId || null } : {}), ...(start ? { startedOn: atNoonIst(start) } : {}) },
@@ -385,6 +427,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const ep = await prisma.careEpisode.findUnique({ where: { id } });
     if (!ep) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = ep.patientId;
     if (ep.status === "CLOSED") return reply.status(409).send({ error: "This record is already closed." });
     const def = (await formLibrary()).find((f) => f.key === ep.formKey);
     const { data, errors } = cleanData(def?.closeSections ?? [], (request.body as { outcome?: unknown } | null)?.outcome ?? {});
@@ -403,6 +446,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const ep = await prisma.careEpisode.findUnique({ where: { id } });
     if (!ep) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = ep.patientId;
     const open = await prisma.careEpisode.findFirst({ where: { patientId: ep.patientId, formKey: ep.formKey, status: "ACTIVE", id: { not: id } } });
     if (open) return reply.status(409).send({ error: "Another record of this kind is open for the patient." });
     return prisma.careEpisode.update({ where: { id }, data: { status: "ACTIVE", closedOn: null, outcome: Prisma.DbNull } });
@@ -415,11 +459,14 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     if (!auth) return;
     const { id } = request.params as { id: string };
     const body = (request.body ?? {}) as { formKey?: string; episodeId?: string | null; appointmentId?: string | null; recordedOn?: string; data?: unknown };
-    const patient = await prisma.patient.findUnique({ where: { id }, select: { id: true, age: true, dob: true } });
+    const patient = await prisma.patient.findUnique({ where: { id }, select: { id: true, age: true, dob: true, gender: true } });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
     const def = (await formLibrary()).find((f) => f.key === body.formKey && f.kind !== "episode");
     if (!def) return reply.status(400).send({ error: "Choose a form." });
     if (!def.isActive) return reply.status(400).send({ error: `${def.title} is switched off for this clinic.` });
+    const sexNo = wrongSex(def, patient.gender);
+    if (sexNo) return reply.status(400).send({ error: sexNo });
+    if (body.recordedOn !== undefined && !isValidDay(body.recordedOn)) return reply.status(400).send({ error: "That visit date is not a real date." });
 
     let episode: { id: string; data: unknown } | null = null;
     if (def.episodeKey) {
@@ -437,7 +484,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
       const appt = await prisma.appointment.findFirst({ where: { id: body.appointmentId, patientId: id }, select: { id: true } });
       if (!appt) return reply.status(400).send({ error: "That visit is not this patient's." });
     }
-    const recordedOn = body.recordedOn && DAY_RE.test(body.recordedOn) ? body.recordedOn : todayIst();
+    const recordedOn = body.recordedOn ?? todayIst();
     if (recordedOn > todayIst()) return reply.status(400).send({ error: "A visit cannot be recorded for a day that has not happened." });
     const { data, errors } = cleanData(def.sections, body.data);
     if (errors.length) return reply.status(400).send({ error: errors[0], errors });
@@ -445,25 +492,36 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const filled = compute(def.sections, data, { recordedOn, episode: episode?.data as Record<string, unknown> | undefined, patient });
     const me = await staff(auth.clinicUserId);
 
-    // A history is one per patient: saving it again brings it up to date.
+    // A history is one per patient: saving it again brings it up to date,
+    // keeping what it said before as a revision.
+    const bringUpToDate = async (existing: { id: string; patientId: string; formKey: string; data: unknown; recordedOn: Date }) => {
+      await revise("record", existing, "CORRECTED", auth.clinicUserId, me?.name ?? "Staff");
+      return prisma.specialtyRecord.update({
+        where: { id: existing.id },
+        data: { data: filled as never, formVersion: def.version, recordedOn: atNoonIst(recordedOn), recordedById: auth.clinicUserId, recordedByName: me?.name ?? "Staff" },
+      });
+    };
     if (def.kind === "history") {
       const existing = await prisma.specialtyRecord.findFirst({ where: { patientId: id, formKey: def.key, scope: "HISTORY" } });
-      if (existing) {
-        const updated = await prisma.specialtyRecord.update({
-          where: { id: existing.id },
-          data: { data: filled as never, formVersion: def.version, recordedOn: atNoonIst(recordedOn), recordedById: auth.clinicUserId, recordedByName: me?.name ?? "Staff" },
-        });
-        return reply.status(200).send(updated);
-      }
+      if (existing) return reply.status(200).send(await bringUpToDate(existing));
     }
-    const record = await prisma.specialtyRecord.create({
-      data: {
-        patientId: id, formKey: def.key, formVersion: def.version, scope: def.kind === "history" ? "HISTORY" : "VISIT",
-        episodeId: episode?.id ?? null, appointmentId: body.appointmentId || null, recordedOn: atNoonIst(recordedOn),
-        data: filled as never, recordedById: auth.clinicUserId, recordedByName: me?.name ?? "Staff",
-      },
-    });
-    return reply.status(201).send(record);
+    try {
+      const record = await prisma.specialtyRecord.create({
+        data: {
+          patientId: id, formKey: def.key, formVersion: def.version, scope: def.kind === "history" ? "HISTORY" : "VISIT",
+          episodeId: episode?.id ?? null, appointmentId: body.appointmentId || null, recordedOn: atNoonIst(recordedOn),
+          data: filled as never, recordedById: auth.clinicUserId, recordedByName: me?.name ?? "Staff",
+        },
+      });
+      return reply.status(201).send(record);
+    } catch (e) {
+      // Two saves of a history at once: the second brings the first up to date.
+      if (def.kind === "history" && isUnique(e)) {
+        const existing = await prisma.specialtyRecord.findFirst({ where: { patientId: id, formKey: def.key, scope: "HISTORY" } });
+        if (existing) return reply.status(200).send(await bringUpToDate(existing));
+      }
+      throw e;
+    }
   });
 
   app.put("/api/clinic/records/:id", async (request, reply) => {
@@ -473,13 +531,17 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const body = (request.body ?? {}) as { data?: unknown; recordedOn?: string };
     const rec = await prisma.specialtyRecord.findUnique({ where: { id }, include: { episode: true, patient: { select: { age: true, dob: true } } } });
     if (!rec) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = rec.patientId;
     const def = (await formLibrary()).find((f) => f.key === rec.formKey);
     if (!def) return reply.status(409).send({ error: "This record's form no longer exists." });
-    const recordedOn = body.recordedOn && DAY_RE.test(body.recordedOn) && body.recordedOn <= todayIst() ? body.recordedOn : dayOf(rec.recordedOn);
+    if (body.recordedOn !== undefined && !isValidDay(body.recordedOn)) return reply.status(400).send({ error: "That visit date is not a real date." });
+    if (body.recordedOn && body.recordedOn > todayIst()) return reply.status(400).send({ error: "A visit cannot be recorded for a day that has not happened." });
+    const recordedOn = body.recordedOn ?? dayOf(rec.recordedOn);
     const { data, errors } = cleanData(def.sections, body.data);
     if (errors.length) return reply.status(400).send({ error: errors[0], errors });
     const filled = compute(def.sections, data, { recordedOn, episode: rec.episode?.data as Record<string, unknown> | undefined, patient: rec.patient });
     const me = await staff(auth.clinicUserId);
+    await revise("record", rec, "CORRECTED", auth.clinicUserId, me?.name ?? "Staff");
     return prisma.specialtyRecord.update({
       where: { id },
       data: { data: filled as never, formVersion: def.version, recordedOn: atNoonIst(recordedOn), recordedById: auth.clinicUserId, recordedByName: me?.name ?? "Staff" },
@@ -489,7 +551,8 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
   /**
    * Removing a record is for a mistake caught the same day -- the wrong
    * patient, a form opened by accident. After that it is part of the
-   * record and is corrected, not erased; the audit log keeps both.
+   * record and is corrected, not erased. Either way what it said is kept
+   * as a revision, and the audit log names who did it.
    */
   app.delete("/api/clinic/records/:id", async (request, reply) => {
     const auth = requireRoles(request, reply, DOCTOR, "Only a doctor can remove a specialty record.");
@@ -497,9 +560,11 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const rec = await prisma.specialtyRecord.findUnique({ where: { id } });
     if (!rec) return reply.status(404).send({ error: "Not found" });
+    request.auditPatientId = rec.patientId;
     if (Date.now() - rec.createdAt.getTime() > 24 * 3_600_000) {
       return reply.status(409).send({ error: "Records older than a day are corrected, not removed." });
     }
+    await revise("record", rec, "REMOVED", auth.clinicUserId, (await staff(auth.clinicUserId))?.name ?? "Doctor");
     await prisma.specialtyRecord.delete({ where: { id } });
     return { ok: true };
   });

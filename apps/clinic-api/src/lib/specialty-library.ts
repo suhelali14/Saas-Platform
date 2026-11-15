@@ -49,7 +49,7 @@ const pregnancy: FormDef = {
   specialty: "Obstetrics & Gynaecology",
   kind: "episode",
   tags: OBG,
-  suggest: { category: "PREGNANT" },
+  suggest: { category: "PREGNANT", gender: "Female" },
   visitForms: ["antenatal"],
   couple: true,
   note: "Fetal sex is never recorded: the PC-PNDT Act prohibits determining or disclosing it. An obstetric ultrasound also needs its Form F.",
@@ -125,6 +125,7 @@ const antenatal: FormDef = {
   specialty: "Obstetrics & Gynaecology",
   kind: "visit",
   tags: OBG,
+  suggest: { gender: "Female" },
   episodeKey: "pregnancy",
   note: "Fetal sex is never recorded: the PC-PNDT Act prohibits determining or disclosing it.",
   sections: [
@@ -192,6 +193,7 @@ const menstrual: FormDef = {
   specialty: "Obstetrics & Gynaecology",
   kind: "history",
   tags: OBG,
+  suggest: { gender: "Female" },
   sections: [
     {
       title: "Periods (पाळी / माहवारी)",
@@ -228,6 +230,7 @@ const gynaeVisit: FormDef = {
   specialty: "Obstetrics & Gynaecology",
   kind: "visit",
   tags: OBG,
+  suggest: { gender: "Female" },
   sections: [
     {
       title: "Today",
@@ -621,7 +624,8 @@ const ortho: FormDef = {
   title: "Bone and joint examination",
   specialty: "Orthopaedics",
   kind: "visit",
-  tags: ["ortho", "bone", "joint", "spine", "trauma"],
+  // "orthop", not "ortho": an orthodontist is not an orthopaedic surgeon.
+  tags: ["orthop", "bone", "joint", "spine", "trauma"],
   sections: [
     {
       title: "Examination",
@@ -649,7 +653,7 @@ const physio: FormDef = {
   title: "Physiotherapy session",
   specialty: "Physiotherapy",
   kind: "visit",
-  tags: ["physio", "rehab", "ortho"],
+  tags: ["physio", "rehab", "orthop"],
   sections: [
     {
       title: "Session",

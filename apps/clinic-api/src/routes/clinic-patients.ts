@@ -14,7 +14,7 @@ import {
 import { resolveTemplate } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 import { findDuplicatesOf, mergePatients } from "../lib/patient-duplicates.js";
-import { formLibrary, recordsForHistory } from "./clinic-specialty.js";
+import { canReadSpecialty, formLibrary } from "./clinic-specialty.js";
 import { describe as describeRecord } from "../lib/specialty-forms.js";
 
 /** One consistent date format across every document. The report was
@@ -254,12 +254,9 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
       return { id: inv.id, appointmentId: inv.appointmentId, createdAt: inv.createdAt, total: subtotal, paid, balance, status };
     });
 
-    // Specialty forms filled at each visit -- the antenatal check, the
-    // follicle scan, the growth visit -- so they sit in the day they
-    // happened. Not for the money-only roles, like the records themselves.
-    const specialtyRecords = auth.role === "CASHIER" || auth.role === "BILLING_CLERK" ? [] : await recordsForHistory(id);
-
-    return { patient, caseSheets, prescriptions, certificates, appointments, labOrders, bills: canSeeBills ? bills : null, specialtyRecords };
+    // Specialty records are not repeated here: the patient page already
+    // loads them from /patients/:id/specialty and files each on its day.
+    return { patient, caseSheets, prescriptions, certificates, appointments, labOrders, bills: canSeeBills ? bills : null };
   });
 
   // Full patient history as a printable/downloadable PDF -- "every patient
@@ -277,7 +274,7 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     // Specialty records go on the report too -- an antenatal card or a
     // fertility workup is exactly what a referral letter needs -- but not
     // for the money-only roles, who cannot see them on screen either.
-    const withSpecialty = auth.role !== "CASHIER" && auth.role !== "BILLING_CLERK";
+    const withSpecialty = canReadSpecialty(auth);
     const [caseSheets, prescriptions, certificates, clinic, forms, records, episodes] = await Promise.all([
       prisma.caseSheet.findMany({ where: { patientId: id }, include: { doctor: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.prescription.findMany({ where: { patientId: id }, include: { items: true, doctor: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
