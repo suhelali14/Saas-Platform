@@ -1,66 +1,66 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* Self-hosted, the same faces as Nayaverse Growth and the clinic portal. */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/barlow-condensed/600.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /**
- * Provider console theme.
+ * Provider console theme: the Nayaverse look.
  *
- * Dark only, and deliberately so: this is an internal tool used in long
- * sessions, not something a stranger judges a business by. The clinic
- * portal offers both themes because reception works in daylight.
+ * The same visual world as Nayaverse Growth and the clinic portal: warm
+ * paper, near-black ink and one amber. One family of products, so the
+ * console the founder sells from looks like the thing being sold.
  *
- * The palette is near-neutral with a single teal accent. Colour is spent
- * on meaning -- a clinic's status, a failed health check, money -- and
- * almost nothing else, so that when something is coloured it is because
- * it matters. Everything is stated as HSL channels rather than finished
- * colours so a shade can be shifted in one place.
+ * The main action is an ink button; amber is kept for what needs
+ * noticing. Colour is spent on meaning -- a clinic's status, a failed
+ * health check, money owed -- and almost nothing else. Every text token
+ * is at least 4.5:1 on both the page and a card.
+ *
+ * --border is a soft warm line, used at full strength: this console's
+ * components write `border-border` without an alpha, unlike the portal.
  */
 @layer base {
   :root {
-    --background: 222 24% 7%;
-    --foreground: 210 20% 93%;
+    --background: 42 36% 95%;
+    --foreground: 45 8% 10%;
 
-    --card: 222 22% 9%;
-    --card-foreground: 210 20% 93%;
+    --card: 43 100% 99%;
+    --card-foreground: 45 8% 10%;
 
-    --popover: 222 24% 10%;
-    --popover-foreground: 210 20% 93%;
+    --popover: 43 100% 99%;
+    --popover-foreground: 45 8% 10%;
 
-    /* Teal rather than blue: blue is the default everywhere and reads as
-       unconsidered, and this sits next to clinical software where blue
-       usually means "information". */
-    --primary: 172 66% 45%;
-    --primary-foreground: 200 30% 6%;
+    --primary: 45 8% 10%;
+    --primary-foreground: 43 100% 99%;
 
-    --secondary: 217 19% 16%;
-    --secondary-foreground: 210 20% 93%;
+    --secondary: 40 30% 91%;
+    --secondary-foreground: 45 8% 10%;
 
-    --muted: 217 19% 14%;
-    /* 60% lightness against the 7% background is ~7:1 -- comfortably
-       past AA for body text, because this is read for hours. */
-    --muted-foreground: 215 16% 60%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 39 10% 38%;
 
-    --accent: 217 19% 18%;
-    --accent-foreground: 210 20% 95%;
+    --accent: 40 32% 89%;
+    --accent-foreground: 45 8% 10%;
 
-    --destructive: 0 72% 58%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 3 75% 38%;
+    --destructive-foreground: 43 100% 99%;
 
-    --success: 152 58% 46%;
-    --success-foreground: 150 40% 7%;
+    --success: 151 58% 25%;
+    --success-foreground: 43 100% 99%;
 
-    --warning: 38 92% 56%;
-    --warning-foreground: 40 60% 8%;
+    --warning: 35 79% 29%;
+    --warning-foreground: 43 100% 99%;
 
-    --border: 217 19% 18%;
-    --input: 217 19% 20%;
-    --ring: 172 66% 45%;
+    /* The one amber, for marks that need noticing rather than text. */
+    --amber: 36 81% 58%;
 
-    /* 10px. Sharp enough to read as a tool rather than a consumer app,
-       soft enough not to look unfinished. */
-    --radius: 0.625rem;
+    --border: 38 22% 84%;
+    --input: 38 18% 76%;
+    --ring: 35 79% 29%;
+
+    --radius: 0.5rem;
   }
 }
 
@@ -71,7 +71,17 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  }
+
+  /* Page titles: condensed capitals, as in Growth. Every screen's h1. */
+  main h1 {
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    font-size: 1.9rem;
   }
 
   /* Visible only for keyboard users. A ring left behind by a mouse click
@@ -129,7 +139,7 @@
 }
 
 /* Printing an invoice: only the sheet, on white paper. The console's own
-   chrome and dark ground are for the screen. */
+   chrome and paper ground are for the screen. */
 @media print {
   @page { size: A4; margin: 14mm; }
   html, body { background: #fff !important; }

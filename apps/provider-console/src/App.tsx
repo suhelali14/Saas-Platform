@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
-import { ShieldCheck, LogOut, Building2, Receipt } from "lucide-react";
+import { LogOut, Building2, Receipt } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import { Login } from "./pages/Login";
@@ -58,13 +58,16 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-6 px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5 text-sm font-semibold tracking-tight">
-            <span className="flex size-7 items-center justify-center rounded-md border border-primary/20 bg-primary/10">
-              <ShieldCheck className="size-4 text-primary" />
-            </span>
-            Provider Console
+            {/* Growth's mark: an ink tile with the amber and tan bars. */}
+            <svg className="size-7" viewBox="0 0 28 28" aria-hidden="true">
+              <rect width="28" height="28" rx="6" fill="#1b1a17" />
+              <rect x="6" y="12" width="9" height="4" rx="2" fill="#eba63f" />
+              <rect x="16.5" y="12" width="5.5" height="4" rx="2" fill="#b9ad95" />
+            </svg>
+            <span className="font-display text-[19px] font-semibold uppercase tracking-[0.03em]">Nayaverse Console</span>
           </Link>
 
           <nav className="flex flex-1 items-center gap-1">
@@ -73,7 +76,7 @@ function Shell({ children }: { children: React.ReactNode }) {
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
                 onClinics
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-accent font-semibold text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
             >
@@ -85,7 +88,7 @@ function Shell({ children }: { children: React.ReactNode }) {
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
                 onBilling
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-accent font-semibold text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
             >

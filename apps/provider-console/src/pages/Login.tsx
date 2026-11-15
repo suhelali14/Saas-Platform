@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -39,20 +39,14 @@ export function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* A faint wash behind the card. Enough to stop a single form on a
-          flat background looking like an error page, not enough to
-          decorate a tool nobody is here to admire. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.07),transparent_60%)]"
-      />
-
       <form onSubmit={submit} className="relative w-full max-w-sm">
         <div className="mb-8">
-          <div className="mb-5 inline-flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-            <ShieldCheck className="size-5 text-primary" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">Provider Console</h1>
+          <svg className="mb-5 size-10" viewBox="0 0 28 28" aria-hidden="true">
+            <rect width="28" height="28" rx="6" fill="#1b1a17" />
+            <rect x="6" y="12" width="9" height="4" rx="2" fill="#eba63f" />
+            <rect x="16.5" y="12" width="5.5" height="4" rx="2" fill="#b9ad95" />
+          </svg>
+          <h1 className="font-display text-[1.9rem] font-semibold uppercase leading-none tracking-[0.01em]">Nayaverse Console</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage the clinics you have sold to.</p>
         </div>
 

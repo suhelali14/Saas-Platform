@@ -1,8 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // Dark by default and not toggleable here. This console is an internal
-  // tool used in long sessions; the clinic portal offers both themes
-  // because reception works in daylight at a front desk.
+  // One light theme, the Nayaverse paper-and-ink look shared with Growth
+  // and the clinic portal. See src/index.css.
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
@@ -52,6 +51,9 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+      },
+      fontFamily: {
+        display: ['"Barlow Condensed"', '"Arial Narrow"', "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

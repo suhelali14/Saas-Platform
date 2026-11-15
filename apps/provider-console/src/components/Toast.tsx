@@ -101,9 +101,9 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 }
 
 const STYLE: Record<ToastKind, { ring: string; icon: React.ReactNode }> = {
-  success: { ring: 'border-emerald-500/30', icon: <CheckCircle2 size={16} className="text-emerald-400" /> },
-  error: { ring: 'border-red-500/40', icon: <AlertTriangle size={16} className="text-red-400" /> },
-  info: { ring: 'border-white/15', icon: <Info size={16} className="text-gray-300" /> },
+  success: { ring: 'border-success/30', icon: <CheckCircle2 size={16} className="text-success" /> },
+  error: { ring: 'border-destructive/40', icon: <AlertTriangle size={16} className="text-destructive" /> },
+  info: { ring: 'border-border', icon: <Info size={16} className="text-muted-foreground" /> },
 };
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
@@ -124,13 +124,13 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       aria-live={toast.kind === 'error' ? 'assertive' : 'polite'}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      className={`pointer-events-auto w-full sm:w-auto sm:min-w-[280px] sm:max-w-sm flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-[#161a22] shadow-2xl toast-enter ${STYLE[toast.kind].ring}`}
+      className={`pointer-events-auto w-full sm:w-auto sm:min-w-[280px] sm:max-w-sm flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-card shadow-lg toast-enter ${STYLE[toast.kind].ring}`}
     >
       <span className="shrink-0 mt-0.5">{STYLE[toast.kind].icon}</span>
-      <p className="flex-1 text-sm text-gray-100 leading-snug">{toast.message}</p>
+      <p className="flex-1 text-sm text-foreground leading-snug">{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 -mr-1 -mt-0.5 p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10"
+        className="shrink-0 -mr-1 -mt-0.5 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent"
         aria-label="Dismiss"
       >
         <X size={13} />

@@ -739,9 +739,9 @@ function DomainOutcome({ result }: { result: DomainResult }) {
       {result.jobId && (
         <div className="flex items-start gap-2 rounded-md border border-border/60 p-3 text-xs">
           {job?.state === "succeeded" ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
           ) : job?.state === "failed" ? (
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
           ) : (
             <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" />
           )}
@@ -810,7 +810,7 @@ function LiveAddress({ label, host }: { label: string; host: string | null }) {
 function Notice({ tone, children }: { tone: "warn" | "info"; children: React.ReactNode }) {
   const styles =
     tone === "warn"
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+      ? "border-warning/30 bg-warning/10 text-warning"
       : "border-border/60 bg-muted/20 text-muted-foreground";
   return (
     <div className={`flex items-start gap-2 rounded-md border p-3 text-xs ${styles}`}>
