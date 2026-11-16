@@ -630,7 +630,7 @@ async function specialty(pt: Record<string, string>, docs: { gp: string; paeds: 
   const day = (daysAgo: number) => new Date(istMidnight(now - daysAgo * DAY) + 12 * 60 * MIN).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const noon = (d: string) => new Date(`${d}T12:00:00+05:30`);
   const form = (k: string) => LIBRARY_BY_KEY.get(k)!;
-  const patientOf = async (id: string) => prisma.patient.findUnique({ where: { id }, select: { age: true, dob: true } });
+  const patientOf = async (id: string) => (await prisma.patient.findUnique({ where: { id }, select: { age: true, dob: true } })) ?? undefined;
 
   async function relation(patient: string, kind: string, r: { name: string; age?: number; gender?: string; bloodGroup?: string; occupation?: string; phone?: string; relatedPatientId?: string }) {
     return prisma.patientRelation.create({ data: { patientId: pt[patient]!, kind: kind as never, ...r } });

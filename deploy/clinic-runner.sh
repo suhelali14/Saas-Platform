@@ -277,9 +277,11 @@ for job in "${JOB_FILES[@]}"; do
 
     password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"
     apihost="$(grep -m1 '^RESULT_API_HOST=' "$out" | cut -d= -f2-)"
+    tls="$(grep -m1 '^RESULT_TLS=' "$out" | cut -d= -f2-)"
+    tls="${tls:-unknown}"
     extra="$(printf '"apiHost":%s,"loginEmail":%s,"password":%s,"tls":%s' \
              "$(json_str "$apihost")" "$(json_str "$email")" "$(json_str "$password")" \
-             "$(json_str "${tls:-unknown}")")"
+             "$(json_str "$tls")")"
 
     # A clinic without a certificate is not usable: the browser rejects
     # its API with ERR_CERT_COMMON_NAME_INVALID and nobody can sign in.
