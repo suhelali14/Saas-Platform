@@ -1,0 +1,10 @@
+# Re-rendering a tier overwrites its MP4; `git status` would then show
+# the file as modified on every re-render and tempt a commit of a
+# re-encoded binary. The four MP4s that were checked in with the first
+# render are already in git history, so clones get them -- this just
+# keeps later re-renders out of the working tree's modified list.
+*.mp4
+# Per-tier work directories the pipeline creates and cleans up, but
+# that are visible if a run is interrupted.
+_*/
+_*.log
