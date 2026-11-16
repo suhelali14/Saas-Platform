@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { byTriage, VISIT_PRIORITIES } from "../lib/triage.js";
 import { dayBounds, nextToken, stampsFor } from "../lib/queue.js";
 import { requireClinicAuth, requireVitalsAuth } from "../plugins/auth.js";
+import { chipsForPatients } from "../lib/specialty-chip.js";
 
 const createSchema = z.object({
   patientId: z.string().min(1),
@@ -92,11 +93,27 @@ export async function clinicAppointmentRoutes(app: FastifyInstance) {
       orderBy: { scheduledAt: "asc" },
     });
 
+    // Specialty chips (e.g. "ANC 32w") for every patient in the queue --
+    // fetched once as a bulk query rather than N round trips, same shape
+    // as the lastSeen join on the patients list. A chip with urgency
+    // "overdue" (e.g. a term pregnancy who hasn't delivered yet) breaks a
+    // tie *within* a triage tier -- it never beats a true emergency or
+    // promotes a general-tier patient past a senior.
+    const chips = await chipsForPatients(appointments.map((a) => a.patientId));
+    const withChip = appointments.map((a) => ({
+      ...a,
+      patient: { ...a.patient, specialty: chips.get(a.patientId) ?? null },
+    }));
     // Stable sort (guaranteed by the JS spec) on top of the scheduledAt-asc
     // fetch above -- within a tier, check-in time order is preserved exactly.
-    const sorted = [...appointments].sort(
-      byTriage,
-    );
+    const sorted = [...withChip].sort((a, b) => {
+      const t = byTriage(a, b);
+      if (t !== 0) return t;
+      const au = a.patient.specialty?.urgency ?? null;
+      const bu = b.patient.specialty?.urgency ?? null;
+      const rank = (u: typeof au) => (u === "overdue" ? 0 : u === "due" ? 1 : 2);
+      return rank(au) - rank(bu);
+    });
     return { data: sorted };
   });
 

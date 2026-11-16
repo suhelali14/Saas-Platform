@@ -6,6 +6,7 @@ import { DURABLE_CATEGORIES } from "../lib/triage.js";
 import { BILLING_ROLES, requireClinicAuth, requirePatientAdminAuth } from "../plugins/auth.js";
 import { summarize } from "./clinic-billing.js";
 import { generatePatientUhid } from "../lib/uhid.js";
+import { chipsForPatients } from "../lib/specialty-chip.js";
 import {
   createDocument, drawInfoGrid, drawAlertBanner, drawSectionHeading,
   drawTable, drawFieldList, drawParagraph, drawSignature,
@@ -150,9 +151,15 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
         })
       : [];
     const lastSeen = new Map(lastVisits.map((v) => [v.patientId, v._max.scheduledAt]));
+    // Same bulk shape as lastSeen: one grouped query, not one per row.
+    const chips = await chipsForPatients(patients.map((p) => p.id));
 
     return {
-      data: patients.map((p) => ({ ...p, lastSeen: lastSeen.get(p.id) ?? null })),
+      data: patients.map((p) => ({
+        ...p,
+        lastSeen: lastSeen.get(p.id) ?? null,
+        specialty: chips.get(p.id) ?? null,
+      })),
     };
   });
 

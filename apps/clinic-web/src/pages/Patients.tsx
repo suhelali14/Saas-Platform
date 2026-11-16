@@ -4,6 +4,7 @@ import { Plus, Search, Phone } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { PATIENT_CATEGORIES, CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
+import { SpecialtyChip, type SpecialtyChipData } from '../components/SpecialtyChip';
 import { GENDERS } from '../lib/patient-fields';
 
 interface Patient {
@@ -15,6 +16,7 @@ interface Patient {
   phone: string | null;
   bloodGroup: string | null;
   category: string;
+  specialty: SpecialtyChipData | null;
 }
 
 
@@ -137,6 +139,7 @@ export function Patients() {
                     {CATEGORY_BADGES[p.category].label}
                   </span>
                 )}
+                <SpecialtyChip chip={p.specialty} />
               </div>
               <div className="text-xs text-muted-foreground/70 flex items-center gap-2">
                 {p.age != null && <span>{p.age}y</span>}

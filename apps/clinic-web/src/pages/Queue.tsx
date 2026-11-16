@@ -15,6 +15,7 @@ import { DatePicker } from '../components/DatePicker';
 import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { SkeletonList } from '../components/Skeleton';
+import { SpecialtyChip, reasonForChip, type SpecialtyChipData } from '../components/SpecialtyChip';
 import { useToast } from '../components/Toast';
 import { WalkInPanel, type WalkInResult } from '../components/WalkIn';
 import { Input } from '../components/ui/input';
@@ -30,6 +31,7 @@ interface Patient {
   gender: string | null;
   allergies: string | null;
   category: string;
+  specialty: SpecialtyChipData | null;
 }
 
 interface Doctor { id: string; name: string }
@@ -493,6 +495,7 @@ function VisitRow({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Link to={`/patients/${p.id}`} className="truncate text-[15px] font-semibold hover:underline underline-offset-4">{p.name}</Link>
             {badge && <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${badge.color}`}>{badge.label}</span>}
+            <SpecialtyChip chip={p.specialty} />
             {p.allergies && (
               <span title={`Allergies: ${p.allergies}`} className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[12px] font-medium tone-danger">
                 <AlertTriangle size={11} aria-hidden="true" /> Allergy
@@ -632,7 +635,10 @@ function DayPlan({ appointments, doctors }: { appointments: Appointment[]; docto
                     >
                       <span className="tabular-nums">{time(a.scheduledAt)}</span>
                       {a.tokenNumber ? <span className="tabular-nums"> · #{a.tokenNumber}</span> : null}
-                      <span className="block truncate font-medium">{a.patient.name}</span>
+                      <span className="flex items-center gap-1 truncate font-medium">
+                        <span className="truncate">{a.patient.name}</span>
+                        <SpecialtyChip chip={a.patient.specialty} />
+                      </span>
                     </Link>
                   ))}
                 </div>
@@ -650,7 +656,7 @@ function DayPlan({ appointments, doctors }: { appointments: Appointment[]; docto
 
 // ── Booking for later ─────────────────────────────────────────────────
 
-interface FoundPatient { id: string; uhid: string; name: string; phone: string | null; category: string }
+interface FoundPatient { id: string; uhid: string; name: string; phone: string | null; category: string; specialty: SpecialtyChipData | null }
 
 function BookPanel({ doctors, defaultDate, defaultDoctorId, onClose, onBooked }: {
   doctors: Doctor[];
@@ -725,8 +731,26 @@ function BookPanel({ doctors, defaultDate, defaultDoctorId, onClose, onBooked }:
                 <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border/20 bg-popover shadow-lg">
                   {options.map((p) => (
                     <li key={p.id}>
-                      <button type="button" onClick={() => setChosen(p)} className="block w-full px-3 py-2 text-left text-[14px] hover:bg-accent">
-                        {p.name} <span className="text-[12.5px] text-muted-foreground">· {p.uhid}{p.phone ? ` · ${p.phone}` : ''}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChosen(p);
+                          // Pre-fill the reason only if the receptionist
+                          // has not typed one of their own: if Priya has
+                          // an active pregnancy, "Antenatal check -- ANC
+                          // 32w" fills in by itself. Reception can edit it.
+                          if (!reason.trim()) {
+                            const suggested = reasonForChip(p.specialty);
+                            if (suggested) setReason(suggested);
+                          }
+                        }}
+                        className="block w-full px-3 py-2 text-left text-[14px] hover:bg-accent"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>{p.name}</span>
+                          <SpecialtyChip chip={p.specialty} />
+                        </span>
+                        <span className="text-[12.5px] text-muted-foreground">{p.uhid}{p.phone ? ` · ${p.phone}` : ''}</span>
                       </button>
                     </li>
                   ))}

@@ -4,6 +4,7 @@ import { Search, User, CornerDownLeft, AlertTriangle } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { cn } from '@/lib/utils';
 import { CATEGORY_BADGES } from '../lib/categories';
+import { SpecialtyChip, type SpecialtyChipData } from './SpecialtyChip';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 
 /**
@@ -41,6 +42,7 @@ type PatientHit = {
   category: string;
   allergies: string | null;
   lastSeen: string | null;
+  specialty: SpecialtyChipData | null;
 };
 
 /** `module` names the plan module a screen belongs to; a screen whose
@@ -220,6 +222,7 @@ export function QuickSwitcher() {
                             {CATEGORY_BADGES[row.patient.category]!.label}
                           </span>
                         )}
+                        <SpecialtyChip chip={row.patient.specialty} />
                         {/* A moment early is the whole point: this is a
                             list of patients somebody is about to open. */}
                         {row.patient.allergies && (
