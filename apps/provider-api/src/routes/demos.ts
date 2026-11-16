@@ -6,6 +6,7 @@ import { ONBOARDING_TEMPLATE } from "../lib/onboarding-steps.js";
 import { PLAN_LABELS, PLAN_ORDER, resolveFeatures, type PlanTier } from "../lib/plans.js";
 import { publicHostFor, portalHostFor } from "../lib/subdomain.js";
 import { enqueueDemoReset, jobsAvailable } from "../lib/provision-jobs.js";
+import { inlineProvision, shouldProvisionInline } from "../lib/inline-provision.js";
 
 /**
  * Demo clinics: one per plan, to show a prospect.
@@ -82,14 +83,23 @@ export async function demoRoutes(app: FastifyInstance) {
     };
   });
 
-  /** Create an account for each plan that has no demo yet. Provisioning
-   *  each is then the ordinary Provision button on its page. */
+  /**
+   * Create an account for each plan that has no demo yet.
+   *
+   * With inline provisioning on, each demo is also marked live in the
+   * same request -- "one click" in the Demos page really is one click,
+   * so the user does not have to open each account page afterwards.
+   * Otherwise provisioning still happens from the account page, as
+   * before, through the host-side runner.
+   */
   app.post("/api/provider/demos", async (request, reply) => {
     const auth = requireOwnerAuth(request, reply);
     if (!auth) return;
+    const inline = shouldProvisionInline();
     const existing = await prisma.clinicAccount.findMany({ where: { isDemo: true }, select: { plan: true } });
     const have = new Set(existing.map((e) => e.plan));
     const created: string[] = [];
+    const provisioned: string[] = [];
     for (const plan of PLAN_ORDER) {
       if (have.has(plan)) continue;
       const slug = DEMO_SLUGS[plan];
@@ -109,8 +119,27 @@ export async function demoRoutes(app: FastifyInstance) {
         data: { accountId: account.id, actorId: auth.id, actorName: auth.name, action: "demo.created", detail: `${PLAN_LABELS[plan]} demo: ${resolveFeatures(plan, null).join(", ")}` },
       });
       created.push(slug);
+
+      if (inline) {
+        try {
+          await inlineProvision({
+            accountId: account.id,
+            slug: account.slug,
+            name: account.name,
+            plan: account.plan as PlanTier,
+            features: resolveFeatures(plan, null),
+            actor: { id: auth.id, name: auth.name },
+          });
+          provisioned.push(slug);
+        } catch (e) {
+          // Record it and keep going: a fail on demo three should not
+          // leave demos one and two half-done. The account is still
+          // created; the operator can finish provisioning by hand.
+          request.log.error({ err: e, slug }, "inline provision failed for demo");
+        }
+      }
     }
-    return reply.status(created.length ? 201 : 200).send({ created });
+    return reply.status(created.length ? 201 : 200).send({ created, provisioned });
   });
 
   app.post("/api/provider/accounts/:id/reset-demo", async (request, reply) => {

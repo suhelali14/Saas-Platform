@@ -71,8 +71,21 @@ export function Demos() {
         {missing > 0 && (
           <Button onClick={async () => {
             try {
-              const r = await apiFetch<{ created: string[] }>("/demos", { method: "POST", data: {} });
-              toast.success(r.created.length ? `Created ${r.created.join(", ")}. Provision each from its page.` : "Nothing to create.");
+              // The API also returns `provisioned` when inline
+              // provisioning is on, so the operator is told exactly
+              // what happened instead of a vague "created; provision
+              // each from its page" that left them wondering why
+              // clicking Demos had not produced a live demo.
+              const r = await apiFetch<{ created: string[]; provisioned: string[] }>("/demos", { method: "POST", data: {} });
+              if (!r.created.length) {
+                toast.success("Nothing to create.");
+              } else if (r.provisioned.length === r.created.length) {
+                toast.success(`${r.created.join(", ")} created and live.`);
+              } else if (r.provisioned.length > 0) {
+                toast.success(`${r.provisioned.join(", ")} created and live. ${r.created.filter((s) => !r.provisioned.includes(s)).join(", ")} need provisioning from each account page.`);
+              } else {
+                toast.success(`${r.created.join(", ")} created. Provision each from its page.`);
+              }
               await load();
             } catch (e) {
               toast.error(e instanceof ApiError ? e.message : "Could not create the demos.");

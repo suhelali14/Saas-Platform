@@ -49,11 +49,21 @@ async function applySuccess(accountId: string, status: JobStatus): Promise<void>
       // The runner is the authority on where the API actually answers;
       // it configured nginx and requested the certificate for it.
       apiDomain: status.apiHost ?? account.apiDomain,
-      // ONBOARDING, not LIVE. The clinic is reachable, but somebody
-      // still has to hand over the credentials and confirm the doctor
-      // can sign in -- marking it LIVE here would quietly assert work
-      // that has not happened.
-      status: account.status === "LEAD" ? "ONBOARDING" : account.status,
+      // LIVE when the operator was in the middle of onboarding, otherwise
+      // the status the operator set. An earlier version parked the
+      // account in ONBOARDING here, on the reasoning that somebody still
+      // had to hand the password over -- but that left the tenant
+      // directory refusing to serve it, so the operator would click
+      // "Provision", wait, see "Provisioned" in the console, open the
+      // clinic's URL and get "No clinic at this address". A clinic
+      // reachable to patients is live by every definition that matters
+      // to them; the handover is an onboarding step row, not a reason to
+      // withhold the service.
+      //
+      // A clinic the operator deliberately held as a LEAD, SUSPENDED,
+      // or CHURNED keeps its status: promoting them would quietly
+      // override a billing or sales decision.
+      status: account.status === "ONBOARDING" ? "LIVE" : account.status,
     },
   });
 

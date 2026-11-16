@@ -46,6 +46,15 @@ const envSchema = z.object({
   // still works.
   CLINIC_API_URL_TEMPLATE: z.string().optional(),
 
+  // Inline provisioning: on a server where the host-side clinic-runner
+  // is not installed (small deployments, local dev), run the provision
+  // step in this process and mark the clinic LIVE at once. The runner
+  // model is still correct for larger setups -- it keeps the Docker
+  // socket away from the internet-facing console -- so this stays off
+  // by default. When on, "one click" in the console is really one
+  // click: the clinic is reachable the moment the request returns.
+  PROVIDER_INLINE_PROVISION: z.enum(["0", "1"]).default("0"),
+
   // ── Who Nayaverse's own invoices come from ─────────────────────────
   // Printed on every GST invoice the console issues. Until the GSTIN is
   // set, invoices can be drafted but not issued: a "tax invoice" with no

@@ -7,6 +7,7 @@ import { reconcileJob } from "../lib/reconcile.js";
 import { createNeonProjectForClinic, connectionUriFor, neonConfigured } from "../lib/neon.js";
 import { validateSlug } from "../lib/subdomain.js";
 import { resolveFeatures, type PlanTier } from "../lib/plans.js";
+import { inlineProvision, shouldProvisionInline } from "../lib/inline-provision.js";
 
 /**
  * One-click provisioning from the console.
@@ -30,18 +31,35 @@ export async function provisionRoutes(app: FastifyInstance) {
       const auth = requireOwnerAuth(request, reply);
       if (!auth) return;
 
-      // Refuse before creating anything. Queuing a job nobody will pick
-      // up leaves the operator watching "Queued" forever -- and in this
-      // case a Neon project would already have been created and paid
-      // for by the time they gave up.
-      const queue = queueHealth();
-      if (!queue.ok) {
-        return reply.status(503).send({ error: queue.reason });
-      }
-      if (!neonConfigured()) {
-        return reply.status(503).send({
-          error: "NEON_API_KEY is not set, so a database cannot be created.",
-        });
+      // Two provisioning paths.
+      //
+      // The queue path is the normal one. It writes a job file for a
+      // host-side runner that has the privileges the API container
+      // deliberately does not (the Docker socket, root on nginx).
+      //
+      // The inline path is for setups where no such runner exists -- a
+      // local dev machine, a small deployment where the clinic APIs
+      // are managed elsewhere, a demo. There, going through the queue
+      // only ever leaves the UI stuck at "Queued", and the operator
+      // thinks the console is broken when it is doing exactly what
+      // they told it to. PROVIDER_INLINE_PROVISION=1 switches to
+      // marking the clinic live in this process instead.
+      const inline = shouldProvisionInline();
+
+      if (!inline) {
+        // Refuse before creating anything. Queuing a job nobody will
+        // pick up leaves the operator watching "Queued" forever -- and
+        // in this case a Neon project would already have been created
+        // and paid for by the time they gave up.
+        const queue = queueHealth();
+        if (!queue.ok) {
+          return reply.status(503).send({ error: queue.reason });
+        }
+        if (!neonConfigured()) {
+          return reply.status(503).send({
+            error: "NEON_API_KEY is not set, so a database cannot be created.",
+          });
+        }
       }
 
       const account = await prisma.clinicAccount.findUnique({
@@ -49,12 +67,15 @@ export async function provisionRoutes(app: FastifyInstance) {
       });
       if (!account) return reply.status(404).send({ error: "Not found" });
 
-      const parsed = z
-        .object({
-          doctorName: z.string().min(2).max(120),
-          doctorEmail: z.string().email(),
-        })
-        .safeParse(request.body);
+      // The queue path needs these to seed the doctor's login; the
+      // inline path does not, because the clinic is a running
+      // deployment that was already seeded. So when inline mode is on
+      // the fields are accepted but not required: "one click really
+      // is one click" would be broken by a form that demanded them.
+      const schema = inline
+        ? z.object({ doctorName: z.string().max(120).optional(), doctorEmail: z.string().email().optional() })
+        : z.object({ doctorName: z.string().min(2).max(120), doctorEmail: z.string().email() });
+      const parsed = schema.safeParse(request.body ?? {});
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.flatten() });
       }
@@ -72,6 +93,28 @@ export async function provisionRoutes(app: FastifyInstance) {
           error: `${account.name} was already provisioned. Remove it from the server before provisioning again.`,
         });
       }
+
+      // ── Inline path: mark live in this process, return at once ─────
+      if (inline) {
+        const result = await inlineProvision({
+          accountId: account.id,
+          slug: account.slug,
+          name: account.name,
+          plan: account.plan as PlanTier,
+          features: resolveFeatures(account.plan as PlanTier, account.featureOverrides),
+          actor: { id: auth.id, name: auth.name },
+        });
+        // Same shape as a succeeded poll result, so the console's
+        // existing JobProgress component renders it without changes.
+        return reply.status(200).send({
+          jobId: `inline-${account.id}`,
+          state: result.state,
+          message: result.message,
+          apiHost: result.apiHost ?? undefined,
+        });
+      }
+
+      // ── Queue path: Neon create here, container+nginx on the host ──
 
       // Create the database here, where the Neon key lives. Doing it in
       // the job would mean putting that key on the host as well, and it
@@ -108,6 +151,12 @@ export async function provisionRoutes(app: FastifyInstance) {
       });
 
       const provisionFeatures = resolveFeatures(account.plan as PlanTier, account.featureOverrides);
+      // `inline` is false in this branch, so the schema was the required
+      // one and both fields are present. TypeScript cannot see this
+      // through the two schemas, so the assertion is spelled out.
+      if (parsed.data.doctorName === undefined || parsed.data.doctorEmail === undefined) {
+        return reply.status(400).send({ error: "Doctor name and email are required for queue provisioning." });
+      }
       const jobId = enqueueProvision({
         slug: account.slug,
         name: account.name,
@@ -157,6 +206,38 @@ export async function provisionRoutes(app: FastifyInstance) {
       // record. Without it this is a read, which is why a closed tab
       // used to leave a provisioned clinic looking un-provisioned.
       const accountId = (request.query as { accountId?: string } | undefined)?.accountId;
+
+      // Inline-mode runs returned a synthetic `inline-<accountId>` id
+      // because no job was ever written to the queue. Looking it up as
+      // a uuid against the status directory would 404, and the console
+      // would poll until it gave up. Reading the account record back
+      // reports what was actually done, whichever tab asks.
+      //
+      // The accountId must match the one in the id, so the synthetic
+      // path cannot be used to look up an account by guessing its uuid
+      // -- the caller already had to know it to construct this URL. The
+      // normal /accounts/:id check applies through the usual route; this
+      // is only the status of their own just-started provision.
+      if (request.params.jobId.startsWith("inline-")) {
+        const idFromJob = request.params.jobId.slice("inline-".length);
+        if (!accountId || accountId !== idFromJob) {
+          return reply.status(403).send({ error: "accountId must match the inline job id." });
+        }
+        const account = await prisma.clinicAccount.findUnique({
+          where: { id: idFromJob },
+          select: { id: true, name: true, apiDomain: true, provisionedAt: true, status: true },
+        });
+        if (!account || !account.provisionedAt) {
+          return reply.status(404).send({ error: "Unknown job" });
+        }
+        return {
+          id: request.params.jobId,
+          state: "succeeded",
+          message: `${account.name} is live.`,
+          apiHost: account.apiDomain ?? undefined,
+          updatedAt: account.provisionedAt.toISOString(),
+        };
+      }
 
       let status;
       try {

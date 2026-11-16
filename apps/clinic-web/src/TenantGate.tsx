@@ -50,6 +50,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
     | { phase: 'ready'; config: TenantConfig | null }
     | { phase: 'loading' }
     | { phase: 'suspended'; name: string }
+    | { phase: 'misconfigured'; name: string }
     | { phase: 'unknown' }
     | { phase: 'platform' }
     | { phase: 'error'; message: string }
@@ -77,11 +78,21 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
         // whether this is the patient site or the staff portal, so the
         // directory does.
         if (config.siteMode) setSiteMode(config.siteMode);
-        if (config.suspended || !config.apiBaseUrl) {
+        if (config.suspended) {
           // The directory withholds the API base URL for a suspended
-          // clinic, so there is nothing to point the app at even if this
-          // branch were somehow skipped.
+          // clinic, so there is nothing to point the app at even if
+          // this branch were somehow skipped.
           setState({ phase: 'suspended', name: config.name });
+          return;
+        }
+        if (!config.apiBaseUrl) {
+          // Not suspended but no API URL either. This is a platform
+          // misconfiguration (CLINIC_API_URL_TEMPLATE is missing, or
+          // the clinic has no apiDomain), not an intentional pause.
+          // The old code showed both as "paused", which made an
+          // operator think the console had suspended the clinic when
+          // the problem was somewhere else entirely.
+          setState({ phase: 'misconfigured', name: config.name });
           return;
         }
         setApiBaseUrl(config.apiBaseUrl);
@@ -123,6 +134,27 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
         <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
           This clinic's online services are paused. Please contact the clinic directly for appointments
           or records.
+        </p>
+      </Centered>
+    );
+  }
+
+  if (state.phase === 'misconfigured') {
+    // Deliberately a different page from suspended. A patient still
+    // sees something helpful ("not yet reachable, contact the clinic
+    // directly"), but an operator reading this page is told that the
+    // account is live yet the directory could not resolve an API URL
+    // for it -- which is a configuration fix, not a billing action.
+    return (
+      <Centered>
+        <h1 className="text-xl font-semibold text-gray-900">{state.name} is not reachable yet</h1>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
+          The account is live, but the platform does not yet know where this clinic's API answers.
+          Please contact the clinic directly for appointments or records.
+        </p>
+        <p className="mt-4 max-w-md text-xs text-muted-foreground/60">
+          For the operator: set <code className="font-mono">CLINIC_API_URL_TEMPLATE</code> on the
+          console, or set this clinic's <code className="font-mono">apiDomain</code> in the console.
         </p>
       </Centered>
     );

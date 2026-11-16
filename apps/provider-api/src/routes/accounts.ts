@@ -12,6 +12,7 @@ import { contractOf, monthlyValue } from "./billing.js";
 // provisionClinic is gone with the route that used it; the remaining
 // two report whether provisioning is configured.
 import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
+import { inlineProvision, shouldProvisionInline } from "../lib/inline-provision.js";
 import { validateSlug, publicHostFor, portalHostFor } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
 import { queueHealth, enqueueDomainSync, enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
@@ -265,6 +266,45 @@ export async function accountRoutes(app: FastifyInstance) {
     });
 
     await log(account.id, auth, "account.created", `${account.name} (${account.plan})`);
+
+    // Inline mode: a new clinic is marked live in the same request, so
+    // one click from the Accounts page really is one click. On a server
+    // with a host-side runner the operator still clicks Provision on
+    // the detail page -- the runner needs the doctor's name and email.
+    //
+    // Only owners can do this (provision-clinic is owner-only in the
+    // queue path), so a non-owner simply creates the record and an
+    // owner finishes it later.
+    if (shouldProvisionInline() && auth.role === "OWNER") {
+      try {
+        const result = await inlineProvision({
+          accountId: account.id,
+          slug: account.slug,
+          name: account.name,
+          plan: account.plan as PlanTier,
+          features: resolveFeatures(account.plan as PlanTier, account.featureOverrides),
+          actor: { id: auth.id, name: auth.name },
+        });
+        // Re-read the account for the response, but survive the case
+        // where it was deleted between the write and the read (a second
+        // owner tab could do that while this runs). Spreading null would
+        // 500 the create, even though the thing it was asked to do did
+        // happen -- which is the opposite of what the caller is told.
+        const refreshed = await prisma.clinicAccount.findUnique({ where: { id: account.id } });
+        return reply.status(201).send({ ...(refreshed ?? account), provisioned: true, provisionMessage: result.message });
+      } catch (e) {
+        request.log.error({ err: e, slug: account.slug }, "inline provision failed on account create");
+        // The record is still created; the operator can finish it from
+        // the detail page. Returning 201 rather than 500, because the
+        // thing the request asked for (create the account) did happen.
+        return reply.status(201).send({
+          ...account,
+          provisioned: false,
+          provisionError: e instanceof Error ? e.message : "inline provisioning failed",
+        });
+      }
+    }
+
     return reply.status(201).send(account);
   });
 

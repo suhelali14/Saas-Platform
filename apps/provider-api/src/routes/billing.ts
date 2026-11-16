@@ -9,6 +9,7 @@ import {
 } from "../lib/billing.js";
 import { PLAN_LABELS, PLAN_MAX_USERS, resolveFeatures, runningFeatures, type PlanTier } from "../lib/plans.js";
 import { enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
+import { shouldProvisionInline } from "../lib/inline-provision.js";
 
 /**
  * Plans reaching clinics, and Nayaverse's own invoices.
@@ -116,11 +117,26 @@ export async function billingRoutes(app: FastifyInstance) {
     const readOnly = account.status === "SUSPENDED";
     const maxUsers = account.maxUsersOverride ?? null;
 
+    // Three ways this reaches the clinic:
+    //   1. Normal: a plan-sync job for the host runner; readable once
+    //      the runner finishes.
+    //   2. Runner missing but inline mode on: the plan is applied in
+    //      the console record; the clinic picks it up on its next
+    //      restart. For single-server deployments the operator runs
+    //      the restart themselves, and the console says so.
+    //   3. Neither: refuse rather than silently record a change the
+    //      clinic will never see, which is what left plan edits
+    //      looking stuck.
     let jobId: string | null = null;
     let queued = false;
+    const inline = shouldProvisionInline();
     if (jobsAvailable()) {
       jobId = enqueuePlanSync({ slug: account.slug, plan, features, readOnly, maxUsers });
       queued = true;
+    } else if (!inline) {
+      return reply.status(503).send({
+        error: "The job runner is not reachable from this console, so a plan change cannot be pushed to the clinic. Set PROVIDER_INLINE_PROVISION=1 if this console is not using the runner.",
+      });
     }
 
     await prisma.$transaction([
