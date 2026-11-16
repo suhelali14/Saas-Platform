@@ -1,0 +1,31 @@
+import { chromium } from 'playwright-core';
+const login = async (email) => (await (await fetch('http://localhost:4100/api/clinic/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: 'nayaverse-demo' }) })).json()).token;
+const d = await login('doctor@demo.nayaverse.in');
+const c = await login('cashier@demo.nayaverse.in');
+const b = await login('billing@demo.nayaverse.in');
+const g = await login('gynae@demo.nayaverse.in');
+const r = await login('radiology@demo.nayaverse.in');
+const browser = await chromium.launch({ channel: 'msedge', headless: true });
+async function probe(token, route) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript((tk) => { localStorage.setItem('clinicAccessToken', tk); }, token);
+  const p = await ctx.newPage();
+  await p.goto('http://localhost:5176' + route, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1800);
+  const h = await p.evaluate(() => document.querySelector('h1,h2')?.textContent?.trim() ?? '');
+  const btns = await p.$$eval('button', (bs) => [...new Set(bs.map(b => b.textContent.trim()).filter(t => t && t.length < 50))].slice(0, 10));
+  const links = await p.$$eval('a', (as) => as.map(a => a.getAttribute('href')).filter(h => h && !h.startsWith('http') && h.length < 60).slice(0, 8));
+  console.log(route, '→', h);
+  console.log('   btns:', btns.join(' | '));
+  console.log('   links:', links.join(' | '));
+  await ctx.close();
+}
+await probe(d, '/departments');
+await probe(c, '/counter');
+await probe(d, '/ipd');
+await probe(d, '/ot');
+await probe(b, '/claims');
+await probe(r, '/radiology');
+await probe(d, '/nursing');
+await probe(g, '/patients?search=Fatima');
+await browser.close();
