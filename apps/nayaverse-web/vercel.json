@@ -7,6 +7,20 @@
       "main": false
     }
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.nayaverse.in" }],
+      "destination": "https://www.nayaversse.in/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nayaverse.in" }],
+      "destination": "https://nayaversse.in/:path*",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
