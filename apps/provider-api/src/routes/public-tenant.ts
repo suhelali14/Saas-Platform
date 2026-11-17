@@ -272,7 +272,16 @@ export async function resolveLiveHost(rawHost: string): Promise<{
  */
 function clinicApiBaseUrl(slug: string, apiDomain: string | null): string | null {
   if (apiDomain) {
-    const host = apiDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    // apiDomain is meant to be a hostname. Older rows may have been
+    // written with a full URL (`https://host/api/clinic`), and simply
+    // appending `/api/clinic` to that produces `...clinic/api/clinic`
+    // which is what the browser sees as "network error". Strip
+    // protocol AND any path so this is a bare host[:port] we can
+    // compose the URL from.
+    const host = apiDomain
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/+$/, "")
+      .split("/")[0]!;
     return `https://${host}/api/clinic`;
   }
   if (env.CLINIC_API_URL_TEMPLATE) {

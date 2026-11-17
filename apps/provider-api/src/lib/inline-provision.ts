@@ -34,6 +34,27 @@ export function inlineProvisioningEnabled(): boolean {
   return env.PROVIDER_INLINE_PROVISION === "1";
 }
 
+/**
+ * Strip a value down to its hostname. The apiDomain field stores the
+ * hostname only; clinicApiBaseUrl appends the /api/clinic path. Writing
+ * a full URL (which the CLINIC_API_URL_TEMPLATE includes) would make
+ * the directory emit "https://host/api/clinic/api/clinic" to the
+ * browser. Paranoid rather than clever: this strips protocol, slashes
+ * and any path, leaving just host[:port].
+ */
+function hostnameOnly(value: string | null | undefined): string | null {
+  if (!value) return value ?? null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    // A real URL parses cleanly and gives us `.host`.
+    const u = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    return u.host || null;
+  } catch {
+    return trimmed.replace(/^https?:\/\//i, "").split("/")[0] ?? null;
+  }
+}
+
 export interface InlineProvisionInput {
   accountId: string;
   slug: string;
@@ -89,7 +110,12 @@ export async function inlineProvision(input: InlineProvisionInput): Promise<Inli
   // a later poll (through the synthetic inline-<id> job id) would read
   // apiDomain back and find it null, and the two responses would
   // disagree about where the clinic's API lives.
-  const apiDomainToWrite = apiHost ?? account.apiDomain ?? resolvedApi;
+  //
+  // `apiDomain` is a hostname, not a URL -- clinicApiBaseUrl will append
+  // the /api/clinic path. The template value includes the path, so when
+  // we fall back to it we have to strip protocol and path to avoid
+  // double-pathing ("https://host/api/clinic/api/clinic").
+  const apiDomainToWrite = hostnameOnly(apiHost ?? account.apiDomain ?? resolvedApi);
 
   const alreadyProvisioned = Boolean(account.provisionedAt);
 
