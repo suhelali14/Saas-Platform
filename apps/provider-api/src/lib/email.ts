@@ -1,24 +1,26 @@
+import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../config/env.js";
 
 /**
- * Transactional email through Resend (resend.com), by raw HTTP.
+ * Transactional email with two possible transports: SMTP (any provider
+ * -- GoDaddy, Office 365, Gmail, Resend SMTP, SES, self-hosted) via
+ * nodemailer, or Resend's HTTP API with plain fetch.
  *
- * Not the SDK: one more dependency for a tiny HTTP POST is not worth the
- * supply-chain surface for something a clinic signs up for. The Resend
- * API is stable, named fields, and has been unchanged for a year.
+ * Selection: SMTP wins when SMTP_HOST is set. Otherwise Resend when
+ * RESEND_API_KEY is set. Otherwise the module is a no-op: every send
+ * logs one "skipped" line and returns false. A clinic's provisioning
+ * never fails because email is missing or down.
  *
- * Fail-open by design: if RESEND_API_KEY is not set, or the send fails,
- * we log and return false. The caller never throws on a failed email --
- * a clinic's provisioning is the real work; email is a notification on
- * top of it, and losing a notification is a smaller problem than
- * refusing to finish provisioning because an outbound HTTP call failed.
+ * Env (any one of these working combinations):
+ *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM
+ *      (GoDaddy Professional Email: smtp.secureserver.net / 587 / STARTTLS,
+ *       or smtpout.secureserver.net / 465 / SSL)
+ *   RESEND_API_KEY, MAIL_FROM
+ *      (Resend HTTP API, domain verified in Resend)
  *
- * Env:
- *   RESEND_API_KEY   - Resend API key. Without it this module is a no-op.
- *   MAIL_FROM        - e.g. "Nayaversse <no-reply@nayaversse.in>".
- *                      Domain must be verified in Resend.
- *   FOUNDER_CC_EMAIL - optional; CCed on every provisioning email so the
- *                      founder has a record even if the clinic deletes it.
+ * In both cases:
+ *   MAIL_FROM        - "Display Name <mailbox@domain>"
+ *   FOUNDER_CC_EMAIL - CCed so a copy always reaches the founder
  */
 
 export interface EmailMessage {
@@ -30,19 +32,70 @@ export interface EmailMessage {
   tag?: string;
 }
 
+type Transport = "smtp" | "resend" | "none";
+
+function pickTransport(): Transport {
+  if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.MAIL_FROM) return "smtp";
+  if (env.RESEND_API_KEY && env.MAIL_FROM) return "resend";
+  return "none";
+}
+
 export function emailEnabled(): boolean {
-  return Boolean(env.RESEND_API_KEY && env.MAIL_FROM);
+  return pickTransport() !== "none";
+}
+
+// nodemailer transporter created lazily once; reused across sends. A
+// pool connection cuts the TLS handshake on repeated emails from 150ms
+// to one-digit ms.
+let smtpTransporter: Transporter | null = null;
+function getSmtpTransporter(): Transporter {
+  if (!smtpTransporter) {
+    const port = env.SMTP_PORT ?? 587;
+    // STARTTLS on 587, direct TLS on 465. Honour an explicit override.
+    const secure = env.SMTP_SECURE ? env.SMTP_SECURE === "true" : port === 465;
+    smtpTransporter = nodemailer.createTransport({
+      host: env.SMTP_HOST!,
+      port,
+      secure,
+      auth: { user: env.SMTP_USER!, pass: env.SMTP_PASS! },
+      pool: true,
+      maxConnections: 2,
+    });
+  }
+  return smtpTransporter;
 }
 
 export async function sendEmail(message: EmailMessage): Promise<boolean> {
-  if (!emailEnabled()) {
-    // Soft announcement so a deploy that forgot the key still shows
-    // in the log that an email would have gone out. One line per send,
-    // not a stack trace.
-    console.log(`[email] skipped (RESEND_API_KEY or MAIL_FROM unset): to=${message.to} subj="${message.subject}"`);
+  const transport = pickTransport();
+  if (transport === "none") {
+    console.log(`[email] skipped (no transport configured): to=${message.to} subj="${message.subject}"`);
     return false;
   }
 
+  // Resolve the full CC list once, used by both transports.
+  const cc = [...(message.cc ?? [])];
+  if (env.FOUNDER_CC_EMAIL && env.FOUNDER_CC_EMAIL !== message.to) cc.push(env.FOUNDER_CC_EMAIL);
+
+  if (transport === "smtp") {
+    try {
+      const info = await getSmtpTransporter().sendMail({
+        from: env.MAIL_FROM,
+        to: message.to,
+        cc: cc.length ? cc : undefined,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+        headers: message.tag ? { "X-Entity-Ref-ID": message.tag } : undefined,
+      });
+      console.log(`[email] sent via smtp: to=${message.to} id=${info.messageId}`);
+      return true;
+    } catch (err) {
+      console.warn(`[email] smtp send failed: ${(err as Error).message}`);
+      return false;
+    }
+  }
+
+  // Resend HTTP path.
   const body: Record<string, unknown> = {
     from: env.MAIL_FROM,
     to: [message.to],
@@ -50,11 +103,7 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
     text: message.text,
   };
   if (message.html) body.html = message.html;
-
-  const cc = [...(message.cc ?? [])];
-  if (env.FOUNDER_CC_EMAIL && env.FOUNDER_CC_EMAIL !== message.to) cc.push(env.FOUNDER_CC_EMAIL);
   if (cc.length) body.cc = cc;
-
   if (message.tag) body.tags = [{ name: "stream", value: message.tag }];
 
   try {
@@ -65,18 +114,17 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
         Authorization: `Bearer ${env.RESEND_API_KEY}`,
       },
       body: JSON.stringify(body),
-      // The provider-api caller is already past the point of making the
-      // clinic live; a slow email service should not stall its response.
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      console.warn(`[email] send failed: ${response.status} ${text.slice(0, 200)}`);
+      console.warn(`[email] resend send failed: ${response.status} ${text.slice(0, 200)}`);
       return false;
     }
+    console.log(`[email] sent via resend: to=${message.to}`);
     return true;
   } catch (err) {
-    console.warn(`[email] send threw: ${(err as Error).message}`);
+    console.warn(`[email] resend send threw: ${(err as Error).message}`);
     return false;
   }
 }

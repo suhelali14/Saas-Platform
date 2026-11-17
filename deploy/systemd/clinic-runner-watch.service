@@ -1,0 +1,25 @@
+# Fires clinic-runner.service the moment a job file appears, instead of
+# waiting out the 15-second timer.
+#
+# The timer stays enabled as a safety net -- if inotifywait exits
+# (package upgrade, kernel panic), the timer keeps the queue moving on
+# the next tick. This service is an optimisation on top.
+#
+# Needs the inotify-tools apt package. The script fails loudly if
+# inotifywait is missing.
+[Unit]
+Description=Fire clinic-runner the instant a job file appears
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=simple
+ExecStart=/srv/clinic/repo/deploy/clinic-runner-watch.sh
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clinic-runner-watch
+
+[Install]
+WantedBy=multi-user.target

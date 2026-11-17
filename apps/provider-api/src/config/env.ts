@@ -68,7 +68,16 @@ const envSchema = z.object({
   // provisioning still succeeds, there is just no outbound email. Add both
   // when the Resend domain is verified; see docs/WHERE-ENV-GOES.md.
   RESEND_API_KEY: z.string().optional(),
-  /** e.g. `Nayaversse <no-reply@nayaversse.in>` -- domain must be verified in Resend. */
+  // SMTP (any provider: GoDaddy, Office 365, Gmail, Resend SMTP, SES...).
+  // If SMTP_HOST is set, SMTP is used; otherwise Resend if RESEND_API_KEY
+  // is set; otherwise email is a no-op.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  /** true for port 465 (SMTPS), false for 587 (STARTTLS). Auto-picks by port if unset. */
+  SMTP_SECURE: z.enum(["true", "false"]).optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  /** e.g. `Nayaversse <no-reply@nayaversse.in>` -- must match the authenticated SMTP user's domain. */
   MAIL_FROM: z.string().optional(),
   /** CCed on every provisioning email so the founder always has a copy. Optional. */
   FOUNDER_CC_EMAIL: z.string().email().optional(),

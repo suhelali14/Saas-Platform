@@ -30,7 +30,7 @@ die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 log "Installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq curl git nginx certbot python3-certbot-nginx ufw jq postgresql-client
+apt-get install -y -qq curl git nginx certbot python3-certbot-nginx ufw jq postgresql-client inotify-tools
 
 # ── Docker ────────────────────────────────────────────────────────────
 log "Installing Docker"
@@ -215,13 +215,17 @@ install -m 644 "$ROOT/repo/deploy/systemd/clinic-api@.service" /etc/systemd/syst
 install -m 644 "$ROOT/repo/deploy/systemd/provider-api.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner.timer" /etc/systemd/system/
+install -m 644 "$ROOT/repo/deploy/systemd/clinic-runner-watch.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-demo-reset.service" /etc/systemd/system/
 install -m 644 "$ROOT/repo/deploy/systemd/clinic-demo-reset.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now clinic-runner.timer > /dev/null 2>&1 || true
+# inotify-driven wakeup: fires the runner the instant a job file appears
+# so provisioning starts within a second, not fifteen. Timer is backup.
+systemctl enable --now clinic-runner-watch.service > /dev/null 2>&1 || true
 # Resets demo clinics each morning; touches nothing without CLINIC_DEMO=1.
 systemctl enable --now clinic-demo-reset.timer > /dev/null 2>&1 || true
-info "clinic-api@.service (template), provider-api.service, clinic-runner.timer, clinic-demo-reset.timer"
+info "clinic-api@.service (template), provider-api.service, clinic-runner.timer, clinic-runner-watch.service, clinic-demo-reset.timer"
 
 # Where the console asks for clinics to be created. Owned by the deploy
 # user because the API container writes here as that uid; read and acted
