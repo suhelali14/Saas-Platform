@@ -208,3 +208,60 @@ export function buildWelcomeEmail(ctx: WelcomeContext): EmailMessage {
     tag: "provisioning-welcome",
   };
 }
+
+// ── Template: owner password reset ───────────────────────────────────
+
+export interface ResetContext {
+  clinicName: string;
+  ownerEmail: string;
+  newPassword: string;
+  portalUrl: string;
+}
+
+export function buildResetEmail(ctx: ResetContext): EmailMessage {
+  const text = [
+    `Hello,`,
+    ``,
+    `We have reset the password for ${ctx.ownerEmail} on ${ctx.clinicName}.`,
+    ``,
+    `  Sign in: ${ctx.portalUrl}`,
+    `  Email:   ${ctx.ownerEmail}`,
+    `  Password: ${ctx.newPassword}`,
+    ``,
+    `Change this password the first time you sign in. We do not keep a`,
+    `copy; the only way back if you lose it is another reset.`,
+    ``,
+    `If you did not ask for this reset, reply to this email at once.`,
+    ``,
+    `--`,
+    `Nayaversse`,
+  ].join("\n");
+
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Password reset for ${esc(ctx.clinicName)}</title></head>
+<body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;line-height:1.55;color:#101012;max-width:560px;margin:24px auto;padding:0 20px;">
+  <h2 style="font-weight:600;letter-spacing:-0.01em;margin:0 0 16px;">Password reset for ${esc(ctx.clinicName)}</h2>
+  <p>We have reset the password for <strong>${esc(ctx.ownerEmail)}</strong>.</p>
+
+  <table style="border-collapse:collapse;margin:16px 0;">
+    <tr><td style="padding:4px 12px 4px 0;color:#555;">Sign in</td><td><a href="${esc(ctx.portalUrl)}">${esc(ctx.portalUrl)}</a></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#555;">Email</td><td style="font-family:ui-monospace,Menlo,monospace;">${esc(ctx.ownerEmail)}</td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#555;">Password</td><td style="font-family:ui-monospace,Menlo,monospace;background:#f3eccf;padding:4px 8px;border-radius:4px;">${esc(ctx.newPassword)}</td></tr>
+  </table>
+
+  <p style="color:#555;font-size:13px;margin:12px 0 0;">Change this password the first time you sign in. We do not keep a copy; the only way back if you lose it is another reset.</p>
+
+  <p style="margin:24px 0;padding:12px 14px;background:#fef2f2;border-left:3px solid #c62828;color:#8a1a1a;font-size:13px;">If you did not ask for this reset, reply to this email at once.</p>
+
+  <p style="margin:6px 0 0;color:#888;font-size:12px;">— Nayaversse</p>
+</body></html>`;
+
+  return {
+    to: ctx.ownerEmail,
+    subject: `Password reset for ${ctx.clinicName}`,
+    text,
+    html,
+    tag: "password-reset",
+  };
+}

@@ -247,6 +247,10 @@ function Provisioning({
           Provisioned {new Date(account.provisionedAt).toLocaleDateString()}
           {account.apiDomain && <span className="font-mono text-xs">· {account.apiDomain}</span>}
         </div>
+        {/* The Provisioning component is parameterised on account:
+            Detail["account"], so the field already carries the id + contact
+            email the reset flow needs. */}
+        <ResetOwnerPassword account={account} />
       </Panel>
     );
   }
@@ -328,6 +332,83 @@ function Provisioning({
         </DialogContent>
       </Dialog>
     </Panel>
+  );
+}
+
+/**
+ * The "Reset owner password" button for a provisioned clinic. Confirms
+ * before firing, waits for the runner (usually 2-5 seconds), then
+ * reports whether the welcome email with the new password was sent.
+ *
+ * Deliberately does NOT display the new password in the console UI
+ * unless the server-side email is unconfigured: showing it in the
+ * browser creates a second copy of a credential nobody should keep.
+ */
+function ResetOwnerPassword({ account }: { account: Detail["account"] }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [fallback, setFallback] = useState<string | null>(null);
+
+  const doReset = async () => {
+    setBusy(true);
+    try {
+      const res = await apiFetch<{ ok: true; emailed: boolean; email: string; password?: string }>(
+        `/accounts/${account.id}/reset-owner-password`,
+        { method: "POST", data: {} },
+      );
+      setConfirming(false);
+      if (res.emailed) {
+        toast.success(`New password emailed to ${res.email}.`);
+      } else if (res.password) {
+        setFallback(res.password);
+        toast.success(`Email not configured; the new password is shown below.`);
+      } else {
+        toast.error(`Reset done but email did not go out. Check the mail configuration.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Reset failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t border-border/40 pt-4">
+      {fallback ? (
+        <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
+          <div className="mb-1 font-medium text-warning">New password (shown once)</div>
+          <code className="block select-all rounded bg-background px-2 py-1 font-mono text-xs">{fallback}</code>
+          <button
+            type="button"
+            className="mt-2 text-xs underline"
+            onClick={() => { void navigator.clipboard.writeText(fallback); toast.success("Copied."); }}
+          >Copy</button>
+          <button
+            type="button"
+            className="ml-3 text-xs underline"
+            onClick={() => setFallback(null)}
+          >Clear</button>
+        </div>
+      ) : confirming ? (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Email a new password to {account.contactEmail ?? "the owner"}?</span>
+          <Button size="sm" variant="secondary" onClick={doReset} disabled={busy}>
+            {busy ? <Loader2 className="size-3 animate-spin" /> : "Reset and email"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Cancel</Button>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setConfirming(true)}
+          className="self-start"
+        >
+          <KeyRound className="mr-1.5 size-3.5" /> Reset owner password
+        </Button>
+      )}
+    </div>
   );
 }
 

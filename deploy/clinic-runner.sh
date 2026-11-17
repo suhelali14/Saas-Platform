@@ -197,6 +197,45 @@ for job in "${JOB_FILES[@]}"; do
     continue
   fi
 
+  # ── Resetting the owner password of a clinic ───────────────────────
+  #
+  # The console asks for a reset by writing a job with kind=reset-password
+  # and (slug, email). This generates a new password, applies it via the
+  # same one-shot container reset-clinic-password-nia.sh uses, and writes
+  # the new password to the status file so the console can email it.
+  if [ "$kind" = "reset-password" ]; then
+    email="$(read_json "$job" email)"
+    fault=""
+    [ -n "$slug" ] || fault="slug is missing"
+    [ -z "$fault" ] && ! printf '%s' "$slug" | grep -qE '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' && fault="slug '$slug' is not a valid hostname label"
+    [ -z "$fault" ] && [ -z "$email" ] && fault="email is missing"
+    case "$email" in *@*.*) ;; *) [ -z "$fault" ] && fault="'$email' is not an email address" ;; esac
+    if [ -n "$fault" ]; then
+      log "  rejected: $fault"
+      write_status "$id" failed "$fault"
+      mv -f "$job" "$ARCHIVE/$id.json"
+      continue
+    fi
+    write_status "$id" running "Resetting owner password for $slug"
+    out="$JOBS/.out-$id"
+    if "$ROOT/repo/deploy/reset-clinic-password-nia.sh" "$slug" "$email" > "$out" 2>&1; then
+      password="$(grep -m1 '^RESULT_PASSWORD=' "$out" | cut -d= -f2-)"
+      extra="$(printf '"loginEmail":%s,"password":%s' \
+               "$(json_str "$email")" "$(json_str "$password")")"
+      write_status "$id" succeeded "Password reset for $email" "$extra"
+      log "  succeeded: reset password for $email in $slug"
+    else
+      tail="$(redact < "$out" | strip_ansi | tail -6 | tr '\n' ' ' | sed 's/  */ /g')"
+      write_status "$id" failed "$tail"
+      log "  FAILED: reset password for $email in $slug"
+    fi
+    # Shred rather than archive -- the output stream held the plaintext
+    # password; nothing on disk should keep it after the status is written.
+    shred -u "$job" 2>/dev/null || rm -f "$job"
+    shred -u "$out" 2>/dev/null || rm -f "$out"
+    continue
+  fi
+
   # ── Changing what a clinic is entitled to ──────────────────────────
   #
   # A plan change, a module added to a deal, a suspension or a

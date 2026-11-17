@@ -208,6 +208,19 @@ export function enqueueDemoReset(slug: string): string {
 }
 
 /**
+ * Queue a password reset for one staff member of one clinic. The runner
+ * generates the new password, applies it against that clinic's own
+ * database, and writes it to the status file so the provider-api can
+ * email it to the owner and discard its copy.
+ */
+export function enqueueResetPassword(slug: string, email: string): string {
+  return writeJob(
+    { kind: "reset-password", slug, email },
+    `Queued a password reset for ${email} in ${slug}`,
+  );
+}
+
+/**
  * Writes a job for the host runner to pick up.
  *
  * `kind` is what the runner dispatches on. It is written explicitly even

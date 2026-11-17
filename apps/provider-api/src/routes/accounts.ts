@@ -15,7 +15,8 @@ import { provisioningAvailable, isDryRun } from "../lib/provisioning.js";
 import { inlineProvision, shouldProvisionInline } from "../lib/inline-provision.js";
 import { validateSlug, publicHostFor, portalHostFor } from "../lib/subdomain.js";
 import { env } from "../config/env.js";
-import { queueHealth, enqueueDomainSync, enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
+import { queueHealth, enqueueDomainSync, enqueuePlanSync, jobsAvailable, enqueueResetPassword, readJobStatus } from "../lib/provision-jobs.js";
+import { sendEmail, buildResetEmail } from "../lib/email.js";
 
 const PLANS = ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"] as const;
 const STATUSES = ["LEAD", "ONBOARDING", "LIVE", "SUSPENDED", "CHURNED"] as const;
@@ -583,6 +584,100 @@ export async function accountRoutes(app: FastifyInstance) {
       error:
         "Superseded. Use POST /api/provider/accounts/:id/provision-clinic, which creates the database and queues the server work.",
     });
+  });
+
+  /**
+   * Reset the owner's password for a provisioned clinic and email them
+   * the new one. Owner-only on the console; writes a `reset-password`
+   * job that the runner carries out.
+   *
+   * Synchronous with a short timeout: the whole thing is one bcrypt
+   * write against the clinic's database, which completes in under five
+   * seconds in practice. If the runner takes longer than fifteen the
+   * endpoint times out and the operator can retry; the status file is
+   * left for the next call to reconcile. Not a webhook because a
+   * forgotten password is already a frustration -- the operator wants
+   * to click Reset and see "sent" in the same breath.
+   *
+   * Nothing on this console stores the plaintext password: the runner
+   * writes it to the job's status file, this endpoint reads it once,
+   * emails it to the owner (CCed to the founder if configured), and
+   * never persists it. The status is cleared on success.
+   */
+  app.post("/api/provider/accounts/:id/reset-owner-password", async (request, reply) => {
+    const auth = requireOwnerAuth(request, reply);
+    if (!auth) return;
+    const { id } = request.params as { id: string };
+    const account = await prisma.clinicAccount.findUnique({ where: { id } });
+    if (!account) return reply.status(404).send({ error: "Not found" });
+    if (!account.provisionedAt) {
+      return reply.status(409).send({ error: "This clinic has not been provisioned yet. Provision it first." });
+    }
+
+    // Prefer the account record's contactEmail; otherwise require the caller
+    // to supply the owner's email explicitly. Guessing an address and
+    // locking the real one out of their clinic is a worse failure mode
+    // than making the operator type it once.
+    const parsed = z.object({ email: z.string().email().optional() }).safeParse(request.body ?? {});
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+    const email = parsed.data.email ?? account.contactEmail;
+    if (!email) {
+      return reply.status(400).send({ error: "No owner email on record. Provide {email} in the request body." });
+    }
+
+    if (!jobsAvailable()) {
+      return reply.status(503).send({ error: "The provisioning runner is not reachable from this console; cannot reset." });
+    }
+
+    const jobId = enqueueResetPassword(account.slug, email);
+
+    // Poll the status file for up to 15 seconds. The inotify watcher
+    // normally fires the runner within a second and the reset itself is
+    // a single bcrypt update, so this usually returns in 2-4 seconds.
+    const deadline = Date.now() + 15_000;
+    let status = readJobStatus(jobId);
+    while (status && status.state !== "succeeded" && status.state !== "failed" && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 400));
+      status = readJobStatus(jobId);
+    }
+
+    if (!status || (status.state !== "succeeded" && status.state !== "failed" && Date.now() >= deadline)) {
+      return reply.status(504).send({ jobId, error: "The reset is taking longer than expected. Try again, or watch the runner's logs on the host." });
+    }
+    if (status.state === "failed") {
+      return reply.status(500).send({ jobId, error: status.message || "The reset failed; see the runner's logs." });
+    }
+
+    // Success. The password is in the status file for exactly this
+    // moment; email it and move on.
+    const password = status.password ?? "";
+    const portalUrl = `https://${account.portalDomain ?? portalHostFor(account.slug, env.PLATFORM_DOMAIN)}`;
+    const emailOk = await sendEmail(buildResetEmail({
+      clinicName: account.name,
+      ownerEmail: email,
+      newPassword: password,
+      portalUrl,
+    }));
+
+    await prisma.activityLog.create({
+      data: {
+        accountId: id,
+        actorId: auth.id,
+        actorName: auth.name,
+        action: "owner.password-reset",
+        detail: `${email} -- ${emailOk ? "emailed" : "email FAILED"}`,
+      },
+    });
+
+    return {
+      ok: true,
+      emailed: emailOk,
+      email,
+      // Fallback: if email is not configured, return the password so the
+      // operator can read it to the owner directly. Normal path (email
+      // worked): password is omitted from the response.
+      password: emailOk ? undefined : password,
+    };
   });
 
   app.delete("/api/provider/accounts/:id", async (request, reply) => {
