@@ -221,6 +221,44 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  // Change your own login email. Keeps the same safeguards as the
+  // password change -- current password required so a walked-away
+  // session cannot silently transfer the login to someone else -- and
+  // enforces uniqueness so two users cannot share one email.
+  app.post("/api/clinic/profile/email", async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+
+    const emailChangeSchema = z.object({
+      newEmail: z.string().email().max(200).toLowerCase(),
+      currentPassword: z.string().min(1),
+    });
+    const parsed = emailChangeSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.flatten() });
+    }
+    const user = await prisma.clinicUser.findUnique({ where: { id: auth.clinicUserId } });
+    if (!user) return reply.status(404).send({ error: "Not found" });
+
+    const valid = await verifyPassword(parsed.data.currentPassword, user.passwordHash);
+    if (!valid) return reply.status(400).send({ error: "Current password is incorrect" });
+
+    if (parsed.data.newEmail === user.email.toLowerCase()) {
+      return reply.status(400).send({ error: "That is already your login email." });
+    }
+
+    const taken = await prisma.clinicUser.findUnique({ where: { email: parsed.data.newEmail } });
+    if (taken) {
+      return reply.status(409).send({ error: "Another user already has that email." });
+    }
+
+    await prisma.clinicUser.update({
+      where: { id: auth.clinicUserId },
+      data: { email: parsed.data.newEmail },
+    });
+    return { ok: true, email: parsed.data.newEmail };
+  });
+
   // Branding images are the one upload class that is genuinely public --
   // a logo and a doctor's photo appear on the public clinic page, which has
   // no login. Patient documents stay behind auth, as before.

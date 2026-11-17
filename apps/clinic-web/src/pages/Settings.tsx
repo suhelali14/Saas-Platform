@@ -83,7 +83,12 @@ export function Settings() {
 
       {tab === 'clinic' && canEditClinic && <ClinicSettings />}
       {tab === 'profile' && <ProfileSettings />}
-      {tab === 'security' && <PasswordSettings />}
+      {tab === 'security' && (
+        <div className="flex flex-col gap-10">
+          <EmailSettings />
+          <PasswordSettings />
+        </div>
+      )}
       {tab === 'documents' && canEditClinic && <DocumentSettings />}
       {tab === 'forms' && isAdmin && <SpecialtySettings />}
       {tab === 'data' && canEditClinic && <DataSettings />}
@@ -505,6 +510,54 @@ function PasswordSettings() {
       </Section>
       <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Saving...' : 'Change Password'}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Change your own login email. A doctor who onboarded with the welcome
+ * email's auto-generated address can switch it to their real one; a
+ * clinic that changes administrator can move the login across. The
+ * current password is required so a walked-away session cannot silently
+ * transfer the login.
+ */
+function EmailSettings() {
+  const toast = useToast();
+  const { user, refresh } = useClinicAuth();
+  const [newEmail, setNewEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch('/profile/email', { method: 'POST', data: { newEmail: newEmail.trim(), currentPassword } });
+      setNewEmail('');
+      setCurrentPassword('');
+      toast.success(`Login email changed to ${newEmail.trim()}. Use it the next time you sign in.`);
+      await refresh?.();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not change the email.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-5">
+      {error && <div className="px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
+      <Section title="Change login email" hint={user?.email ? `You sign in with ${user.email}. The new address replaces it.` : 'The address you sign in with.'}>
+        <div className="grid md:grid-cols-2 gap-3">
+          <Field label="New email"><input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required className={inputCls} placeholder="you@yourclinic.in" /></Field>
+          <Field label="Current password" hint="So nobody can silently transfer your login."><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required className={inputCls} /></Field>
+        </div>
+      </Section>
+      <button type="submit" disabled={saving || !newEmail || !currentPassword} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+        {saving ? 'Saving...' : 'Change login email'}
       </button>
     </form>
   );
