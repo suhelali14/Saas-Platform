@@ -1,6 +1,9 @@
 import { prisma } from "./prisma.js";
 import { readJobStatus, type JobStatus } from "./provision-jobs.js";
 import { deleteNeonProject } from "./neon.js";
+import { env } from "../config/env.js";
+import { portalHostFor, publicHostFor } from "./subdomain.js";
+import { sendEmail, buildWelcomeEmail } from "./email.js";
 
 /**
  * Writes a finished provisioning job back onto the account.
@@ -82,6 +85,29 @@ async function applySuccess(accountId: string, status: JobStatus): Promise<void>
       detail: status.apiHost ? `api ${status.apiHost}` : null,
     },
   });
+
+  // Welcome email, best-effort. Owner gets URLs + one-time password;
+  // provisioning does NOT fail if the mail provider is down or unset.
+  // This is the one moment we have the plaintext password; after the
+  // reload the status file is cleared, so the only other way to tell the
+  // owner is reset-clinic-password.sh by hand.
+  if (status.password && status.loginEmail) {
+    try {
+      await sendEmail(buildWelcomeEmail({
+        clinicName: account.name,
+        ownerEmail: status.loginEmail,
+        ownerPassword: status.password,
+        portalUrl: `https://${account.portalDomain ?? portalHostFor(account.slug, env.PLATFORM_DOMAIN)}`,
+        publicSiteUrl: `https://${account.publicDomain ?? publicHostFor(account.slug, env.PLATFORM_DOMAIN)}`,
+        apiHost: status.apiHost ?? null,
+        tlsOk: !status.message.toLowerCase().includes("no tls"),
+      }));
+    } catch (err) {
+      // sendEmail already logs; this catch is for the template builder,
+      // not the send itself. Provisioning stays successful either way.
+      console.warn(`[email] welcome build/send failed for ${account.slug}:`, err);
+    }
+  }
 }
 
 /**

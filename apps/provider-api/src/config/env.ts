@@ -63,6 +63,16 @@ const envSchema = z.object({
   // click: the clinic is reachable the moment the request returns.
   PROVIDER_INLINE_PROVISION: z.enum(["0", "1"]).default("0"),
 
+  // ── Transactional email (optional; sends welcome messages on provision) ──
+  // Without RESEND_API_KEY + MAIL_FROM set, email is a no-op -- every
+  // provisioning still succeeds, there is just no outbound email. Add both
+  // when the Resend domain is verified; see docs/WHERE-ENV-GOES.md.
+  RESEND_API_KEY: z.string().optional(),
+  /** e.g. `Nayaversse <no-reply@nayaversse.in>` -- domain must be verified in Resend. */
+  MAIL_FROM: z.string().optional(),
+  /** CCed on every provisioning email so the founder always has a copy. Optional. */
+  FOUNDER_CC_EMAIL: z.string().email().optional(),
+
   // ── Who Nayaversse's own invoices come from ─────────────────────────
   // Printed on every GST invoice the console issues. Until the GSTIN is
   // set, invoices can be drafted but not issued: a "tax invoice" with no
