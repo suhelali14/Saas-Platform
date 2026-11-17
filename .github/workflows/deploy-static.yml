@@ -363,7 +363,7 @@ jobs:
         working-directory: apps/nayaverse-web
         run: |
           npx --no-install verify-deploy \
-            --site https://www.nayaverse.in \
+            --site https://www.nayaversse.in \
             --build "${{ github.sha }}" \
             --min-bytes 9000 \
             --retries 8 --wait-ms 15000 \
