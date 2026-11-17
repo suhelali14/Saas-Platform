@@ -18,7 +18,7 @@ type Contact = {
   whatsapp: string;
   /** Display and tel: form. e.g. "+91 98765 43210" */
   phone: string;
-  /** e.g. "hello@nayaverse.in" */
+  /** e.g. "hello@nayaversse.in" */
   email: string;
   /** Shown as the placeholder in the enquiry form's City field. */
   city: string;
@@ -34,8 +34,8 @@ export const contact: Contact = {
 export const contactReady = Boolean(contact.whatsapp || contact.phone || contact.email);
 
 export const site = {
-  domain: 'www.nayaverse.in',
-  url: 'https://www.nayaverse.in',
+  domain: 'www.nayaversse.in',
+  url: 'https://www.nayaversse.in',
 } as const;
 
 /**

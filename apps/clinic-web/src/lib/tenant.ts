@@ -49,6 +49,12 @@ export type TenantLocation =
  * matches a single label, so the portal lives at a second level and has to
  * be recognised explicitly.
  */
+/**
+ * Accepts the primary platform domain OR a comma-separated list, so a
+ * migration can run both the old and new brand roots in one bundle.
+ * Pass "nayaversse.in,nayaverse.in" to have both resolve as platform
+ * subdomains; once the old domain is retired, drop it from the list.
+ */
 export function resolveTenant(hostname: string, platformDomain: string): TenantLocation {
   const host = (hostname ?? "").toLowerCase().split(":")[0]!.replace(/\.$/, "");
   if (!host) return { kind: "dev" };
@@ -57,19 +63,26 @@ export function resolveTenant(hostname: string, platformDomain: string): TenantL
     return { kind: "dev" };
   }
 
-  const root = (platformDomain ?? "").trim().toLowerCase().replace(/^\.+|\.+$/g, "");
+  const roots = (platformDomain ?? "")
+    .split(",")
+    .map((r) => r.trim().toLowerCase().replace(/^\.+|\.+$/g, ""))
+    .filter((r) => r && r.includes("."));
   // Without a configured platform domain there are no subdomains to
   // resolve, so every host is a clinic on its own domain. This is also
   // what keeps existing single-clinic deployments working untouched.
-  if (!root || !root.includes(".")) return { kind: "legacy" };
+  if (roots.length === 0) return { kind: "legacy" };
+
+  // Pick the longest matching root so "portal.nayaversse.in" is matched
+  // under "nayaversse.in" rather than being mistaken under a shorter one.
+  const root = roots
+    .filter((r) => host === r || host.endsWith(`.${r}`))
+    .sort((a, b) => b.length - a.length)[0];
 
   // The bare platform domain is the marketing site, not a clinic.
-  if (host === root) return { kind: "platform" };
+  if (root && host === root) return { kind: "platform" };
 
-  // Anything not under the platform domain is a custom domain. Checked on
-  // a label boundary: `evil-yourco.in` must not read as a subdomain of
-  // `yourco.in`, and a bare `endsWith` would say it is.
-  if (!host.endsWith(`.${root}`)) return { kind: "legacy" };
+  // Anything not under any configured platform domain is a custom domain.
+  if (!root) return { kind: "legacy" };
 
   const prefix = host.slice(0, -(root.length + 1));
   const labels = prefix.split(".");

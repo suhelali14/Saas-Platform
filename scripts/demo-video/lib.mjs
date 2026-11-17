@@ -8,8 +8,20 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const WEB = 'http://localhost:5176';
-export const API = 'http://localhost:4100/api/clinic';
+// Point the recorder at a deployed demo by setting `DEMO`:
+//   DEMO=demo-clinic         -> https://demo-clinic.portal.nayaverse.in
+//   DEMO=demo-multispecialty -> https://demo-multispecialty.portal.nayaverse.in
+// Unset falls back to the local dev stack. Read lazily, not at import
+// time -- the renderer may set DEMO after lib is first loaded.
+export const web = () => process.env.DEMO
+  ? `https://${process.env.DEMO}.portal.nayaverse.in`
+  : 'http://localhost:5176';
+export const api = () => process.env.DEMO
+  ? `https://${process.env.DEMO}.api.nayaverse.in/api/clinic`
+  : 'http://localhost:4100/api/clinic';
+// Kept for scripts that imported these as constants.
+export const WEB = web();
+export const API = api();
 export const VIEWPORT = { width: 1440, height: 900 };
 export const PASSWORD = 'nayaverse-demo';
 
@@ -20,7 +32,7 @@ export const PASSWORD = 'nayaverse-demo';
  */
 export async function tokenFor(email, { tries = 3 } = {}) {
   for (let i = 0; i < tries; i++) {
-    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
+    const r = await fetch(`${api()}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
     if (r.ok) return (await r.json()).token;
     const body = await r.text();
     if (r.status === 429) {
@@ -129,7 +141,7 @@ export async function typeInto(page, locator, text, { perChar = 60 } = {}) {
 }
 
 export async function goto(page, route, { wait = 'networkidle' } = {}) {
-  await page.goto(WEB + route, { waitUntil: wait });
+  await page.goto(web() + route, { waitUntil: wait });
   await sleep(500); // let any revealed animations settle
 }
 
@@ -139,6 +151,66 @@ export const beat = (ms) => sleep(ms);
  * Freezes the page on a region, then draws a soft spotlight around it.
  * This is "zoom in" at capture time without disturbing the video frame rate.
  */
+/**
+ * Draw a bright amber ring around an element and hold. Unlike spotlight,
+ * this does not dim the rest of the page -- the surroundings stay visible
+ * so the eye understands the context. Good for an ad shot: zoom with the
+ * ring, then let the ring fade before the clip ends.
+ */
+export async function highlight(page, locator, { hold = 2200 } = {}) {
+  let box;
+  try {
+    const count = await locator.count();
+    if (!count) return;
+    box = await locator.boundingBox({ timeout: 3000 });
+  } catch { return; }
+  if (!box) return;
+  await page.addStyleTag({ content: `
+    .__ring { position: fixed; pointer-events: none; z-index: 99998;
+      border: 3px solid hsl(36 81% 58%); border-radius: 14px;
+      box-shadow: 0 0 0 4px hsl(36 81% 58% / 0.25), 0 20px 60px hsl(36 81% 58% / 0.15);
+      opacity: 0; transition: opacity 400ms ease-out, transform 400ms ease-out; }
+    .__ring.on { opacity: 1; }
+  ` });
+  await page.evaluate(([b]) => {
+    const el = document.createElement('div');
+    el.className = '__ring';
+    el.style.left = `${b.x - 10}px`;
+    el.style.top = `${b.y - 10}px`;
+    el.style.width = `${b.width + 20}px`;
+    el.style.height = `${b.height + 20}px`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('on'));
+    window.__ring = el;
+  }, [box]);
+  await sleep(hold);
+  await page.evaluate(() => { window.__ring?.classList.remove('on'); });
+  await sleep(250);
+  await page.evaluate(() => { window.__ring?.remove(); });
+}
+
+/**
+ * Scroll the target into view, then animate the body to scale up slightly
+ * around it. The rest of the page stays readable; this is a soft zoom to
+ * guide the eye, not a cropping zoom.
+ */
+export async function zoomInto(page, locator, { scale = 1.12, hold = 2500 } = {}) {
+  let box;
+  try { box = await locator.boundingBox({ timeout: 3000 }); } catch { return; }
+  if (!box) return;
+  await page.evaluate(([b, s]) => {
+    document.body.style.transformOrigin = `${b.x + b.width / 2}px ${b.y + b.height / 2}px`;
+    document.body.style.transition = 'transform 1200ms cubic-bezier(.2,.8,.2,1)';
+    requestAnimationFrame(() => { document.body.style.transform = `scale(${s})`; });
+  }, [box, scale]);
+  await sleep(hold);
+  await page.evaluate(() => {
+    document.body.style.transition = 'transform 600ms ease-in';
+    document.body.style.transform = 'scale(1)';
+  });
+  await sleep(700);
+}
+
 export async function spotlight(page, locator, hold = 1500) {
   // A missing element on a demo scene is not worth killing the render:
   // if the locator cannot be found quickly, the scene just shows the
