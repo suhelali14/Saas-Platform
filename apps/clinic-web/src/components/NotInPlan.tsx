@@ -9,7 +9,7 @@ const ORDER: PlanTier[] = ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'];
  * include.
  *
  * It says what the module is, which plan has it, and who to ask -- the
- * clinic's upgrade path is a conversation with Nayaverse, so this is
+ * clinic's upgrade path is a conversation with Nayaversse, so this is
  * where that conversation starts. It never pretends the page is broken,
  * and it never hides that the feature exists.
  */
@@ -34,7 +34,7 @@ export function NotInPlan({ module, inline }: { module: string; inline?: boolean
         <p className="mt-3 text-[15px]">
           {entitlement.upgradeContact
             ? <>To add it, contact <span className="font-semibold">{entitlement.upgradeContact}</span>.</>
-            : <>To add it, contact Nayaverse.</>}
+            : <>To add it, contact Nayaversse.</>}
           {' '}Nothing already in your records changes when a plan changes.
         </p>
         <Link to="/queue" className="mt-4 inline-block text-[14px] font-medium underline underline-offset-4">Back to the queue</Link>

@@ -12,7 +12,7 @@ import { enqueuePlanSync, jobsAvailable } from "../lib/provision-jobs.js";
 import { shouldProvisionInline } from "../lib/inline-provision.js";
 
 /**
- * Plans reaching clinics, and Nayaverse's own invoices.
+ * Plans reaching clinics, and Nayaversse's own invoices.
  *
  * ── Applying a plan ──────────────────────────────────────────────────
  *

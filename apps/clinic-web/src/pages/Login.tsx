@@ -68,7 +68,7 @@ export function Login() {
           here. */}
       <div className="hidden bg-[hsl(45_8%_10%)] text-[hsl(42_36%_95%)] lg:block">
         <div className="flex h-full flex-col justify-between gap-10 p-12 xl:p-16">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[hsl(42_36%_95%/0.6)]">Nayaverse Clinic</p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[hsl(42_36%_95%/0.6)]">Nayaversse Clinic</p>
           <div>
             <p className="max-w-[14ch] font-display text-[3rem] font-semibold uppercase leading-[0.98] tracking-[0.01em]">{name}</p>
             <p className="mt-6 max-w-[40ch] text-[15px] leading-relaxed text-[hsl(42_36%_95%/0.72)]">
@@ -84,7 +84,7 @@ export function Login() {
       <div className="flex flex-col px-4 pb-10 pt-[max(32px,env(safe-area-inset-top))] sm:px-10 lg:justify-center lg:pt-10">
         <div className="mx-auto w-full max-w-[400px]">
           <div className="mb-8 lg:hidden">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nayaverse Clinic</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nayaversse Clinic</p>
             <p className="mt-1.5 font-display text-[1.8rem] font-semibold uppercase leading-none tracking-[0.01em]">{name}</p>
           </div>
 

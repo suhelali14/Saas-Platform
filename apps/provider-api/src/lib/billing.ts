@@ -1,5 +1,5 @@
 /**
- * What a clinic owes Nayaverse, and the GST on it.
+ * What a clinic owes Nayaversse, and the GST on it.
  *
  * Pure functions, so the arithmetic can be tested without a database.
  * Amounts are handled in paise and only turned back into rupees at the

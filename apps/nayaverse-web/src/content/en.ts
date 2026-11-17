@@ -21,7 +21,7 @@ export const en = {
   dir: 'ltr',
 
   site: {
-    name: 'Nayaverse',
+    name: 'Nayaversse',
     tagline: 'One system for how your business runs',
     description:
       'Business software built in India — counter, stock, bookings, billing, customers and your own website. Live today for clinics; retail, food, salons and gyms are being built.',
@@ -497,7 +497,7 @@ export const en = {
       'The enquiry channel is not connected yet. Set the WhatsApp number, phone and email in src/content/contact.ts.',
     labelPhone: 'Phone',
     labelEmail: 'Email',
-    messageTitle: 'Nayaverse enquiry',
+    messageTitle: 'Nayaversse enquiry',
     mBusiness: 'Business',
     mKind: 'Kind',
     mCity: 'City',
@@ -507,12 +507,12 @@ export const en = {
 
   footer: {
     lines: [
-      'Nayaverse — business software built in India, for how Indian businesses actually run.',
+      'Nayaversse — business software built in India, for how Indian businesses actually run.',
       'Full data export from the first day. One clinic live in Sangli; every other row is being built, and says so.',
     ],
     studio: {
       label: 'Studio',
-      note: 'Also from Nayaverse: Studio, for reels scripted, cut and captioned in the browser.',
+      note: 'Also from Nayaversse: Studio, for reels scripted, cut and captioned in the browser.',
     },
     legal:
       'No patient testimonials are published anywhere in this product. The NMC Code of Medical Ethics prohibits a registered practitioner requesting or publishing them.',

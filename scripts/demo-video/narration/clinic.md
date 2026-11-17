@@ -7,7 +7,7 @@ match the title card or the section card.
 ---
 
 **[INTRO]**  
-Nayaverse Clinic, in the plan a single-doctor practice runs on.
+Nayaversse Clinic, in the plan a single-doctor practice runs on.
 The queue, the consultation, the record, the bill, the website.
 This is what runs in Sangli today.
 

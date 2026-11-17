@@ -1,5 +1,5 @@
 /**
- * The arithmetic on Nayaverse's own invoices, and the module list it sells.
+ * The arithmetic on Nayaversse's own invoices, and the module list it sells.
  */
 
 import { strict as assert } from "node:assert";

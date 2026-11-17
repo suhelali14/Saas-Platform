@@ -69,7 +69,7 @@ function Shell({ children }: { children: React.ReactNode }) {
               <rect x="6" y="12" width="9" height="4" rx="2" fill="#eba63f" />
               <rect x="16.5" y="12" width="5.5" height="4" rx="2" fill="#b9ad95" />
             </svg>
-            <span className="font-display text-[19px] font-semibold uppercase tracking-[0.03em]">Nayaverse Console</span>
+            <span className="font-display text-[19px] font-semibold uppercase tracking-[0.03em]">Nayaversse Console</span>
           </Link>
 
           <nav className="flex flex-1 items-center gap-1">

@@ -46,7 +46,7 @@ export function Login() {
             <rect x="6" y="12" width="9" height="4" rx="2" fill="#eba63f" />
             <rect x="16.5" y="12" width="5.5" height="4" rx="2" fill="#b9ad95" />
           </svg>
-          <h1 className="font-display text-[1.9rem] font-semibold uppercase leading-none tracking-[0.01em]">Nayaverse Console</h1>
+          <h1 className="font-display text-[1.9rem] font-semibold uppercase leading-none tracking-[0.01em]">Nayaversse Console</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage the clinics you have sold to.</p>
         </div>
 

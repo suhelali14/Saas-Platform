@@ -370,7 +370,7 @@ function ClinicMark({ name, compact }: { name?: string | null; compact?: boolean
   const label = name || 'Clinic portal';
   return (
     <div className="min-w-0 leading-none" title={label}>
-      <span className={`block font-semibold uppercase tracking-[0.12em] text-muted-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}>Nayaverse Clinic</span>
+      <span className={`block font-semibold uppercase tracking-[0.12em] text-muted-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}>Nayaversse Clinic</span>
       {/* Two lines in the sidebar: a hospital's name is long ("Sai
           Multispeciality Hospital") and cut to "SAI MULTISPECI…" it is not
           the name. The phone bar stays one line. */}

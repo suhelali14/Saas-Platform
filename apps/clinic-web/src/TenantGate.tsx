@@ -163,7 +163,7 @@ export function TenantGate({ children }: { children: React.ReactNode }) {
   if (state.phase === 'platform') {
     return (
       <Centered>
-        <h1 className="text-xl font-semibold text-gray-900">Nayaverse</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Nayaversse</h1>
         <p className="mt-2 max-w-md text-sm text-muted-foreground/60">
           Clinic software. Each clinic has its own address — if you are looking for a
           particular practice, use the link they gave you.

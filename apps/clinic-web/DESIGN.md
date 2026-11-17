@@ -3,7 +3,7 @@
 Written for: engineers and designers working on `apps/clinic-web`.
 
 This is a working spec, not aspiration. Last revised 9 November 2026,
-when the portal moved to the Nayaverse look shared with Growth. Where the current code disagrees
+when the portal moved to the Nayaversse look shared with Growth. Where the current code disagrees
 with it, the code is wrong and should be brought here — each such gap is
 marked **⚠ gap** so it can be found and closed.
 
@@ -33,7 +33,7 @@ design and deliberately does **not** follow this document.
 
 ## 2. Colour
 
-### The Nayaverse look
+### The Nayaversse look
 
 The portal shares its visual world with Nayaverse Growth: warm paper,
 near-black ink and one amber. It is a tool used all day at a front desk

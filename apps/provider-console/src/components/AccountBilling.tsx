@@ -415,7 +415,7 @@ const STATUS_BADGE: Record<Invoice["status"], "outline" | "warning" | "success" 
 };
 
 /**
- * Nayaverse's invoices to this clinic.
+ * Nayaversse's invoices to this clinic.
  *
  * Drafts can be deleted. Issuing numbers and freezes one; after that it
  * can only be marked paid or voided with a reason.

@@ -55,11 +55,11 @@ const envSchema = z.object({
   // click: the clinic is reachable the moment the request returns.
   PROVIDER_INLINE_PROVISION: z.enum(["0", "1"]).default("0"),
 
-  // ── Who Nayaverse's own invoices come from ─────────────────────────
+  // ── Who Nayaversse's own invoices come from ─────────────────────────
   // Printed on every GST invoice the console issues. Until the GSTIN is
   // set, invoices can be drafted but not issued: a "tax invoice" with no
   // GSTIN on it is not one.
-  PROVIDER_LEGAL_NAME: z.string().default("Nayaverse"),
+  PROVIDER_LEGAL_NAME: z.string().default("Nayaversse"),
   PROVIDER_ADDRESS: z.string().optional(),
   PROVIDER_GSTIN: z.string().optional(),
   // Two-digit GST state code of the provider's registration. Decides

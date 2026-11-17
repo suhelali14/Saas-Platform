@@ -142,7 +142,7 @@ Then re-run **Actions → Deploy static apps → Run workflow**, app
 
 ```bash
 curl -s https://www.nayaverse.in/ | grep -o '<title>[^<]*</title>'
-# want: Nayaverse - One system for how your business runs
+# want: Nayaversse - One system for how your business runs
 # not:  Clinic Portal
 
 curl -s -o /dev/null -w '%{http_code}\n' https://www.nayaverse.in/mr

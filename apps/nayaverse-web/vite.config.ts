@@ -21,7 +21,7 @@ function yardKeyframes(): Plugin {
   }
 }
 
-// Nayaverse's own site. Deliberately a separate app from clinic-web:
+// Nayaversse's own site. Deliberately a separate app from clinic-web:
 //
 //  - A clinic's front desk loads clinic-web on a phone. It must not also
 //    download this company's pricing page.
