@@ -524,7 +524,7 @@ function PasswordSettings() {
  */
 function EmailSettings() {
   const toast = useToast();
-  const { user, refresh } = useClinicAuth();
+  const { user } = useClinicAuth();
   const [newEmail, setNewEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -538,8 +538,10 @@ function EmailSettings() {
       await apiFetch('/profile/email', { method: 'POST', data: { newEmail: newEmail.trim(), currentPassword } });
       setNewEmail('');
       setCurrentPassword('');
+      // The display email in the nav bar refreshes on the next sign-in --
+      // the auth context has no live-refresh hook, and adding one just
+      // for this flow would be wiring too broad for one setting.
       toast.success(`Login email changed to ${newEmail.trim()}. Use it the next time you sign in.`);
-      await refresh?.();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not change the email.');
     } finally {
