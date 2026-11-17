@@ -38,6 +38,14 @@ const envSchema = z.object({
   // Used to generate the hostnames shown in the console and written to
   // each account at provisioning time.
   PLATFORM_DOMAIN: z.string().min(3).default("localhost"),
+  /**
+   * Older platform roots to also accept as the origin of a clinic
+   * request (CORS only -- URL construction stays on PLATFORM_DOMAIN).
+   * Comma-separated. Set this during a brand-rename so clinics still
+   * served at the previous root keep answering, and remove it once
+   * that root is retired.
+   */
+  PLATFORM_DOMAIN_ALIASES: z.string().optional().default(""),
 
   // Template for a clinic API's base URL, with {slug} substituted.
   // Each clinic keeps its OWN database and its OWN API deployment, so the

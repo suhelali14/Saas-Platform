@@ -43,6 +43,12 @@ export function buildApp() {
             // no config change -- so the platform domain is matched by
             // suffix instead.
             if (isPlatformSubdomain(origin, env.PLATFORM_DOMAIN)) return cb(null, true);
+            // Previous platform roots stay allowed during a brand rename --
+            // clinics at <slug>.<old-root> and <slug>.portal.<old-root> keep
+            // reaching the directory and the API while the migration runs.
+            for (const alias of (env.PLATFORM_DOMAIN_ALIASES ?? "").split(",").map((s) => s.trim()).filter(Boolean)) {
+              if (isPlatformSubdomain(origin, alias)) return cb(null, true);
+            }
             cb(new Error("Origin not allowed"), false);
           },
   });
