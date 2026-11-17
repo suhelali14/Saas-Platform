@@ -120,9 +120,68 @@ export function AccountDetail() {
           <PlanHistory accountId={a.id} refreshKey={`${a.appliedAt ?? ""}${a.status}`} />
           <Health account={a} />
           <ActivityFeed entries={a.activity} />
+          <DangerZone account={a} />
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Removing an account from the console record. The API refuses to delete
+ * an account that has issued invoices (billing history outlives the
+ * customer); for LEAD / ONBOARDING / orphan rows it succeeds. The
+ * clinic's own database and deployments are NEVER touched -- they hold
+ * patient data and are retired deliberately, by hand, not by clicking
+ * through a console.
+ */
+function DangerZone({ account }: { account: Detail["account"] }) {
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const doDelete = async () => {
+    setBusy(true);
+    try {
+      const res = await apiFetch<{ ok: true; warning?: string }>(
+        `/accounts/${account.id}`,
+        { method: "DELETE" },
+      );
+      if (res.warning) toast.success(res.warning);
+      else toast.success("Account removed.");
+      window.location.href = "/";
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Delete failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel title="Danger zone" icon={AlertTriangle}>
+      {confirming ? (
+        <div className="space-y-2 text-sm">
+          <p className="font-medium text-foreground">Remove {account.name} from the console?</p>
+          <p className="text-xs text-muted-foreground">
+            This removes the account record only. The clinic's database and deployments,
+            if any, stay running and must be decommissioned deliberately. An account
+            with issued invoices cannot be removed -- mark it Churned instead.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <Button size="sm" variant="destructive" onClick={doDelete} disabled={busy}>
+              {busy ? <Loader2 className="size-3 animate-spin" /> : "Remove"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button size="sm" variant="outline" onClick={() => setConfirming(true)} className="self-start">
+          <AlertTriangle className="mr-1.5 size-3.5" /> Remove from console
+        </Button>
+      )}
+    </Panel>
   );
 }
 
