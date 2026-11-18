@@ -43,6 +43,9 @@ interface Draft {
   hint: string;
   required: boolean;
   wide: boolean;
+  section: string;
+  showIfField: string;
+  showIfValue: string;
 }
 const toDraft = (f: FormField): Draft => ({
   key: f.key,
@@ -53,6 +56,9 @@ const toDraft = (f: FormField): Draft => ({
   hint: f.hint ?? '',
   required: !!f.required,
   wide: !!f.wide,
+  section: f.section ?? '',
+  showIfField: f.showIf?.field ?? '',
+  showIfValue: f.showIf ? String(f.showIf.equals) : '',
 });
 const fromDraft = (d: Draft) => ({
   key: d.key,
@@ -63,7 +69,28 @@ const fromDraft = (d: Draft) => ({
   ...(d.hint.trim() ? { hint: d.hint.trim() } : {}),
   ...(d.required ? { required: true } : {}),
   ...(d.wide ? { wide: true } : {}),
+  ...(d.section.trim() ? { section: d.section.trim() } : {}),
+  ...(d.showIfField.trim() && d.showIfValue.trim()
+    ? { showIf: { field: d.showIfField.trim(), equals: coerceShowIfValue(d.showIfValue.trim()) } }
+    : {}),
 });
+
+/** Store `true`/`false` as a boolean so yes/no fields match directly;
+ *  everything else stays as the typed string. */
+function coerceShowIfValue(v: string): string | boolean {
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  return v;
+}
+
+/** Mirrors the backend's key generation for a brand-new custom field. The
+ *  backend keeps the key if we send one, so we need a stable preview of
+ *  what the server will assign -- otherwise showIf points at a different
+ *  key than the field it references ends up with. */
+function labelToKey(label: string): string {
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 36);
+  return `c_${slug || 'field'}`;
+}
 
 export function SpecialtySettings() {
   const toast = useToast();
@@ -134,7 +161,11 @@ export function SpecialtySettings() {
   );
 }
 
-const EMPTY_DRAFT: Draft = { label: '', type: 'text', unit: '', options: '', hint: '', required: false, wide: false };
+const EMPTY_DRAFT: Draft = {
+  label: '', type: 'text', unit: '', options: '',
+  hint: '', required: false, wide: false,
+  section: '', showIfField: '', showIfValue: '',
+};
 
 function FormEditor({ form, specialties, onSaved, onCancel }: {
   form: FormDef | null; specialties: string[]; onSaved: (forms: FormDef[]) => void; onCancel: () => void;
@@ -247,6 +278,30 @@ function FormEditor({ form, specialties, onSaved, onCancel }: {
                     </label>
                   </div>
                 </div>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[18px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
+                  <span className="hidden sm:block" />
+                  <div>
+                    <FieldLabel htmlFor={`sec-${i}`} hint="(blank = default section)">Section</FieldLabel>
+                    <input id={`sec-${i}`} list={`sec-list-${i}`} value={d.section} onChange={(e) => set(i, { section: e.target.value })} placeholder="Symptoms, Examination…" className={FIELD} />
+                    <datalist id={`sec-list-${i}`}>
+                      {[...new Set(drafts.map((x) => x.section.trim()).filter(Boolean))].map((s) => <option key={s} value={s} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor={`sif-${i}`} hint="(leave blank to always show)">Show only if…</FieldLabel>
+                    <select id={`sif-${i}`} value={d.showIfField} onChange={(e) => set(i, { showIfField: e.target.value })} className={FIELD}>
+                      <option value="">Always show</option>
+                      {drafts.slice(0, i).filter((o) => o.label.trim()).map((o, j) => {
+                        const k = o.key ?? labelToKey(o.label);
+                        return <option key={j} value={k}>{o.label}</option>;
+                      })}
+                    </select>
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor={`siv-${i}`} hint="(for yes/no: true or false)">…equals</FieldLabel>
+                    <input id={`siv-${i}`} value={d.showIfValue} onChange={(e) => set(i, { showIfValue: e.target.value })} placeholder={d.showIfField ? 'value' : ''} disabled={!d.showIfField} className={FIELD} />
+                  </div>
+                </div>
               </li>
             ))}
           </ol>
@@ -279,23 +334,45 @@ function FormEditor({ form, specialties, onSaved, onCancel }: {
 function FormPreview({ title, drafts, customSection }: { title: string; drafts: Draft[]; customSection: boolean }) {
   const active = drafts.filter((d) => d.label.trim());
   if (!active.length) return <p className="text-[13px] text-muted-foreground">Add a question to see the preview.</p>;
+  // Group drafts by section. Blank section = the default group, rendered
+  // under the form title.
+  const groups = new Map<string, Draft[]>();
+  const order: string[] = [];
+  for (const d of active) {
+    const key = d.section.trim() || '';
+    if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+    groups.get(key)!.push(d);
+  }
+  // Conditional fields that are unreachable (reference a field below
+  // them, or an impossible value) still show in preview with a tag, so
+  // the designer sees everything they built. The live fill-in form is
+  // what actually hides them.
   return (
-    <div className="rounded-lg border border-border/15 bg-background p-4">
-      <p className="mb-3 text-[14px] font-semibold">{title}</p>
-      {customSection && <p className="mb-3 text-[12.5px] text-muted-foreground">Your clinic's fields</p>}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {active.map((d, i) => (
-          <div key={i} className={d.wide ? 'sm:col-span-2' : ''}>
-            <label className="mb-1 block text-[12.5px] font-medium">
-              {d.label}
-              {d.required && <span className="ml-0.5 text-ink-danger">*</span>}
-              {d.type === 'number' && d.unit && <span className="ml-1 text-muted-foreground">({d.unit})</span>}
-            </label>
-            {previewInput(d)}
-            {d.hint && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{d.hint}</p>}
+    <div className="space-y-4">
+      {order.map((sectionKey) => (
+        <div key={sectionKey || '_default'} className="rounded-lg border border-border/15 bg-background p-4">
+          <p className="mb-3 text-[14px] font-semibold">{sectionKey || title}</p>
+          {customSection && !sectionKey && <p className="mb-3 text-[12.5px] text-muted-foreground">Your clinic's fields</p>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {groups.get(sectionKey)!.map((d, i) => (
+              <div key={i} className={d.wide ? 'sm:col-span-2' : ''}>
+                <label className="mb-1 block text-[12.5px] font-medium">
+                  {d.label}
+                  {d.required && <span className="ml-0.5 text-ink-danger">*</span>}
+                  {d.type === 'number' && d.unit && <span className="ml-1 text-muted-foreground">({d.unit})</span>}
+                  {d.showIfField && (
+                    <span className="ml-2 rounded bg-foreground/[0.06] px-1 py-0.5 text-[10px] font-normal text-muted-foreground">
+                      if {d.showIfField.replace(/^c_/, '')} = {d.showIfValue || '?'}
+                    </span>
+                  )}
+                </label>
+                {previewInput(d)}
+                {d.hint && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{d.hint}</p>}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

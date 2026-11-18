@@ -24,10 +24,14 @@ export function FormFields({ sections, values, onChange, ctx }: {
   ctx: PreviewContext;
 }) {
   const set = (key: string, v: unknown) => onChange({ ...values, [key]: v });
+  // Respect field.showIf -- hide a field when the referenced answer
+  // doesn't match. A field hidden here is also skipped by cleanData on
+  // save, so its answer never leaks into the stored record.
+  const visible = (f: FormField) => !f.showIf || answerMatches(values[f.showIf.field], f.showIf.equals);
   return (
     <div className="space-y-5">
       {sections.map((s) => {
-        const fields = s.fields.filter((f) => !f.retired || hasValue(values[f.key]));
+        const fields = s.fields.filter((f) => (!f.retired || hasValue(values[f.key])) && visible(f));
         if (!fields.length) return null;
         return (
           <fieldset key={s.title}>
@@ -48,6 +52,14 @@ export function FormFields({ sections, values, onChange, ctx }: {
 
 function hasValue(v: unknown) {
   return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+}
+
+/** Loose equality for conditional-show: matches '{equals: true}' against
+ *  'true' / true / 1, and string values across trim differences. */
+function answerMatches(answer: unknown, equals: string | boolean | number): boolean {
+  if (answer === equals) return true;
+  if (answer === null || answer === undefined) return false;
+  return String(answer) === String(equals);
 }
 
 function Label({ id, field }: { id?: string; field: FormField }) {

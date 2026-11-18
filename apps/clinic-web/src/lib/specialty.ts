@@ -31,6 +31,10 @@ export interface FormField {
   addRows?: boolean;
   wide?: boolean;
   required?: boolean;
+  /** group under a named section heading; blank/absent = default section */
+  section?: string;
+  /** show only when another field's answer equals this value */
+  showIf?: { field: string; equals: string | boolean | number };
   retired?: boolean;
 }
 export interface FormSection { title: string; fields: FormField[] }

@@ -6,8 +6,25 @@ import { requireAdminAuth, requireClinicAuth, requireRoles } from "../plugins/au
 import { LIBRARY } from "../lib/specialty-library.js";
 import {
   cleanData, cleanOwnFields, compute, describe, gestationalAge, isValidDay, reconcileFields,
-  type FormDef, type FormField,
+  type FormDef, type FormField, type FormSection,
 } from "../lib/specialty-forms.js";
+
+/**
+ * Group fields by their `.section` label into FormSection[]. A field with
+ * no section goes into the first section (titled `fallbackTitle`), so an
+ * older form with a flat field list still produces one valid section.
+ * Preserves the order fields appear in.
+ */
+function groupBySection(fields: FormField[], fallbackTitle: string): FormSection[] {
+  const sections = new Map<string, FormField[]>();
+  const order: string[] = [];
+  for (const f of fields) {
+    const key = (f.section ?? "").trim() || fallbackTitle;
+    if (!sections.has(key)) { sections.set(key, []); order.push(key); }
+    sections.get(key)!.push(f);
+  }
+  return order.map((title) => ({ title, fields: sections.get(title)! }));
+}
 
 /**
  * Specialty records: the form library, a patient's family links, care
@@ -168,14 +185,14 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const def = row!.definition as unknown as FormDef;
     let next = def;
     if (body.fields !== undefined || body.title !== undefined || body.specialty !== undefined) {
-      const before = def.sections[0]?.fields ?? [];
+      const before = def.sections.flatMap((s) => s.fields);
       const { fields, errors } = body.fields !== undefined ? cleanOwnFields(body.fields, def, before) : { fields: before.filter((f) => !f.retired), errors: [] };
       if (errors.length) return reply.status(400).send({ error: errors[0], errors });
       if (!fields.filter((f) => !f.retired).length) return reply.status(400).send({ error: "A form needs at least one field." });
       const title = typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 80) : def.title;
       const specialty = typeof body.specialty === "string" && body.specialty.trim() ? body.specialty.trim().slice(0, 60) : def.specialty;
       const all = reconcileFields(fields, before);
-      next = { ...def, title, specialty, version: def.version + 1, sections: [{ title, fields: all }], summary: all.filter((f) => !f.retired).slice(0, 6).map((f) => f.key) };
+      next = { ...def, title, specialty, version: def.version + 1, sections: groupBySection(all, title), summary: all.filter((f) => !f.retired).slice(0, 6).map((f) => f.key) };
     }
     await prisma.clinicForm.update({ where: { key }, data: { isActive, definition: next as never } });
     return { forms: await formLibrary() };
@@ -200,7 +217,7 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
     const def: FormDef = {
       key, version: 1, title: parsed.data.title, specialty: parsed.data.specialty, kind: parsed.data.kind,
       tags: parsed.data.specialty.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3),
-      sections: [{ title: parsed.data.title, fields }], summary: fields.slice(0, 6).map((f) => f.key), custom: true,
+      sections: groupBySection(fields, parsed.data.title), summary: fields.slice(0, 6).map((f) => f.key), custom: true,
     };
     await prisma.clinicForm.create({ data: { key, custom: true, isActive: true, definition: def as never } });
     return reply.status(201).send({ key, forms: await formLibrary() });

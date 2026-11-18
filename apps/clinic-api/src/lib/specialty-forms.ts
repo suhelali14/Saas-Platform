@@ -48,6 +48,12 @@ export interface FormField {
   wide?: boolean;
   /** must be answered before the record can be saved */
   required?: boolean;
+  /** group the field under a named section heading. A field with no
+   *  section goes in the form's first (unnamed) section. */
+  section?: string;
+  /** show this field only when another field's answer matches. Hidden
+   *  fields never fail required-ness and never count in compute(). */
+  showIf?: { field: string; equals: string | boolean | number };
   /** kept so old records still read; not offered for new entry */
   retired?: boolean;
 }
@@ -297,9 +303,12 @@ export function cleanData(sections: FormSection[], raw: unknown): { data: Record
   const errors: string[] = [];
   const data: Record<string, unknown> = {};
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { data, errors: ["The answers must be an object."] };
+  const answers = raw as Record<string, unknown>;
+  const visible = (f: FormField) => !f.showIf || answerMatches(answers[f.showIf.field], f.showIf.equals);
   for (const f of sections.flatMap((s) => s.fields)) {
     if (f.type === "computed") continue;
-    const v = cleanValue(f, (raw as Record<string, unknown>)[f.key], errors);
+    if (!visible(f)) continue; // hidden field: never required, never stored
+    const v = cleanValue(f, answers[f.key], errors);
     if (v !== undefined) data[f.key] = v;
     // Required check: cleanValue returns undefined for blank/empty, so
     // this catches "nothing was entered" without having to know what
@@ -308,6 +317,16 @@ export function cleanData(sections: FormSection[], raw: unknown): { data: Record
   }
   if (JSON.stringify(data).length > MAX_BYTES) errors.push("This record is too large to save.");
   return { data, errors };
+}
+
+/** Does the viewer's answer match the rule's expected value?
+ *  Yes-no fields store boolean; most others store string. Compared loosely
+ *  so `showIf: { field: 'pregnant', equals: true }` and the raw answer
+ *  `"true"` from a form that hasn't coerced yet still match. */
+function answerMatches(answer: unknown, equals: string | boolean | number): boolean {
+  if (answer === equals) return true;
+  if (answer === null || answer === undefined) return false;
+  return String(answer) === String(equals);
 }
 
 // ── Reading a record back as a line ────────────────────────────────────
@@ -426,6 +445,21 @@ export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[
     const hint = String(o.hint ?? "").trim().slice(0, 160);
     if (hint) f.hint = hint;
     if (o.required === true) f.required = true;
+    if (o.wide === true) f.wide = true;
+    const section = String(o.section ?? "").trim().slice(0, 60);
+    if (section) f.section = section;
+    // showIf: { field: string; equals: string|boolean|number }. Validated
+    // but not resolved here -- the "does the referenced field exist?"
+    // check happens in the route against the whole field list, because
+    // this function runs on the custom fields in isolation.
+    if (o.showIf && typeof o.showIf === "object" && !Array.isArray(o.showIf)) {
+      const si = o.showIf as Record<string, unknown>;
+      const fkey = typeof si.field === "string" ? si.field : "";
+      const equals = si.equals;
+      if (fkey && (typeof equals === "string" || typeof equals === "boolean" || typeof equals === "number")) {
+        f.showIf = { field: fkey, equals };
+      }
+    }
     if (o.retired === true) f.retired = true;
     fields.push(f);
   }
