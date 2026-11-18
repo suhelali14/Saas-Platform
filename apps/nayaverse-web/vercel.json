@@ -10,13 +10,23 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.nayaverse.in" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.nayaverse.in"
+        }
+      ],
       "destination": "https://www.nayaversse.in/:path*",
       "permanent": false
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "nayaverse.in" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "nayaverse.in"
+        }
+      ],
       "destination": "https://nayaversse.in/:path*",
       "permanent": false
     }
@@ -31,6 +41,46 @@
       "destination": "/pricing.html"
     },
     {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/features",
+      "destination": "/features.html"
+    },
+    {
+      "source": "/security",
+      "destination": "/security.html"
+    },
+    {
+      "source": "/why-nayaversse",
+      "destination": "/why-nayaversse.html"
+    },
+    {
+      "source": "/for-clinics",
+      "destination": "/for-clinics.html"
+    },
+    {
+      "source": "/for-polyclinics",
+      "destination": "/for-polyclinics.html"
+    },
+    {
+      "source": "/for-hospitals",
+      "destination": "/for-hospitals.html"
+    },
+    {
+      "source": "/for-multi-specialty",
+      "destination": "/for-multi-specialty.html"
+    },
+    {
+      "source": "/stories",
+      "destination": "/stories.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog.html"
+    },
+    {
       "source": "/hi",
       "destination": "/hi.html"
     },
@@ -39,12 +89,92 @@
       "destination": "/hi/pricing.html"
     },
     {
+      "source": "/hi/about",
+      "destination": "/hi/about.html"
+    },
+    {
+      "source": "/hi/features",
+      "destination": "/hi/features.html"
+    },
+    {
+      "source": "/hi/security",
+      "destination": "/hi/security.html"
+    },
+    {
+      "source": "/hi/why-nayaversse",
+      "destination": "/hi/why-nayaversse.html"
+    },
+    {
+      "source": "/hi/for-clinics",
+      "destination": "/hi/for-clinics.html"
+    },
+    {
+      "source": "/hi/for-polyclinics",
+      "destination": "/hi/for-polyclinics.html"
+    },
+    {
+      "source": "/hi/for-hospitals",
+      "destination": "/hi/for-hospitals.html"
+    },
+    {
+      "source": "/hi/for-multi-specialty",
+      "destination": "/hi/for-multi-specialty.html"
+    },
+    {
+      "source": "/hi/stories",
+      "destination": "/hi/stories.html"
+    },
+    {
+      "source": "/hi/blog",
+      "destination": "/hi/blog.html"
+    },
+    {
       "source": "/mr",
       "destination": "/mr.html"
     },
     {
       "source": "/mr/pricing",
       "destination": "/mr/pricing.html"
+    },
+    {
+      "source": "/mr/about",
+      "destination": "/mr/about.html"
+    },
+    {
+      "source": "/mr/features",
+      "destination": "/mr/features.html"
+    },
+    {
+      "source": "/mr/security",
+      "destination": "/mr/security.html"
+    },
+    {
+      "source": "/mr/why-nayaversse",
+      "destination": "/mr/why-nayaversse.html"
+    },
+    {
+      "source": "/mr/for-clinics",
+      "destination": "/mr/for-clinics.html"
+    },
+    {
+      "source": "/mr/for-polyclinics",
+      "destination": "/mr/for-polyclinics.html"
+    },
+    {
+      "source": "/mr/for-hospitals",
+      "destination": "/mr/for-hospitals.html"
+    },
+    {
+      "source": "/mr/for-multi-specialty",
+      "destination": "/mr/for-multi-specialty.html"
+    },
+    {
+      "source": "/mr/stories",
+      "destination": "/mr/stories.html"
+    },
+    {
+      "source": "/mr/blog",
+      "destination": "/mr/blog.html"
     }
   ],
   "headers": [

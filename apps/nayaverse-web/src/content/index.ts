@@ -40,9 +40,37 @@ export const htmlLang: Record<Locale, string> = {
   mr: 'mr-IN',
 };
 
-export type Page = 'home' | 'pricing' | '404';
+export type Page =
+  | 'home'
+  | 'pricing'
+  | 'about'
+  | 'features'
+  | 'security'
+  | 'why-nayaversse'
+  | 'for-clinics'
+  | 'for-polyclinics'
+  | 'for-hospitals'
+  | 'for-multi-specialty'
+  | 'stories'
+  | 'blog'
+  | '404';
 
 export type RouteInfo = { locale: Locale; page: Page };
+
+/** Pages that live at /<slug>, matched by their slug on URL resolution. */
+const SIMPLE_PAGES: { page: Exclude<Page, 'home' | '404'>; slug: string }[] = [
+  { page: 'pricing', slug: 'pricing' },
+  { page: 'about', slug: 'about' },
+  { page: 'features', slug: 'features' },
+  { page: 'security', slug: 'security' },
+  { page: 'why-nayaversse', slug: 'why-nayaversse' },
+  { page: 'for-clinics', slug: 'for-clinics' },
+  { page: 'for-polyclinics', slug: 'for-polyclinics' },
+  { page: 'for-hospitals', slug: 'for-hospitals' },
+  { page: 'for-multi-specialty', slug: 'for-multi-specialty' },
+  { page: 'stories', slug: 'stories' },
+  { page: 'blog', slug: 'blog' },
+];
 
 /** `/mr/pricing` -> { locale: 'mr', page: 'pricing' } */
 export function resolveRoute(pathname: string): RouteInfo {
@@ -54,7 +82,10 @@ export function resolveRoute(pathname: string): RouteInfo {
   }
 
   if (parts.length === 0) return { locale, page: 'home' };
-  if (parts.length === 1 && parts[0] === 'pricing') return { locale, page: 'pricing' };
+  if (parts.length === 1) {
+    const hit = SIMPLE_PAGES.find((r) => r.slug === parts[0]);
+    if (hit) return { locale, page: hit.page };
+  }
   return { locale, page: '404' };
 }
 
@@ -62,12 +93,13 @@ export function resolveRoute(pathname: string): RouteInfo {
  *  and `/en/` would be a second URL for a page that already has one. */
 export function pathFor(locale: Locale, page: Page): string {
   const prefix = locale === 'en' ? '' : `/${locale}`;
-  if (page === 'pricing') return `${prefix}/pricing`;
   if (page === '404') return `${prefix}/404`;
+  const hit = SIMPLE_PAGES.find((r) => r.page === page);
+  if (hit) return `${prefix}/${hit.slug}`;
   return prefix || '/';
 }
 
 /** Every path that gets prerendered. */
 export const allRoutes: RouteInfo[] = locales.flatMap((locale) =>
-  (['home', 'pricing', '404'] as Page[]).map((page) => ({ locale, page })),
+  (['home', ...SIMPLE_PAGES.map((p) => p.page), '404'] as Page[]).map((page) => ({ locale, page })),
 );

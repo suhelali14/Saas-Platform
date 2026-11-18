@@ -26,6 +26,7 @@ import { About } from '@/sections/About';
 import { Conditions } from '@/sections/Conditions';
 import { Enquiry } from '@/sections/Enquiry';
 import { Footer } from '@/sections/Footer';
+import { SimplePage, pageToSimpleKey } from '@/sections/SimplePage';
 import { Board, Heading } from '@/components/primitives';
 
 function useEnquire() {
@@ -108,6 +109,13 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
             <Reveal defer><Services /></Reveal>
             <Reveal defer><About /></Reveal>
             <Reveal defer><Conditions /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {pageToSimpleKey(page) && (
+          <>
+            <Reveal defer><SimplePage locale={locale} page={page} /></Reveal>
             <Reveal defer><Enquiry /></Reveal>
           </>
         )}

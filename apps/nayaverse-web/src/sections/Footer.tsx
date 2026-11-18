@@ -10,14 +10,20 @@ import { pathFor } from '@/content/index';
 import { site, studioUrl } from '@/content/contact';
 
 export function Footer() {
-  const { footer, nav, site: siteText } = useContent();
+  const { footer, nav, site: siteText, simplePages } = useContent();
   const { locale } = useContentCtx();
 
   const links = [
     { label: nav.businesses, href: `${pathFor(locale, 'home')}#services` },
     { label: nav.system, href: `${pathFor(locale, 'home')}#manifest` },
     { label: nav.fares, href: pathFor(locale, 'pricing') },
-    { label: nav.about, href: `${pathFor(locale, 'home')}#about` },
+    { label: simplePages.about.title, href: pathFor(locale, 'about') },
+    { label: simplePages.features.title, href: pathFor(locale, 'features') },
+    { label: simplePages.security.title, href: pathFor(locale, 'security') },
+    { label: simplePages.whyNayaversse.title, href: pathFor(locale, 'why-nayaversse') },
+    { label: simplePages.forClinics.title, href: pathFor(locale, 'for-clinics') },
+    { label: simplePages.stories.title, href: pathFor(locale, 'stories') },
+    { label: simplePages.blog.title, href: pathFor(locale, 'blog') },
     { label: nav.questions, href: `${pathFor(locale, 'home')}#conditions` },
     ...(studioUrl ? [{ label: footer.studio.label, href: studioUrl }] : []),
   ];

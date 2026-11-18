@@ -189,6 +189,24 @@ const vercelConfig = {
   // project's Root Directory is apps/nayaverse-web -- otherwise Vercel reads
   // the repo root and never sees this file.
   git: { deploymentEnabled: { master: false, main: false } },
+  // The old brand's domain (nayaverse.in) is kept pointed at this project so
+  // bookmarks, printed cards and the few backlinks already out there carry
+  // over to nayaversse.in rather than 404. 307 rather than 308 so a search
+  // engine does not cache the redirect before the migration is settled.
+  redirects: [
+    {
+      source: '/:path*',
+      has: [{ type: 'host', value: 'www.nayaverse.in' }],
+      destination: 'https://www.nayaversse.in/:path*',
+      permanent: false,
+    },
+    {
+      source: '/:path*',
+      has: [{ type: 'host', value: 'nayaverse.in' }],
+      destination: 'https://nayaversse.in/:path*',
+      permanent: false,
+    },
+  ],
   rewrites,
   headers: [
     {

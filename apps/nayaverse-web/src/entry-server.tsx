@@ -18,6 +18,7 @@ import {
   type Locale,
   type Page,
 } from './content/index';
+import { pageToSimpleKey } from './sections/SimplePage';
 import { serviceRows } from './content/structure';
 import { chartDefs } from './content/structure';
 import { site } from './content/contact';
@@ -79,10 +80,23 @@ function jsonLd(locale: Locale) {
 export function render(locale: Locale, page: Page) {
   const t = content[locale];
   const path = pathFor(locale, page);
-  const title = page === 'pricing' ? `${t.farePanel.pageHeading} - ${t.site.name}`
-    : page === '404' ? `${t.notFound.heading} - ${t.site.name}`
+  // The secondary pages each have their own title and lede that a crawler
+  // reads as the <title> and meta description -- the reason this page
+  // exists is to be found by someone searching for that exact thing.
+  const simpleKey = pageToSimpleKey(page);
+  const simple = simpleKey ? t.simplePages[simpleKey] : null;
+  const title = simple
+    ? `${simple.title} - ${t.site.name}`
+    : page === 'pricing'
+    ? `${t.farePanel.pageHeading} - ${t.site.name}`
+    : page === '404'
+    ? `${t.notFound.heading} - ${t.site.name}`
     : `${t.site.name} - ${t.site.tagline}`;
-  const description = page === 'pricing' ? t.farePanel.pageLede : t.site.description;
+  const description = simple
+    ? simple.lede
+    : page === 'pricing'
+    ? t.farePanel.pageLede
+    : t.site.description;
 
   const html = renderToString(<App locale={locale} page={page} />);
 

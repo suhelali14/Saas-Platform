@@ -651,6 +651,282 @@ export const en = {
     chart: 'The chart',
     fares: 'Fares',
   },
+
+  simplePages: {
+    about: {
+      title: 'About Nayaversse',
+      lede: 'Built in India, for how Indian businesses actually run. One live clinic in Sangli pays for the lights; the rest of the chart is being built in the open, with status on every row.',
+      sections: [
+        {
+          heading: 'Why it exists',
+          body: [
+            'Most business software asks a small shop to work the way a factory does: enter everything, update everything, keep up with the system or be left behind by it. Owners stop entering, the records stop being true, and the software quietly becomes decoration.',
+            'Nayaversse starts the other way round. The counter is the system. What you sell is written where you sell it; what is left updates itself; who is booked, what was billed and who owes you live beside each other, not in separate products stitched together with a report.',
+          ],
+        },
+        {
+          heading: 'Who it is for',
+          body: [
+            'Small and mid-sized businesses in India — the clinic that does not have an IT team, the shop that cannot afford a week of training, the kitchen that closes at eleven and starts again at seven. If a product needs an onboarding specialist, it is not built for them. This one is built so that the person running the business can run the software, between customers, on a phone.',
+          ],
+        },
+        {
+          heading: 'How we build',
+          body: [
+            'One business at a time, in the open. Whoever comes first on a row shapes it and keeps the price they start on. Every status on the chart is the truth: Live means it is running in production for someone who pays; Building means the records exist and the screens for that trade are the work in hand; Waitlist means it is on the list but not planned yet.',
+          ],
+        },
+      ],
+      cta: { label: 'See the chart', href: '/#chart' },
+    },
+
+    features: {
+      title: 'What the system does',
+      lede: 'Six things that live next to each other, not six products stitched together: the counter, what is left, who is booked, what was billed, who owes you, and your own website.',
+      sections: [
+        {
+          heading: 'Counter',
+          body: [
+            'The till that your front desk actually uses. A sale is one tap; a return is one tap; a part-payment is as honest as the full one. What was sold goes to stock, to the bill and to the customer record in the same breath, so nothing is entered twice and nothing has to be reconciled at night.',
+          ],
+        },
+        {
+          heading: 'Stock',
+          body: [
+            'What is on the shelf, what is on order, what is about to expire. Clinics dispense first-expiry-first-out; shops see which lines are selling and which are tying up money. Low stock is a warning on the counter, not a report nobody opens.',
+          ],
+        },
+        {
+          heading: 'Bookings',
+          body: [
+            'A queue a receptionist can read without squinting. Priority is a rule, not a favour — an emergency, a pregnancy, a senior citizen, a child moves ahead of general by itself, in that order. Follow-ups book themselves from the last visit; overdue patients come back as a list, not a memory.',
+          ],
+        },
+        {
+          heading: 'Billing',
+          body: [
+            'Invoices, part-payments across cash, UPI and card, daily cash closing that reconciles by itself. GST is on the bill where it has to be; the ledger is append-only, so an auditor can open it years later and read it as a record, not a reconstruction.',
+          ],
+        },
+        {
+          heading: 'Customers',
+          body: [
+            'One record per person, with the history that matters: what they bought, what they were prescribed, what they are allergic to, when they are due again. A split record means a doctor sees half the history mid-consult; merge detects duplicates by phone, by name, by date of birth, and asks before it combines.',
+          ],
+        },
+        {
+          heading: 'Your website',
+          body: [
+            'A public page on your own subdomain or custom domain, in up to twelve Indian languages, that patients and customers can actually find on Google. Sections you reorder and rename, four hero layouts, four typefaces, curated palettes. No builder to learn — a form, saved.',
+          ],
+        },
+      ],
+      cta: { label: 'See the clinic running', href: '/for-clinics' },
+    },
+
+    security: {
+      title: 'Security and data',
+      lede: 'Patient and customer records belong to the business that collected them. Everything on this page describes what the software does today, not what it will do when we have time.',
+      sections: [
+        {
+          heading: 'One database per business',
+          body: [
+            'Each clinic, each shop, each salon gets its own database, never a shared one. A breach in one deployment cannot reach another by design, because there is no shared table to reach into. The provisioning console that creates these databases never persists the credentials — it holds one API key, fetches a connection string at the moment it needs one, and drops it.',
+          ],
+        },
+        {
+          heading: 'Append-only audit log',
+          body: [
+            'Every access to a patient record — who looked, when, what they touched — is logged. The log cannot be edited or deleted; the routes for it do not exist. Failed sign-ins and denied permission attempts are in it too, because that is what an auditor looks for, and an audit trail with a hole in it is worse than none.',
+          ],
+        },
+        {
+          heading: 'DPDP and NABH',
+          body: [
+            "India's Digital Personal Data Protection Act 2023 and NABH both require that patient data be logged with the user, timestamp and record touched, and that the log survive. The design here anticipates both. Paper registers and spreadsheet logs do not, and the honest answer we give clinics is that they cannot either.",
+          ],
+        },
+        {
+          heading: 'What is not here',
+          body: [
+            'No automated offsite backups yet — scheduled snapshots are on the roadmap, not in the build. No SOC 2, no ISO 27001, no HIPAA certification; this is a product being built in the open, and buying certifications before they are earned would be dishonest.',
+          ],
+        },
+      ],
+      cta: { label: 'Talk to the founder', href: '/#enquire' },
+    },
+
+    whyNayaversse: {
+      title: 'Why Nayaversse',
+      lede: 'Four reasons that are the same reason: a product built for the person who has to run it, not the person who has to sell it.',
+      sections: [
+        {
+          heading: 'One product, not six subscriptions',
+          body: [
+            'A clinic that bought a bookings tool, a billing tool, a WhatsApp tool and a website builder spent four times, trained four times and still has four reports that do not agree. Here it is one product. What you sell, what is left, who is booked, what was billed and who owes you live beside each other because they are the same business.',
+          ],
+        },
+        {
+          heading: 'Status on every row',
+          body: [
+            'The chart shows Live, Building and Waitlist and never pretends otherwise. A row that says Building is not for sale yet. A row that says Live is running in production for someone who pays. That is a strong claim, which is why it is checked at build time and the build fails when it is not true.',
+          ],
+        },
+        {
+          heading: 'Priced per business, not per user',
+          body: [
+            "A clinic with two staff pays the same as a clinic with eight staff. Charging per seat punishes a business for giving its people access they should have; charging per business lets the owner add a receptionist without a line item review. Whoever comes first on a row keeps the price they start on.",
+          ],
+        },
+        {
+          heading: 'Built in India',
+          body: [
+            'The counter, the queue, GST on the bill, UPI as a first-class payment mode, twelve Indian languages, numbers grouped Indian-style on every document. Not localised — designed, from the first day, for the way business in India actually runs.',
+          ],
+        },
+      ],
+      cta: { label: 'See the fares', href: '/pricing' },
+    },
+
+    forClinics: {
+      title: 'For clinics',
+      lede: 'The one live row on the chart. A single-doctor clinic, a two-chair clinic, or a small hospital with four doctors — the system is the same; the plan is the difference.',
+      sections: [
+        {
+          heading: 'What a clinic gets',
+          body: [
+            "Today's queue with OPD triage priority, patients with a UHID file number they can read out over the phone, encounter-centric case sheets, prescriptions with autocomplete over 246,000 Indian medicines, medical certificates, billing with partial payments, pharmacy inventory with first-expiry dispensing, lab orders, expenses and a monthly profit-and-loss, an append-only audit trail, and the clinic's own public website.",
+          ],
+        },
+        {
+          heading: 'Printed documents the clinic composes',
+          body: [
+            'A prescription that carries the clinic letterhead, the drugs in a real table with page breaks that repeat the header, the allergy banner above the medicines where a pharmacist reads it first, and the doctor signature image where the line used to be. The clinic reorders sections, renames them, hides any of them, and adds its own text blocks. Pre-printed stationery is supported.',
+          ],
+        },
+        {
+          heading: 'A live clinic',
+          body: [
+            "Vadgaonkar Clinic in Pune — Dr Asif Momin plus two staff — has been running on this system since October 2026. They book, bill, prescribe, dispense and close their day on it. That is the row the chart calls Live.",
+          ],
+        },
+      ],
+      cta: { label: 'Fares for clinics', href: '/pricing' },
+    },
+
+    forPolyclinics: {
+      title: 'For polyclinics',
+      lede: 'Two or three doctors, a reception, maybe a pharmacy and a lab counter. One queue, split by doctor; one bill, across what was done.',
+      sections: [
+        {
+          heading: 'Many doctors, one queue',
+          body: [
+            'A polyclinic is one queue the receptionist runs, broken up by which doctor a patient is waiting for. The display behind the counter shows everyone their position; the doctor screens show only their own list. One record per patient, which every doctor they see writes into.',
+          ],
+        },
+        {
+          heading: 'One bill across the visit',
+          body: [
+            'A patient who saw two doctors and a lab leaves with one bill that lists the three things, not three bills they have to reconcile themselves. Payments split across cash and UPI are each recorded, and the daily close shows the total by mode.',
+          ],
+        },
+        {
+          heading: 'Where it stands',
+          body: [
+            "This is the same product the one live clinic runs, with the multi-doctor paths exercised and the per-doctor priority working. A second clinic is onboarding on the Standard plan; the screen set is Live, not Building.",
+          ],
+        },
+      ],
+      cta: { label: 'Standard fares', href: '/pricing' },
+    },
+
+    forHospitals: {
+      title: 'For small hospitals',
+      lede: 'Four to ten doctors, in-patient beds, a pharmacy that dispenses as well as sells, and a lab that runs its own orders. The system scales down from a hospital, not up from a clinic.',
+      sections: [
+        {
+          heading: 'Beds, not just chairs',
+          body: [
+            'An in-patient record is a case sheet with a bed, a length of stay and the medicines dispensed during it. The pharmacy sees orders flow in from the ward; the ward sees what was given and when. The discharge summary is composed from the case sheet, not written again.',
+          ],
+        },
+        {
+          heading: 'Roles that stay narrow',
+          body: [
+            'A nurse writes vitals and dispenses medicines; a receptionist books and bills; a doctor diagnoses and prescribes. Each screen shows only what the role writes; permissions are enforced on the server, not hidden in the UI, so a wrong click cannot reach a wrong record.',
+          ],
+        },
+        {
+          heading: 'Where it stands',
+          body: [
+            "Building. The one-doctor and polyclinic paths are Live; the bed-level paths are the work in hand. First hospital on the chart shapes the screens for how a hospital actually keeps its records, and keeps the Premium plan price they start on.",
+          ],
+        },
+      ],
+      cta: { label: 'Talk about a hospital', href: '/#enquire' },
+    },
+
+    forMultiSpecialty: {
+      title: 'For multi-specialty clinics',
+      lede: 'A dermatologist, a dentist, a paediatrician and a physiotherapist in one building, each writing records that look different. One system, forms per specialty.',
+      sections: [
+        {
+          heading: 'Forms per specialty',
+          body: [
+            'A dermatology case sheet is not the same thing as a dental one. The form builder lets each specialty define its own fields — sections, required fields, show-if logic, templates for common conditions. Nine field types and five computed formulas. No developer involved.',
+          ],
+        },
+        {
+          heading: 'One patient across specialties',
+          body: [
+            'A patient who sees the dentist in the morning and the paediatrician in the afternoon has one record across both. The allergy banner, the chronic conditions, the medicines they are on — each doctor sees them before they read the complaint.',
+          ],
+        },
+        {
+          heading: 'Where it stands',
+          body: [
+            "Live. The form builder shipped November 2026 and is in production. The seed templates cover allergy consultations, pre-employment, pre-anaesthetic review, respiratory review, procedure consent, discharge, medico-legal, IVF cycle, paediatric developmental and mental health intake.",
+          ],
+        },
+      ],
+      cta: { label: 'See the form builder', href: '/for-clinics' },
+    },
+
+    stories: {
+      title: 'Stories',
+      lede: 'One clinic in production today. When there is a second, this page has a second row.',
+      sections: [
+        {
+          heading: 'Vadgaonkar Clinic, Pune',
+          body: [
+            "Dr Asif Momin runs Vadgaonkar Clinic in Pune with two staff. The clinic went live on Nayaversse in October 2026 — the queue, patients, prescriptions, billing and the public website all running on it from the first day. The system was shaped around what the clinic actually does each day; everything that is on the chart for a Live clinic is on the chart because Vadgaonkar Clinic needed it.",
+            "If you want to talk to a clinic that uses this software, say so when you enquire. We will ask Dr Momin first; the answer is his to give, not ours.",
+          ],
+        },
+      ],
+      cta: { label: 'Talk to the founder', href: '/#enquire' },
+    },
+
+    blog: {
+      title: 'Notes',
+      lede: 'The thinking behind the choices. Written when there is something true to write, not on a schedule.',
+      sections: [
+        {
+          heading: 'Why one database per business',
+          body: [
+            "The industry default for business software is a shared multi-tenant database where every business's rows sit next to every other business's rows, kept apart by a tenant id on every query. It is cheaper to run and easier to build. It is also one bug away from showing the wrong business the wrong customer, and one breach away from leaking all of them at once. For a regulated record — a patient's history, a prescription, an allergy — that is the wrong trade. Nayaversse runs a separate database per business, provisioned at onboarding. The provisioning console never stores the password.",
+          ],
+        },
+        {
+          heading: 'Status on every row',
+          body: [
+            "The temptation when selling software is to show every line of business the product might serve and let the buyer sort out which is real. The chart on the home page refuses to. Every row has a status. A row that says Building is not for sale yet. A row that says Live has a clinic running on it that pays for the lights. The build fails if the chart says one thing and the content says another.",
+          ],
+        },
+      ],
+      cta: { label: 'Read the chart', href: '/#chart' },
+    },
+  },
 };
 
 /**
