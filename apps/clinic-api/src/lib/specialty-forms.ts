@@ -46,6 +46,8 @@ export interface FormField {
   addRows?: boolean;
   /** takes a full line in the form */
   wide?: boolean;
+  /** must be answered before the record can be saved */
+  required?: boolean;
   /** kept so old records still read; not offered for new entry */
   retired?: boolean;
 }
@@ -299,6 +301,10 @@ export function cleanData(sections: FormSection[], raw: unknown): { data: Record
     if (f.type === "computed") continue;
     const v = cleanValue(f, (raw as Record<string, unknown>)[f.key], errors);
     if (v !== undefined) data[f.key] = v;
+    // Required check: cleanValue returns undefined for blank/empty, so
+    // this catches "nothing was entered" without having to know what
+    // each type's empty looks like.
+    else if (f.required && !f.retired) errors.push(`${f.label}: this is required.`);
   }
   if (JSON.stringify(data).length > MAX_BYTES) errors.push("This record is too large to save.");
   return { data, errors };
@@ -419,6 +425,7 @@ export function cleanOwnFields(raw: unknown, form?: { key: string; tags: string[
     if (options && (type === "select" || type === "multi")) f.options = options;
     const hint = String(o.hint ?? "").trim().slice(0, 160);
     if (hint) f.hint = hint;
+    if (o.required === true) f.required = true;
     if (o.retired === true) f.retired = true;
     fields.push(f);
   }

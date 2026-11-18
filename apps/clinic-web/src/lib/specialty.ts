@@ -30,6 +30,7 @@ export interface FormField {
   rows?: string[];
   addRows?: boolean;
   wide?: boolean;
+  required?: boolean;
   retired?: boolean;
 }
 export interface FormSection { title: string; fields: FormField[] }
