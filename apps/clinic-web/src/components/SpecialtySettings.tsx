@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, X, GripVertical, Eye } from 'lucide-react';
+import { Plus, X, GripVertical, Eye, Copy, FileText } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { Button } from './Button';
 import { Pick } from './Field';
@@ -7,6 +7,9 @@ import { FIELD, FieldLabel } from './hosp';
 import { SkeletonList } from './Skeleton';
 import { useToast } from './Toast';
 import { allFields, type FieldType, type FormDef, type FormField } from '../lib/specialty';
+
+interface TemplateSummary { id: string; title: string; specialty: string; kind: 'visit' | 'history'; summary: string }
+interface Template extends TemplateSummary { fields: Partial<FormField>[] }
 
 /*
  * Settings → Specialty forms.
@@ -95,7 +98,8 @@ function labelToKey(label: string): string {
 export function SpecialtySettings() {
   const toast = useToast();
   const [forms, setForms] = useState<FormDef[] | null>(null);
-  const [editing, setEditing] = useState<FormDef | 'new' | null>(null);
+  const [editing, setEditing] = useState<FormDef | 'new' | Template | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const load = useCallback(async () => {
     try { setForms((await apiFetch<{ forms: FormDef[] }>('/specialty/forms')).forms); }
@@ -107,8 +111,19 @@ export function SpecialtySettings() {
     try {
       const r = await apiFetch<{ forms: FormDef[] }>(`/specialty/forms/${f.key}`, { method: 'PUT', data: { isActive: !f.isActive } });
       setForms(r.forms);
-      toast.success(`${f.title} ${f.isActive ? 'switched off' : 'switched on'}.`);
+      toast.success(`${f.title} ${f.isActive ? 'unpublished' : 'published'}.`);
     } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Could not change it.'); }
+  };
+
+  const duplicate = async (f: FormDef) => {
+    try {
+      const r = await apiFetch<{ forms: FormDef[]; key: string }>(`/specialty/forms/${f.key}/duplicate`, { method: 'POST' });
+      setForms(r.forms);
+      toast.success('Copied as a draft. Open to edit.');
+      // Open the copy so the user can edit immediately.
+      const copy = r.forms.find((x) => x.key === r.key);
+      if (copy) setEditing(copy);
+    } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Could not duplicate.'); }
   };
 
   if (!forms) return <SkeletonList rows={6} label="Loading the forms" />;
@@ -119,14 +134,27 @@ export function SpecialtySettings() {
     <div>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-xl text-[14px] text-muted-foreground">
-          The forms doctors and nurses fill for each speciality. Switch off what this clinic does not use, add your own questions to a form, or make a new one.
+          The forms doctors and nurses fill for each speciality. Switch off what this clinic does not use, add your own questions to a form, or make a new one from a template or scratch.
         </p>
-        <Button variant="primary" icon={<Plus size={14} />} onClick={() => setEditing('new')}>Make a form</Button>
+        <Button variant="primary" icon={<Plus size={14} />} onClick={() => setPicking(true)}>Make a form</Button>
       </div>
 
+      {picking && !editing && (
+        <TemplatePicker
+          onPickBlank={() => { setPicking(false); setEditing('new'); }}
+          onPickTemplate={(t) => { setPicking(false); setEditing(t); }}
+          onCancel={() => setPicking(false)}
+        />
+      )}
+
       {editing && (
-        <FormEditor form={editing === 'new' ? null : editing} specialties={[...groups.keys()]}
-          onSaved={(next) => { setForms(next); setEditing(null); }} onCancel={() => setEditing(null)} />
+        <FormEditor
+          form={editing === 'new' || isTemplate(editing) ? null : editing}
+          template={isTemplate(editing) ? editing : null}
+          specialties={[...groups.keys()]}
+          onSaved={(next) => { setForms(next); setEditing(null); }}
+          onCancel={() => setEditing(null)}
+        />
       )}
 
       <div className="space-y-5">
@@ -145,9 +173,12 @@ export function SpecialtySettings() {
                         {[KIND_WORDS[f.kind], `${count} questions`, own ? `${own} of yours` : null, f.custom ? 'your form' : null].filter(Boolean).join(' · ')}
                       </p>
                     </div>
+                    {!f.isActive && <span className="rounded bg-foreground/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Draft</span>}
                     <Button size="sm" variant="ghost" onClick={() => setEditing(f)}>{f.custom ? 'Edit' : 'Your questions'}</Button>
-                    <button type="button" role="switch" aria-checked={f.isActive} aria-label={`${f.title} ${f.isActive ? 'on' : 'off'}`} onClick={() => toggle(f)}
-                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${f.isActive ? 'bg-primary' : 'bg-foreground/20'}`}>
+                    <button type="button" aria-label={`Duplicate ${f.title}`} onClick={() => duplicate(f)} className="rounded p-1.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground" title="Duplicate this form"><Copy size={14} /></button>
+                    <button type="button" role="switch" aria-checked={f.isActive} aria-label={`${f.title} ${f.isActive ? 'published' : 'draft'}`} onClick={() => toggle(f)}
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${f.isActive ? 'bg-primary' : 'bg-foreground/20'}`}
+                      title={f.isActive ? 'Published -- click to unpublish' : 'Draft -- click to publish'}>
                       <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${f.isActive ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                     </button>
                   </li>
@@ -167,16 +198,116 @@ const EMPTY_DRAFT: Draft = {
   section: '', showIfField: '', showIfValue: '',
 };
 
-function FormEditor({ form, specialties, onSaved, onCancel }: {
-  form: FormDef | null; specialties: string[]; onSaved: (forms: FormDef[]) => void; onCancel: () => void;
+function isTemplate(v: unknown): v is Template {
+  return typeof v === 'object' && v !== null && 'id' in v && 'fields' in v;
+}
+
+/** Convert a template field (partial) into a Draft the editor can carry. */
+function templateFieldToDraft(f: Partial<FormField>): Draft {
+  return {
+    label: f.label ?? '',
+    type: (f.type ?? 'text') as FieldType,
+    unit: f.unit ?? '',
+    options: (f.options ?? []).join(', '),
+    hint: f.hint ?? '',
+    required: !!f.required,
+    wide: !!f.wide,
+    section: f.section ?? '',
+    showIfField: f.showIf?.field ?? '',
+    showIfValue: f.showIf ? String(f.showIf.equals) : '',
+  };
+}
+
+/**
+ * Gallery shown when the operator clicks "Make a form". Lists the
+ * server-side starter templates, grouped by specialty, with a "Blank"
+ * option at the top. Picking one loads its fields into the editor; the
+ * operator still saves, edits and publishes as any other form.
+ */
+function TemplatePicker({ onPickBlank, onPickTemplate, onCancel }: {
+  onPickBlank: () => void;
+  onPickTemplate: (t: Template) => void;
+  onCancel: () => void;
+}) {
+  const toast = useToast();
+  const [templates, setTemplates] = useState<TemplateSummary[] | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ templates: TemplateSummary[] }>('/specialty/templates')
+      .then((r) => setTemplates(r.templates))
+      .catch((e) => { toast.error(e instanceof ApiError ? e.message : 'Could not load templates.'); setTemplates([]); });
+  }, [toast]);
+
+  const pick = async (id: string) => {
+    setLoading(id);
+    try {
+      const r = await apiFetch<{ template: Template }>(`/specialty/templates/${id}`);
+      onPickTemplate(r.template);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not load the template.');
+    } finally { setLoading(null); }
+  };
+
+  if (!templates) return <SkeletonList rows={3} label="Loading templates" />;
+  const groups = new Map<string, TemplateSummary[]>();
+  for (const t of templates) groups.set(t.specialty, [...(groups.get(t.specialty) ?? []), t]);
+
+  return (
+    <section className="mb-6 overflow-hidden rounded-xl border border-border/20 bg-card">
+      <div className="flex items-start justify-between gap-3 border-b border-border/10 px-4 py-3 sm:px-5">
+        <div>
+          <h3 className="text-[16px] font-semibold">Start from…</h3>
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">Pick a template to start with the common questions, or start with a blank form.</p>
+        </div>
+        <button type="button" onClick={onCancel} aria-label="Close" className="rounded p-1 text-muted-foreground hover:bg-foreground/[0.06]"><X size={16} /></button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+        <button type="button" onClick={onPickBlank} className="flex h-full flex-col items-start gap-1 rounded-lg border border-dashed border-border/30 bg-background px-3 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.03]">
+          <span className="flex items-center gap-1.5 text-[14px] font-semibold"><Plus size={14} /> Blank form</span>
+          <span className="text-[12.5px] text-muted-foreground">Start with no questions; add your own.</span>
+        </button>
+        {[...groups.entries()].flatMap(([_, list]) => list).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => pick(t.id)}
+            disabled={!!loading}
+            className={`flex h-full flex-col items-start gap-1 rounded-lg border border-border/20 bg-background px-3 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.03] ${loading === t.id ? 'opacity-60' : ''}`}
+          >
+            <span className="flex items-center gap-1.5 text-[14px] font-semibold"><FileText size={13} className="text-muted-foreground" /> {t.title}</span>
+            <span className="text-[11.5px] text-muted-foreground">{t.specialty} · {t.kind === 'history' ? 'Kept up to date' : 'At each visit'}</span>
+            <span className="text-[12px] text-foreground/75">{t.summary}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FormEditor({ form, template, specialties, onSaved, onCancel }: {
+  form: FormDef | null;
+  template?: Template | null;
+  specialties: string[];
+  onSaved: (forms: FormDef[]) => void;
+  onCancel: () => void;
 }) {
   const toast = useToast();
   const custom = !form || form.custom;
   const start = form ? allFields(form).filter((f) => !f.retired && (custom || f.key.startsWith('c_'))) : [];
-  const [title, setTitle] = useState(form?.title ?? '');
-  const [specialty, setSpecialty] = useState(form?.specialty ?? '');
-  const [kind, setKind] = useState<'history' | 'visit'>(form?.kind === 'history' ? 'history' : 'visit');
-  const [drafts, setDrafts] = useState<Draft[]>(start.length ? start.map(toDraft) : custom ? [{ ...EMPTY_DRAFT }] : []);
+  // Three ways to populate the editor on first open:
+  //   1. editing an existing form -> its own fields
+  //   2. starting from a template -> the template's fields
+  //   3. starting blank          -> one empty draft row (for custom only)
+  const initialDrafts: Draft[] =
+    start.length ? start.map(toDraft)
+    : template ? template.fields.map(templateFieldToDraft)
+    : custom ? [{ ...EMPTY_DRAFT }]
+    : [];
+  const [title, setTitle] = useState(form?.title ?? template?.title ?? '');
+  const [specialty, setSpecialty] = useState(form?.specialty ?? template?.specialty ?? '');
+  const [kind, setKind] = useState<'history' | 'visit'>(form?.kind === 'history' ? 'history' : template?.kind === 'history' ? 'history' : 'visit');
+  const [drafts, setDrafts] = useState<Draft[]>(initialDrafts);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(true);
 

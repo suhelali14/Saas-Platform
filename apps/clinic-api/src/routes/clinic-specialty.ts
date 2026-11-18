@@ -8,6 +8,7 @@ import {
   cleanData, cleanOwnFields, compute, describe, gestationalAge, isValidDay, reconcileFields,
   type FormDef, type FormField, type FormSection,
 } from "../lib/specialty-forms.js";
+import { listTemplates, findTemplate } from "../lib/form-templates.js";
 
 /**
  * Group fields by their `.section` label into FormSection[]. A field with
@@ -220,6 +221,63 @@ export async function clinicSpecialtyRoutes(app: FastifyInstance) {
       sections: groupBySection(fields, parsed.data.title), summary: fields.slice(0, 6).map((f) => f.key), custom: true,
     };
     await prisma.clinicForm.create({ data: { key, custom: true, isActive: true, definition: def as never } });
+    return reply.status(201).send({ key, forms: await formLibrary() });
+  });
+
+  /**
+   * Starter templates the clinic can begin a new form from. Read-only
+   * list; the clinic creates the actual form via POST /specialty/forms
+   * with the template's fields.
+   */
+  app.get("/api/clinic/specialty/templates", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+    return { templates: listTemplates() };
+  });
+
+  /** Fetch one template's full field list for the editor to load into drafts. */
+  app.get<{ Params: { id: string } }>("/api/clinic/specialty/templates/:id", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+    const t = findTemplate(request.params.id);
+    if (!t) return reply.status(404).send({ error: "No such template." });
+    return { template: t };
+  });
+
+  /**
+   * Make a copy of an existing form (built-in or custom) as a new custom
+   * one. The clinic then edits freely without touching the original -- a
+   * good starting point when a form is almost right.
+   */
+  app.post<{ Params: { key: string } }>("/api/clinic/specialty/forms/:key/duplicate", async (request, reply) => {
+    const auth = requireAdminAuth(request, reply);
+    if (!auth) return;
+    const { key: srcKey } = request.params;
+    const forms = await formLibrary();
+    const src = forms.find((f) => f.key === srcKey);
+    if (!src) return reply.status(404).send({ error: "No such form." });
+    if (src.kind === "episode") {
+      // Episode forms carry references to visit forms and close-section
+      // rules a copy cannot sensibly inherit without the operator
+      // untangling them. Refuse rather than ship a broken copy.
+      return reply.status(400).send({ error: "Episode forms can't be duplicated. Make a new one instead." });
+    }
+    const title = `Copy of ${src.title}`.slice(0, 80);
+    const base = `custom_${title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30) || "form"}`;
+    let key = base;
+    for (let n = 2; await prisma.clinicForm.findUnique({ where: { key } }); n++) key = `${base}_${n}`;
+    // Reset per-field keys so the copy can edit independently without
+    // reconcileFields trying to match against the original form's history.
+    const fields = src.sections.flatMap((s) => s.fields.filter((f) => !f.retired)).map((f) => ({ ...f, key: "" }));
+    const cleaned = cleanOwnFields(fields, { key: "copy", tags: [src.specialty.toLowerCase()] });
+    if (cleaned.errors.length) return reply.status(400).send({ error: cleaned.errors[0], errors: cleaned.errors });
+    const def: FormDef = {
+      key, version: 1, title, specialty: src.specialty, kind: src.kind as "history" | "visit",
+      tags: src.specialty.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3),
+      sections: groupBySection(cleaned.fields, title),
+      summary: cleaned.fields.slice(0, 6).map((f) => f.key), custom: true,
+    };
+    await prisma.clinicForm.create({ data: { key, custom: true, isActive: false, definition: def as never } });
     return reply.status(201).send({ key, forms: await formLibrary() });
   });
 
