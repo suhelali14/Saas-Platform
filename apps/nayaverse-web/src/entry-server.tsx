@@ -25,10 +25,37 @@ import { site } from './content/contact';
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** Facts only. Every figure here is one the owner has stated. */
+/**
+ * Facts only. Every figure here is one the owner has stated.
+ *
+ * Returns an array of two entities: SoftwareApplication (what the product
+ * is) and Organization (who makes it). The Organization block is what
+ * Google uses for the Knowledge Panel on the right of a brand search --
+ * the box with the logo, description and social links. Google treats a
+ * JSON-LD array as independent entities, so one script block is enough.
+ */
 function jsonLd(locale: Locale) {
   const t = content[locale];
-  return JSON.stringify({
+  const org = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: t.site.name,
+    url: site.url,
+    logo: `${site.url}/logo.png`,
+    description: t.site.description,
+    sameAs: [
+      // Add social profiles here as they exist. Omitting the array is
+      // also fine; Google uses what is there and ignores what is not.
+    ],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'sales',
+      telephone: '+91 75584 36263',
+      areaServed: 'IN',
+      availableLanguage: ['en', 'hi', 'mr'],
+    },
+  };
+  const app = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: t.site.name,
@@ -45,7 +72,8 @@ function jsonLd(locale: Locale) {
       offerCount: String(t.fares.length),
       availability: 'https://schema.org/LimitedAvailability',
     },
-  });
+  };
+  return JSON.stringify([org, app]);
 }
 
 export function render(locale: Locale, page: Page) {
@@ -75,11 +103,20 @@ export function render(locale: Locale, page: Page) {
   // site is still up and returning 200".
   const build = import.meta.env.VITE_BUILD_SHA || 'dev';
 
+  // Preview card image. Expected at /og.png (1200x630) in public/. Until
+  // that file lands, social cards fall back to no image rather than
+  // breaking -- a missing image is a worse first impression than none.
+  const ogImage = `${site.url}/og.png`;
+
   const head = [
     `<title>${esc(title)}</title>`,
     `<meta name="x-build" content="${esc(build)}" />`,
     `<meta name="description" content="${esc(description)}" />`,
     `<link rel="canonical" href="${site.url}${path}" />`,
+    // Search engines learn the brand is one thing even if a competitor's
+    // domain ranks for the misspelling. Ask explicitly.
+    `<meta name="application-name" content="${esc(t.site.name)}" />`,
+    `<meta name="apple-mobile-web-app-title" content="${esc(t.site.name)}" />`,
     ...alternates,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${esc(t.site.name)}" />`,
@@ -87,7 +124,14 @@ export function render(locale: Locale, page: Page) {
     `<meta property="og:description" content="${esc(description)}" />`,
     `<meta property="og:url" content="${site.url}${path}" />`,
     `<meta property="og:locale" content="${htmlLang[locale].replace('-', '_')}" />`,
+    `<meta property="og:image" content="${ogImage}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${esc(t.site.name)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${esc(title)}" />`,
+    `<meta name="twitter:description" content="${esc(description)}" />`,
+    `<meta name="twitter:image" content="${ogImage}" />`,
     page === '404' ? '<meta name="robots" content="noindex" />' : '',
     `<script type="application/ld+json">${jsonLd(locale)}</script>`,
   ]
