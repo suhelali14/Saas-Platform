@@ -496,13 +496,71 @@ export function PrescriptionForm({ patientId, appointmentId, onDone }: { patient
   );
 }
 
+interface CertTemplate {
+  id: string;
+  type: string;
+  name: string;
+  description?: string | null;
+  body: string;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
 export function CertificateForm({ patientId, patientName, appointmentId, onDone }: { patientId: string; patientName: string; onDone: () => void } & EncounterBinding) {
   const [type, setType] = useState('SICK_LEAVE');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [templates, setTemplates] = useState<CertTemplate[]>([]);
+  const [templateId, setTemplateId] = useState<string>('');
   const [customContent, setCustomContent] = useState('');
+  const [preview, setPreview] = useState<string>('');
+  const [referredTo, setReferredTo] = useState('');
+  const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load templates once -- the list is small and includes all three types.
+  useEffect(() => {
+    apiFetch<{ data: CertTemplate[] }>('/certificate-templates')
+      .then((res) => setTemplates(res.data || []))
+      .catch(() => setTemplates([]));
+  }, []);
+
+  // Templates for the currently selected type, default-first, so the
+  // picker opens on the one the clinic uses most.
+  const templatesForType = templates.filter((t) => t.type === type && t.isActive).sort((a, b) => (a.isDefault === b.isDefault ? a.name.localeCompare(b.name) : a.isDefault ? -1 : 1));
+
+  // When type changes, auto-select that type's default template.
+  useEffect(() => {
+    const def = templatesForType.find((t) => t.isDefault) ?? templatesForType[0];
+    setTemplateId(def?.id ?? '');
+    setCustomContent('');
+    setPreview('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, templates.length]);
+
+  // Render the preview whenever the template or dates change. Debounce
+  // isn't needed here -- preview POST is cheap and is skipped if there's
+  // no template to render against.
+  useEffect(() => {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) { setPreview(''); return; }
+    apiFetch<{ resolved: string }>('/certificate-templates/preview', {
+      method: 'POST',
+      data: {
+        body: t.body,
+        context: {
+          patientName,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          referredTo: referredTo || undefined,
+          reason: reason || undefined,
+        },
+      },
+    })
+      .then((r) => setPreview(r.resolved))
+      .catch(() => setPreview(''));
+  }, [templateId, templates, patientName, fromDate, toDate, referredTo, reason]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -515,9 +573,12 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
           patientId,
           appointmentId,
           type,
+          templateId: templateId || undefined,
           fromDate: fromDate ? new Date(fromDate).toISOString() : undefined,
           toDate: toDate ? new Date(toDate).toISOString() : undefined,
           content: customContent || undefined,
+          referredTo: referredTo || undefined,
+          reason: reason || undefined,
         },
       });
       onDone();
@@ -527,6 +588,9 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
       setSaving(false);
     }
   };
+
+  const needsDates = type === 'SICK_LEAVE';
+  const needsReferralFields = type === 'REFERRAL';
 
   return (
     <form onSubmit={submit} className="mb-6 p-4 rounded-xl border border-border/10 bg-foreground/[0.03] flex flex-col gap-3">
@@ -538,7 +602,33 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
         onChange={setType}
         options={CERT_TYPES.map((t) => ({ value: t.id, label: t.label }))}
       />
-      {type === 'SICK_LEAVE' && (
+
+      {/* Template picker -- shows every active template for the selected
+          type, with the default marked. Falls back to auto-generated
+          content when "No template (type the content yourself)" is
+          chosen. */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Template</label>
+        <select
+          value={templateId}
+          onChange={(e) => setTemplateId(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
+        >
+          <option value="">— No template (type the content yourself) —</option>
+          {templatesForType.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}{t.isDefault ? ' (default)' : ''}
+            </option>
+          ))}
+        </select>
+        {templatesForType.length === 0 && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            No templates saved for this type. Add one in Settings → Certificate templates, or type the content below.
+          </p>
+        )}
+      </div>
+
+      {needsDates && (
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
@@ -550,9 +640,51 @@ export function CertificateForm({ patientId, patientName, appointmentId, onDone 
           </div>
         </div>
       )}
+
+      {needsReferralFields && (
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Referred to</label>
+            <input
+              type="text"
+              value={referredTo}
+              onChange={(e) => setReferredTo(e.target.value)}
+              placeholder="Dr. X (Cardiology, City Hospital)"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Reason</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Evaluation of persistent chest pain"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Live preview of the resolved content. The doctor sees exactly
+          what will print before signing, which is where template typos
+          get caught. */}
+      {preview && !customContent && (
+        <div className="rounded-lg border border-border/10 bg-foreground/[0.02] p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Preview</div>
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">{preview}</pre>
+        </div>
+      )}
+
       <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Content (leave blank to auto-generate)</label>
-        <textarea value={customContent} onChange={(e) => setCustomContent(e.target.value)} rows={3} placeholder="Auto-filled from patient name and dates unless overridden here" className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary" />
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Override content (optional)</label>
+        <textarea
+          value={customContent}
+          onChange={(e) => setCustomContent(e.target.value)}
+          rows={3}
+          placeholder={templateId ? 'Type here to override what the template produces' : 'Type the certificate content here'}
+          className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
+        />
       </div>
       <button type="submit" disabled={saving} className="self-start px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? 'Issuing...' : 'Issue Certificate'}

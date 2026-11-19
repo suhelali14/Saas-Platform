@@ -217,6 +217,7 @@ model ClinicUser {
   caseSheets              CaseSheet[]
   prescriptions           Prescription[]
   certificates            Certificate[]
+  certificateTemplates    CertificateTemplate[] @relation("CertificateTemplateCreator")
   doctorAppointments      Appointment[]  @relation("DoctorAppointments")
   dispensedPrescriptions  Prescription[] @relation("DispensedPrescriptions")
   receivedPayments        Payment[]      @relation("ReceivedPayments")
@@ -504,11 +505,64 @@ model Certificate {
   type          CertificateType
   fromDate      DateTime?
   toDate        DateTime?
+  /// The resolved content as issued -- placeholders already substituted
+  /// at the moment of creation, because the template may change later
+  /// and the issued document must read back as it was given.
   content       String
+  /// Which template was used, if any. Nullable because an ad-hoc
+  /// certificate (owner typed the content directly) is always allowed.
+  /// Set to null on template delete, not cascade, for the same reason.
+  templateId    String?
+  template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   createdAt     DateTime        @default(now())
 
   @@index([patientId])
   @@index([appointmentId])
+}
+
+/// Per-clinic template for a certificate.
+///
+/// The clinic creates as many templates as they want per type
+/// ("Standard Sick Leave", "Pediatric Fitness Certificate", "Referral
+/// to Dr. Deshmukh", "COVID-19 Fitness") each with its own prose
+/// body using {{patientName}}, {{fromDate}}, {{doctorName}} etc. as
+/// placeholders.
+///
+/// The `type` keeps the underlying classification (SICK_LEAVE /
+/// FITNESS / REFERRAL) because downstream search and analytics group
+/// by it. A template whose purpose doesn't map cleanly to one of the
+/// three gets tagged with the nearest match and a `name` that says
+/// what it really is.
+///
+/// Placeholder resolution is performed on `POST /certificates` when
+/// a `templateId` is passed; the raw body text is NOT stored on the
+/// Certificate (the resolved content is), so an edit to a template
+/// later doesn't rewrite history.
+model CertificateTemplate {
+  id          String          @id @default(cuid())
+  type        CertificateType
+  /// Short, human-readable name shown in the picker ("Pediatric Fitness").
+  name        String
+  /// Optional subtitle visible in the template manager, not on the
+  /// issued certificate.
+  description String?
+  /// The body with {{placeholder}} tokens. See lib/certificate-templates.ts
+  /// for the supported tokens.
+  body        String
+  /// One template per type may be marked default -- it's the one the
+  /// picker opens with when the doctor selects that type.
+  isDefault   Boolean         @default(false)
+  isActive    Boolean         @default(true)
+
+  createdById String?
+  createdBy   ClinicUser?     @relation("CertificateTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  certificates Certificate[]
+
+  @@unique([type, name])
+  @@index([type, isActive])
 }
 
 // ── Phase 4: billing ────────────────────────────────────────────────────

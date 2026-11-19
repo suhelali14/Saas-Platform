@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth, requireClinicalWriteAuth } from "../plugins/auth.js";
 import { newLetterheadDoc, patientInfoBlock, signatureBlock } from "../lib/pdf.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
+import { resolveCertificateTemplate, type CertificateContext } from "../lib/certificate-templates.js";
 
 const CERT_TITLES: Record<CertificateType, string> = {
   SICK_LEAVE: "Medical / Sick Leave Certificate",
@@ -34,7 +35,14 @@ const createSchema = z.object({
   type: z.nativeEnum(CertificateType),
   fromDate: z.string().datetime().optional(),
   toDate: z.string().datetime().optional(),
-  content: z.string().max(2000).optional(),
+  content: z.string().max(5000).optional(),
+  /** Which template to start from. Its body is resolved against the
+   *  patient / doctor / clinic / date context and used as `content`
+   *  unless a `content` override was typed in the form. */
+  templateId: z.string().optional(),
+  /** Referral extras: free-text destination and reason. */
+  referredTo: z.string().max(200).optional(),
+  reason: z.string().max(1000).optional(),
 });
 
 export async function clinicCertificateRoutes(app: FastifyInstance) {
@@ -63,7 +71,53 @@ export async function clinicCertificateRoutes(app: FastifyInstance) {
     const patient = await prisma.patient.findUnique({ where: { id: parsed.data.patientId } });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
 
-    const content = parsed.data.content || defaultContent(parsed.data.type, patient.name, parsed.data.fromDate, parsed.data.toDate);
+    // Resolve the content. Three paths, in order of precedence:
+    //   1. A hand-typed `content` always wins -- an override is an
+    //      override. This is the escape hatch for one-off wording.
+    //   2. A `templateId` resolves its body against this certificate's
+    //      context (patient, doctor, clinic, dates, referral extras).
+    //   3. The legacy default content (SICK_LEAVE / FITNESS / REFERRAL)
+    //      stays as a safety net so a clinic that has deleted every
+    //      template still gets a usable certificate.
+    let content = parsed.data.content;
+    let templateId: string | null = parsed.data.templateId ?? null;
+    if (!content && templateId) {
+      const template = await prisma.certificateTemplate.findUnique({ where: { id: templateId } });
+      if (!template || !template.isActive) {
+        return reply.status(400).send({ error: "Template not found or inactive." });
+      }
+      const doctor = await prisma.clinicUser.findUnique({ where: { id: auth.clinicUserId } });
+      const clinic = await prisma.clinic.findFirst();
+      const ctx: CertificateContext = {
+        patient: {
+          name: patient.name,
+          age: patient.age,
+          gender: patient.gender,
+          uhid: patient.uhid,
+          phone: patient.phone,
+          address: patient.address,
+        },
+        doctor: {
+          name: doctor?.name ?? "Doctor",
+          qualifications: doctor?.qualifications ?? null,
+          registrationNumber: clinic?.registrationNumber ?? null,
+        },
+        clinic: {
+          name: clinic?.name ?? "",
+          address: clinic?.address ?? null,
+        },
+        fromDate: parsed.data.fromDate ? new Date(parsed.data.fromDate) : null,
+        toDate: parsed.data.toDate ? new Date(parsed.data.toDate) : null,
+        extras: {
+          referredTo: parsed.data.referredTo ?? "",
+          reason: parsed.data.reason ?? "",
+        },
+      };
+      content = resolveCertificateTemplate(template.body, ctx);
+    }
+    if (!content) {
+      content = defaultContent(parsed.data.type, patient.name, parsed.data.fromDate, parsed.data.toDate);
+    }
 
     const certificate = await prisma.certificate.create({
       data: {
@@ -74,8 +128,13 @@ export async function clinicCertificateRoutes(app: FastifyInstance) {
         fromDate: parsed.data.fromDate ? new Date(parsed.data.fromDate) : undefined,
         toDate: parsed.data.toDate ? new Date(parsed.data.toDate) : undefined,
         content,
+        templateId,
       },
-      include: { doctor: { select: { name: true } }, patient: { select: { name: true } } },
+      include: {
+        doctor: { select: { name: true } },
+        patient: { select: { name: true } },
+        template: { select: { id: true, name: true, type: true } },
+      },
     });
     return reply.status(201).send(certificate);
   });
