@@ -50,6 +50,47 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit &
   return performFetch<T>(endpoint, options);
 }
 
+/**
+ * Download an authenticated binary response (a PDF, usually) and open
+ * it in a new tab. A plain `<a href="/api/...">` would navigate without
+ * attaching the Bearer token, which is why the proposal PDF read back
+ * as "Authentication required" in the browser. The server already
+ * returns Content-Disposition: inline so the tab renders it inline;
+ * the blob URL is revoked after a short delay so the tab survives its
+ * own first load.
+ */
+export async function openAuthedPdf(endpoint: string, filename?: string): Promise<void> {
+  const token = localStorage.getItem('providerAccessToken');
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+  if (response.status === 401) {
+    localStorage.removeItem('providerAccessToken');
+    window.location.href = '/login';
+    throw new ApiError('Session expired');
+  }
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new ApiError(text.slice(0, 200) || `Download failed (${response.status})`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank', 'noopener');
+  if (!win) {
+    // Popup blocked — fall back to a one-shot download instead of
+    // silently losing the click.
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename ?? 'document.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  // Keep the object URL around long enough for the tab to fetch it,
+  // then release so the memory is not held for the session.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 async function performFetch<T>(endpoint: string, options: RequestInit & { data?: unknown }): Promise<T> {
   const token = localStorage.getItem('providerAccessToken');
   const headers = new Headers(options.headers);

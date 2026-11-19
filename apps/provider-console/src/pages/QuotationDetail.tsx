@@ -24,7 +24,7 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, openAuthedPdf } from "@/lib/api";
 import { money, PLAN_LABEL, type PlanTier } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -907,15 +907,18 @@ export function QuotationDetail() {
               </div>
             )}
             {!isNew && (
-              <a
-                href={`${import.meta.env.VITE_API_URL || "http://localhost:4200/api/provider"}/quotations/${quote.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-start rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() =>
+                  openAuthedPdf(`/quotations/${quote.id}/pdf`, `Quotation-${(quote.number ?? quote.id).replace(/\//g, "-")}.pdf`)
+                    .catch((e) => toast.error(e instanceof ApiError ? e.message : "Could not open the PDF."))
+                }
               >
                 <Download className="mr-2 size-4" />
                 Download PDF
-              </a>
+              </Button>
             )}
           </CardContent>
         </Card>

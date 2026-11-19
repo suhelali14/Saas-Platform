@@ -92,9 +92,14 @@ const LineItemSchema = z.object({
   ]),
   description: z.string().min(1).max(500),
   unit: z.string().min(1).max(80),
-  quantity: z.number().nonnegative(),
-  unitPrice: z.number().nonnegative(),
-  discount: z.number().nonnegative().default(0),
+  // Prisma Decimal columns serialise back to the JSON API as strings
+  // ("240000.00"), and an edit after a load sends those strings back
+  // unchanged. Coerce at the boundary rather than demanding a round
+  // trip through Number() in every call site. Same reasoning for the
+  // top-level discount below.
+  quantity: z.coerce.number().nonnegative(),
+  unitPrice: z.coerce.number().nonnegative(),
+  discount: z.coerce.number().nonnegative().default(0),
   sortOrder: z.number().int().optional(),
   sac: z.string().optional(),
 });
@@ -131,7 +136,7 @@ const UpsertQuotationSchema = z.object({
     "CLOSED_LOST",
   ]).default("NEW_LEAD"),
   nextFollowUpAt: z.string().datetime().optional().nullable(),
-  topLevelDiscount: z.number().nonnegative().default(0),
+  topLevelDiscount: z.coerce.number().nonnegative().default(0),
   lineItems: z.array(LineItemSchema).default([]),
 });
 

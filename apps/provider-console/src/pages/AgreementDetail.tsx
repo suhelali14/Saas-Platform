@@ -10,7 +10,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Download, Shield, CheckCircle2, XCircle, FileSignature } from "lucide-react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, openAuthedPdf } from "@/lib/api";
 import { money } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -207,15 +207,18 @@ export function AgreementDetail() {
                 Terminate
               </Button>
             )}
-            <a
-              href={`${import.meta.env.VITE_API_URL || "http://localhost:4200/api/provider"}/agreements/${a.id}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-full items-center justify-start rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() =>
+                openAuthedPdf(`/agreements/${a.id}/pdf`, `Agreement-${(a.number ?? a.id).replace(/\//g, "-")}.pdf`)
+                  .catch((e) => toast.error(e instanceof ApiError ? e.message : "Could not open the PDF."))
+              }
             >
               <Download className="mr-2 size-4" />
               Download PDF
-            </a>
+            </Button>
           </CardContent>
         </Card>
 
