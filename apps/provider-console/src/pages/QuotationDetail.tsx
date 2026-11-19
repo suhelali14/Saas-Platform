@@ -707,24 +707,27 @@ export function QuotationDetail() {
                       value={l.quantity ?? 0}
                       onChange={(e) => setLine(i, { quantity: Number(e.target.value || 0) })}
                       disabled={!editable}
+                      title="Quantity (e.g. 2 role tracks, 1 licence)"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label className="text-[11px] text-muted-foreground">Unit price</Label>
+                    <Label className="text-[11px] text-muted-foreground">Unit price (₹)</Label>
                     <Input
                       type="number"
                       value={l.unitPrice ?? 0}
                       onChange={(e) => setLine(i, { unitPrice: Number(e.target.value || 0) })}
                       disabled={!editable}
+                      title="Price per unit, before GST"
                     />
                   </div>
                   <div>
-                    <Label className="text-[11px] text-muted-foreground">Disc</Label>
+                    <Label className="text-[11px] text-muted-foreground">Discount (₹)</Label>
                     <Input
                       type="number"
                       value={l.discount ?? 0}
                       onChange={(e) => setLine(i, { discount: Number(e.target.value || 0) })}
                       disabled={!editable}
+                      title="Flat rupee discount off this line (Qty × Unit price − Discount). Leave at 0 if not discounting."
                     />
                   </div>
                   <div className="col-span-full flex items-center justify-between">
