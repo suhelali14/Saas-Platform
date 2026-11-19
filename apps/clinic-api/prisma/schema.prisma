@@ -218,6 +218,7 @@ model ClinicUser {
   prescriptions           Prescription[]
   certificates            Certificate[]
   certificateTemplates    CertificateTemplate[] @relation("CertificateTemplateCreator")
+  serviceItems            ServiceItem[]         @relation("ServiceItemOwner")
   doctorAppointments      Appointment[]  @relation("DoctorAppointments")
   dispensedPrescriptions  Prescription[] @relation("DispensedPrescriptions")
   receivedPayments        Payment[]      @relation("ReceivedPayments")
@@ -426,8 +427,56 @@ model Drug {
 
   batches DrugBatch[]
   prescriptionItems PrescriptionItem[]
+  serviceItems ServiceItem[]
 
   @@index([name])
+}
+
+/// The doctor's / clinic's "bill board" -- a saved catalogue of items
+/// that get billed again and again (consultation types, procedures,
+/// injections, dressings). The invoice editor picks from this list in
+/// one tap; the free-text "type anything" path stays for one-off items.
+///
+/// When `doctorId` is set, this item lives on that doctor's personal
+/// board. When null, it's shared across the whole clinic. The picker
+/// shows the merged list (doctor's own first, then clinic-wide), so a
+/// clinic agrees on consultation prices while each doctor stocks their
+/// own injections and procedures.
+///
+/// `defaultPrice` is the catalogue's price, which becomes the invoice
+/// line's `amount` on pick. A one-off discount or adjustment is made
+/// on the invoice itself, not here -- the board stays a stable
+/// reference; the bill is where negotiation lives.
+model ServiceItem {
+  id           String              @id @default(cuid())
+  /// A short code the clinic uses on paper ("CONSULT-OPD", "INJ-B12",
+  /// "DRESSING-L1"). Optional; useful for clinics that already have
+  /// codes they use on their current bills.
+  code         String?
+  /// The name that appears on the bill when picked.
+  name         String
+  category     InvoiceItemCategory
+  /// What it costs. Editable per bill, never auto-charged.
+  defaultPrice Decimal             @db.Decimal(10, 2)
+
+  /// Doctor's personal board when set; clinic-wide when null.
+  doctorId     String?
+  doctor       ClinicUser?         @relation("ServiceItemOwner", fields: [doctorId], references: [id], onDelete: SetNull)
+
+  /// For medicines/injections, a thin link to the Drug so dispensing
+  /// from stock can decrement the batch via FEFO. Null = unlinked
+  /// (doctor supplies from their own, nothing to decrement).
+  drugId       String?
+  drug         Drug?               @relation(fields: [drugId], references: [id], onDelete: SetNull)
+
+  isActive     Boolean             @default(true)
+  sortOrder    Int                 @default(0)
+  description  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([doctorId, name])
+  @@index([category, isActive])
 }
 
 // Batch/expiry tracking for FEFO dispensing (see plan's Phase 4 research --
