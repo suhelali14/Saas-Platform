@@ -174,6 +174,39 @@ doctor's real address.
 This creates the account and a 10-step checklist. Nothing is deployed yet;
 the account sits as a `LEAD`.
 
+### Step 1b — agree the deal in writing (optional, recommended)
+
+For anything bigger than a single-doctor clinic, drive the pre-sale through
+the quotation pipeline rather than a chat log:
+
+**Pipeline → New quotation.** Pick one of three templates (Small Clinic /
+Polyclinic / Small Hospital) which prefill realistic line items by
+category (Software annual, Implementation, Training, Customization, Data
+Migration, Support, Hardware). The totals compute **CGST+SGST when the
+clinic and the provider are in the same state**, **IGST otherwise** —
+set `PROVIDER_STATE_CODE` in the console env, and fill the clinic's
+state on its deal form, or the split falls back to IGST.
+
+Each quotation is a pipeline card: **New lead → Qualified → Quote sent →
+Follow-up → Negotiation → Won / Lost**. The morning view flags overdue
+follow-ups in red. Every call, email, meeting, WhatsApp is logged
+against the deal from a one-row composer; a future-dated scheduled
+touch sets the next-chase date automatically.
+
+**Lock & email** stamps `NAY/Q/FY/0001`, renders the PDF proposal, and
+delivers it as an attachment using the same SMTP / Resend transport the
+welcome email uses. **Resend** fires a reminder that bumps the stage to
+Follow-up and logs a touch. **Mark accepted** flips the quote to
+`ACCEPTED` and unlocks **Generate agreement** — a 12-clause SaaS MSA
+with **DPDP Act 2023 / DPDP Rules 2025** clauses already in it
+(customer = Data Fiduciary, Nayaversse = Data Processor, breach
+notification, deletion on exit, liability capped at 12 months of fees
+with a carve-out for DPDP penalties arising from provider breach).
+
+Issue the agreement to assign `NAY/A/FY/0001`, record the client
+signature when the signed scan comes back, and move on to provisioning
+below with the paperwork already in place.
+
 ### Step 2 — domains
 
 The clinic buys their own domain. You need three names:

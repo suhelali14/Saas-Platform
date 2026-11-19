@@ -8,7 +8,7 @@
  * each morning so the morning view shows "when did we last talk".
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Download,
   Mail,
@@ -243,6 +243,7 @@ export function QuotationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   const isNew = id === "new";
 
   const [quote, setQuote] = useState<Quotation | null>(null);
@@ -266,13 +267,29 @@ export function QuotationDetail() {
 
   useEffect(() => {
     if (isNew) {
-      setQuote(emptyQuotation("Nayaversse"));
+      const base = emptyQuotation("Nayaversse");
+      // Query-string prefill, so "New quotation" on a clinic account page
+      // starts with that clinic's name, address, GSTIN, email already in.
+      // A field that is NOT in the URL stays at the empty default.
+      const q = (k: string) => searchParams.get(k) ?? null;
+      const prefilled: Quotation = {
+        ...base,
+        accountId: q("accountId") ?? base.accountId,
+        clientName: q("clientName") ?? q("clientNameLegal") ?? base.clientName,
+        clientAddress: q("clientAddress") ?? base.clientAddress,
+        clientGSTIN: q("clientGSTIN") ?? base.clientGSTIN,
+        clientState: q("clientState") ?? base.clientState,
+        clientEmail: q("clientEmail") ?? base.clientEmail,
+        clientPhone: q("clientPhone") ?? base.clientPhone,
+        planTier: (q("planTier") as PlanTier) ?? base.planTier,
+      };
+      setQuote(prefilled);
       return;
     }
     apiFetch<{ quotation: Quotation }>(`/quotations/${id}`)
       .then((r) => setQuote(r.quotation))
       .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load quotation."));
-  }, [id, isNew]);
+  }, [id, isNew, searchParams]);
 
   // ── Compute line totals locally while editing a draft, so the right
   //    rail reflects the current line items before a save round-trip.

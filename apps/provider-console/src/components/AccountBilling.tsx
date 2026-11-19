@@ -575,3 +575,87 @@ export function PlanHistory({ accountId, refreshKey }: { accountId: string; refr
     </Panel>
   );
 }
+
+/**
+ * Quotations and agreements attached to this clinic account.
+ *
+ * Lives on the account detail page so the deal and the running clinic
+ * are visible together. "New quotation" prefills the form with this
+ * clinic's name, address, GSTIN and contact; "Open" jumps to the full
+ * editor for one. When there are no quotes at all, the empty state
+ * says what to do next rather than pretending there is history.
+ */
+export function QuotationsPanel({ account }: { account: Account }) {
+  const [rows, setRows] = useState<Array<{
+    id: string;
+    number: string | null;
+    status: string;
+    stage: string;
+    title: string;
+    total: string;
+    nextFollowUpAt: string | null;
+    sentAt: string | null;
+    createdAt: string;
+  }> | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ quotations: typeof rows }>(`/quotations?accountId=${account.id}`)
+      .then((r) => setRows(r.quotations ?? []))
+      .catch(() => setRows([]));
+  }, [account.id]);
+
+  // Prefill a few fields a new quote already knows about this account.
+  const newQuoteHref = useMemo(() => {
+    const params = new URLSearchParams({
+      accountId: account.id,
+      clientName: account.name,
+      ...(account.billingName ? { clientNameLegal: account.billingName } : {}),
+      ...(account.billingAddress ? { clientAddress: account.billingAddress } : {}),
+      ...(account.gstin ? { clientGSTIN: account.gstin } : {}),
+      ...(account.billingState ? { clientState: account.billingState } : {}),
+      ...(account.contactEmail ? { clientEmail: account.contactEmail } : {}),
+      ...(account.contactPhone ? { clientPhone: account.contactPhone } : {}),
+      planTier: account.plan,
+    });
+    return `/quotations/new?${params.toString()}`;
+  }, [account]);
+
+  return (
+    <Panel
+      title="Quotations"
+      icon={FileText}
+      action={
+        <Button size="sm" variant="outline" asChild>
+          <Link to={newQuoteHref}>New quotation</Link>
+        </Button>
+      }
+    >
+      {rows === null ? (
+        <p className="text-sm italic text-muted-foreground">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm italic text-muted-foreground">
+          No quotations yet. "New quotation" opens a draft prefilled from this account.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {rows.map((q) => (
+            <li key={q.id} className="flex items-center gap-3 py-2.5 text-sm">
+              <div className="min-w-0 flex-1">
+                <Link to={`/quotations/${q.id}`} className="font-medium hover:underline">
+                  {q.number ?? "Draft"} · {q.title}
+                </Link>
+                <p className="text-[11px] text-muted-foreground">
+                  {q.status} · {q.stage.replace("_", " ")}
+                  {q.nextFollowUpAt
+                    ? ` · chase ${new Date(q.nextFollowUpAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                    : ""}
+                </p>
+              </div>
+              <span className="tabular text-sm">{money(q.total)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}

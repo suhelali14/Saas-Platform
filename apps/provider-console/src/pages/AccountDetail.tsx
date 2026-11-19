@@ -12,7 +12,7 @@ import {
   STATUS_VARIANT, PLAN_VARIANT, PLAN_LABEL, money,
 } from "@/lib/types";
 import { useToast } from "@/components/Toast";
-import { DealPanel, InvoicesPanel, PlanHistory, PlanModulesPanel } from "@/components/AccountBilling";
+import { DealPanel, InvoicesPanel, PlanHistory, PlanModulesPanel, QuotationsPanel } from "@/components/AccountBilling";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,6 +111,7 @@ export function AccountDetail() {
         <div className="space-y-4 lg:col-span-2">
           <Provisioning account={a} meta={meta} onDone={load} />
           <PlanModulesPanel account={a} meta={meta} features={data.features} pendingApply={data.pendingApply} wouldRemove={data.wouldRemove ?? []} onSaved={load} />
+          <QuotationsPanel account={a} />
           <InvoicesPanel account={a} onChanged={load} />
           <Checklist accountId={a.id} steps={a.steps} onChange={load} />
           <Addresses account={a} meta={meta} onSave={save} onChanged={load} />
