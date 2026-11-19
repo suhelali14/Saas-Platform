@@ -148,6 +148,16 @@ interface Template {
   deliveryTerms: string;
 }
 
+interface ProviderInfo {
+  providerName: string;
+  providerAddress: string | null;
+  providerGSTIN: string | null;
+  providerState: string;
+  providerEmail: string | null;
+  providerPhone: string | null;
+  defaultValidityDays: number;
+}
+
 const CATEGORY_LABEL: Record<LineCategory, string> = {
   SOFTWARE: "Software",
   IMPLEMENTATION: "Implementation",
@@ -266,41 +276,63 @@ export function QuotationDetail() {
   }, []);
 
   useEffect(() => {
-    if (isNew) {
-      const base = emptyQuotation("Nayaversse");
-      // Query-string prefill, so "New quotation" on a clinic account page
-      // starts with that clinic's name, address, GSTIN, email already in.
-      // A field that is NOT in the URL stays at the empty default.
-      const q = (k: string) => searchParams.get(k) ?? null;
-      const prefilled: Quotation = {
-        ...base,
-        accountId: q("accountId") ?? base.accountId,
-        clientName: q("clientName") ?? q("clientNameLegal") ?? base.clientName,
-        clientAddress: q("clientAddress") ?? base.clientAddress,
-        clientGSTIN: q("clientGSTIN") ?? base.clientGSTIN,
-        clientState: q("clientState") ?? base.clientState,
-        clientEmail: q("clientEmail") ?? base.clientEmail,
-        clientPhone: q("clientPhone") ?? base.clientPhone,
-        planTier: (q("planTier") as PlanTier) ?? base.planTier,
-      };
-      setQuote(prefilled);
+    if (!isNew) {
+      apiFetch<{ quotation: Quotation }>(`/quotations/${id}`)
+        .then((r) => setQuote(r.quotation))
+        .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load quotation."));
       return;
     }
-    apiFetch<{ quotation: Quotation }>(`/quotations/${id}`)
-      .then((r) => setQuote(r.quotation))
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load quotation."));
+    // Build the empty draft from the provider env (From side) plus
+    // the account data in the URL (To side). Do both in one shot so
+    // the form arrives with as much filled in as the server knows,
+    // and the owner only types what is genuinely new.
+    const q = (k: string) => searchParams.get(k) ?? null;
+    apiFetch<ProviderInfo>("/quotations/provider-info")
+      .then((info) => {
+        const base = emptyQuotation(info.providerName);
+        const validity = new Date(Date.now() + info.defaultValidityDays * 24 * 3600_000).toISOString();
+        setQuote({
+          ...base,
+          providerName: info.providerName,
+          providerAddress: info.providerAddress,
+          providerGSTIN: info.providerGSTIN,
+          providerState: info.providerState,
+          validUntil: validity,
+          accountId: q("accountId") ?? base.accountId,
+          clientName: q("clientName") ?? q("clientNameLegal") ?? base.clientName,
+          clientAddress: q("clientAddress") ?? base.clientAddress,
+          clientGSTIN: q("clientGSTIN") ?? base.clientGSTIN,
+          clientState: q("clientState") ?? base.clientState,
+          clientEmail: q("clientEmail") ?? base.clientEmail,
+          clientPhone: q("clientPhone") ?? base.clientPhone,
+          planTier: (q("planTier") as PlanTier) ?? base.planTier,
+        });
+      })
+      .catch(() => {
+        // Provider endpoint failed -- fall back to the empty default
+        // so the form is at least usable; the owner fills "From" by
+        // hand. Reported, not silent.
+        setQuote(emptyQuotation("Nayaversse"));
+      });
   }, [id, isNew, searchParams]);
 
   // ── Compute line totals locally while editing a draft, so the right
   //    rail reflects the current line items before a save round-trip.
   const totals = useMemo(() => {
     if (!quote) return null;
+    // Coalesce undefined to zero at the arithmetic boundary -- a
+    // line from a template that defined no discount, or a field a
+    // user cleared mid-edit, would otherwise cascade NaN into every
+    // total on the page. This is the narrow fix; keeping the raw
+    // storage untyped would just push the bug one layer down.
     const lines = quote.lineItems.map((l) => {
-      const gross = l.quantity * l.unitPrice;
-      return Math.max(0, gross - l.discount);
+      const qty = Number(l.quantity) || 0;
+      const price = Number(l.unitPrice) || 0;
+      const disc = Number(l.discount) || 0;
+      return Math.max(0, qty * price - disc);
     });
     const subtotal = lines.reduce((a, b) => a + b, 0);
-    const discountAmount = quote.lineItems.reduce((a, l) => a + l.discount, 0);
+    const discountAmount = quote.lineItems.reduce((a, l) => a + (Number(l.discount) || 0), 0);
     const taxable = Math.max(0, subtotal - discountAmount);
     const intrastate =
       quote.providerState &&
@@ -324,15 +356,36 @@ export function QuotationDetail() {
     (tid: string) => {
       const t = templates.find((x) => x.id === tid);
       if (!t || !quote) return;
+      // 30 days from today if the quote has no valid-until yet; preserves
+      // whatever is already filled in (the owner may already have agreed
+      // a date with the client before picking a template).
+      const nextValidUntil =
+        quote.validUntil ??
+        new Date(Date.now() + 30 * 24 * 3600_000).toISOString();
+      // Autofill a title that reads back to the client -- "Nayaversse
+      // Hospital licence for Vadgaonkar Clinic" -- rather than blank.
+      // Preserves an owner-typed title.
+      const autoTitle =
+        quote.title ||
+        `${t.label} for ${quote.clientName || "[Client]"}`;
       setQuote({
         ...quote,
+        title: autoTitle,
         planTier: t.planTier,
         scope: t.scope,
         exclusions: t.exclusions,
         paymentTerms: t.paymentTerms,
         deliveryTerms: t.deliveryTerms,
         summary: t.summary,
-        lineItems: t.lines.map((l, i) => ({ ...l, sortOrder: i })),
+        validUntil: nextValidUntil,
+        lineItems: t.lines.map((l, i) => ({
+          ...l,
+          // Templates omit `discount` so the catalog stays readable.
+          // Fill the default here so the line total computes to a
+          // number on the next render.
+          discount: 0,
+          sortOrder: i,
+        })),
       });
     },
     [templates, quote],

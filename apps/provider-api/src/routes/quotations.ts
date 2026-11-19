@@ -209,6 +209,25 @@ export async function quotationRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ templates: QUOTATION_TEMPLATES });
   });
 
+  // ── Provider's own details, so the console prefills "From" on a new
+  //    quote from the console env instead of asking for them each time.
+  //    These are the same values the invoicing path already uses, so
+  //    the quote and the invoice carry matching GSTIN and state.
+  app.get("/api/provider/quotations/provider-info", async (request, reply) => {
+    const auth = requireProviderAuth(request, reply);
+    if (!auth) return;
+    return reply.send({
+      providerName: env.PROVIDER_LEGAL_NAME,
+      providerAddress: env.PROVIDER_ADDRESS ?? null,
+      providerGSTIN: env.PROVIDER_GSTIN ?? null,
+      providerState: env.PROVIDER_STATE_CODE,
+      providerEmail: env.PROVIDER_EMAIL ?? null,
+      providerPhone: env.PROVIDER_PHONE ?? null,
+      /** Default validity in days; used to seed validUntil on a new quote. */
+      defaultValidityDays: 30,
+    });
+  });
+
   // ── List, with pipeline grouping and overdue flag. ────────────────
   app.get<{ Querystring: { stage?: string; status?: string; accountId?: string } }>(
     "/api/provider/quotations",
