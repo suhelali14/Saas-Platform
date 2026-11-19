@@ -704,7 +704,7 @@ export function QuotationDetail() {
                     <Label className="text-[11px] text-muted-foreground">Qty</Label>
                     <Input
                       type="number"
-                      value={l.quantity}
+                      value={l.quantity ?? 0}
                       onChange={(e) => setLine(i, { quantity: Number(e.target.value || 0) })}
                       disabled={!editable}
                     />
@@ -713,7 +713,7 @@ export function QuotationDetail() {
                     <Label className="text-[11px] text-muted-foreground">Unit price</Label>
                     <Input
                       type="number"
-                      value={l.unitPrice}
+                      value={l.unitPrice ?? 0}
                       onChange={(e) => setLine(i, { unitPrice: Number(e.target.value || 0) })}
                       disabled={!editable}
                     />
@@ -722,7 +722,7 @@ export function QuotationDetail() {
                     <Label className="text-[11px] text-muted-foreground">Disc</Label>
                     <Input
                       type="number"
-                      value={l.discount}
+                      value={l.discount ?? 0}
                       onChange={(e) => setLine(i, { discount: Number(e.target.value || 0) })}
                       disabled={!editable}
                     />
