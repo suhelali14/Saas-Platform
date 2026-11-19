@@ -15,6 +15,7 @@
 import PDFDocument from "pdfkit";
 import type { Prisma } from "../generated/prisma-client/index.js";
 import type { Clause } from "./agreement-terms.js";
+import { normaliseText as normalise } from "./quotation-pdf.js";
 
 type Agreement = Prisma.AgreementGetPayload<{ include: { quotation: true } }>;
 
@@ -36,8 +37,15 @@ function ymd(d: Date | null | undefined): string {
   return `${day}/${mon}/${d.getFullYear()}`;
 }
 
+/** Add a new page if the next section won't fit, and (because this doc
+ *  has no repeating header mid-body) just advance to the top margin
+ *  there. If a header is needed on continuation pages later, draw it
+ *  here rather than in a pageAdded listener -- see quotation-pdf.ts
+ *  for why the listener approach left continuation pages blank. */
 function ensureSpace(doc: PDFKit.PDFDocument, needed: number) {
-  if (doc.y + needed > PAGE.H - MARGIN - 36) doc.addPage();
+  if (doc.y + needed > PAGE.H - MARGIN - 36) {
+    doc.addPage();
+  }
 }
 
 function drawTitleBlock(doc: PDFKit.PDFDocument, a: Agreement) {
@@ -50,7 +58,7 @@ function drawTitleBlock(doc: PDFKit.PDFDocument, a: Agreement) {
     .font("Helvetica")
     .fontSize(10)
     .fillColor(COLOR.inkSoft)
-    .text(a.title, MARGIN, doc.y + 2, { width: CONTENT_W, align: "center" });
+    .text(normalise(a.title), MARGIN, doc.y + 2, { width: CONTENT_W, align: "center" });
 
   // A thin rule under the title; the rest of the page is prose.
   const y = doc.y + 10;
@@ -82,13 +90,13 @@ function drawTitleBlock(doc: PDFKit.PDFDocument, a: Agreement) {
 function drawClause(doc: PDFKit.PDFDocument, c: Clause) {
   ensureSpace(doc, 46);
   doc.moveDown(0.6);
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(COLOR.ink).text(c.heading, MARGIN, doc.y, {
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(COLOR.ink).text(normalise(c.heading), MARGIN, doc.y, {
     width: CONTENT_W,
   });
   doc.moveDown(0.25);
   for (const p of c.paragraphs) {
     ensureSpace(doc, 24);
-    doc.font("Helvetica").fontSize(10).fillColor(COLOR.inkSoft).text(p, MARGIN, doc.y, {
+    doc.font("Helvetica").fontSize(10).fillColor(COLOR.inkSoft).text(normalise(p), MARGIN, doc.y, {
       width: CONTENT_W,
       lineGap: 2,
       align: "justify",
@@ -127,21 +135,28 @@ function drawSignatures(doc: PDFKit.PDFDocument, a: Agreement) {
       .text(`Date: ${ymd(signedAt)}`, x, lineY + 50, { width: colW });
   };
 
-  draw(MARGIN, "For the Provider", a.providerSignedBy ?? a.providerName, "Authorised signatory", a.providerSignedAt);
+  draw(MARGIN, "For the Provider", normalise(a.providerSignedBy ?? a.providerName), "Authorised signatory", a.providerSignedAt);
   draw(
     MARGIN + colW + 30,
     "For the Customer",
-    a.clientSignedByName ?? a.clientName,
-    a.clientSignedByRole ?? "Authorised signatory",
+    normalise(a.clientSignedByName ?? a.clientName),
+    normalise(a.clientSignedByRole ?? "Authorised signatory"),
     a.clientSignedAt,
   );
   doc.y = y0 + 140;
 }
 
+/**
+ * Drop the page bottom margin to 0 for the duration of the footer
+ * write, same reason as quotation-pdf: writing below the body margin
+ * triggers pdfkit's auto-paginator and yields a chain of blank pages.
+ */
 function drawFooter(doc: PDFKit.PDFDocument, a: Agreement) {
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
+    const savedBottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
     const y = PAGE.H - MARGIN + 12;
     doc.strokeColor(COLOR.rule).lineWidth(0.4).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_W, y).stroke();
     doc
@@ -149,15 +164,17 @@ function drawFooter(doc: PDFKit.PDFDocument, a: Agreement) {
       .fontSize(7.5)
       .fillColor(COLOR.inkFaint)
       .text(
-        `${a.providerName} & ${a.clientName} · Agreement ${a.number ?? "DRAFT"}`,
+        normalise(`${a.providerName} & ${a.clientName} - Agreement ${a.number ?? "DRAFT"}`),
         MARGIN,
         y + 5,
-        { width: CONTENT_W * 0.7 },
+        { width: CONTENT_W * 0.7, lineBreak: false },
       );
     doc.text(`Page ${i + 1} of ${pages.count}`, MARGIN + CONTENT_W * 0.7, y + 5, {
       width: CONTENT_W * 0.3,
       align: "right",
+      lineBreak: false,
     });
+    doc.page.margins.bottom = savedBottom;
   }
 }
 
