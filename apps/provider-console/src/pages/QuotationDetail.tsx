@@ -623,6 +623,27 @@ export function QuotationDetail() {
           <CardContent className="grid gap-4 p-5 md:grid-cols-2">
             <div className="space-y-3">
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">To</h2>
+              <AccountPicker
+                value={quote.accountId}
+                disabled={!editable}
+                onChange={(acc) =>
+                  setQuote({
+                    ...quote,
+                    accountId: acc?.id ?? null,
+                    // Copy the account's billing details over the top so
+                    // the quote reads back as the account on record --
+                    // overwrites anything hand-typed, which is the point
+                    // of linking. If the owner doesn't want the overwrite
+                    // they can edit after linking.
+                    clientName: acc ? acc.billingName ?? acc.name : quote.clientName,
+                    clientAddress: acc ? acc.billingAddress ?? quote.clientAddress : quote.clientAddress,
+                    clientGSTIN: acc ? acc.gstin ?? quote.clientGSTIN : quote.clientGSTIN,
+                    clientState: acc ? acc.billingState ?? quote.clientState : quote.clientState,
+                    clientEmail: acc ? acc.contactEmail ?? quote.clientEmail : quote.clientEmail,
+                    clientPhone: acc ? acc.contactPhone ?? quote.clientPhone : quote.clientPhone,
+                  })
+                }
+              />
               <Field label="Title" value={quote.title} onChange={(v) => setQuote({ ...quote, title: v })} disabled={!editable} />
               <Field label="Client name" value={quote.clientName} onChange={(v) => setQuote({ ...quote, clientName: v })} disabled={!editable} />
               <Field label="Contact person" value={quote.clientContact ?? ""} onChange={(v) => setQuote({ ...quote, clientContact: v })} disabled={!editable} />
@@ -993,6 +1014,71 @@ function Row({ k, v }: { k: string; v: string }) {
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{k}</span>
       <span className="tabular">{v}</span>
+    </div>
+  );
+}
+
+/** The shape a ClinicAccount comes back as from /accounts. Only the
+ *  fields the quote editor cares about -- a narrow view of the row. */
+interface AccountOption {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  billingName: string | null;
+  billingAddress: string | null;
+  gstin: string | null;
+  billingState: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+}
+
+/** Link the quote to an existing clinic account, so generating the
+ *  agreement later works and so the From/To grid reads the same billing
+ *  details the invoicing path already uses. */
+function AccountPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string | null;
+  onChange: (acc: AccountOption | null) => void;
+  disabled?: boolean;
+}) {
+  const [options, setOptions] = useState<AccountOption[]>([]);
+  useEffect(() => {
+    apiFetch<{ accounts: AccountOption[] }>("/accounts")
+      .then((r) => setOptions(r.accounts ?? []))
+      .catch(() => setOptions([]));
+  }, []);
+
+  return (
+    <div>
+      <Label className="text-xs">Clinic account</Label>
+      <Select
+        value={value ?? "__none"}
+        onValueChange={(v) => {
+          if (v === "__none") return onChange(null);
+          onChange(options.find((o) => o.id === v) ?? null);
+        }}
+        disabled={disabled}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Not linked" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">(Not linked — standalone quote)</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>
+              {o.name} <span className="text-muted-foreground">· {o.status}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Required later to generate the agreement. Picking one copies that
+        account's billing details onto this quote.
+      </p>
     </div>
   );
 }
