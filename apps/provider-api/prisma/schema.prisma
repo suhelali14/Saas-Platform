@@ -76,6 +76,61 @@ enum InvoiceStatus {
   VOID   // cancelled after issue; kept, because the number was used
 }
 
+/// Where a quotation lives in its own lifecycle. Separate from
+/// Invoice/Agreement because the same deal moves through all three in
+/// order: quote → accept → agreement → invoice.
+enum QuotationStatus {
+  DRAFT    // being written, numbers still moving
+  SENT     // locked, delivered to the client
+  ACCEPTED // the client agreed in writing or by email
+  REJECTED // the client said no, kept so the history is readable
+  EXPIRED  // valid-until date has passed with no response
+}
+
+enum QuotationLineCategory {
+  SOFTWARE       // the annual or monthly licence itself
+  IMPLEMENTATION // one-time: provisioning, setup, go-live
+  TRAINING       // one-time: staff training on the software
+  CUSTOMIZATION  // one-time: specialty forms, custom reports, white-labelling
+  DATA_MIGRATION // one-time: import of existing records
+  SUPPORT        // annual: priority / dedicated support, SLA
+  HARDWARE       // one-time: the odd time a clinic asks us to source a printer
+  OTHER
+}
+
+enum AgreementStatus {
+  DRAFT          // being written
+  AWAITING_SIGN  // issued, waiting for the client to sign
+  ACTIVE         // both parties signed; the contract is in force
+  TERMINATED     // ended before its natural term
+  EXPIRED        // ran to the end of its term and was not renewed
+}
+
+/// The sales pipeline the owner opens each morning. Separate from
+/// QuotationStatus because a quote can be SENT and still at NEGOTIATION,
+/// and the morning view wants the deal not the paper.
+enum PipelineStage {
+  NEW_LEAD         // first contact; a name, maybe an email
+  QUALIFIED        // confirmed interest, confirmed budget shape
+  QUOTE_SENT       // a Quotation exists and the client has it
+  FOLLOW_UP        // sent, chased once, waiting on a reply
+  NEGOTIATION      // actively going back and forth on terms or price
+  CLOSED_WON       // accepted; the agreement is the next document
+  CLOSED_LOST      // the client went elsewhere, or disappeared
+}
+
+/// A kind of touch on a deal. One row per real contact so the funnel
+/// view answers "when did we last talk to this clinic" without a guess.
+enum ActivityKind {
+  CALL
+  EMAIL_SENT
+  EMAIL_RECEIVED
+  MEETING
+  WHATSAPP
+  SITE_VISIT
+  NOTE
+}
+
 /// One clinic customer.
 model ClinicAccount {
   id        String @id @default(cuid())
@@ -161,6 +216,8 @@ model ClinicAccount {
   health      HealthCheck[]
   invoices    Invoice[]
   planChanges PlanChange[]
+  quotations  Quotation[]
+  agreements  Agreement[]
 
   @@index([status])
 }
@@ -301,4 +358,193 @@ model PlanChange {
   at DateTime @default(now())
 
   @@index([accountId, at])
+}
+
+/// What a deal looks like before the client has agreed to it.
+///
+/// Three documents move the money in this product: a quotation, then an
+/// agreement, then invoices. The quotation is the one that costs us
+/// nothing to change -- line items go up and down, discounts come and
+/// go, the client is weighing whether to buy. The moment it is sent, it
+/// is locked: an Edit sends a new Version instead, so an audit still
+/// reads back what the client saw.
+model Quotation {
+  id        String          @id @default(cuid())
+  accountId String?
+  account   ClinicAccount?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  /// NAY/Q/FY/0001. Null while draft; given on issue, consecutive
+  /// within the financial year so an auditor reads them as a series.
+  number   String?          @unique
+  fy       String?
+  serial   Int?
+  /// A new version on edit after send, so the sent copy survives.
+  version  Int              @default(1)
+
+  status   QuotationStatus  @default(DRAFT)
+  /// Where in the sales pipeline this deal sits. Separate from status
+  /// because a quote can be SENT but still be at NEGOTIATION, and the
+  /// pipeline view the owner opens each morning is organised by stage.
+  stage    PipelineStage    @default(NEW_LEAD)
+  title    String
+  planTier PlanTier         @default(BASIC)
+
+  // ── Who it is addressed to. Copied at creation. ────────────────────
+  clientName     String
+  clientAddress  String?
+  clientGSTIN    String?
+  clientState    String?
+  clientContact  String?
+  clientEmail    String?
+  clientPhone    String?
+
+  // ── Who it is from. Copied for immutability. ──────────────────────
+  providerName    String
+  providerAddress String?
+  providerGSTIN   String?
+  providerState   String?
+
+  validUntil DateTime?
+
+  // ── Totals, computed from the line items and frozen on issue. ────
+  subtotal       Decimal @db.Decimal(12, 2) @default(0)
+  discountAmount Decimal @db.Decimal(12, 2) @default(0)
+  taxableAmount  Decimal @db.Decimal(12, 2) @default(0)
+  cgst           Decimal @db.Decimal(12, 2) @default(0)
+  sgst           Decimal @db.Decimal(12, 2) @default(0)
+  igst           Decimal @db.Decimal(12, 2) @default(0)
+  total          Decimal @db.Decimal(12, 2) @default(0)
+  currency       String  @default("INR")
+
+  scope          String?
+  exclusions     String?
+  paymentTerms   String?
+  deliveryTerms  String?
+  internalNotes  String?
+  summary        String?
+
+  sentAt     DateTime?
+  acceptedAt DateTime?
+  rejectedAt DateTime?
+  acceptedBy String?
+
+  /// When the owner should next follow up, so the pipeline view opens
+  /// each morning showing what is overdue rather than what is new.
+  nextFollowUpAt DateTime?
+  lastContactedAt DateTime?
+
+  lineItems  QuotationLineItem[]
+  activities QuotationActivity[]
+  agreements Agreement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fy, serial, version])
+  @@index([accountId, createdAt])
+  @@index([status, validUntil])
+  @@index([stage, nextFollowUpAt])
+}
+
+model QuotationLineItem {
+  id          String                @id @default(cuid())
+  quotationId String
+  quotation   Quotation             @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  category    QuotationLineCategory
+  description String
+  unit        String
+  quantity    Decimal               @db.Decimal(10, 2) @default(1)
+  unitPrice   Decimal               @db.Decimal(12, 2)
+  discount    Decimal               @db.Decimal(12, 2) @default(0)
+  lineTotal   Decimal               @db.Decimal(12, 2) @default(0)
+  sortOrder   Int                   @default(0)
+  sac         String?
+
+  @@index([quotationId, sortOrder])
+}
+
+/// A touch -- a call, an email, a meeting, a WhatsApp -- against a deal.
+/// The funnel view groups these to answer "when did we last talk to
+/// this clinic" so nobody gets forgotten between the ten they are open
+/// with. Emails sent from the console write one of these automatically.
+model QuotationActivity {
+  id          String       @id @default(cuid())
+  quotationId String
+  quotation   Quotation    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  kind        ActivityKind
+  subject     String
+  body        String?
+  /// The owner's own notes after a call, the body of a sent email, or
+  /// the text of a WhatsApp -- whatever is readable later.
+  outcome     String?
+  /// Who performed the action; the owner's login name.
+  actor       String
+
+  /// When the touch happened. For a scheduled follow-up this is the
+  /// FUTURE; the UI shows what is due before what has been done.
+  at          DateTime     @default(now())
+  isScheduled Boolean      @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([quotationId, at])
+  @@index([isScheduled, at])
+}
+
+/// The signed contract. One deal, one agreement, built from the
+/// accepted quotation.
+model Agreement {
+  id            String          @id @default(cuid())
+  accountId     String
+  account       ClinicAccount   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  quotationId   String?
+  quotation     Quotation?      @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+
+  number        String?         @unique
+  fy            String?
+  serial        Int?
+
+  status        AgreementStatus @default(DRAFT)
+  title         String
+  /// Clauses as [{ heading, paragraphs[] }]. The PDF and the HTML
+  /// preview read from the same source.
+  clauses       Json
+
+  effectiveFrom DateTime?
+  termMonths    Int             @default(12)
+  noticeDays    Int             @default(60)
+  autoRenew     Boolean         @default(true)
+
+  clientName      String
+  clientAddress   String?
+  clientGSTIN     String?
+  providerName    String
+  providerAddress String?
+  providerGSTIN   String?
+
+  setupFee   Decimal?  @db.Decimal(12, 2)
+  yearlyFee  Decimal?  @db.Decimal(12, 2)
+  monthlyFee Decimal?  @db.Decimal(12, 2)
+  currency   String    @default("INR")
+
+  providerSignedBy   String?
+  providerSignedAt   DateTime?
+  clientSignedByName String?
+  clientSignedByRole String?
+  clientSignedAt     DateTime?
+  clientSignatureRef String?
+
+  issuedAt     DateTime?
+  terminatedAt DateTime?
+  terminationReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fy, serial])
+  @@index([accountId, createdAt])
+  @@index([status, effectiveFrom])
 }

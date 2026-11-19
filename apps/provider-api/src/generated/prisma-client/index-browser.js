@@ -253,6 +253,118 @@ exports.Prisma.PlanChangeScalarFieldEnum = {
   at: 'at'
 };
 
+exports.Prisma.QuotationScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  number: 'number',
+  fy: 'fy',
+  serial: 'serial',
+  version: 'version',
+  status: 'status',
+  stage: 'stage',
+  title: 'title',
+  planTier: 'planTier',
+  clientName: 'clientName',
+  clientAddress: 'clientAddress',
+  clientGSTIN: 'clientGSTIN',
+  clientState: 'clientState',
+  clientContact: 'clientContact',
+  clientEmail: 'clientEmail',
+  clientPhone: 'clientPhone',
+  providerName: 'providerName',
+  providerAddress: 'providerAddress',
+  providerGSTIN: 'providerGSTIN',
+  providerState: 'providerState',
+  validUntil: 'validUntil',
+  subtotal: 'subtotal',
+  discountAmount: 'discountAmount',
+  taxableAmount: 'taxableAmount',
+  cgst: 'cgst',
+  sgst: 'sgst',
+  igst: 'igst',
+  total: 'total',
+  currency: 'currency',
+  scope: 'scope',
+  exclusions: 'exclusions',
+  paymentTerms: 'paymentTerms',
+  deliveryTerms: 'deliveryTerms',
+  internalNotes: 'internalNotes',
+  summary: 'summary',
+  sentAt: 'sentAt',
+  acceptedAt: 'acceptedAt',
+  rejectedAt: 'rejectedAt',
+  acceptedBy: 'acceptedBy',
+  nextFollowUpAt: 'nextFollowUpAt',
+  lastContactedAt: 'lastContactedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuotationLineItemScalarFieldEnum = {
+  id: 'id',
+  quotationId: 'quotationId',
+  category: 'category',
+  description: 'description',
+  unit: 'unit',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  discount: 'discount',
+  lineTotal: 'lineTotal',
+  sortOrder: 'sortOrder',
+  sac: 'sac'
+};
+
+exports.Prisma.QuotationActivityScalarFieldEnum = {
+  id: 'id',
+  quotationId: 'quotationId',
+  kind: 'kind',
+  subject: 'subject',
+  body: 'body',
+  outcome: 'outcome',
+  actor: 'actor',
+  at: 'at',
+  isScheduled: 'isScheduled',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AgreementScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  quotationId: 'quotationId',
+  number: 'number',
+  fy: 'fy',
+  serial: 'serial',
+  status: 'status',
+  title: 'title',
+  clauses: 'clauses',
+  effectiveFrom: 'effectiveFrom',
+  termMonths: 'termMonths',
+  noticeDays: 'noticeDays',
+  autoRenew: 'autoRenew',
+  clientName: 'clientName',
+  clientAddress: 'clientAddress',
+  clientGSTIN: 'clientGSTIN',
+  providerName: 'providerName',
+  providerAddress: 'providerAddress',
+  providerGSTIN: 'providerGSTIN',
+  setupFee: 'setupFee',
+  yearlyFee: 'yearlyFee',
+  monthlyFee: 'monthlyFee',
+  currency: 'currency',
+  providerSignedBy: 'providerSignedBy',
+  providerSignedAt: 'providerSignedAt',
+  clientSignedByName: 'clientSignedByName',
+  clientSignedByRole: 'clientSignedByRole',
+  clientSignedAt: 'clientSignedAt',
+  clientSignatureRef: 'clientSignatureRef',
+  issuedAt: 'issuedAt',
+  terminatedAt: 'terminatedAt',
+  terminationReason: 'terminationReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -321,6 +433,53 @@ exports.InvoiceStatus = exports.$Enums.InvoiceStatus = {
   VOID: 'VOID'
 };
 
+exports.QuotationStatus = exports.$Enums.QuotationStatus = {
+  DRAFT: 'DRAFT',
+  SENT: 'SENT',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.PipelineStage = exports.$Enums.PipelineStage = {
+  NEW_LEAD: 'NEW_LEAD',
+  QUALIFIED: 'QUALIFIED',
+  QUOTE_SENT: 'QUOTE_SENT',
+  FOLLOW_UP: 'FOLLOW_UP',
+  NEGOTIATION: 'NEGOTIATION',
+  CLOSED_WON: 'CLOSED_WON',
+  CLOSED_LOST: 'CLOSED_LOST'
+};
+
+exports.QuotationLineCategory = exports.$Enums.QuotationLineCategory = {
+  SOFTWARE: 'SOFTWARE',
+  IMPLEMENTATION: 'IMPLEMENTATION',
+  TRAINING: 'TRAINING',
+  CUSTOMIZATION: 'CUSTOMIZATION',
+  DATA_MIGRATION: 'DATA_MIGRATION',
+  SUPPORT: 'SUPPORT',
+  HARDWARE: 'HARDWARE',
+  OTHER: 'OTHER'
+};
+
+exports.ActivityKind = exports.$Enums.ActivityKind = {
+  CALL: 'CALL',
+  EMAIL_SENT: 'EMAIL_SENT',
+  EMAIL_RECEIVED: 'EMAIL_RECEIVED',
+  MEETING: 'MEETING',
+  WHATSAPP: 'WHATSAPP',
+  SITE_VISIT: 'SITE_VISIT',
+  NOTE: 'NOTE'
+};
+
+exports.AgreementStatus = exports.$Enums.AgreementStatus = {
+  DRAFT: 'DRAFT',
+  AWAITING_SIGN: 'AWAITING_SIGN',
+  ACTIVE: 'ACTIVE',
+  TERMINATED: 'TERMINATED',
+  EXPIRED: 'EXPIRED'
+};
+
 exports.Prisma.ModelName = {
   ProviderUser: 'ProviderUser',
   ClinicAccount: 'ClinicAccount',
@@ -328,7 +487,11 @@ exports.Prisma.ModelName = {
   ActivityLog: 'ActivityLog',
   HealthCheck: 'HealthCheck',
   Invoice: 'Invoice',
-  PlanChange: 'PlanChange'
+  PlanChange: 'PlanChange',
+  Quotation: 'Quotation',
+  QuotationLineItem: 'QuotationLineItem',
+  QuotationActivity: 'QuotationActivity',
+  Agreement: 'Agreement'
 };
 
 /**

@@ -23,6 +23,13 @@ import { env } from "../config/env.js";
  *   FOUNDER_CC_EMAIL - CCed so a copy always reaches the founder
  */
 
+export interface EmailAttachment {
+  filename: string;
+  /** PDF or other binary payload. Encoded base64 on the way to Resend. */
+  content: Buffer;
+  contentType?: string;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
@@ -30,6 +37,8 @@ export interface EmailMessage {
   html?: string;
   cc?: string[];
   tag?: string;
+  /** Files attached to the message. Both transports support this. */
+  attachments?: EmailAttachment[];
 }
 
 type Transport = "smtp" | "resend" | "none";
@@ -86,6 +95,11 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
         text: message.text,
         html: message.html,
         headers: message.tag ? { "X-Entity-Ref-ID": message.tag } : undefined,
+        attachments: message.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType ?? "application/pdf",
+        })),
       });
       console.log(`[email] sent via smtp: to=${message.to} id=${info.messageId}`);
       return true;
@@ -105,6 +119,13 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
   if (message.html) body.html = message.html;
   if (cc.length) body.cc = cc;
   if (message.tag) body.tags = [{ name: "stream", value: message.tag }];
+  if (message.attachments?.length) {
+    body.attachments = message.attachments.map((a) => ({
+      filename: a.filename,
+      content: a.content.toString("base64"),
+      content_type: a.contentType ?? "application/pdf",
+    }));
+  }
 
   try {
     const response = await fetch("https://api.resend.com/emails", {

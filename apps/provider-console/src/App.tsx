@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
-import { LogOut, Building2, Receipt, Presentation } from "lucide-react";
+import { LogOut, Building2, Receipt, Presentation, FileText } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import { Login } from "./pages/Login";
@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 import { Billing } from "./pages/Billing";
 import { Demos } from "./pages/Demos";
 import { InvoiceView } from "./pages/InvoiceView";
+import { Quotations } from "./pages/Quotations";
+import { QuotationDetail } from "./pages/QuotationDetail";
+import { AgreementDetail } from "./pages/AgreementDetail";
 
 function Booting({ label }: { label: string }) {
   return (
@@ -57,6 +60,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const onClinics = pathname === "/" || pathname.startsWith("/clinics");
   const onBilling = pathname.startsWith("/billing") || pathname.startsWith("/invoices");
   const onDemos = pathname.startsWith("/demos");
+  const onPipeline = pathname.startsWith("/quotations") || pathname.startsWith("/agreements");
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,6 +88,18 @@ function Shell({ children }: { children: React.ReactNode }) {
             >
               <Building2 className="size-4" />
               Clinics
+            </Link>
+            <Link
+              to="/quotations"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+                onPipeline
+                  ? "bg-accent font-semibold text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              )}
+            >
+              <FileText className="size-4" />
+              Pipeline
             </Link>
             <Link
               to="/billing"
@@ -137,6 +153,9 @@ export default function App() {
             <Route path="/billing" element={<Protected><Shell><Billing /></Shell></Protected>} />
             <Route path="/demos" element={<Protected><Shell><Demos /></Shell></Protected>} />
             <Route path="/invoices/:id" element={<Protected><Shell><InvoiceView /></Shell></Protected>} />
+            <Route path="/quotations" element={<Protected><Shell><Quotations /></Shell></Protected>} />
+            <Route path="/quotations/:id" element={<Protected><Shell><QuotationDetail /></Shell></Protected>} />
+            <Route path="/agreements/:id" element={<Protected><Shell><AgreementDetail /></Shell></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

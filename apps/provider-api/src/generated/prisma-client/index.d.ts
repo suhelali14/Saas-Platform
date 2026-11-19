@@ -59,6 +59,37 @@ export type Invoice = $Result.DefaultSelection<Prisma.$InvoicePayload>
  * agreed it" a year later.
  */
 export type PlanChange = $Result.DefaultSelection<Prisma.$PlanChangePayload>
+/**
+ * Model Quotation
+ * What a deal looks like before the client has agreed to it.
+ * 
+ * Three documents move the money in this product: a quotation, then an
+ * agreement, then invoices. The quotation is the one that costs us
+ * nothing to change -- line items go up and down, discounts come and
+ * go, the client is weighing whether to buy. The moment it is sent, it
+ * is locked: an Edit sends a new Version instead, so an audit still
+ * reads back what the client saw.
+ */
+export type Quotation = $Result.DefaultSelection<Prisma.$QuotationPayload>
+/**
+ * Model QuotationLineItem
+ * 
+ */
+export type QuotationLineItem = $Result.DefaultSelection<Prisma.$QuotationLineItemPayload>
+/**
+ * Model QuotationActivity
+ * A touch -- a call, an email, a meeting, a WhatsApp -- against a deal.
+ * The funnel view groups these to answer "when did we last talk to
+ * this clinic" so nobody gets forgotten between the ten they are open
+ * with. Emails sent from the console write one of these automatically.
+ */
+export type QuotationActivity = $Result.DefaultSelection<Prisma.$QuotationActivityPayload>
+/**
+ * Model Agreement
+ * The signed contract. One deal, one agreement, built from the
+ * accepted quotation.
+ */
+export type Agreement = $Result.DefaultSelection<Prisma.$AgreementPayload>
 
 /**
  * Enums
@@ -120,6 +151,68 @@ export const InvoiceStatus: {
 
 export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus]
 
+
+export const QuotationStatus: {
+  DRAFT: 'DRAFT',
+  SENT: 'SENT',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type QuotationStatus = (typeof QuotationStatus)[keyof typeof QuotationStatus]
+
+
+export const QuotationLineCategory: {
+  SOFTWARE: 'SOFTWARE',
+  IMPLEMENTATION: 'IMPLEMENTATION',
+  TRAINING: 'TRAINING',
+  CUSTOMIZATION: 'CUSTOMIZATION',
+  DATA_MIGRATION: 'DATA_MIGRATION',
+  SUPPORT: 'SUPPORT',
+  HARDWARE: 'HARDWARE',
+  OTHER: 'OTHER'
+};
+
+export type QuotationLineCategory = (typeof QuotationLineCategory)[keyof typeof QuotationLineCategory]
+
+
+export const AgreementStatus: {
+  DRAFT: 'DRAFT',
+  AWAITING_SIGN: 'AWAITING_SIGN',
+  ACTIVE: 'ACTIVE',
+  TERMINATED: 'TERMINATED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type AgreementStatus = (typeof AgreementStatus)[keyof typeof AgreementStatus]
+
+
+export const PipelineStage: {
+  NEW_LEAD: 'NEW_LEAD',
+  QUALIFIED: 'QUALIFIED',
+  QUOTE_SENT: 'QUOTE_SENT',
+  FOLLOW_UP: 'FOLLOW_UP',
+  NEGOTIATION: 'NEGOTIATION',
+  CLOSED_WON: 'CLOSED_WON',
+  CLOSED_LOST: 'CLOSED_LOST'
+};
+
+export type PipelineStage = (typeof PipelineStage)[keyof typeof PipelineStage]
+
+
+export const ActivityKind: {
+  CALL: 'CALL',
+  EMAIL_SENT: 'EMAIL_SENT',
+  EMAIL_RECEIVED: 'EMAIL_RECEIVED',
+  MEETING: 'MEETING',
+  WHATSAPP: 'WHATSAPP',
+  SITE_VISIT: 'SITE_VISIT',
+  NOTE: 'NOTE'
+};
+
+export type ActivityKind = (typeof ActivityKind)[keyof typeof ActivityKind]
+
 }
 
 export type ProviderRole = $Enums.ProviderRole
@@ -145,6 +238,26 @@ export const PricingModel: typeof $Enums.PricingModel
 export type InvoiceStatus = $Enums.InvoiceStatus
 
 export const InvoiceStatus: typeof $Enums.InvoiceStatus
+
+export type QuotationStatus = $Enums.QuotationStatus
+
+export const QuotationStatus: typeof $Enums.QuotationStatus
+
+export type QuotationLineCategory = $Enums.QuotationLineCategory
+
+export const QuotationLineCategory: typeof $Enums.QuotationLineCategory
+
+export type AgreementStatus = $Enums.AgreementStatus
+
+export const AgreementStatus: typeof $Enums.AgreementStatus
+
+export type PipelineStage = $Enums.PipelineStage
+
+export const PipelineStage: typeof $Enums.PipelineStage
+
+export type ActivityKind = $Enums.ActivityKind
+
+export const ActivityKind: typeof $Enums.ActivityKind
 
 /**
  * ##  Prisma Client ʲˢ
@@ -333,6 +446,46 @@ export class PrismaClient<
     * ```
     */
   get planChange(): Prisma.PlanChangeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.quotation`: Exposes CRUD operations for the **Quotation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Quotations
+    * const quotations = await prisma.quotation.findMany()
+    * ```
+    */
+  get quotation(): Prisma.QuotationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.quotationLineItem`: Exposes CRUD operations for the **QuotationLineItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more QuotationLineItems
+    * const quotationLineItems = await prisma.quotationLineItem.findMany()
+    * ```
+    */
+  get quotationLineItem(): Prisma.QuotationLineItemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.quotationActivity`: Exposes CRUD operations for the **QuotationActivity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more QuotationActivities
+    * const quotationActivities = await prisma.quotationActivity.findMany()
+    * ```
+    */
+  get quotationActivity(): Prisma.QuotationActivityDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agreement`: Exposes CRUD operations for the **Agreement** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Agreements
+    * const agreements = await prisma.agreement.findMany()
+    * ```
+    */
+  get agreement(): Prisma.AgreementDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -780,7 +933,11 @@ export namespace Prisma {
     ActivityLog: 'ActivityLog',
     HealthCheck: 'HealthCheck',
     Invoice: 'Invoice',
-    PlanChange: 'PlanChange'
+    PlanChange: 'PlanChange',
+    Quotation: 'Quotation',
+    QuotationLineItem: 'QuotationLineItem',
+    QuotationActivity: 'QuotationActivity',
+    Agreement: 'Agreement'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -799,7 +956,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "providerUser" | "clinicAccount" | "onboardingStep" | "activityLog" | "healthCheck" | "invoice" | "planChange"
+      modelProps: "providerUser" | "clinicAccount" | "onboardingStep" | "activityLog" | "healthCheck" | "invoice" | "planChange" | "quotation" | "quotationLineItem" | "quotationActivity" | "agreement"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1321,6 +1478,302 @@ export namespace Prisma {
           }
         }
       }
+      Quotation: {
+        payload: Prisma.$QuotationPayload<ExtArgs>
+        fields: Prisma.QuotationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QuotationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QuotationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          findFirst: {
+            args: Prisma.QuotationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QuotationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          findMany: {
+            args: Prisma.QuotationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>[]
+          }
+          create: {
+            args: Prisma.QuotationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          createMany: {
+            args: Prisma.QuotationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QuotationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>[]
+          }
+          delete: {
+            args: Prisma.QuotationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          update: {
+            args: Prisma.QuotationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          deleteMany: {
+            args: Prisma.QuotationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QuotationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QuotationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>[]
+          }
+          upsert: {
+            args: Prisma.QuotationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationPayload>
+          }
+          aggregate: {
+            args: Prisma.QuotationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQuotation>
+          }
+          groupBy: {
+            args: Prisma.QuotationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QuotationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QuotationCountArgs<ExtArgs>
+            result: $Utils.Optional<QuotationCountAggregateOutputType> | number
+          }
+        }
+      }
+      QuotationLineItem: {
+        payload: Prisma.$QuotationLineItemPayload<ExtArgs>
+        fields: Prisma.QuotationLineItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QuotationLineItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QuotationLineItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          findFirst: {
+            args: Prisma.QuotationLineItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QuotationLineItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          findMany: {
+            args: Prisma.QuotationLineItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>[]
+          }
+          create: {
+            args: Prisma.QuotationLineItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          createMany: {
+            args: Prisma.QuotationLineItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QuotationLineItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>[]
+          }
+          delete: {
+            args: Prisma.QuotationLineItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          update: {
+            args: Prisma.QuotationLineItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.QuotationLineItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QuotationLineItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QuotationLineItemUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>[]
+          }
+          upsert: {
+            args: Prisma.QuotationLineItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationLineItemPayload>
+          }
+          aggregate: {
+            args: Prisma.QuotationLineItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQuotationLineItem>
+          }
+          groupBy: {
+            args: Prisma.QuotationLineItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QuotationLineItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QuotationLineItemCountArgs<ExtArgs>
+            result: $Utils.Optional<QuotationLineItemCountAggregateOutputType> | number
+          }
+        }
+      }
+      QuotationActivity: {
+        payload: Prisma.$QuotationActivityPayload<ExtArgs>
+        fields: Prisma.QuotationActivityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QuotationActivityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QuotationActivityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          findFirst: {
+            args: Prisma.QuotationActivityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QuotationActivityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          findMany: {
+            args: Prisma.QuotationActivityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>[]
+          }
+          create: {
+            args: Prisma.QuotationActivityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          createMany: {
+            args: Prisma.QuotationActivityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QuotationActivityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>[]
+          }
+          delete: {
+            args: Prisma.QuotationActivityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          update: {
+            args: Prisma.QuotationActivityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          deleteMany: {
+            args: Prisma.QuotationActivityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QuotationActivityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QuotationActivityUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>[]
+          }
+          upsert: {
+            args: Prisma.QuotationActivityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QuotationActivityPayload>
+          }
+          aggregate: {
+            args: Prisma.QuotationActivityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQuotationActivity>
+          }
+          groupBy: {
+            args: Prisma.QuotationActivityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QuotationActivityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QuotationActivityCountArgs<ExtArgs>
+            result: $Utils.Optional<QuotationActivityCountAggregateOutputType> | number
+          }
+        }
+      }
+      Agreement: {
+        payload: Prisma.$AgreementPayload<ExtArgs>
+        fields: Prisma.AgreementFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgreementFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgreementFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          findFirst: {
+            args: Prisma.AgreementFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgreementFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          findMany: {
+            args: Prisma.AgreementFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>[]
+          }
+          create: {
+            args: Prisma.AgreementCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          createMany: {
+            args: Prisma.AgreementCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgreementCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>[]
+          }
+          delete: {
+            args: Prisma.AgreementDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          update: {
+            args: Prisma.AgreementUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgreementDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgreementUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgreementUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgreementUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgreementPayload>
+          }
+          aggregate: {
+            args: Prisma.AgreementAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgreement>
+          }
+          groupBy: {
+            args: Prisma.AgreementGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgreementGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgreementCountArgs<ExtArgs>
+            result: $Utils.Optional<AgreementCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1424,6 +1877,10 @@ export namespace Prisma {
     healthCheck?: HealthCheckOmit
     invoice?: InvoiceOmit
     planChange?: PlanChangeOmit
+    quotation?: QuotationOmit
+    quotationLineItem?: QuotationLineItemOmit
+    quotationActivity?: QuotationActivityOmit
+    agreement?: AgreementOmit
   }
 
   /* Types for Logging */
@@ -1540,6 +1997,8 @@ export namespace Prisma {
     health: number
     invoices: number
     planChanges: number
+    quotations: number
+    agreements: number
   }
 
   export type ClinicAccountCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1548,6 +2007,8 @@ export namespace Prisma {
     health?: boolean | ClinicAccountCountOutputTypeCountHealthArgs
     invoices?: boolean | ClinicAccountCountOutputTypeCountInvoicesArgs
     planChanges?: boolean | ClinicAccountCountOutputTypeCountPlanChangesArgs
+    quotations?: boolean | ClinicAccountCountOutputTypeCountQuotationsArgs
+    agreements?: boolean | ClinicAccountCountOutputTypeCountAgreementsArgs
   }
 
   // Custom InputTypes
@@ -1594,6 +2055,69 @@ export namespace Prisma {
    */
   export type ClinicAccountCountOutputTypeCountPlanChangesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PlanChangeWhereInput
+  }
+
+  /**
+   * ClinicAccountCountOutputType without action
+   */
+  export type ClinicAccountCountOutputTypeCountQuotationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationWhereInput
+  }
+
+  /**
+   * ClinicAccountCountOutputType without action
+   */
+  export type ClinicAccountCountOutputTypeCountAgreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgreementWhereInput
+  }
+
+
+  /**
+   * Count Type QuotationCountOutputType
+   */
+
+  export type QuotationCountOutputType = {
+    lineItems: number
+    activities: number
+    agreements: number
+  }
+
+  export type QuotationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lineItems?: boolean | QuotationCountOutputTypeCountLineItemsArgs
+    activities?: boolean | QuotationCountOutputTypeCountActivitiesArgs
+    agreements?: boolean | QuotationCountOutputTypeCountAgreementsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * QuotationCountOutputType without action
+   */
+  export type QuotationCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationCountOutputType
+     */
+    select?: QuotationCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * QuotationCountOutputType without action
+   */
+  export type QuotationCountOutputTypeCountLineItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationLineItemWhereInput
+  }
+
+  /**
+   * QuotationCountOutputType without action
+   */
+  export type QuotationCountOutputTypeCountActivitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationActivityWhereInput
+  }
+
+  /**
+   * QuotationCountOutputType without action
+   */
+  export type QuotationCountOutputTypeCountAgreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgreementWhereInput
   }
 
 
@@ -3216,6 +3740,8 @@ export namespace Prisma {
     health?: boolean | ClinicAccount$healthArgs<ExtArgs>
     invoices?: boolean | ClinicAccount$invoicesArgs<ExtArgs>
     planChanges?: boolean | ClinicAccount$planChangesArgs<ExtArgs>
+    quotations?: boolean | ClinicAccount$quotationsArgs<ExtArgs>
+    agreements?: boolean | ClinicAccount$agreementsArgs<ExtArgs>
     _count?: boolean | ClinicAccountCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["clinicAccount"]>
 
@@ -3361,6 +3887,8 @@ export namespace Prisma {
     health?: boolean | ClinicAccount$healthArgs<ExtArgs>
     invoices?: boolean | ClinicAccount$invoicesArgs<ExtArgs>
     planChanges?: boolean | ClinicAccount$planChangesArgs<ExtArgs>
+    quotations?: boolean | ClinicAccount$quotationsArgs<ExtArgs>
+    agreements?: boolean | ClinicAccount$agreementsArgs<ExtArgs>
     _count?: boolean | ClinicAccountCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ClinicAccountIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3374,6 +3902,8 @@ export namespace Prisma {
       health: Prisma.$HealthCheckPayload<ExtArgs>[]
       invoices: Prisma.$InvoicePayload<ExtArgs>[]
       planChanges: Prisma.$PlanChangePayload<ExtArgs>[]
+      quotations: Prisma.$QuotationPayload<ExtArgs>[]
+      agreements: Prisma.$AgreementPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3848,6 +4378,8 @@ export namespace Prisma {
     health<T extends ClinicAccount$healthArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$healthArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HealthCheckPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     invoices<T extends ClinicAccount$invoicesArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     planChanges<T extends ClinicAccount$planChangesArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$planChangesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    quotations<T extends ClinicAccount$quotationsArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$quotationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agreements<T extends ClinicAccount$agreementsArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccount$agreementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4424,6 +4956,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PlanChangeScalarFieldEnum | PlanChangeScalarFieldEnum[]
+  }
+
+  /**
+   * ClinicAccount.quotations
+   */
+  export type ClinicAccount$quotationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    where?: QuotationWhereInput
+    orderBy?: QuotationOrderByWithRelationInput | QuotationOrderByWithRelationInput[]
+    cursor?: QuotationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QuotationScalarFieldEnum | QuotationScalarFieldEnum[]
+  }
+
+  /**
+   * ClinicAccount.agreements
+   */
+  export type ClinicAccount$agreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    where?: AgreementWhereInput
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    cursor?: AgreementWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgreementScalarFieldEnum | AgreementScalarFieldEnum[]
   }
 
   /**
@@ -10406,6 +10986,5607 @@ export namespace Prisma {
 
 
   /**
+   * Model Quotation
+   */
+
+  export type AggregateQuotation = {
+    _count: QuotationCountAggregateOutputType | null
+    _avg: QuotationAvgAggregateOutputType | null
+    _sum: QuotationSumAggregateOutputType | null
+    _min: QuotationMinAggregateOutputType | null
+    _max: QuotationMaxAggregateOutputType | null
+  }
+
+  export type QuotationAvgAggregateOutputType = {
+    serial: number | null
+    version: number | null
+    subtotal: Decimal | null
+    discountAmount: Decimal | null
+    taxableAmount: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+  }
+
+  export type QuotationSumAggregateOutputType = {
+    serial: number | null
+    version: number | null
+    subtotal: Decimal | null
+    discountAmount: Decimal | null
+    taxableAmount: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+  }
+
+  export type QuotationMinAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    version: number | null
+    status: $Enums.QuotationStatus | null
+    stage: $Enums.PipelineStage | null
+    title: string | null
+    planTier: $Enums.PlanTier | null
+    clientName: string | null
+    clientAddress: string | null
+    clientGSTIN: string | null
+    clientState: string | null
+    clientContact: string | null
+    clientEmail: string | null
+    clientPhone: string | null
+    providerName: string | null
+    providerAddress: string | null
+    providerGSTIN: string | null
+    providerState: string | null
+    validUntil: Date | null
+    subtotal: Decimal | null
+    discountAmount: Decimal | null
+    taxableAmount: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+    currency: string | null
+    scope: string | null
+    exclusions: string | null
+    paymentTerms: string | null
+    deliveryTerms: string | null
+    internalNotes: string | null
+    summary: string | null
+    sentAt: Date | null
+    acceptedAt: Date | null
+    rejectedAt: Date | null
+    acceptedBy: string | null
+    nextFollowUpAt: Date | null
+    lastContactedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QuotationMaxAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    version: number | null
+    status: $Enums.QuotationStatus | null
+    stage: $Enums.PipelineStage | null
+    title: string | null
+    planTier: $Enums.PlanTier | null
+    clientName: string | null
+    clientAddress: string | null
+    clientGSTIN: string | null
+    clientState: string | null
+    clientContact: string | null
+    clientEmail: string | null
+    clientPhone: string | null
+    providerName: string | null
+    providerAddress: string | null
+    providerGSTIN: string | null
+    providerState: string | null
+    validUntil: Date | null
+    subtotal: Decimal | null
+    discountAmount: Decimal | null
+    taxableAmount: Decimal | null
+    cgst: Decimal | null
+    sgst: Decimal | null
+    igst: Decimal | null
+    total: Decimal | null
+    currency: string | null
+    scope: string | null
+    exclusions: string | null
+    paymentTerms: string | null
+    deliveryTerms: string | null
+    internalNotes: string | null
+    summary: string | null
+    sentAt: Date | null
+    acceptedAt: Date | null
+    rejectedAt: Date | null
+    acceptedBy: string | null
+    nextFollowUpAt: Date | null
+    lastContactedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QuotationCountAggregateOutputType = {
+    id: number
+    accountId: number
+    number: number
+    fy: number
+    serial: number
+    version: number
+    status: number
+    stage: number
+    title: number
+    planTier: number
+    clientName: number
+    clientAddress: number
+    clientGSTIN: number
+    clientState: number
+    clientContact: number
+    clientEmail: number
+    clientPhone: number
+    providerName: number
+    providerAddress: number
+    providerGSTIN: number
+    providerState: number
+    validUntil: number
+    subtotal: number
+    discountAmount: number
+    taxableAmount: number
+    cgst: number
+    sgst: number
+    igst: number
+    total: number
+    currency: number
+    scope: number
+    exclusions: number
+    paymentTerms: number
+    deliveryTerms: number
+    internalNotes: number
+    summary: number
+    sentAt: number
+    acceptedAt: number
+    rejectedAt: number
+    acceptedBy: number
+    nextFollowUpAt: number
+    lastContactedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type QuotationAvgAggregateInputType = {
+    serial?: true
+    version?: true
+    subtotal?: true
+    discountAmount?: true
+    taxableAmount?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+  }
+
+  export type QuotationSumAggregateInputType = {
+    serial?: true
+    version?: true
+    subtotal?: true
+    discountAmount?: true
+    taxableAmount?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+  }
+
+  export type QuotationMinAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    version?: true
+    status?: true
+    stage?: true
+    title?: true
+    planTier?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    clientState?: true
+    clientContact?: true
+    clientEmail?: true
+    clientPhone?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    providerState?: true
+    validUntil?: true
+    subtotal?: true
+    discountAmount?: true
+    taxableAmount?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    currency?: true
+    scope?: true
+    exclusions?: true
+    paymentTerms?: true
+    deliveryTerms?: true
+    internalNotes?: true
+    summary?: true
+    sentAt?: true
+    acceptedAt?: true
+    rejectedAt?: true
+    acceptedBy?: true
+    nextFollowUpAt?: true
+    lastContactedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QuotationMaxAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    version?: true
+    status?: true
+    stage?: true
+    title?: true
+    planTier?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    clientState?: true
+    clientContact?: true
+    clientEmail?: true
+    clientPhone?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    providerState?: true
+    validUntil?: true
+    subtotal?: true
+    discountAmount?: true
+    taxableAmount?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    currency?: true
+    scope?: true
+    exclusions?: true
+    paymentTerms?: true
+    deliveryTerms?: true
+    internalNotes?: true
+    summary?: true
+    sentAt?: true
+    acceptedAt?: true
+    rejectedAt?: true
+    acceptedBy?: true
+    nextFollowUpAt?: true
+    lastContactedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QuotationCountAggregateInputType = {
+    id?: true
+    accountId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    version?: true
+    status?: true
+    stage?: true
+    title?: true
+    planTier?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    clientState?: true
+    clientContact?: true
+    clientEmail?: true
+    clientPhone?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    providerState?: true
+    validUntil?: true
+    subtotal?: true
+    discountAmount?: true
+    taxableAmount?: true
+    cgst?: true
+    sgst?: true
+    igst?: true
+    total?: true
+    currency?: true
+    scope?: true
+    exclusions?: true
+    paymentTerms?: true
+    deliveryTerms?: true
+    internalNotes?: true
+    summary?: true
+    sentAt?: true
+    acceptedAt?: true
+    rejectedAt?: true
+    acceptedBy?: true
+    nextFollowUpAt?: true
+    lastContactedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type QuotationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Quotation to aggregate.
+     */
+    where?: QuotationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Quotations to fetch.
+     */
+    orderBy?: QuotationOrderByWithRelationInput | QuotationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QuotationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Quotations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Quotations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Quotations
+    **/
+    _count?: true | QuotationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: QuotationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: QuotationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QuotationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QuotationMaxAggregateInputType
+  }
+
+  export type GetQuotationAggregateType<T extends QuotationAggregateArgs> = {
+        [P in keyof T & keyof AggregateQuotation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQuotation[P]>
+      : GetScalarType<T[P], AggregateQuotation[P]>
+  }
+
+
+
+
+  export type QuotationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationWhereInput
+    orderBy?: QuotationOrderByWithAggregationInput | QuotationOrderByWithAggregationInput[]
+    by: QuotationScalarFieldEnum[] | QuotationScalarFieldEnum
+    having?: QuotationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QuotationCountAggregateInputType | true
+    _avg?: QuotationAvgAggregateInputType
+    _sum?: QuotationSumAggregateInputType
+    _min?: QuotationMinAggregateInputType
+    _max?: QuotationMaxAggregateInputType
+  }
+
+  export type QuotationGroupByOutputType = {
+    id: string
+    accountId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    version: number
+    status: $Enums.QuotationStatus
+    stage: $Enums.PipelineStage
+    title: string
+    planTier: $Enums.PlanTier
+    clientName: string
+    clientAddress: string | null
+    clientGSTIN: string | null
+    clientState: string | null
+    clientContact: string | null
+    clientEmail: string | null
+    clientPhone: string | null
+    providerName: string
+    providerAddress: string | null
+    providerGSTIN: string | null
+    providerState: string | null
+    validUntil: Date | null
+    subtotal: Decimal
+    discountAmount: Decimal
+    taxableAmount: Decimal
+    cgst: Decimal
+    sgst: Decimal
+    igst: Decimal
+    total: Decimal
+    currency: string
+    scope: string | null
+    exclusions: string | null
+    paymentTerms: string | null
+    deliveryTerms: string | null
+    internalNotes: string | null
+    summary: string | null
+    sentAt: Date | null
+    acceptedAt: Date | null
+    rejectedAt: Date | null
+    acceptedBy: string | null
+    nextFollowUpAt: Date | null
+    lastContactedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: QuotationCountAggregateOutputType | null
+    _avg: QuotationAvgAggregateOutputType | null
+    _sum: QuotationSumAggregateOutputType | null
+    _min: QuotationMinAggregateOutputType | null
+    _max: QuotationMaxAggregateOutputType | null
+  }
+
+  type GetQuotationGroupByPayload<T extends QuotationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QuotationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QuotationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QuotationGroupByOutputType[P]>
+            : GetScalarType<T[P], QuotationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QuotationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    version?: boolean
+    status?: boolean
+    stage?: boolean
+    title?: boolean
+    planTier?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    clientState?: boolean
+    clientContact?: boolean
+    clientEmail?: boolean
+    clientPhone?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    providerState?: boolean
+    validUntil?: boolean
+    subtotal?: boolean
+    discountAmount?: boolean
+    taxableAmount?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    currency?: boolean
+    scope?: boolean
+    exclusions?: boolean
+    paymentTerms?: boolean
+    deliveryTerms?: boolean
+    internalNotes?: boolean
+    summary?: boolean
+    sentAt?: boolean
+    acceptedAt?: boolean
+    rejectedAt?: boolean
+    acceptedBy?: boolean
+    nextFollowUpAt?: boolean
+    lastContactedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+    lineItems?: boolean | Quotation$lineItemsArgs<ExtArgs>
+    activities?: boolean | Quotation$activitiesArgs<ExtArgs>
+    agreements?: boolean | Quotation$agreementsArgs<ExtArgs>
+    _count?: boolean | QuotationCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotation"]>
+
+  export type QuotationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    version?: boolean
+    status?: boolean
+    stage?: boolean
+    title?: boolean
+    planTier?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    clientState?: boolean
+    clientContact?: boolean
+    clientEmail?: boolean
+    clientPhone?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    providerState?: boolean
+    validUntil?: boolean
+    subtotal?: boolean
+    discountAmount?: boolean
+    taxableAmount?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    currency?: boolean
+    scope?: boolean
+    exclusions?: boolean
+    paymentTerms?: boolean
+    deliveryTerms?: boolean
+    internalNotes?: boolean
+    summary?: boolean
+    sentAt?: boolean
+    acceptedAt?: boolean
+    rejectedAt?: boolean
+    acceptedBy?: boolean
+    nextFollowUpAt?: boolean
+    lastContactedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+  }, ExtArgs["result"]["quotation"]>
+
+  export type QuotationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    version?: boolean
+    status?: boolean
+    stage?: boolean
+    title?: boolean
+    planTier?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    clientState?: boolean
+    clientContact?: boolean
+    clientEmail?: boolean
+    clientPhone?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    providerState?: boolean
+    validUntil?: boolean
+    subtotal?: boolean
+    discountAmount?: boolean
+    taxableAmount?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    currency?: boolean
+    scope?: boolean
+    exclusions?: boolean
+    paymentTerms?: boolean
+    deliveryTerms?: boolean
+    internalNotes?: boolean
+    summary?: boolean
+    sentAt?: boolean
+    acceptedAt?: boolean
+    rejectedAt?: boolean
+    acceptedBy?: boolean
+    nextFollowUpAt?: boolean
+    lastContactedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+  }, ExtArgs["result"]["quotation"]>
+
+  export type QuotationSelectScalar = {
+    id?: boolean
+    accountId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    version?: boolean
+    status?: boolean
+    stage?: boolean
+    title?: boolean
+    planTier?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    clientState?: boolean
+    clientContact?: boolean
+    clientEmail?: boolean
+    clientPhone?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    providerState?: boolean
+    validUntil?: boolean
+    subtotal?: boolean
+    discountAmount?: boolean
+    taxableAmount?: boolean
+    cgst?: boolean
+    sgst?: boolean
+    igst?: boolean
+    total?: boolean
+    currency?: boolean
+    scope?: boolean
+    exclusions?: boolean
+    paymentTerms?: boolean
+    deliveryTerms?: boolean
+    internalNotes?: boolean
+    summary?: boolean
+    sentAt?: boolean
+    acceptedAt?: boolean
+    rejectedAt?: boolean
+    acceptedBy?: boolean
+    nextFollowUpAt?: boolean
+    lastContactedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type QuotationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "accountId" | "number" | "fy" | "serial" | "version" | "status" | "stage" | "title" | "planTier" | "clientName" | "clientAddress" | "clientGSTIN" | "clientState" | "clientContact" | "clientEmail" | "clientPhone" | "providerName" | "providerAddress" | "providerGSTIN" | "providerState" | "validUntil" | "subtotal" | "discountAmount" | "taxableAmount" | "cgst" | "sgst" | "igst" | "total" | "currency" | "scope" | "exclusions" | "paymentTerms" | "deliveryTerms" | "internalNotes" | "summary" | "sentAt" | "acceptedAt" | "rejectedAt" | "acceptedBy" | "nextFollowUpAt" | "lastContactedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["quotation"]>
+  export type QuotationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+    lineItems?: boolean | Quotation$lineItemsArgs<ExtArgs>
+    activities?: boolean | Quotation$activitiesArgs<ExtArgs>
+    agreements?: boolean | Quotation$agreementsArgs<ExtArgs>
+    _count?: boolean | QuotationCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type QuotationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+  }
+  export type QuotationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | Quotation$accountArgs<ExtArgs>
+  }
+
+  export type $QuotationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Quotation"
+    objects: {
+      account: Prisma.$ClinicAccountPayload<ExtArgs> | null
+      lineItems: Prisma.$QuotationLineItemPayload<ExtArgs>[]
+      activities: Prisma.$QuotationActivityPayload<ExtArgs>[]
+      agreements: Prisma.$AgreementPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      accountId: string | null
+      /**
+       * NAY/Q/FY/0001. Null while draft; given on issue, consecutive
+       * within the financial year so an auditor reads them as a series.
+       */
+      number: string | null
+      fy: string | null
+      serial: number | null
+      /**
+       * A new version on edit after send, so the sent copy survives.
+       */
+      version: number
+      status: $Enums.QuotationStatus
+      /**
+       * Where in the sales pipeline this deal sits. Separate from status
+       * because a quote can be SENT but still be at NEGOTIATION, and the
+       * pipeline view the owner opens each morning is organised by stage.
+       */
+      stage: $Enums.PipelineStage
+      title: string
+      planTier: $Enums.PlanTier
+      clientName: string
+      clientAddress: string | null
+      clientGSTIN: string | null
+      clientState: string | null
+      clientContact: string | null
+      clientEmail: string | null
+      clientPhone: string | null
+      providerName: string
+      providerAddress: string | null
+      providerGSTIN: string | null
+      providerState: string | null
+      validUntil: Date | null
+      subtotal: Prisma.Decimal
+      discountAmount: Prisma.Decimal
+      taxableAmount: Prisma.Decimal
+      cgst: Prisma.Decimal
+      sgst: Prisma.Decimal
+      igst: Prisma.Decimal
+      total: Prisma.Decimal
+      currency: string
+      scope: string | null
+      exclusions: string | null
+      paymentTerms: string | null
+      deliveryTerms: string | null
+      internalNotes: string | null
+      summary: string | null
+      sentAt: Date | null
+      acceptedAt: Date | null
+      rejectedAt: Date | null
+      acceptedBy: string | null
+      /**
+       * When the owner should next follow up, so the pipeline view opens
+       * each morning showing what is overdue rather than what is new.
+       */
+      nextFollowUpAt: Date | null
+      lastContactedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["quotation"]>
+    composites: {}
+  }
+
+  type QuotationGetPayload<S extends boolean | null | undefined | QuotationDefaultArgs> = $Result.GetResult<Prisma.$QuotationPayload, S>
+
+  type QuotationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QuotationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QuotationCountAggregateInputType | true
+    }
+
+  export interface QuotationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Quotation'], meta: { name: 'Quotation' } }
+    /**
+     * Find zero or one Quotation that matches the filter.
+     * @param {QuotationFindUniqueArgs} args - Arguments to find a Quotation
+     * @example
+     * // Get one Quotation
+     * const quotation = await prisma.quotation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QuotationFindUniqueArgs>(args: SelectSubset<T, QuotationFindUniqueArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Quotation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QuotationFindUniqueOrThrowArgs} args - Arguments to find a Quotation
+     * @example
+     * // Get one Quotation
+     * const quotation = await prisma.quotation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QuotationFindUniqueOrThrowArgs>(args: SelectSubset<T, QuotationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Quotation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationFindFirstArgs} args - Arguments to find a Quotation
+     * @example
+     * // Get one Quotation
+     * const quotation = await prisma.quotation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QuotationFindFirstArgs>(args?: SelectSubset<T, QuotationFindFirstArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Quotation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationFindFirstOrThrowArgs} args - Arguments to find a Quotation
+     * @example
+     * // Get one Quotation
+     * const quotation = await prisma.quotation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QuotationFindFirstOrThrowArgs>(args?: SelectSubset<T, QuotationFindFirstOrThrowArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Quotations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Quotations
+     * const quotations = await prisma.quotation.findMany()
+     * 
+     * // Get first 10 Quotations
+     * const quotations = await prisma.quotation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const quotationWithIdOnly = await prisma.quotation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QuotationFindManyArgs>(args?: SelectSubset<T, QuotationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Quotation.
+     * @param {QuotationCreateArgs} args - Arguments to create a Quotation.
+     * @example
+     * // Create one Quotation
+     * const Quotation = await prisma.quotation.create({
+     *   data: {
+     *     // ... data to create a Quotation
+     *   }
+     * })
+     * 
+     */
+    create<T extends QuotationCreateArgs>(args: SelectSubset<T, QuotationCreateArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Quotations.
+     * @param {QuotationCreateManyArgs} args - Arguments to create many Quotations.
+     * @example
+     * // Create many Quotations
+     * const quotation = await prisma.quotation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QuotationCreateManyArgs>(args?: SelectSubset<T, QuotationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Quotations and returns the data saved in the database.
+     * @param {QuotationCreateManyAndReturnArgs} args - Arguments to create many Quotations.
+     * @example
+     * // Create many Quotations
+     * const quotation = await prisma.quotation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Quotations and only return the `id`
+     * const quotationWithIdOnly = await prisma.quotation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QuotationCreateManyAndReturnArgs>(args?: SelectSubset<T, QuotationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Quotation.
+     * @param {QuotationDeleteArgs} args - Arguments to delete one Quotation.
+     * @example
+     * // Delete one Quotation
+     * const Quotation = await prisma.quotation.delete({
+     *   where: {
+     *     // ... filter to delete one Quotation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QuotationDeleteArgs>(args: SelectSubset<T, QuotationDeleteArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Quotation.
+     * @param {QuotationUpdateArgs} args - Arguments to update one Quotation.
+     * @example
+     * // Update one Quotation
+     * const quotation = await prisma.quotation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QuotationUpdateArgs>(args: SelectSubset<T, QuotationUpdateArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Quotations.
+     * @param {QuotationDeleteManyArgs} args - Arguments to filter Quotations to delete.
+     * @example
+     * // Delete a few Quotations
+     * const { count } = await prisma.quotation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QuotationDeleteManyArgs>(args?: SelectSubset<T, QuotationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Quotations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Quotations
+     * const quotation = await prisma.quotation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QuotationUpdateManyArgs>(args: SelectSubset<T, QuotationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Quotations and returns the data updated in the database.
+     * @param {QuotationUpdateManyAndReturnArgs} args - Arguments to update many Quotations.
+     * @example
+     * // Update many Quotations
+     * const quotation = await prisma.quotation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Quotations and only return the `id`
+     * const quotationWithIdOnly = await prisma.quotation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QuotationUpdateManyAndReturnArgs>(args: SelectSubset<T, QuotationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Quotation.
+     * @param {QuotationUpsertArgs} args - Arguments to update or create a Quotation.
+     * @example
+     * // Update or create a Quotation
+     * const quotation = await prisma.quotation.upsert({
+     *   create: {
+     *     // ... data to create a Quotation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Quotation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QuotationUpsertArgs>(args: SelectSubset<T, QuotationUpsertArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Quotations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationCountArgs} args - Arguments to filter Quotations to count.
+     * @example
+     * // Count the number of Quotations
+     * const count = await prisma.quotation.count({
+     *   where: {
+     *     // ... the filter for the Quotations we want to count
+     *   }
+     * })
+    **/
+    count<T extends QuotationCountArgs>(
+      args?: Subset<T, QuotationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QuotationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Quotation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QuotationAggregateArgs>(args: Subset<T, QuotationAggregateArgs>): Prisma.PrismaPromise<GetQuotationAggregateType<T>>
+
+    /**
+     * Group by Quotation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QuotationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QuotationGroupByArgs['orderBy'] }
+        : { orderBy?: QuotationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QuotationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQuotationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Quotation model
+   */
+  readonly fields: QuotationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Quotation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QuotationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    account<T extends Quotation$accountArgs<ExtArgs> = {}>(args?: Subset<T, Quotation$accountArgs<ExtArgs>>): Prisma__ClinicAccountClient<$Result.GetResult<Prisma.$ClinicAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    lineItems<T extends Quotation$lineItemsArgs<ExtArgs> = {}>(args?: Subset<T, Quotation$lineItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    activities<T extends Quotation$activitiesArgs<ExtArgs> = {}>(args?: Subset<T, Quotation$activitiesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agreements<T extends Quotation$agreementsArgs<ExtArgs> = {}>(args?: Subset<T, Quotation$agreementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Quotation model
+   */
+  interface QuotationFieldRefs {
+    readonly id: FieldRef<"Quotation", 'String'>
+    readonly accountId: FieldRef<"Quotation", 'String'>
+    readonly number: FieldRef<"Quotation", 'String'>
+    readonly fy: FieldRef<"Quotation", 'String'>
+    readonly serial: FieldRef<"Quotation", 'Int'>
+    readonly version: FieldRef<"Quotation", 'Int'>
+    readonly status: FieldRef<"Quotation", 'QuotationStatus'>
+    readonly stage: FieldRef<"Quotation", 'PipelineStage'>
+    readonly title: FieldRef<"Quotation", 'String'>
+    readonly planTier: FieldRef<"Quotation", 'PlanTier'>
+    readonly clientName: FieldRef<"Quotation", 'String'>
+    readonly clientAddress: FieldRef<"Quotation", 'String'>
+    readonly clientGSTIN: FieldRef<"Quotation", 'String'>
+    readonly clientState: FieldRef<"Quotation", 'String'>
+    readonly clientContact: FieldRef<"Quotation", 'String'>
+    readonly clientEmail: FieldRef<"Quotation", 'String'>
+    readonly clientPhone: FieldRef<"Quotation", 'String'>
+    readonly providerName: FieldRef<"Quotation", 'String'>
+    readonly providerAddress: FieldRef<"Quotation", 'String'>
+    readonly providerGSTIN: FieldRef<"Quotation", 'String'>
+    readonly providerState: FieldRef<"Quotation", 'String'>
+    readonly validUntil: FieldRef<"Quotation", 'DateTime'>
+    readonly subtotal: FieldRef<"Quotation", 'Decimal'>
+    readonly discountAmount: FieldRef<"Quotation", 'Decimal'>
+    readonly taxableAmount: FieldRef<"Quotation", 'Decimal'>
+    readonly cgst: FieldRef<"Quotation", 'Decimal'>
+    readonly sgst: FieldRef<"Quotation", 'Decimal'>
+    readonly igst: FieldRef<"Quotation", 'Decimal'>
+    readonly total: FieldRef<"Quotation", 'Decimal'>
+    readonly currency: FieldRef<"Quotation", 'String'>
+    readonly scope: FieldRef<"Quotation", 'String'>
+    readonly exclusions: FieldRef<"Quotation", 'String'>
+    readonly paymentTerms: FieldRef<"Quotation", 'String'>
+    readonly deliveryTerms: FieldRef<"Quotation", 'String'>
+    readonly internalNotes: FieldRef<"Quotation", 'String'>
+    readonly summary: FieldRef<"Quotation", 'String'>
+    readonly sentAt: FieldRef<"Quotation", 'DateTime'>
+    readonly acceptedAt: FieldRef<"Quotation", 'DateTime'>
+    readonly rejectedAt: FieldRef<"Quotation", 'DateTime'>
+    readonly acceptedBy: FieldRef<"Quotation", 'String'>
+    readonly nextFollowUpAt: FieldRef<"Quotation", 'DateTime'>
+    readonly lastContactedAt: FieldRef<"Quotation", 'DateTime'>
+    readonly createdAt: FieldRef<"Quotation", 'DateTime'>
+    readonly updatedAt: FieldRef<"Quotation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Quotation findUnique
+   */
+  export type QuotationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter, which Quotation to fetch.
+     */
+    where: QuotationWhereUniqueInput
+  }
+
+  /**
+   * Quotation findUniqueOrThrow
+   */
+  export type QuotationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter, which Quotation to fetch.
+     */
+    where: QuotationWhereUniqueInput
+  }
+
+  /**
+   * Quotation findFirst
+   */
+  export type QuotationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter, which Quotation to fetch.
+     */
+    where?: QuotationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Quotations to fetch.
+     */
+    orderBy?: QuotationOrderByWithRelationInput | QuotationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Quotations.
+     */
+    cursor?: QuotationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Quotations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Quotations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Quotations.
+     */
+    distinct?: QuotationScalarFieldEnum | QuotationScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation findFirstOrThrow
+   */
+  export type QuotationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter, which Quotation to fetch.
+     */
+    where?: QuotationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Quotations to fetch.
+     */
+    orderBy?: QuotationOrderByWithRelationInput | QuotationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Quotations.
+     */
+    cursor?: QuotationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Quotations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Quotations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Quotations.
+     */
+    distinct?: QuotationScalarFieldEnum | QuotationScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation findMany
+   */
+  export type QuotationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter, which Quotations to fetch.
+     */
+    where?: QuotationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Quotations to fetch.
+     */
+    orderBy?: QuotationOrderByWithRelationInput | QuotationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Quotations.
+     */
+    cursor?: QuotationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Quotations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Quotations.
+     */
+    skip?: number
+    distinct?: QuotationScalarFieldEnum | QuotationScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation create
+   */
+  export type QuotationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Quotation.
+     */
+    data: XOR<QuotationCreateInput, QuotationUncheckedCreateInput>
+  }
+
+  /**
+   * Quotation createMany
+   */
+  export type QuotationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Quotations.
+     */
+    data: QuotationCreateManyInput | QuotationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Quotation createManyAndReturn
+   */
+  export type QuotationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * The data used to create many Quotations.
+     */
+    data: QuotationCreateManyInput | QuotationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Quotation update
+   */
+  export type QuotationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Quotation.
+     */
+    data: XOR<QuotationUpdateInput, QuotationUncheckedUpdateInput>
+    /**
+     * Choose, which Quotation to update.
+     */
+    where: QuotationWhereUniqueInput
+  }
+
+  /**
+   * Quotation updateMany
+   */
+  export type QuotationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Quotations.
+     */
+    data: XOR<QuotationUpdateManyMutationInput, QuotationUncheckedUpdateManyInput>
+    /**
+     * Filter which Quotations to update
+     */
+    where?: QuotationWhereInput
+    /**
+     * Limit how many Quotations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Quotation updateManyAndReturn
+   */
+  export type QuotationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * The data used to update Quotations.
+     */
+    data: XOR<QuotationUpdateManyMutationInput, QuotationUncheckedUpdateManyInput>
+    /**
+     * Filter which Quotations to update
+     */
+    where?: QuotationWhereInput
+    /**
+     * Limit how many Quotations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Quotation upsert
+   */
+  export type QuotationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Quotation to update in case it exists.
+     */
+    where: QuotationWhereUniqueInput
+    /**
+     * In case the Quotation found by the `where` argument doesn't exist, create a new Quotation with this data.
+     */
+    create: XOR<QuotationCreateInput, QuotationUncheckedCreateInput>
+    /**
+     * In case the Quotation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QuotationUpdateInput, QuotationUncheckedUpdateInput>
+  }
+
+  /**
+   * Quotation delete
+   */
+  export type QuotationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    /**
+     * Filter which Quotation to delete.
+     */
+    where: QuotationWhereUniqueInput
+  }
+
+  /**
+   * Quotation deleteMany
+   */
+  export type QuotationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Quotations to delete
+     */
+    where?: QuotationWhereInput
+    /**
+     * Limit how many Quotations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Quotation.account
+   */
+  export type Quotation$accountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClinicAccount
+     */
+    select?: ClinicAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ClinicAccount
+     */
+    omit?: ClinicAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClinicAccountInclude<ExtArgs> | null
+    where?: ClinicAccountWhereInput
+  }
+
+  /**
+   * Quotation.lineItems
+   */
+  export type Quotation$lineItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    where?: QuotationLineItemWhereInput
+    orderBy?: QuotationLineItemOrderByWithRelationInput | QuotationLineItemOrderByWithRelationInput[]
+    cursor?: QuotationLineItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QuotationLineItemScalarFieldEnum | QuotationLineItemScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation.activities
+   */
+  export type Quotation$activitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    where?: QuotationActivityWhereInput
+    orderBy?: QuotationActivityOrderByWithRelationInput | QuotationActivityOrderByWithRelationInput[]
+    cursor?: QuotationActivityWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QuotationActivityScalarFieldEnum | QuotationActivityScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation.agreements
+   */
+  export type Quotation$agreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    where?: AgreementWhereInput
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    cursor?: AgreementWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgreementScalarFieldEnum | AgreementScalarFieldEnum[]
+  }
+
+  /**
+   * Quotation without action
+   */
+  export type QuotationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model QuotationLineItem
+   */
+
+  export type AggregateQuotationLineItem = {
+    _count: QuotationLineItemCountAggregateOutputType | null
+    _avg: QuotationLineItemAvgAggregateOutputType | null
+    _sum: QuotationLineItemSumAggregateOutputType | null
+    _min: QuotationLineItemMinAggregateOutputType | null
+    _max: QuotationLineItemMaxAggregateOutputType | null
+  }
+
+  export type QuotationLineItemAvgAggregateOutputType = {
+    quantity: Decimal | null
+    unitPrice: Decimal | null
+    discount: Decimal | null
+    lineTotal: Decimal | null
+    sortOrder: number | null
+  }
+
+  export type QuotationLineItemSumAggregateOutputType = {
+    quantity: Decimal | null
+    unitPrice: Decimal | null
+    discount: Decimal | null
+    lineTotal: Decimal | null
+    sortOrder: number | null
+  }
+
+  export type QuotationLineItemMinAggregateOutputType = {
+    id: string | null
+    quotationId: string | null
+    category: $Enums.QuotationLineCategory | null
+    description: string | null
+    unit: string | null
+    quantity: Decimal | null
+    unitPrice: Decimal | null
+    discount: Decimal | null
+    lineTotal: Decimal | null
+    sortOrder: number | null
+    sac: string | null
+  }
+
+  export type QuotationLineItemMaxAggregateOutputType = {
+    id: string | null
+    quotationId: string | null
+    category: $Enums.QuotationLineCategory | null
+    description: string | null
+    unit: string | null
+    quantity: Decimal | null
+    unitPrice: Decimal | null
+    discount: Decimal | null
+    lineTotal: Decimal | null
+    sortOrder: number | null
+    sac: string | null
+  }
+
+  export type QuotationLineItemCountAggregateOutputType = {
+    id: number
+    quotationId: number
+    category: number
+    description: number
+    unit: number
+    quantity: number
+    unitPrice: number
+    discount: number
+    lineTotal: number
+    sortOrder: number
+    sac: number
+    _all: number
+  }
+
+
+  export type QuotationLineItemAvgAggregateInputType = {
+    quantity?: true
+    unitPrice?: true
+    discount?: true
+    lineTotal?: true
+    sortOrder?: true
+  }
+
+  export type QuotationLineItemSumAggregateInputType = {
+    quantity?: true
+    unitPrice?: true
+    discount?: true
+    lineTotal?: true
+    sortOrder?: true
+  }
+
+  export type QuotationLineItemMinAggregateInputType = {
+    id?: true
+    quotationId?: true
+    category?: true
+    description?: true
+    unit?: true
+    quantity?: true
+    unitPrice?: true
+    discount?: true
+    lineTotal?: true
+    sortOrder?: true
+    sac?: true
+  }
+
+  export type QuotationLineItemMaxAggregateInputType = {
+    id?: true
+    quotationId?: true
+    category?: true
+    description?: true
+    unit?: true
+    quantity?: true
+    unitPrice?: true
+    discount?: true
+    lineTotal?: true
+    sortOrder?: true
+    sac?: true
+  }
+
+  export type QuotationLineItemCountAggregateInputType = {
+    id?: true
+    quotationId?: true
+    category?: true
+    description?: true
+    unit?: true
+    quantity?: true
+    unitPrice?: true
+    discount?: true
+    lineTotal?: true
+    sortOrder?: true
+    sac?: true
+    _all?: true
+  }
+
+  export type QuotationLineItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QuotationLineItem to aggregate.
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationLineItems to fetch.
+     */
+    orderBy?: QuotationLineItemOrderByWithRelationInput | QuotationLineItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QuotationLineItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationLineItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationLineItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned QuotationLineItems
+    **/
+    _count?: true | QuotationLineItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: QuotationLineItemAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: QuotationLineItemSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QuotationLineItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QuotationLineItemMaxAggregateInputType
+  }
+
+  export type GetQuotationLineItemAggregateType<T extends QuotationLineItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateQuotationLineItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQuotationLineItem[P]>
+      : GetScalarType<T[P], AggregateQuotationLineItem[P]>
+  }
+
+
+
+
+  export type QuotationLineItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationLineItemWhereInput
+    orderBy?: QuotationLineItemOrderByWithAggregationInput | QuotationLineItemOrderByWithAggregationInput[]
+    by: QuotationLineItemScalarFieldEnum[] | QuotationLineItemScalarFieldEnum
+    having?: QuotationLineItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QuotationLineItemCountAggregateInputType | true
+    _avg?: QuotationLineItemAvgAggregateInputType
+    _sum?: QuotationLineItemSumAggregateInputType
+    _min?: QuotationLineItemMinAggregateInputType
+    _max?: QuotationLineItemMaxAggregateInputType
+  }
+
+  export type QuotationLineItemGroupByOutputType = {
+    id: string
+    quotationId: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity: Decimal
+    unitPrice: Decimal
+    discount: Decimal
+    lineTotal: Decimal
+    sortOrder: number
+    sac: string | null
+    _count: QuotationLineItemCountAggregateOutputType | null
+    _avg: QuotationLineItemAvgAggregateOutputType | null
+    _sum: QuotationLineItemSumAggregateOutputType | null
+    _min: QuotationLineItemMinAggregateOutputType | null
+    _max: QuotationLineItemMaxAggregateOutputType | null
+  }
+
+  type GetQuotationLineItemGroupByPayload<T extends QuotationLineItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QuotationLineItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QuotationLineItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QuotationLineItemGroupByOutputType[P]>
+            : GetScalarType<T[P], QuotationLineItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QuotationLineItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    category?: boolean
+    description?: boolean
+    unit?: boolean
+    quantity?: boolean
+    unitPrice?: boolean
+    discount?: boolean
+    lineTotal?: boolean
+    sortOrder?: boolean
+    sac?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationLineItem"]>
+
+  export type QuotationLineItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    category?: boolean
+    description?: boolean
+    unit?: boolean
+    quantity?: boolean
+    unitPrice?: boolean
+    discount?: boolean
+    lineTotal?: boolean
+    sortOrder?: boolean
+    sac?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationLineItem"]>
+
+  export type QuotationLineItemSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    category?: boolean
+    description?: boolean
+    unit?: boolean
+    quantity?: boolean
+    unitPrice?: boolean
+    discount?: boolean
+    lineTotal?: boolean
+    sortOrder?: boolean
+    sac?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationLineItem"]>
+
+  export type QuotationLineItemSelectScalar = {
+    id?: boolean
+    quotationId?: boolean
+    category?: boolean
+    description?: boolean
+    unit?: boolean
+    quantity?: boolean
+    unitPrice?: boolean
+    discount?: boolean
+    lineTotal?: boolean
+    sortOrder?: boolean
+    sac?: boolean
+  }
+
+  export type QuotationLineItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "quotationId" | "category" | "description" | "unit" | "quantity" | "unitPrice" | "discount" | "lineTotal" | "sortOrder" | "sac", ExtArgs["result"]["quotationLineItem"]>
+  export type QuotationLineItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+  export type QuotationLineItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+  export type QuotationLineItemIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+
+  export type $QuotationLineItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "QuotationLineItem"
+    objects: {
+      quotation: Prisma.$QuotationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      quotationId: string
+      category: $Enums.QuotationLineCategory
+      description: string
+      unit: string
+      quantity: Prisma.Decimal
+      unitPrice: Prisma.Decimal
+      discount: Prisma.Decimal
+      lineTotal: Prisma.Decimal
+      sortOrder: number
+      sac: string | null
+    }, ExtArgs["result"]["quotationLineItem"]>
+    composites: {}
+  }
+
+  type QuotationLineItemGetPayload<S extends boolean | null | undefined | QuotationLineItemDefaultArgs> = $Result.GetResult<Prisma.$QuotationLineItemPayload, S>
+
+  type QuotationLineItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QuotationLineItemFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QuotationLineItemCountAggregateInputType | true
+    }
+
+  export interface QuotationLineItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QuotationLineItem'], meta: { name: 'QuotationLineItem' } }
+    /**
+     * Find zero or one QuotationLineItem that matches the filter.
+     * @param {QuotationLineItemFindUniqueArgs} args - Arguments to find a QuotationLineItem
+     * @example
+     * // Get one QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QuotationLineItemFindUniqueArgs>(args: SelectSubset<T, QuotationLineItemFindUniqueArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one QuotationLineItem that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QuotationLineItemFindUniqueOrThrowArgs} args - Arguments to find a QuotationLineItem
+     * @example
+     * // Get one QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QuotationLineItemFindUniqueOrThrowArgs>(args: SelectSubset<T, QuotationLineItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QuotationLineItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemFindFirstArgs} args - Arguments to find a QuotationLineItem
+     * @example
+     * // Get one QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QuotationLineItemFindFirstArgs>(args?: SelectSubset<T, QuotationLineItemFindFirstArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QuotationLineItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemFindFirstOrThrowArgs} args - Arguments to find a QuotationLineItem
+     * @example
+     * // Get one QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QuotationLineItemFindFirstOrThrowArgs>(args?: SelectSubset<T, QuotationLineItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more QuotationLineItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all QuotationLineItems
+     * const quotationLineItems = await prisma.quotationLineItem.findMany()
+     * 
+     * // Get first 10 QuotationLineItems
+     * const quotationLineItems = await prisma.quotationLineItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const quotationLineItemWithIdOnly = await prisma.quotationLineItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QuotationLineItemFindManyArgs>(args?: SelectSubset<T, QuotationLineItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a QuotationLineItem.
+     * @param {QuotationLineItemCreateArgs} args - Arguments to create a QuotationLineItem.
+     * @example
+     * // Create one QuotationLineItem
+     * const QuotationLineItem = await prisma.quotationLineItem.create({
+     *   data: {
+     *     // ... data to create a QuotationLineItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends QuotationLineItemCreateArgs>(args: SelectSubset<T, QuotationLineItemCreateArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many QuotationLineItems.
+     * @param {QuotationLineItemCreateManyArgs} args - Arguments to create many QuotationLineItems.
+     * @example
+     * // Create many QuotationLineItems
+     * const quotationLineItem = await prisma.quotationLineItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QuotationLineItemCreateManyArgs>(args?: SelectSubset<T, QuotationLineItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many QuotationLineItems and returns the data saved in the database.
+     * @param {QuotationLineItemCreateManyAndReturnArgs} args - Arguments to create many QuotationLineItems.
+     * @example
+     * // Create many QuotationLineItems
+     * const quotationLineItem = await prisma.quotationLineItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many QuotationLineItems and only return the `id`
+     * const quotationLineItemWithIdOnly = await prisma.quotationLineItem.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QuotationLineItemCreateManyAndReturnArgs>(args?: SelectSubset<T, QuotationLineItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a QuotationLineItem.
+     * @param {QuotationLineItemDeleteArgs} args - Arguments to delete one QuotationLineItem.
+     * @example
+     * // Delete one QuotationLineItem
+     * const QuotationLineItem = await prisma.quotationLineItem.delete({
+     *   where: {
+     *     // ... filter to delete one QuotationLineItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QuotationLineItemDeleteArgs>(args: SelectSubset<T, QuotationLineItemDeleteArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one QuotationLineItem.
+     * @param {QuotationLineItemUpdateArgs} args - Arguments to update one QuotationLineItem.
+     * @example
+     * // Update one QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QuotationLineItemUpdateArgs>(args: SelectSubset<T, QuotationLineItemUpdateArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more QuotationLineItems.
+     * @param {QuotationLineItemDeleteManyArgs} args - Arguments to filter QuotationLineItems to delete.
+     * @example
+     * // Delete a few QuotationLineItems
+     * const { count } = await prisma.quotationLineItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QuotationLineItemDeleteManyArgs>(args?: SelectSubset<T, QuotationLineItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QuotationLineItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many QuotationLineItems
+     * const quotationLineItem = await prisma.quotationLineItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QuotationLineItemUpdateManyArgs>(args: SelectSubset<T, QuotationLineItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QuotationLineItems and returns the data updated in the database.
+     * @param {QuotationLineItemUpdateManyAndReturnArgs} args - Arguments to update many QuotationLineItems.
+     * @example
+     * // Update many QuotationLineItems
+     * const quotationLineItem = await prisma.quotationLineItem.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more QuotationLineItems and only return the `id`
+     * const quotationLineItemWithIdOnly = await prisma.quotationLineItem.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QuotationLineItemUpdateManyAndReturnArgs>(args: SelectSubset<T, QuotationLineItemUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one QuotationLineItem.
+     * @param {QuotationLineItemUpsertArgs} args - Arguments to update or create a QuotationLineItem.
+     * @example
+     * // Update or create a QuotationLineItem
+     * const quotationLineItem = await prisma.quotationLineItem.upsert({
+     *   create: {
+     *     // ... data to create a QuotationLineItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the QuotationLineItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QuotationLineItemUpsertArgs>(args: SelectSubset<T, QuotationLineItemUpsertArgs<ExtArgs>>): Prisma__QuotationLineItemClient<$Result.GetResult<Prisma.$QuotationLineItemPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of QuotationLineItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemCountArgs} args - Arguments to filter QuotationLineItems to count.
+     * @example
+     * // Count the number of QuotationLineItems
+     * const count = await prisma.quotationLineItem.count({
+     *   where: {
+     *     // ... the filter for the QuotationLineItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends QuotationLineItemCountArgs>(
+      args?: Subset<T, QuotationLineItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QuotationLineItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a QuotationLineItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QuotationLineItemAggregateArgs>(args: Subset<T, QuotationLineItemAggregateArgs>): Prisma.PrismaPromise<GetQuotationLineItemAggregateType<T>>
+
+    /**
+     * Group by QuotationLineItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationLineItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QuotationLineItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QuotationLineItemGroupByArgs['orderBy'] }
+        : { orderBy?: QuotationLineItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QuotationLineItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQuotationLineItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the QuotationLineItem model
+   */
+  readonly fields: QuotationLineItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for QuotationLineItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QuotationLineItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    quotation<T extends QuotationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, QuotationDefaultArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the QuotationLineItem model
+   */
+  interface QuotationLineItemFieldRefs {
+    readonly id: FieldRef<"QuotationLineItem", 'String'>
+    readonly quotationId: FieldRef<"QuotationLineItem", 'String'>
+    readonly category: FieldRef<"QuotationLineItem", 'QuotationLineCategory'>
+    readonly description: FieldRef<"QuotationLineItem", 'String'>
+    readonly unit: FieldRef<"QuotationLineItem", 'String'>
+    readonly quantity: FieldRef<"QuotationLineItem", 'Decimal'>
+    readonly unitPrice: FieldRef<"QuotationLineItem", 'Decimal'>
+    readonly discount: FieldRef<"QuotationLineItem", 'Decimal'>
+    readonly lineTotal: FieldRef<"QuotationLineItem", 'Decimal'>
+    readonly sortOrder: FieldRef<"QuotationLineItem", 'Int'>
+    readonly sac: FieldRef<"QuotationLineItem", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * QuotationLineItem findUnique
+   */
+  export type QuotationLineItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationLineItem to fetch.
+     */
+    where: QuotationLineItemWhereUniqueInput
+  }
+
+  /**
+   * QuotationLineItem findUniqueOrThrow
+   */
+  export type QuotationLineItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationLineItem to fetch.
+     */
+    where: QuotationLineItemWhereUniqueInput
+  }
+
+  /**
+   * QuotationLineItem findFirst
+   */
+  export type QuotationLineItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationLineItem to fetch.
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationLineItems to fetch.
+     */
+    orderBy?: QuotationLineItemOrderByWithRelationInput | QuotationLineItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QuotationLineItems.
+     */
+    cursor?: QuotationLineItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationLineItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationLineItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QuotationLineItems.
+     */
+    distinct?: QuotationLineItemScalarFieldEnum | QuotationLineItemScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationLineItem findFirstOrThrow
+   */
+  export type QuotationLineItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationLineItem to fetch.
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationLineItems to fetch.
+     */
+    orderBy?: QuotationLineItemOrderByWithRelationInput | QuotationLineItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QuotationLineItems.
+     */
+    cursor?: QuotationLineItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationLineItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationLineItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QuotationLineItems.
+     */
+    distinct?: QuotationLineItemScalarFieldEnum | QuotationLineItemScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationLineItem findMany
+   */
+  export type QuotationLineItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationLineItems to fetch.
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationLineItems to fetch.
+     */
+    orderBy?: QuotationLineItemOrderByWithRelationInput | QuotationLineItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing QuotationLineItems.
+     */
+    cursor?: QuotationLineItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationLineItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationLineItems.
+     */
+    skip?: number
+    distinct?: QuotationLineItemScalarFieldEnum | QuotationLineItemScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationLineItem create
+   */
+  export type QuotationLineItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a QuotationLineItem.
+     */
+    data: XOR<QuotationLineItemCreateInput, QuotationLineItemUncheckedCreateInput>
+  }
+
+  /**
+   * QuotationLineItem createMany
+   */
+  export type QuotationLineItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many QuotationLineItems.
+     */
+    data: QuotationLineItemCreateManyInput | QuotationLineItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * QuotationLineItem createManyAndReturn
+   */
+  export type QuotationLineItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * The data used to create many QuotationLineItems.
+     */
+    data: QuotationLineItemCreateManyInput | QuotationLineItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QuotationLineItem update
+   */
+  export type QuotationLineItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a QuotationLineItem.
+     */
+    data: XOR<QuotationLineItemUpdateInput, QuotationLineItemUncheckedUpdateInput>
+    /**
+     * Choose, which QuotationLineItem to update.
+     */
+    where: QuotationLineItemWhereUniqueInput
+  }
+
+  /**
+   * QuotationLineItem updateMany
+   */
+  export type QuotationLineItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update QuotationLineItems.
+     */
+    data: XOR<QuotationLineItemUpdateManyMutationInput, QuotationLineItemUncheckedUpdateManyInput>
+    /**
+     * Filter which QuotationLineItems to update
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * Limit how many QuotationLineItems to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * QuotationLineItem updateManyAndReturn
+   */
+  export type QuotationLineItemUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * The data used to update QuotationLineItems.
+     */
+    data: XOR<QuotationLineItemUpdateManyMutationInput, QuotationLineItemUncheckedUpdateManyInput>
+    /**
+     * Filter which QuotationLineItems to update
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * Limit how many QuotationLineItems to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QuotationLineItem upsert
+   */
+  export type QuotationLineItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the QuotationLineItem to update in case it exists.
+     */
+    where: QuotationLineItemWhereUniqueInput
+    /**
+     * In case the QuotationLineItem found by the `where` argument doesn't exist, create a new QuotationLineItem with this data.
+     */
+    create: XOR<QuotationLineItemCreateInput, QuotationLineItemUncheckedCreateInput>
+    /**
+     * In case the QuotationLineItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QuotationLineItemUpdateInput, QuotationLineItemUncheckedUpdateInput>
+  }
+
+  /**
+   * QuotationLineItem delete
+   */
+  export type QuotationLineItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+    /**
+     * Filter which QuotationLineItem to delete.
+     */
+    where: QuotationLineItemWhereUniqueInput
+  }
+
+  /**
+   * QuotationLineItem deleteMany
+   */
+  export type QuotationLineItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QuotationLineItems to delete
+     */
+    where?: QuotationLineItemWhereInput
+    /**
+     * Limit how many QuotationLineItems to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * QuotationLineItem without action
+   */
+  export type QuotationLineItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationLineItem
+     */
+    select?: QuotationLineItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationLineItem
+     */
+    omit?: QuotationLineItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationLineItemInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model QuotationActivity
+   */
+
+  export type AggregateQuotationActivity = {
+    _count: QuotationActivityCountAggregateOutputType | null
+    _min: QuotationActivityMinAggregateOutputType | null
+    _max: QuotationActivityMaxAggregateOutputType | null
+  }
+
+  export type QuotationActivityMinAggregateOutputType = {
+    id: string | null
+    quotationId: string | null
+    kind: $Enums.ActivityKind | null
+    subject: string | null
+    body: string | null
+    outcome: string | null
+    actor: string | null
+    at: Date | null
+    isScheduled: boolean | null
+    completedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type QuotationActivityMaxAggregateOutputType = {
+    id: string | null
+    quotationId: string | null
+    kind: $Enums.ActivityKind | null
+    subject: string | null
+    body: string | null
+    outcome: string | null
+    actor: string | null
+    at: Date | null
+    isScheduled: boolean | null
+    completedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type QuotationActivityCountAggregateOutputType = {
+    id: number
+    quotationId: number
+    kind: number
+    subject: number
+    body: number
+    outcome: number
+    actor: number
+    at: number
+    isScheduled: number
+    completedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type QuotationActivityMinAggregateInputType = {
+    id?: true
+    quotationId?: true
+    kind?: true
+    subject?: true
+    body?: true
+    outcome?: true
+    actor?: true
+    at?: true
+    isScheduled?: true
+    completedAt?: true
+    createdAt?: true
+  }
+
+  export type QuotationActivityMaxAggregateInputType = {
+    id?: true
+    quotationId?: true
+    kind?: true
+    subject?: true
+    body?: true
+    outcome?: true
+    actor?: true
+    at?: true
+    isScheduled?: true
+    completedAt?: true
+    createdAt?: true
+  }
+
+  export type QuotationActivityCountAggregateInputType = {
+    id?: true
+    quotationId?: true
+    kind?: true
+    subject?: true
+    body?: true
+    outcome?: true
+    actor?: true
+    at?: true
+    isScheduled?: true
+    completedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type QuotationActivityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QuotationActivity to aggregate.
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationActivities to fetch.
+     */
+    orderBy?: QuotationActivityOrderByWithRelationInput | QuotationActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QuotationActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned QuotationActivities
+    **/
+    _count?: true | QuotationActivityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QuotationActivityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QuotationActivityMaxAggregateInputType
+  }
+
+  export type GetQuotationActivityAggregateType<T extends QuotationActivityAggregateArgs> = {
+        [P in keyof T & keyof AggregateQuotationActivity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQuotationActivity[P]>
+      : GetScalarType<T[P], AggregateQuotationActivity[P]>
+  }
+
+
+
+
+  export type QuotationActivityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QuotationActivityWhereInput
+    orderBy?: QuotationActivityOrderByWithAggregationInput | QuotationActivityOrderByWithAggregationInput[]
+    by: QuotationActivityScalarFieldEnum[] | QuotationActivityScalarFieldEnum
+    having?: QuotationActivityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QuotationActivityCountAggregateInputType | true
+    _min?: QuotationActivityMinAggregateInputType
+    _max?: QuotationActivityMaxAggregateInputType
+  }
+
+  export type QuotationActivityGroupByOutputType = {
+    id: string
+    quotationId: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body: string | null
+    outcome: string | null
+    actor: string
+    at: Date
+    isScheduled: boolean
+    completedAt: Date | null
+    createdAt: Date
+    _count: QuotationActivityCountAggregateOutputType | null
+    _min: QuotationActivityMinAggregateOutputType | null
+    _max: QuotationActivityMaxAggregateOutputType | null
+  }
+
+  type GetQuotationActivityGroupByPayload<T extends QuotationActivityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QuotationActivityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QuotationActivityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QuotationActivityGroupByOutputType[P]>
+            : GetScalarType<T[P], QuotationActivityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QuotationActivitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    kind?: boolean
+    subject?: boolean
+    body?: boolean
+    outcome?: boolean
+    actor?: boolean
+    at?: boolean
+    isScheduled?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationActivity"]>
+
+  export type QuotationActivitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    kind?: boolean
+    subject?: boolean
+    body?: boolean
+    outcome?: boolean
+    actor?: boolean
+    at?: boolean
+    isScheduled?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationActivity"]>
+
+  export type QuotationActivitySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    quotationId?: boolean
+    kind?: boolean
+    subject?: boolean
+    body?: boolean
+    outcome?: boolean
+    actor?: boolean
+    at?: boolean
+    isScheduled?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["quotationActivity"]>
+
+  export type QuotationActivitySelectScalar = {
+    id?: boolean
+    quotationId?: boolean
+    kind?: boolean
+    subject?: boolean
+    body?: boolean
+    outcome?: boolean
+    actor?: boolean
+    at?: boolean
+    isScheduled?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type QuotationActivityOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "quotationId" | "kind" | "subject" | "body" | "outcome" | "actor" | "at" | "isScheduled" | "completedAt" | "createdAt", ExtArgs["result"]["quotationActivity"]>
+  export type QuotationActivityInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+  export type QuotationActivityIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+  export type QuotationActivityIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotation?: boolean | QuotationDefaultArgs<ExtArgs>
+  }
+
+  export type $QuotationActivityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "QuotationActivity"
+    objects: {
+      quotation: Prisma.$QuotationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      quotationId: string
+      kind: $Enums.ActivityKind
+      subject: string
+      body: string | null
+      /**
+       * The owner's own notes after a call, the body of a sent email, or
+       * the text of a WhatsApp -- whatever is readable later.
+       */
+      outcome: string | null
+      /**
+       * Who performed the action; the owner's login name.
+       */
+      actor: string
+      /**
+       * When the touch happened. For a scheduled follow-up this is the
+       * FUTURE; the UI shows what is due before what has been done.
+       */
+      at: Date
+      isScheduled: boolean
+      completedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["quotationActivity"]>
+    composites: {}
+  }
+
+  type QuotationActivityGetPayload<S extends boolean | null | undefined | QuotationActivityDefaultArgs> = $Result.GetResult<Prisma.$QuotationActivityPayload, S>
+
+  type QuotationActivityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QuotationActivityFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QuotationActivityCountAggregateInputType | true
+    }
+
+  export interface QuotationActivityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QuotationActivity'], meta: { name: 'QuotationActivity' } }
+    /**
+     * Find zero or one QuotationActivity that matches the filter.
+     * @param {QuotationActivityFindUniqueArgs} args - Arguments to find a QuotationActivity
+     * @example
+     * // Get one QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QuotationActivityFindUniqueArgs>(args: SelectSubset<T, QuotationActivityFindUniqueArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one QuotationActivity that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QuotationActivityFindUniqueOrThrowArgs} args - Arguments to find a QuotationActivity
+     * @example
+     * // Get one QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QuotationActivityFindUniqueOrThrowArgs>(args: SelectSubset<T, QuotationActivityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QuotationActivity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityFindFirstArgs} args - Arguments to find a QuotationActivity
+     * @example
+     * // Get one QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QuotationActivityFindFirstArgs>(args?: SelectSubset<T, QuotationActivityFindFirstArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QuotationActivity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityFindFirstOrThrowArgs} args - Arguments to find a QuotationActivity
+     * @example
+     * // Get one QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QuotationActivityFindFirstOrThrowArgs>(args?: SelectSubset<T, QuotationActivityFindFirstOrThrowArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more QuotationActivities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all QuotationActivities
+     * const quotationActivities = await prisma.quotationActivity.findMany()
+     * 
+     * // Get first 10 QuotationActivities
+     * const quotationActivities = await prisma.quotationActivity.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const quotationActivityWithIdOnly = await prisma.quotationActivity.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QuotationActivityFindManyArgs>(args?: SelectSubset<T, QuotationActivityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a QuotationActivity.
+     * @param {QuotationActivityCreateArgs} args - Arguments to create a QuotationActivity.
+     * @example
+     * // Create one QuotationActivity
+     * const QuotationActivity = await prisma.quotationActivity.create({
+     *   data: {
+     *     // ... data to create a QuotationActivity
+     *   }
+     * })
+     * 
+     */
+    create<T extends QuotationActivityCreateArgs>(args: SelectSubset<T, QuotationActivityCreateArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many QuotationActivities.
+     * @param {QuotationActivityCreateManyArgs} args - Arguments to create many QuotationActivities.
+     * @example
+     * // Create many QuotationActivities
+     * const quotationActivity = await prisma.quotationActivity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QuotationActivityCreateManyArgs>(args?: SelectSubset<T, QuotationActivityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many QuotationActivities and returns the data saved in the database.
+     * @param {QuotationActivityCreateManyAndReturnArgs} args - Arguments to create many QuotationActivities.
+     * @example
+     * // Create many QuotationActivities
+     * const quotationActivity = await prisma.quotationActivity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many QuotationActivities and only return the `id`
+     * const quotationActivityWithIdOnly = await prisma.quotationActivity.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QuotationActivityCreateManyAndReturnArgs>(args?: SelectSubset<T, QuotationActivityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a QuotationActivity.
+     * @param {QuotationActivityDeleteArgs} args - Arguments to delete one QuotationActivity.
+     * @example
+     * // Delete one QuotationActivity
+     * const QuotationActivity = await prisma.quotationActivity.delete({
+     *   where: {
+     *     // ... filter to delete one QuotationActivity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QuotationActivityDeleteArgs>(args: SelectSubset<T, QuotationActivityDeleteArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one QuotationActivity.
+     * @param {QuotationActivityUpdateArgs} args - Arguments to update one QuotationActivity.
+     * @example
+     * // Update one QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QuotationActivityUpdateArgs>(args: SelectSubset<T, QuotationActivityUpdateArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more QuotationActivities.
+     * @param {QuotationActivityDeleteManyArgs} args - Arguments to filter QuotationActivities to delete.
+     * @example
+     * // Delete a few QuotationActivities
+     * const { count } = await prisma.quotationActivity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QuotationActivityDeleteManyArgs>(args?: SelectSubset<T, QuotationActivityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QuotationActivities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many QuotationActivities
+     * const quotationActivity = await prisma.quotationActivity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QuotationActivityUpdateManyArgs>(args: SelectSubset<T, QuotationActivityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QuotationActivities and returns the data updated in the database.
+     * @param {QuotationActivityUpdateManyAndReturnArgs} args - Arguments to update many QuotationActivities.
+     * @example
+     * // Update many QuotationActivities
+     * const quotationActivity = await prisma.quotationActivity.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more QuotationActivities and only return the `id`
+     * const quotationActivityWithIdOnly = await prisma.quotationActivity.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QuotationActivityUpdateManyAndReturnArgs>(args: SelectSubset<T, QuotationActivityUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one QuotationActivity.
+     * @param {QuotationActivityUpsertArgs} args - Arguments to update or create a QuotationActivity.
+     * @example
+     * // Update or create a QuotationActivity
+     * const quotationActivity = await prisma.quotationActivity.upsert({
+     *   create: {
+     *     // ... data to create a QuotationActivity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the QuotationActivity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QuotationActivityUpsertArgs>(args: SelectSubset<T, QuotationActivityUpsertArgs<ExtArgs>>): Prisma__QuotationActivityClient<$Result.GetResult<Prisma.$QuotationActivityPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of QuotationActivities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityCountArgs} args - Arguments to filter QuotationActivities to count.
+     * @example
+     * // Count the number of QuotationActivities
+     * const count = await prisma.quotationActivity.count({
+     *   where: {
+     *     // ... the filter for the QuotationActivities we want to count
+     *   }
+     * })
+    **/
+    count<T extends QuotationActivityCountArgs>(
+      args?: Subset<T, QuotationActivityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QuotationActivityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a QuotationActivity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QuotationActivityAggregateArgs>(args: Subset<T, QuotationActivityAggregateArgs>): Prisma.PrismaPromise<GetQuotationActivityAggregateType<T>>
+
+    /**
+     * Group by QuotationActivity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QuotationActivityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QuotationActivityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QuotationActivityGroupByArgs['orderBy'] }
+        : { orderBy?: QuotationActivityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QuotationActivityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQuotationActivityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the QuotationActivity model
+   */
+  readonly fields: QuotationActivityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for QuotationActivity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QuotationActivityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    quotation<T extends QuotationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, QuotationDefaultArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the QuotationActivity model
+   */
+  interface QuotationActivityFieldRefs {
+    readonly id: FieldRef<"QuotationActivity", 'String'>
+    readonly quotationId: FieldRef<"QuotationActivity", 'String'>
+    readonly kind: FieldRef<"QuotationActivity", 'ActivityKind'>
+    readonly subject: FieldRef<"QuotationActivity", 'String'>
+    readonly body: FieldRef<"QuotationActivity", 'String'>
+    readonly outcome: FieldRef<"QuotationActivity", 'String'>
+    readonly actor: FieldRef<"QuotationActivity", 'String'>
+    readonly at: FieldRef<"QuotationActivity", 'DateTime'>
+    readonly isScheduled: FieldRef<"QuotationActivity", 'Boolean'>
+    readonly completedAt: FieldRef<"QuotationActivity", 'DateTime'>
+    readonly createdAt: FieldRef<"QuotationActivity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * QuotationActivity findUnique
+   */
+  export type QuotationActivityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationActivity to fetch.
+     */
+    where: QuotationActivityWhereUniqueInput
+  }
+
+  /**
+   * QuotationActivity findUniqueOrThrow
+   */
+  export type QuotationActivityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationActivity to fetch.
+     */
+    where: QuotationActivityWhereUniqueInput
+  }
+
+  /**
+   * QuotationActivity findFirst
+   */
+  export type QuotationActivityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationActivity to fetch.
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationActivities to fetch.
+     */
+    orderBy?: QuotationActivityOrderByWithRelationInput | QuotationActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QuotationActivities.
+     */
+    cursor?: QuotationActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QuotationActivities.
+     */
+    distinct?: QuotationActivityScalarFieldEnum | QuotationActivityScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationActivity findFirstOrThrow
+   */
+  export type QuotationActivityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationActivity to fetch.
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationActivities to fetch.
+     */
+    orderBy?: QuotationActivityOrderByWithRelationInput | QuotationActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QuotationActivities.
+     */
+    cursor?: QuotationActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QuotationActivities.
+     */
+    distinct?: QuotationActivityScalarFieldEnum | QuotationActivityScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationActivity findMany
+   */
+  export type QuotationActivityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter, which QuotationActivities to fetch.
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QuotationActivities to fetch.
+     */
+    orderBy?: QuotationActivityOrderByWithRelationInput | QuotationActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing QuotationActivities.
+     */
+    cursor?: QuotationActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QuotationActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QuotationActivities.
+     */
+    skip?: number
+    distinct?: QuotationActivityScalarFieldEnum | QuotationActivityScalarFieldEnum[]
+  }
+
+  /**
+   * QuotationActivity create
+   */
+  export type QuotationActivityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * The data needed to create a QuotationActivity.
+     */
+    data: XOR<QuotationActivityCreateInput, QuotationActivityUncheckedCreateInput>
+  }
+
+  /**
+   * QuotationActivity createMany
+   */
+  export type QuotationActivityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many QuotationActivities.
+     */
+    data: QuotationActivityCreateManyInput | QuotationActivityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * QuotationActivity createManyAndReturn
+   */
+  export type QuotationActivityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * The data used to create many QuotationActivities.
+     */
+    data: QuotationActivityCreateManyInput | QuotationActivityCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QuotationActivity update
+   */
+  export type QuotationActivityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * The data needed to update a QuotationActivity.
+     */
+    data: XOR<QuotationActivityUpdateInput, QuotationActivityUncheckedUpdateInput>
+    /**
+     * Choose, which QuotationActivity to update.
+     */
+    where: QuotationActivityWhereUniqueInput
+  }
+
+  /**
+   * QuotationActivity updateMany
+   */
+  export type QuotationActivityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update QuotationActivities.
+     */
+    data: XOR<QuotationActivityUpdateManyMutationInput, QuotationActivityUncheckedUpdateManyInput>
+    /**
+     * Filter which QuotationActivities to update
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * Limit how many QuotationActivities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * QuotationActivity updateManyAndReturn
+   */
+  export type QuotationActivityUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * The data used to update QuotationActivities.
+     */
+    data: XOR<QuotationActivityUpdateManyMutationInput, QuotationActivityUncheckedUpdateManyInput>
+    /**
+     * Filter which QuotationActivities to update
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * Limit how many QuotationActivities to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QuotationActivity upsert
+   */
+  export type QuotationActivityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * The filter to search for the QuotationActivity to update in case it exists.
+     */
+    where: QuotationActivityWhereUniqueInput
+    /**
+     * In case the QuotationActivity found by the `where` argument doesn't exist, create a new QuotationActivity with this data.
+     */
+    create: XOR<QuotationActivityCreateInput, QuotationActivityUncheckedCreateInput>
+    /**
+     * In case the QuotationActivity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QuotationActivityUpdateInput, QuotationActivityUncheckedUpdateInput>
+  }
+
+  /**
+   * QuotationActivity delete
+   */
+  export type QuotationActivityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+    /**
+     * Filter which QuotationActivity to delete.
+     */
+    where: QuotationActivityWhereUniqueInput
+  }
+
+  /**
+   * QuotationActivity deleteMany
+   */
+  export type QuotationActivityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QuotationActivities to delete
+     */
+    where?: QuotationActivityWhereInput
+    /**
+     * Limit how many QuotationActivities to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * QuotationActivity without action
+   */
+  export type QuotationActivityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QuotationActivity
+     */
+    select?: QuotationActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QuotationActivity
+     */
+    omit?: QuotationActivityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationActivityInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Agreement
+   */
+
+  export type AggregateAgreement = {
+    _count: AgreementCountAggregateOutputType | null
+    _avg: AgreementAvgAggregateOutputType | null
+    _sum: AgreementSumAggregateOutputType | null
+    _min: AgreementMinAggregateOutputType | null
+    _max: AgreementMaxAggregateOutputType | null
+  }
+
+  export type AgreementAvgAggregateOutputType = {
+    serial: number | null
+    termMonths: number | null
+    noticeDays: number | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    monthlyFee: Decimal | null
+  }
+
+  export type AgreementSumAggregateOutputType = {
+    serial: number | null
+    termMonths: number | null
+    noticeDays: number | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    monthlyFee: Decimal | null
+  }
+
+  export type AgreementMinAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    quotationId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.AgreementStatus | null
+    title: string | null
+    effectiveFrom: Date | null
+    termMonths: number | null
+    noticeDays: number | null
+    autoRenew: boolean | null
+    clientName: string | null
+    clientAddress: string | null
+    clientGSTIN: string | null
+    providerName: string | null
+    providerAddress: string | null
+    providerGSTIN: string | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    monthlyFee: Decimal | null
+    currency: string | null
+    providerSignedBy: string | null
+    providerSignedAt: Date | null
+    clientSignedByName: string | null
+    clientSignedByRole: string | null
+    clientSignedAt: Date | null
+    clientSignatureRef: string | null
+    issuedAt: Date | null
+    terminatedAt: Date | null
+    terminationReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgreementMaxAggregateOutputType = {
+    id: string | null
+    accountId: string | null
+    quotationId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.AgreementStatus | null
+    title: string | null
+    effectiveFrom: Date | null
+    termMonths: number | null
+    noticeDays: number | null
+    autoRenew: boolean | null
+    clientName: string | null
+    clientAddress: string | null
+    clientGSTIN: string | null
+    providerName: string | null
+    providerAddress: string | null
+    providerGSTIN: string | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    monthlyFee: Decimal | null
+    currency: string | null
+    providerSignedBy: string | null
+    providerSignedAt: Date | null
+    clientSignedByName: string | null
+    clientSignedByRole: string | null
+    clientSignedAt: Date | null
+    clientSignatureRef: string | null
+    issuedAt: Date | null
+    terminatedAt: Date | null
+    terminationReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgreementCountAggregateOutputType = {
+    id: number
+    accountId: number
+    quotationId: number
+    number: number
+    fy: number
+    serial: number
+    status: number
+    title: number
+    clauses: number
+    effectiveFrom: number
+    termMonths: number
+    noticeDays: number
+    autoRenew: number
+    clientName: number
+    clientAddress: number
+    clientGSTIN: number
+    providerName: number
+    providerAddress: number
+    providerGSTIN: number
+    setupFee: number
+    yearlyFee: number
+    monthlyFee: number
+    currency: number
+    providerSignedBy: number
+    providerSignedAt: number
+    clientSignedByName: number
+    clientSignedByRole: number
+    clientSignedAt: number
+    clientSignatureRef: number
+    issuedAt: number
+    terminatedAt: number
+    terminationReason: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AgreementAvgAggregateInputType = {
+    serial?: true
+    termMonths?: true
+    noticeDays?: true
+    setupFee?: true
+    yearlyFee?: true
+    monthlyFee?: true
+  }
+
+  export type AgreementSumAggregateInputType = {
+    serial?: true
+    termMonths?: true
+    noticeDays?: true
+    setupFee?: true
+    yearlyFee?: true
+    monthlyFee?: true
+  }
+
+  export type AgreementMinAggregateInputType = {
+    id?: true
+    accountId?: true
+    quotationId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    title?: true
+    effectiveFrom?: true
+    termMonths?: true
+    noticeDays?: true
+    autoRenew?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    setupFee?: true
+    yearlyFee?: true
+    monthlyFee?: true
+    currency?: true
+    providerSignedBy?: true
+    providerSignedAt?: true
+    clientSignedByName?: true
+    clientSignedByRole?: true
+    clientSignedAt?: true
+    clientSignatureRef?: true
+    issuedAt?: true
+    terminatedAt?: true
+    terminationReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgreementMaxAggregateInputType = {
+    id?: true
+    accountId?: true
+    quotationId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    title?: true
+    effectiveFrom?: true
+    termMonths?: true
+    noticeDays?: true
+    autoRenew?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    setupFee?: true
+    yearlyFee?: true
+    monthlyFee?: true
+    currency?: true
+    providerSignedBy?: true
+    providerSignedAt?: true
+    clientSignedByName?: true
+    clientSignedByRole?: true
+    clientSignedAt?: true
+    clientSignatureRef?: true
+    issuedAt?: true
+    terminatedAt?: true
+    terminationReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgreementCountAggregateInputType = {
+    id?: true
+    accountId?: true
+    quotationId?: true
+    number?: true
+    fy?: true
+    serial?: true
+    status?: true
+    title?: true
+    clauses?: true
+    effectiveFrom?: true
+    termMonths?: true
+    noticeDays?: true
+    autoRenew?: true
+    clientName?: true
+    clientAddress?: true
+    clientGSTIN?: true
+    providerName?: true
+    providerAddress?: true
+    providerGSTIN?: true
+    setupFee?: true
+    yearlyFee?: true
+    monthlyFee?: true
+    currency?: true
+    providerSignedBy?: true
+    providerSignedAt?: true
+    clientSignedByName?: true
+    clientSignedByRole?: true
+    clientSignedAt?: true
+    clientSignatureRef?: true
+    issuedAt?: true
+    terminatedAt?: true
+    terminationReason?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AgreementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Agreement to aggregate.
+     */
+    where?: AgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Agreements to fetch.
+     */
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Agreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Agreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Agreements
+    **/
+    _count?: true | AgreementCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AgreementAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AgreementSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgreementMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgreementMaxAggregateInputType
+  }
+
+  export type GetAgreementAggregateType<T extends AgreementAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgreement]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgreement[P]>
+      : GetScalarType<T[P], AggregateAgreement[P]>
+  }
+
+
+
+
+  export type AgreementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgreementWhereInput
+    orderBy?: AgreementOrderByWithAggregationInput | AgreementOrderByWithAggregationInput[]
+    by: AgreementScalarFieldEnum[] | AgreementScalarFieldEnum
+    having?: AgreementScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgreementCountAggregateInputType | true
+    _avg?: AgreementAvgAggregateInputType
+    _sum?: AgreementSumAggregateInputType
+    _min?: AgreementMinAggregateInputType
+    _max?: AgreementMaxAggregateInputType
+  }
+
+  export type AgreementGroupByOutputType = {
+    id: string
+    accountId: string
+    quotationId: string | null
+    number: string | null
+    fy: string | null
+    serial: number | null
+    status: $Enums.AgreementStatus
+    title: string
+    clauses: JsonValue
+    effectiveFrom: Date | null
+    termMonths: number
+    noticeDays: number
+    autoRenew: boolean
+    clientName: string
+    clientAddress: string | null
+    clientGSTIN: string | null
+    providerName: string
+    providerAddress: string | null
+    providerGSTIN: string | null
+    setupFee: Decimal | null
+    yearlyFee: Decimal | null
+    monthlyFee: Decimal | null
+    currency: string
+    providerSignedBy: string | null
+    providerSignedAt: Date | null
+    clientSignedByName: string | null
+    clientSignedByRole: string | null
+    clientSignedAt: Date | null
+    clientSignatureRef: string | null
+    issuedAt: Date | null
+    terminatedAt: Date | null
+    terminationReason: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AgreementCountAggregateOutputType | null
+    _avg: AgreementAvgAggregateOutputType | null
+    _sum: AgreementSumAggregateOutputType | null
+    _min: AgreementMinAggregateOutputType | null
+    _max: AgreementMaxAggregateOutputType | null
+  }
+
+  type GetAgreementGroupByPayload<T extends AgreementGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgreementGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgreementGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgreementGroupByOutputType[P]>
+            : GetScalarType<T[P], AgreementGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgreementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    quotationId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    title?: boolean
+    clauses?: boolean
+    effectiveFrom?: boolean
+    termMonths?: boolean
+    noticeDays?: boolean
+    autoRenew?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    monthlyFee?: boolean
+    currency?: boolean
+    providerSignedBy?: boolean
+    providerSignedAt?: boolean
+    clientSignedByName?: boolean
+    clientSignedByRole?: boolean
+    clientSignedAt?: boolean
+    clientSignatureRef?: boolean
+    issuedAt?: boolean
+    terminatedAt?: boolean
+    terminationReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }, ExtArgs["result"]["agreement"]>
+
+  export type AgreementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    quotationId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    title?: boolean
+    clauses?: boolean
+    effectiveFrom?: boolean
+    termMonths?: boolean
+    noticeDays?: boolean
+    autoRenew?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    monthlyFee?: boolean
+    currency?: boolean
+    providerSignedBy?: boolean
+    providerSignedAt?: boolean
+    clientSignedByName?: boolean
+    clientSignedByRole?: boolean
+    clientSignedAt?: boolean
+    clientSignatureRef?: boolean
+    issuedAt?: boolean
+    terminatedAt?: boolean
+    terminationReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }, ExtArgs["result"]["agreement"]>
+
+  export type AgreementSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    accountId?: boolean
+    quotationId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    title?: boolean
+    clauses?: boolean
+    effectiveFrom?: boolean
+    termMonths?: boolean
+    noticeDays?: boolean
+    autoRenew?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    monthlyFee?: boolean
+    currency?: boolean
+    providerSignedBy?: boolean
+    providerSignedAt?: boolean
+    clientSignedByName?: boolean
+    clientSignedByRole?: boolean
+    clientSignedAt?: boolean
+    clientSignatureRef?: boolean
+    issuedAt?: boolean
+    terminatedAt?: boolean
+    terminationReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }, ExtArgs["result"]["agreement"]>
+
+  export type AgreementSelectScalar = {
+    id?: boolean
+    accountId?: boolean
+    quotationId?: boolean
+    number?: boolean
+    fy?: boolean
+    serial?: boolean
+    status?: boolean
+    title?: boolean
+    clauses?: boolean
+    effectiveFrom?: boolean
+    termMonths?: boolean
+    noticeDays?: boolean
+    autoRenew?: boolean
+    clientName?: boolean
+    clientAddress?: boolean
+    clientGSTIN?: boolean
+    providerName?: boolean
+    providerAddress?: boolean
+    providerGSTIN?: boolean
+    setupFee?: boolean
+    yearlyFee?: boolean
+    monthlyFee?: boolean
+    currency?: boolean
+    providerSignedBy?: boolean
+    providerSignedAt?: boolean
+    clientSignedByName?: boolean
+    clientSignedByRole?: boolean
+    clientSignedAt?: boolean
+    clientSignatureRef?: boolean
+    issuedAt?: boolean
+    terminatedAt?: boolean
+    terminationReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AgreementOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "accountId" | "quotationId" | "number" | "fy" | "serial" | "status" | "title" | "clauses" | "effectiveFrom" | "termMonths" | "noticeDays" | "autoRenew" | "clientName" | "clientAddress" | "clientGSTIN" | "providerName" | "providerAddress" | "providerGSTIN" | "setupFee" | "yearlyFee" | "monthlyFee" | "currency" | "providerSignedBy" | "providerSignedAt" | "clientSignedByName" | "clientSignedByRole" | "clientSignedAt" | "clientSignatureRef" | "issuedAt" | "terminatedAt" | "terminationReason" | "createdAt" | "updatedAt", ExtArgs["result"]["agreement"]>
+  export type AgreementInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }
+  export type AgreementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }
+  export type AgreementIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    account?: boolean | ClinicAccountDefaultArgs<ExtArgs>
+    quotation?: boolean | Agreement$quotationArgs<ExtArgs>
+  }
+
+  export type $AgreementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Agreement"
+    objects: {
+      account: Prisma.$ClinicAccountPayload<ExtArgs>
+      quotation: Prisma.$QuotationPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      accountId: string
+      quotationId: string | null
+      number: string | null
+      fy: string | null
+      serial: number | null
+      status: $Enums.AgreementStatus
+      title: string
+      /**
+       * Clauses as [{ heading, paragraphs[] }]. The PDF and the HTML
+       * preview read from the same source.
+       */
+      clauses: Prisma.JsonValue
+      effectiveFrom: Date | null
+      termMonths: number
+      noticeDays: number
+      autoRenew: boolean
+      clientName: string
+      clientAddress: string | null
+      clientGSTIN: string | null
+      providerName: string
+      providerAddress: string | null
+      providerGSTIN: string | null
+      setupFee: Prisma.Decimal | null
+      yearlyFee: Prisma.Decimal | null
+      monthlyFee: Prisma.Decimal | null
+      currency: string
+      providerSignedBy: string | null
+      providerSignedAt: Date | null
+      clientSignedByName: string | null
+      clientSignedByRole: string | null
+      clientSignedAt: Date | null
+      clientSignatureRef: string | null
+      issuedAt: Date | null
+      terminatedAt: Date | null
+      terminationReason: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["agreement"]>
+    composites: {}
+  }
+
+  type AgreementGetPayload<S extends boolean | null | undefined | AgreementDefaultArgs> = $Result.GetResult<Prisma.$AgreementPayload, S>
+
+  type AgreementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgreementFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgreementCountAggregateInputType | true
+    }
+
+  export interface AgreementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Agreement'], meta: { name: 'Agreement' } }
+    /**
+     * Find zero or one Agreement that matches the filter.
+     * @param {AgreementFindUniqueArgs} args - Arguments to find a Agreement
+     * @example
+     * // Get one Agreement
+     * const agreement = await prisma.agreement.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgreementFindUniqueArgs>(args: SelectSubset<T, AgreementFindUniqueArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Agreement that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgreementFindUniqueOrThrowArgs} args - Arguments to find a Agreement
+     * @example
+     * // Get one Agreement
+     * const agreement = await prisma.agreement.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgreementFindUniqueOrThrowArgs>(args: SelectSubset<T, AgreementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Agreement that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementFindFirstArgs} args - Arguments to find a Agreement
+     * @example
+     * // Get one Agreement
+     * const agreement = await prisma.agreement.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgreementFindFirstArgs>(args?: SelectSubset<T, AgreementFindFirstArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Agreement that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementFindFirstOrThrowArgs} args - Arguments to find a Agreement
+     * @example
+     * // Get one Agreement
+     * const agreement = await prisma.agreement.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgreementFindFirstOrThrowArgs>(args?: SelectSubset<T, AgreementFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Agreements that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Agreements
+     * const agreements = await prisma.agreement.findMany()
+     * 
+     * // Get first 10 Agreements
+     * const agreements = await prisma.agreement.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agreementWithIdOnly = await prisma.agreement.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgreementFindManyArgs>(args?: SelectSubset<T, AgreementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Agreement.
+     * @param {AgreementCreateArgs} args - Arguments to create a Agreement.
+     * @example
+     * // Create one Agreement
+     * const Agreement = await prisma.agreement.create({
+     *   data: {
+     *     // ... data to create a Agreement
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgreementCreateArgs>(args: SelectSubset<T, AgreementCreateArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Agreements.
+     * @param {AgreementCreateManyArgs} args - Arguments to create many Agreements.
+     * @example
+     * // Create many Agreements
+     * const agreement = await prisma.agreement.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgreementCreateManyArgs>(args?: SelectSubset<T, AgreementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Agreements and returns the data saved in the database.
+     * @param {AgreementCreateManyAndReturnArgs} args - Arguments to create many Agreements.
+     * @example
+     * // Create many Agreements
+     * const agreement = await prisma.agreement.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Agreements and only return the `id`
+     * const agreementWithIdOnly = await prisma.agreement.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgreementCreateManyAndReturnArgs>(args?: SelectSubset<T, AgreementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Agreement.
+     * @param {AgreementDeleteArgs} args - Arguments to delete one Agreement.
+     * @example
+     * // Delete one Agreement
+     * const Agreement = await prisma.agreement.delete({
+     *   where: {
+     *     // ... filter to delete one Agreement
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgreementDeleteArgs>(args: SelectSubset<T, AgreementDeleteArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Agreement.
+     * @param {AgreementUpdateArgs} args - Arguments to update one Agreement.
+     * @example
+     * // Update one Agreement
+     * const agreement = await prisma.agreement.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgreementUpdateArgs>(args: SelectSubset<T, AgreementUpdateArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Agreements.
+     * @param {AgreementDeleteManyArgs} args - Arguments to filter Agreements to delete.
+     * @example
+     * // Delete a few Agreements
+     * const { count } = await prisma.agreement.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgreementDeleteManyArgs>(args?: SelectSubset<T, AgreementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Agreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Agreements
+     * const agreement = await prisma.agreement.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgreementUpdateManyArgs>(args: SelectSubset<T, AgreementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Agreements and returns the data updated in the database.
+     * @param {AgreementUpdateManyAndReturnArgs} args - Arguments to update many Agreements.
+     * @example
+     * // Update many Agreements
+     * const agreement = await prisma.agreement.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Agreements and only return the `id`
+     * const agreementWithIdOnly = await prisma.agreement.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgreementUpdateManyAndReturnArgs>(args: SelectSubset<T, AgreementUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Agreement.
+     * @param {AgreementUpsertArgs} args - Arguments to update or create a Agreement.
+     * @example
+     * // Update or create a Agreement
+     * const agreement = await prisma.agreement.upsert({
+     *   create: {
+     *     // ... data to create a Agreement
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Agreement we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgreementUpsertArgs>(args: SelectSubset<T, AgreementUpsertArgs<ExtArgs>>): Prisma__AgreementClient<$Result.GetResult<Prisma.$AgreementPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Agreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementCountArgs} args - Arguments to filter Agreements to count.
+     * @example
+     * // Count the number of Agreements
+     * const count = await prisma.agreement.count({
+     *   where: {
+     *     // ... the filter for the Agreements we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgreementCountArgs>(
+      args?: Subset<T, AgreementCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgreementCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Agreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgreementAggregateArgs>(args: Subset<T, AgreementAggregateArgs>): Prisma.PrismaPromise<GetAgreementAggregateType<T>>
+
+    /**
+     * Group by Agreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgreementGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgreementGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgreementGroupByArgs['orderBy'] }
+        : { orderBy?: AgreementGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgreementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgreementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Agreement model
+   */
+  readonly fields: AgreementFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Agreement.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgreementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    account<T extends ClinicAccountDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ClinicAccountDefaultArgs<ExtArgs>>): Prisma__ClinicAccountClient<$Result.GetResult<Prisma.$ClinicAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    quotation<T extends Agreement$quotationArgs<ExtArgs> = {}>(args?: Subset<T, Agreement$quotationArgs<ExtArgs>>): Prisma__QuotationClient<$Result.GetResult<Prisma.$QuotationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Agreement model
+   */
+  interface AgreementFieldRefs {
+    readonly id: FieldRef<"Agreement", 'String'>
+    readonly accountId: FieldRef<"Agreement", 'String'>
+    readonly quotationId: FieldRef<"Agreement", 'String'>
+    readonly number: FieldRef<"Agreement", 'String'>
+    readonly fy: FieldRef<"Agreement", 'String'>
+    readonly serial: FieldRef<"Agreement", 'Int'>
+    readonly status: FieldRef<"Agreement", 'AgreementStatus'>
+    readonly title: FieldRef<"Agreement", 'String'>
+    readonly clauses: FieldRef<"Agreement", 'Json'>
+    readonly effectiveFrom: FieldRef<"Agreement", 'DateTime'>
+    readonly termMonths: FieldRef<"Agreement", 'Int'>
+    readonly noticeDays: FieldRef<"Agreement", 'Int'>
+    readonly autoRenew: FieldRef<"Agreement", 'Boolean'>
+    readonly clientName: FieldRef<"Agreement", 'String'>
+    readonly clientAddress: FieldRef<"Agreement", 'String'>
+    readonly clientGSTIN: FieldRef<"Agreement", 'String'>
+    readonly providerName: FieldRef<"Agreement", 'String'>
+    readonly providerAddress: FieldRef<"Agreement", 'String'>
+    readonly providerGSTIN: FieldRef<"Agreement", 'String'>
+    readonly setupFee: FieldRef<"Agreement", 'Decimal'>
+    readonly yearlyFee: FieldRef<"Agreement", 'Decimal'>
+    readonly monthlyFee: FieldRef<"Agreement", 'Decimal'>
+    readonly currency: FieldRef<"Agreement", 'String'>
+    readonly providerSignedBy: FieldRef<"Agreement", 'String'>
+    readonly providerSignedAt: FieldRef<"Agreement", 'DateTime'>
+    readonly clientSignedByName: FieldRef<"Agreement", 'String'>
+    readonly clientSignedByRole: FieldRef<"Agreement", 'String'>
+    readonly clientSignedAt: FieldRef<"Agreement", 'DateTime'>
+    readonly clientSignatureRef: FieldRef<"Agreement", 'String'>
+    readonly issuedAt: FieldRef<"Agreement", 'DateTime'>
+    readonly terminatedAt: FieldRef<"Agreement", 'DateTime'>
+    readonly terminationReason: FieldRef<"Agreement", 'String'>
+    readonly createdAt: FieldRef<"Agreement", 'DateTime'>
+    readonly updatedAt: FieldRef<"Agreement", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Agreement findUnique
+   */
+  export type AgreementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which Agreement to fetch.
+     */
+    where: AgreementWhereUniqueInput
+  }
+
+  /**
+   * Agreement findUniqueOrThrow
+   */
+  export type AgreementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which Agreement to fetch.
+     */
+    where: AgreementWhereUniqueInput
+  }
+
+  /**
+   * Agreement findFirst
+   */
+  export type AgreementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which Agreement to fetch.
+     */
+    where?: AgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Agreements to fetch.
+     */
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Agreements.
+     */
+    cursor?: AgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Agreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Agreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Agreements.
+     */
+    distinct?: AgreementScalarFieldEnum | AgreementScalarFieldEnum[]
+  }
+
+  /**
+   * Agreement findFirstOrThrow
+   */
+  export type AgreementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which Agreement to fetch.
+     */
+    where?: AgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Agreements to fetch.
+     */
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Agreements.
+     */
+    cursor?: AgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Agreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Agreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Agreements.
+     */
+    distinct?: AgreementScalarFieldEnum | AgreementScalarFieldEnum[]
+  }
+
+  /**
+   * Agreement findMany
+   */
+  export type AgreementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which Agreements to fetch.
+     */
+    where?: AgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Agreements to fetch.
+     */
+    orderBy?: AgreementOrderByWithRelationInput | AgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Agreements.
+     */
+    cursor?: AgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Agreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Agreements.
+     */
+    skip?: number
+    distinct?: AgreementScalarFieldEnum | AgreementScalarFieldEnum[]
+  }
+
+  /**
+   * Agreement create
+   */
+  export type AgreementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Agreement.
+     */
+    data: XOR<AgreementCreateInput, AgreementUncheckedCreateInput>
+  }
+
+  /**
+   * Agreement createMany
+   */
+  export type AgreementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Agreements.
+     */
+    data: AgreementCreateManyInput | AgreementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Agreement createManyAndReturn
+   */
+  export type AgreementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * The data used to create many Agreements.
+     */
+    data: AgreementCreateManyInput | AgreementCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Agreement update
+   */
+  export type AgreementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Agreement.
+     */
+    data: XOR<AgreementUpdateInput, AgreementUncheckedUpdateInput>
+    /**
+     * Choose, which Agreement to update.
+     */
+    where: AgreementWhereUniqueInput
+  }
+
+  /**
+   * Agreement updateMany
+   */
+  export type AgreementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Agreements.
+     */
+    data: XOR<AgreementUpdateManyMutationInput, AgreementUncheckedUpdateManyInput>
+    /**
+     * Filter which Agreements to update
+     */
+    where?: AgreementWhereInput
+    /**
+     * Limit how many Agreements to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Agreement updateManyAndReturn
+   */
+  export type AgreementUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * The data used to update Agreements.
+     */
+    data: XOR<AgreementUpdateManyMutationInput, AgreementUncheckedUpdateManyInput>
+    /**
+     * Filter which Agreements to update
+     */
+    where?: AgreementWhereInput
+    /**
+     * Limit how many Agreements to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Agreement upsert
+   */
+  export type AgreementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Agreement to update in case it exists.
+     */
+    where: AgreementWhereUniqueInput
+    /**
+     * In case the Agreement found by the `where` argument doesn't exist, create a new Agreement with this data.
+     */
+    create: XOR<AgreementCreateInput, AgreementUncheckedCreateInput>
+    /**
+     * In case the Agreement was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgreementUpdateInput, AgreementUncheckedUpdateInput>
+  }
+
+  /**
+   * Agreement delete
+   */
+  export type AgreementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+    /**
+     * Filter which Agreement to delete.
+     */
+    where: AgreementWhereUniqueInput
+  }
+
+  /**
+   * Agreement deleteMany
+   */
+  export type AgreementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Agreements to delete
+     */
+    where?: AgreementWhereInput
+    /**
+     * Limit how many Agreements to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Agreement.quotation
+   */
+  export type Agreement$quotationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Quotation
+     */
+    select?: QuotationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Quotation
+     */
+    omit?: QuotationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QuotationInclude<ExtArgs> | null
+    where?: QuotationWhereInput
+  }
+
+  /**
+   * Agreement without action
+   */
+  export type AgreementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Agreement
+     */
+    select?: AgreementSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Agreement
+     */
+    omit?: AgreementOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgreementInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -10570,6 +16751,130 @@ export namespace Prisma {
   };
 
   export type PlanChangeScalarFieldEnum = (typeof PlanChangeScalarFieldEnum)[keyof typeof PlanChangeScalarFieldEnum]
+
+
+  export const QuotationScalarFieldEnum: {
+    id: 'id',
+    accountId: 'accountId',
+    number: 'number',
+    fy: 'fy',
+    serial: 'serial',
+    version: 'version',
+    status: 'status',
+    stage: 'stage',
+    title: 'title',
+    planTier: 'planTier',
+    clientName: 'clientName',
+    clientAddress: 'clientAddress',
+    clientGSTIN: 'clientGSTIN',
+    clientState: 'clientState',
+    clientContact: 'clientContact',
+    clientEmail: 'clientEmail',
+    clientPhone: 'clientPhone',
+    providerName: 'providerName',
+    providerAddress: 'providerAddress',
+    providerGSTIN: 'providerGSTIN',
+    providerState: 'providerState',
+    validUntil: 'validUntil',
+    subtotal: 'subtotal',
+    discountAmount: 'discountAmount',
+    taxableAmount: 'taxableAmount',
+    cgst: 'cgst',
+    sgst: 'sgst',
+    igst: 'igst',
+    total: 'total',
+    currency: 'currency',
+    scope: 'scope',
+    exclusions: 'exclusions',
+    paymentTerms: 'paymentTerms',
+    deliveryTerms: 'deliveryTerms',
+    internalNotes: 'internalNotes',
+    summary: 'summary',
+    sentAt: 'sentAt',
+    acceptedAt: 'acceptedAt',
+    rejectedAt: 'rejectedAt',
+    acceptedBy: 'acceptedBy',
+    nextFollowUpAt: 'nextFollowUpAt',
+    lastContactedAt: 'lastContactedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type QuotationScalarFieldEnum = (typeof QuotationScalarFieldEnum)[keyof typeof QuotationScalarFieldEnum]
+
+
+  export const QuotationLineItemScalarFieldEnum: {
+    id: 'id',
+    quotationId: 'quotationId',
+    category: 'category',
+    description: 'description',
+    unit: 'unit',
+    quantity: 'quantity',
+    unitPrice: 'unitPrice',
+    discount: 'discount',
+    lineTotal: 'lineTotal',
+    sortOrder: 'sortOrder',
+    sac: 'sac'
+  };
+
+  export type QuotationLineItemScalarFieldEnum = (typeof QuotationLineItemScalarFieldEnum)[keyof typeof QuotationLineItemScalarFieldEnum]
+
+
+  export const QuotationActivityScalarFieldEnum: {
+    id: 'id',
+    quotationId: 'quotationId',
+    kind: 'kind',
+    subject: 'subject',
+    body: 'body',
+    outcome: 'outcome',
+    actor: 'actor',
+    at: 'at',
+    isScheduled: 'isScheduled',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type QuotationActivityScalarFieldEnum = (typeof QuotationActivityScalarFieldEnum)[keyof typeof QuotationActivityScalarFieldEnum]
+
+
+  export const AgreementScalarFieldEnum: {
+    id: 'id',
+    accountId: 'accountId',
+    quotationId: 'quotationId',
+    number: 'number',
+    fy: 'fy',
+    serial: 'serial',
+    status: 'status',
+    title: 'title',
+    clauses: 'clauses',
+    effectiveFrom: 'effectiveFrom',
+    termMonths: 'termMonths',
+    noticeDays: 'noticeDays',
+    autoRenew: 'autoRenew',
+    clientName: 'clientName',
+    clientAddress: 'clientAddress',
+    clientGSTIN: 'clientGSTIN',
+    providerName: 'providerName',
+    providerAddress: 'providerAddress',
+    providerGSTIN: 'providerGSTIN',
+    setupFee: 'setupFee',
+    yearlyFee: 'yearlyFee',
+    monthlyFee: 'monthlyFee',
+    currency: 'currency',
+    providerSignedBy: 'providerSignedBy',
+    providerSignedAt: 'providerSignedAt',
+    clientSignedByName: 'clientSignedByName',
+    clientSignedByRole: 'clientSignedByRole',
+    clientSignedAt: 'clientSignedAt',
+    clientSignatureRef: 'clientSignatureRef',
+    issuedAt: 'issuedAt',
+    terminatedAt: 'terminatedAt',
+    terminationReason: 'terminationReason',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AgreementScalarFieldEnum = (typeof AgreementScalarFieldEnum)[keyof typeof AgreementScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -10787,6 +17092,76 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'QuotationStatus'
+   */
+  export type EnumQuotationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'QuotationStatus[]'
+   */
+  export type ListEnumQuotationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotationStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PipelineStage'
+   */
+  export type EnumPipelineStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PipelineStage'>
+    
+
+
+  /**
+   * Reference to a field of type 'PipelineStage[]'
+   */
+  export type ListEnumPipelineStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PipelineStage[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'QuotationLineCategory'
+   */
+  export type EnumQuotationLineCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotationLineCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'QuotationLineCategory[]'
+   */
+  export type ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotationLineCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ActivityKind'
+   */
+  export type EnumActivityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'ActivityKind[]'
+   */
+  export type ListEnumActivityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AgreementStatus'
+   */
+  export type EnumAgreementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgreementStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AgreementStatus[]'
+   */
+  export type ListEnumAgreementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgreementStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -10919,6 +17294,8 @@ export namespace Prisma {
     health?: HealthCheckListRelationFilter
     invoices?: InvoiceListRelationFilter
     planChanges?: PlanChangeListRelationFilter
+    quotations?: QuotationListRelationFilter
+    agreements?: AgreementListRelationFilter
   }
 
   export type ClinicAccountOrderByWithRelationInput = {
@@ -10969,6 +17346,8 @@ export namespace Prisma {
     health?: HealthCheckOrderByRelationAggregateInput
     invoices?: InvoiceOrderByRelationAggregateInput
     planChanges?: PlanChangeOrderByRelationAggregateInput
+    quotations?: QuotationOrderByRelationAggregateInput
+    agreements?: AgreementOrderByRelationAggregateInput
   }
 
   export type ClinicAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -11022,6 +17401,8 @@ export namespace Prisma {
     health?: HealthCheckListRelationFilter
     invoices?: InvoiceListRelationFilter
     planChanges?: PlanChangeListRelationFilter
+    quotations?: QuotationListRelationFilter
+    agreements?: AgreementListRelationFilter
   }, "id" | "slug">
 
   export type ClinicAccountOrderByWithAggregationInput = {
@@ -11593,6 +17974,646 @@ export namespace Prisma {
     at?: DateTimeWithAggregatesFilter<"PlanChange"> | Date | string
   }
 
+  export type QuotationWhereInput = {
+    AND?: QuotationWhereInput | QuotationWhereInput[]
+    OR?: QuotationWhereInput[]
+    NOT?: QuotationWhereInput | QuotationWhereInput[]
+    id?: StringFilter<"Quotation"> | string
+    accountId?: StringNullableFilter<"Quotation"> | string | null
+    number?: StringNullableFilter<"Quotation"> | string | null
+    fy?: StringNullableFilter<"Quotation"> | string | null
+    serial?: IntNullableFilter<"Quotation"> | number | null
+    version?: IntFilter<"Quotation"> | number
+    status?: EnumQuotationStatusFilter<"Quotation"> | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFilter<"Quotation"> | $Enums.PipelineStage
+    title?: StringFilter<"Quotation"> | string
+    planTier?: EnumPlanTierFilter<"Quotation"> | $Enums.PlanTier
+    clientName?: StringFilter<"Quotation"> | string
+    clientAddress?: StringNullableFilter<"Quotation"> | string | null
+    clientGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    clientState?: StringNullableFilter<"Quotation"> | string | null
+    clientContact?: StringNullableFilter<"Quotation"> | string | null
+    clientEmail?: StringNullableFilter<"Quotation"> | string | null
+    clientPhone?: StringNullableFilter<"Quotation"> | string | null
+    providerName?: StringFilter<"Quotation"> | string
+    providerAddress?: StringNullableFilter<"Quotation"> | string | null
+    providerGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    providerState?: StringNullableFilter<"Quotation"> | string | null
+    validUntil?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    subtotal?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    currency?: StringFilter<"Quotation"> | string
+    scope?: StringNullableFilter<"Quotation"> | string | null
+    exclusions?: StringNullableFilter<"Quotation"> | string | null
+    paymentTerms?: StringNullableFilter<"Quotation"> | string | null
+    deliveryTerms?: StringNullableFilter<"Quotation"> | string | null
+    internalNotes?: StringNullableFilter<"Quotation"> | string | null
+    summary?: StringNullableFilter<"Quotation"> | string | null
+    sentAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    rejectedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedBy?: StringNullableFilter<"Quotation"> | string | null
+    nextFollowUpAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    lastContactedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    createdAt?: DateTimeFilter<"Quotation"> | Date | string
+    updatedAt?: DateTimeFilter<"Quotation"> | Date | string
+    account?: XOR<ClinicAccountNullableScalarRelationFilter, ClinicAccountWhereInput> | null
+    lineItems?: QuotationLineItemListRelationFilter
+    activities?: QuotationActivityListRelationFilter
+    agreements?: AgreementListRelationFilter
+  }
+
+  export type QuotationOrderByWithRelationInput = {
+    id?: SortOrder
+    accountId?: SortOrderInput | SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    stage?: SortOrder
+    title?: SortOrder
+    planTier?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrderInput | SortOrder
+    clientGSTIN?: SortOrderInput | SortOrder
+    clientState?: SortOrderInput | SortOrder
+    clientContact?: SortOrderInput | SortOrder
+    clientEmail?: SortOrderInput | SortOrder
+    clientPhone?: SortOrderInput | SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrderInput | SortOrder
+    providerGSTIN?: SortOrderInput | SortOrder
+    providerState?: SortOrderInput | SortOrder
+    validUntil?: SortOrderInput | SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    currency?: SortOrder
+    scope?: SortOrderInput | SortOrder
+    exclusions?: SortOrderInput | SortOrder
+    paymentTerms?: SortOrderInput | SortOrder
+    deliveryTerms?: SortOrderInput | SortOrder
+    internalNotes?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    sentAt?: SortOrderInput | SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    rejectedAt?: SortOrderInput | SortOrder
+    acceptedBy?: SortOrderInput | SortOrder
+    nextFollowUpAt?: SortOrderInput | SortOrder
+    lastContactedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    account?: ClinicAccountOrderByWithRelationInput
+    lineItems?: QuotationLineItemOrderByRelationAggregateInput
+    activities?: QuotationActivityOrderByRelationAggregateInput
+    agreements?: AgreementOrderByRelationAggregateInput
+  }
+
+  export type QuotationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    number?: string
+    fy_serial_version?: QuotationFySerialVersionCompoundUniqueInput
+    AND?: QuotationWhereInput | QuotationWhereInput[]
+    OR?: QuotationWhereInput[]
+    NOT?: QuotationWhereInput | QuotationWhereInput[]
+    accountId?: StringNullableFilter<"Quotation"> | string | null
+    fy?: StringNullableFilter<"Quotation"> | string | null
+    serial?: IntNullableFilter<"Quotation"> | number | null
+    version?: IntFilter<"Quotation"> | number
+    status?: EnumQuotationStatusFilter<"Quotation"> | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFilter<"Quotation"> | $Enums.PipelineStage
+    title?: StringFilter<"Quotation"> | string
+    planTier?: EnumPlanTierFilter<"Quotation"> | $Enums.PlanTier
+    clientName?: StringFilter<"Quotation"> | string
+    clientAddress?: StringNullableFilter<"Quotation"> | string | null
+    clientGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    clientState?: StringNullableFilter<"Quotation"> | string | null
+    clientContact?: StringNullableFilter<"Quotation"> | string | null
+    clientEmail?: StringNullableFilter<"Quotation"> | string | null
+    clientPhone?: StringNullableFilter<"Quotation"> | string | null
+    providerName?: StringFilter<"Quotation"> | string
+    providerAddress?: StringNullableFilter<"Quotation"> | string | null
+    providerGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    providerState?: StringNullableFilter<"Quotation"> | string | null
+    validUntil?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    subtotal?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    currency?: StringFilter<"Quotation"> | string
+    scope?: StringNullableFilter<"Quotation"> | string | null
+    exclusions?: StringNullableFilter<"Quotation"> | string | null
+    paymentTerms?: StringNullableFilter<"Quotation"> | string | null
+    deliveryTerms?: StringNullableFilter<"Quotation"> | string | null
+    internalNotes?: StringNullableFilter<"Quotation"> | string | null
+    summary?: StringNullableFilter<"Quotation"> | string | null
+    sentAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    rejectedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedBy?: StringNullableFilter<"Quotation"> | string | null
+    nextFollowUpAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    lastContactedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    createdAt?: DateTimeFilter<"Quotation"> | Date | string
+    updatedAt?: DateTimeFilter<"Quotation"> | Date | string
+    account?: XOR<ClinicAccountNullableScalarRelationFilter, ClinicAccountWhereInput> | null
+    lineItems?: QuotationLineItemListRelationFilter
+    activities?: QuotationActivityListRelationFilter
+    agreements?: AgreementListRelationFilter
+  }, "id" | "number" | "fy_serial_version">
+
+  export type QuotationOrderByWithAggregationInput = {
+    id?: SortOrder
+    accountId?: SortOrderInput | SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    stage?: SortOrder
+    title?: SortOrder
+    planTier?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrderInput | SortOrder
+    clientGSTIN?: SortOrderInput | SortOrder
+    clientState?: SortOrderInput | SortOrder
+    clientContact?: SortOrderInput | SortOrder
+    clientEmail?: SortOrderInput | SortOrder
+    clientPhone?: SortOrderInput | SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrderInput | SortOrder
+    providerGSTIN?: SortOrderInput | SortOrder
+    providerState?: SortOrderInput | SortOrder
+    validUntil?: SortOrderInput | SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    currency?: SortOrder
+    scope?: SortOrderInput | SortOrder
+    exclusions?: SortOrderInput | SortOrder
+    paymentTerms?: SortOrderInput | SortOrder
+    deliveryTerms?: SortOrderInput | SortOrder
+    internalNotes?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    sentAt?: SortOrderInput | SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    rejectedAt?: SortOrderInput | SortOrder
+    acceptedBy?: SortOrderInput | SortOrder
+    nextFollowUpAt?: SortOrderInput | SortOrder
+    lastContactedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: QuotationCountOrderByAggregateInput
+    _avg?: QuotationAvgOrderByAggregateInput
+    _max?: QuotationMaxOrderByAggregateInput
+    _min?: QuotationMinOrderByAggregateInput
+    _sum?: QuotationSumOrderByAggregateInput
+  }
+
+  export type QuotationScalarWhereWithAggregatesInput = {
+    AND?: QuotationScalarWhereWithAggregatesInput | QuotationScalarWhereWithAggregatesInput[]
+    OR?: QuotationScalarWhereWithAggregatesInput[]
+    NOT?: QuotationScalarWhereWithAggregatesInput | QuotationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Quotation"> | string
+    accountId?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    number?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    fy?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    serial?: IntNullableWithAggregatesFilter<"Quotation"> | number | null
+    version?: IntWithAggregatesFilter<"Quotation"> | number
+    status?: EnumQuotationStatusWithAggregatesFilter<"Quotation"> | $Enums.QuotationStatus
+    stage?: EnumPipelineStageWithAggregatesFilter<"Quotation"> | $Enums.PipelineStage
+    title?: StringWithAggregatesFilter<"Quotation"> | string
+    planTier?: EnumPlanTierWithAggregatesFilter<"Quotation"> | $Enums.PlanTier
+    clientName?: StringWithAggregatesFilter<"Quotation"> | string
+    clientAddress?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    clientGSTIN?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    clientState?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    clientContact?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    clientEmail?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    clientPhone?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    providerName?: StringWithAggregatesFilter<"Quotation"> | string
+    providerAddress?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    providerGSTIN?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    providerState?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    validUntil?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    subtotal?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalWithAggregatesFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    currency?: StringWithAggregatesFilter<"Quotation"> | string
+    scope?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    exclusions?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    paymentTerms?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    deliveryTerms?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    internalNotes?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    summary?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    sentAt?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    acceptedAt?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    rejectedAt?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    acceptedBy?: StringNullableWithAggregatesFilter<"Quotation"> | string | null
+    nextFollowUpAt?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    lastContactedAt?: DateTimeNullableWithAggregatesFilter<"Quotation"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Quotation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Quotation"> | Date | string
+  }
+
+  export type QuotationLineItemWhereInput = {
+    AND?: QuotationLineItemWhereInput | QuotationLineItemWhereInput[]
+    OR?: QuotationLineItemWhereInput[]
+    NOT?: QuotationLineItemWhereInput | QuotationLineItemWhereInput[]
+    id?: StringFilter<"QuotationLineItem"> | string
+    quotationId?: StringFilter<"QuotationLineItem"> | string
+    category?: EnumQuotationLineCategoryFilter<"QuotationLineItem"> | $Enums.QuotationLineCategory
+    description?: StringFilter<"QuotationLineItem"> | string
+    unit?: StringFilter<"QuotationLineItem"> | string
+    quantity?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFilter<"QuotationLineItem"> | number
+    sac?: StringNullableFilter<"QuotationLineItem"> | string | null
+    quotation?: XOR<QuotationScalarRelationFilter, QuotationWhereInput>
+  }
+
+  export type QuotationLineItemOrderByWithRelationInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    category?: SortOrder
+    description?: SortOrder
+    unit?: SortOrder
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+    sac?: SortOrderInput | SortOrder
+    quotation?: QuotationOrderByWithRelationInput
+  }
+
+  export type QuotationLineItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: QuotationLineItemWhereInput | QuotationLineItemWhereInput[]
+    OR?: QuotationLineItemWhereInput[]
+    NOT?: QuotationLineItemWhereInput | QuotationLineItemWhereInput[]
+    quotationId?: StringFilter<"QuotationLineItem"> | string
+    category?: EnumQuotationLineCategoryFilter<"QuotationLineItem"> | $Enums.QuotationLineCategory
+    description?: StringFilter<"QuotationLineItem"> | string
+    unit?: StringFilter<"QuotationLineItem"> | string
+    quantity?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFilter<"QuotationLineItem"> | number
+    sac?: StringNullableFilter<"QuotationLineItem"> | string | null
+    quotation?: XOR<QuotationScalarRelationFilter, QuotationWhereInput>
+  }, "id">
+
+  export type QuotationLineItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    category?: SortOrder
+    description?: SortOrder
+    unit?: SortOrder
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+    sac?: SortOrderInput | SortOrder
+    _count?: QuotationLineItemCountOrderByAggregateInput
+    _avg?: QuotationLineItemAvgOrderByAggregateInput
+    _max?: QuotationLineItemMaxOrderByAggregateInput
+    _min?: QuotationLineItemMinOrderByAggregateInput
+    _sum?: QuotationLineItemSumOrderByAggregateInput
+  }
+
+  export type QuotationLineItemScalarWhereWithAggregatesInput = {
+    AND?: QuotationLineItemScalarWhereWithAggregatesInput | QuotationLineItemScalarWhereWithAggregatesInput[]
+    OR?: QuotationLineItemScalarWhereWithAggregatesInput[]
+    NOT?: QuotationLineItemScalarWhereWithAggregatesInput | QuotationLineItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"QuotationLineItem"> | string
+    quotationId?: StringWithAggregatesFilter<"QuotationLineItem"> | string
+    category?: EnumQuotationLineCategoryWithAggregatesFilter<"QuotationLineItem"> | $Enums.QuotationLineCategory
+    description?: StringWithAggregatesFilter<"QuotationLineItem"> | string
+    unit?: StringWithAggregatesFilter<"QuotationLineItem"> | string
+    quantity?: DecimalWithAggregatesFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalWithAggregatesFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    discount?: DecimalWithAggregatesFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalWithAggregatesFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntWithAggregatesFilter<"QuotationLineItem"> | number
+    sac?: StringNullableWithAggregatesFilter<"QuotationLineItem"> | string | null
+  }
+
+  export type QuotationActivityWhereInput = {
+    AND?: QuotationActivityWhereInput | QuotationActivityWhereInput[]
+    OR?: QuotationActivityWhereInput[]
+    NOT?: QuotationActivityWhereInput | QuotationActivityWhereInput[]
+    id?: StringFilter<"QuotationActivity"> | string
+    quotationId?: StringFilter<"QuotationActivity"> | string
+    kind?: EnumActivityKindFilter<"QuotationActivity"> | $Enums.ActivityKind
+    subject?: StringFilter<"QuotationActivity"> | string
+    body?: StringNullableFilter<"QuotationActivity"> | string | null
+    outcome?: StringNullableFilter<"QuotationActivity"> | string | null
+    actor?: StringFilter<"QuotationActivity"> | string
+    at?: DateTimeFilter<"QuotationActivity"> | Date | string
+    isScheduled?: BoolFilter<"QuotationActivity"> | boolean
+    completedAt?: DateTimeNullableFilter<"QuotationActivity"> | Date | string | null
+    createdAt?: DateTimeFilter<"QuotationActivity"> | Date | string
+    quotation?: XOR<QuotationScalarRelationFilter, QuotationWhereInput>
+  }
+
+  export type QuotationActivityOrderByWithRelationInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    kind?: SortOrder
+    subject?: SortOrder
+    body?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    actor?: SortOrder
+    at?: SortOrder
+    isScheduled?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    quotation?: QuotationOrderByWithRelationInput
+  }
+
+  export type QuotationActivityWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: QuotationActivityWhereInput | QuotationActivityWhereInput[]
+    OR?: QuotationActivityWhereInput[]
+    NOT?: QuotationActivityWhereInput | QuotationActivityWhereInput[]
+    quotationId?: StringFilter<"QuotationActivity"> | string
+    kind?: EnumActivityKindFilter<"QuotationActivity"> | $Enums.ActivityKind
+    subject?: StringFilter<"QuotationActivity"> | string
+    body?: StringNullableFilter<"QuotationActivity"> | string | null
+    outcome?: StringNullableFilter<"QuotationActivity"> | string | null
+    actor?: StringFilter<"QuotationActivity"> | string
+    at?: DateTimeFilter<"QuotationActivity"> | Date | string
+    isScheduled?: BoolFilter<"QuotationActivity"> | boolean
+    completedAt?: DateTimeNullableFilter<"QuotationActivity"> | Date | string | null
+    createdAt?: DateTimeFilter<"QuotationActivity"> | Date | string
+    quotation?: XOR<QuotationScalarRelationFilter, QuotationWhereInput>
+  }, "id">
+
+  export type QuotationActivityOrderByWithAggregationInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    kind?: SortOrder
+    subject?: SortOrder
+    body?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    actor?: SortOrder
+    at?: SortOrder
+    isScheduled?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: QuotationActivityCountOrderByAggregateInput
+    _max?: QuotationActivityMaxOrderByAggregateInput
+    _min?: QuotationActivityMinOrderByAggregateInput
+  }
+
+  export type QuotationActivityScalarWhereWithAggregatesInput = {
+    AND?: QuotationActivityScalarWhereWithAggregatesInput | QuotationActivityScalarWhereWithAggregatesInput[]
+    OR?: QuotationActivityScalarWhereWithAggregatesInput[]
+    NOT?: QuotationActivityScalarWhereWithAggregatesInput | QuotationActivityScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"QuotationActivity"> | string
+    quotationId?: StringWithAggregatesFilter<"QuotationActivity"> | string
+    kind?: EnumActivityKindWithAggregatesFilter<"QuotationActivity"> | $Enums.ActivityKind
+    subject?: StringWithAggregatesFilter<"QuotationActivity"> | string
+    body?: StringNullableWithAggregatesFilter<"QuotationActivity"> | string | null
+    outcome?: StringNullableWithAggregatesFilter<"QuotationActivity"> | string | null
+    actor?: StringWithAggregatesFilter<"QuotationActivity"> | string
+    at?: DateTimeWithAggregatesFilter<"QuotationActivity"> | Date | string
+    isScheduled?: BoolWithAggregatesFilter<"QuotationActivity"> | boolean
+    completedAt?: DateTimeNullableWithAggregatesFilter<"QuotationActivity"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"QuotationActivity"> | Date | string
+  }
+
+  export type AgreementWhereInput = {
+    AND?: AgreementWhereInput | AgreementWhereInput[]
+    OR?: AgreementWhereInput[]
+    NOT?: AgreementWhereInput | AgreementWhereInput[]
+    id?: StringFilter<"Agreement"> | string
+    accountId?: StringFilter<"Agreement"> | string
+    quotationId?: StringNullableFilter<"Agreement"> | string | null
+    number?: StringNullableFilter<"Agreement"> | string | null
+    fy?: StringNullableFilter<"Agreement"> | string | null
+    serial?: IntNullableFilter<"Agreement"> | number | null
+    status?: EnumAgreementStatusFilter<"Agreement"> | $Enums.AgreementStatus
+    title?: StringFilter<"Agreement"> | string
+    clauses?: JsonFilter<"Agreement">
+    effectiveFrom?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    termMonths?: IntFilter<"Agreement"> | number
+    noticeDays?: IntFilter<"Agreement"> | number
+    autoRenew?: BoolFilter<"Agreement"> | boolean
+    clientName?: StringFilter<"Agreement"> | string
+    clientAddress?: StringNullableFilter<"Agreement"> | string | null
+    clientGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    providerName?: StringFilter<"Agreement"> | string
+    providerAddress?: StringNullableFilter<"Agreement"> | string | null
+    providerGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    setupFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFilter<"Agreement"> | string
+    providerSignedBy?: StringNullableFilter<"Agreement"> | string | null
+    providerSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignedByName?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedByRole?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignatureRef?: StringNullableFilter<"Agreement"> | string | null
+    issuedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminationReason?: StringNullableFilter<"Agreement"> | string | null
+    createdAt?: DateTimeFilter<"Agreement"> | Date | string
+    updatedAt?: DateTimeFilter<"Agreement"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+    quotation?: XOR<QuotationNullableScalarRelationFilter, QuotationWhereInput> | null
+  }
+
+  export type AgreementOrderByWithRelationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    quotationId?: SortOrderInput | SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    status?: SortOrder
+    title?: SortOrder
+    clauses?: SortOrder
+    effectiveFrom?: SortOrderInput | SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    autoRenew?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrderInput | SortOrder
+    clientGSTIN?: SortOrderInput | SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrderInput | SortOrder
+    providerGSTIN?: SortOrderInput | SortOrder
+    setupFee?: SortOrderInput | SortOrder
+    yearlyFee?: SortOrderInput | SortOrder
+    monthlyFee?: SortOrderInput | SortOrder
+    currency?: SortOrder
+    providerSignedBy?: SortOrderInput | SortOrder
+    providerSignedAt?: SortOrderInput | SortOrder
+    clientSignedByName?: SortOrderInput | SortOrder
+    clientSignedByRole?: SortOrderInput | SortOrder
+    clientSignedAt?: SortOrderInput | SortOrder
+    clientSignatureRef?: SortOrderInput | SortOrder
+    issuedAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    account?: ClinicAccountOrderByWithRelationInput
+    quotation?: QuotationOrderByWithRelationInput
+  }
+
+  export type AgreementWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    number?: string
+    fy_serial?: AgreementFySerialCompoundUniqueInput
+    AND?: AgreementWhereInput | AgreementWhereInput[]
+    OR?: AgreementWhereInput[]
+    NOT?: AgreementWhereInput | AgreementWhereInput[]
+    accountId?: StringFilter<"Agreement"> | string
+    quotationId?: StringNullableFilter<"Agreement"> | string | null
+    fy?: StringNullableFilter<"Agreement"> | string | null
+    serial?: IntNullableFilter<"Agreement"> | number | null
+    status?: EnumAgreementStatusFilter<"Agreement"> | $Enums.AgreementStatus
+    title?: StringFilter<"Agreement"> | string
+    clauses?: JsonFilter<"Agreement">
+    effectiveFrom?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    termMonths?: IntFilter<"Agreement"> | number
+    noticeDays?: IntFilter<"Agreement"> | number
+    autoRenew?: BoolFilter<"Agreement"> | boolean
+    clientName?: StringFilter<"Agreement"> | string
+    clientAddress?: StringNullableFilter<"Agreement"> | string | null
+    clientGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    providerName?: StringFilter<"Agreement"> | string
+    providerAddress?: StringNullableFilter<"Agreement"> | string | null
+    providerGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    setupFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFilter<"Agreement"> | string
+    providerSignedBy?: StringNullableFilter<"Agreement"> | string | null
+    providerSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignedByName?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedByRole?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignatureRef?: StringNullableFilter<"Agreement"> | string | null
+    issuedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminationReason?: StringNullableFilter<"Agreement"> | string | null
+    createdAt?: DateTimeFilter<"Agreement"> | Date | string
+    updatedAt?: DateTimeFilter<"Agreement"> | Date | string
+    account?: XOR<ClinicAccountScalarRelationFilter, ClinicAccountWhereInput>
+    quotation?: XOR<QuotationNullableScalarRelationFilter, QuotationWhereInput> | null
+  }, "id" | "number" | "fy_serial">
+
+  export type AgreementOrderByWithAggregationInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    quotationId?: SortOrderInput | SortOrder
+    number?: SortOrderInput | SortOrder
+    fy?: SortOrderInput | SortOrder
+    serial?: SortOrderInput | SortOrder
+    status?: SortOrder
+    title?: SortOrder
+    clauses?: SortOrder
+    effectiveFrom?: SortOrderInput | SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    autoRenew?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrderInput | SortOrder
+    clientGSTIN?: SortOrderInput | SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrderInput | SortOrder
+    providerGSTIN?: SortOrderInput | SortOrder
+    setupFee?: SortOrderInput | SortOrder
+    yearlyFee?: SortOrderInput | SortOrder
+    monthlyFee?: SortOrderInput | SortOrder
+    currency?: SortOrder
+    providerSignedBy?: SortOrderInput | SortOrder
+    providerSignedAt?: SortOrderInput | SortOrder
+    clientSignedByName?: SortOrderInput | SortOrder
+    clientSignedByRole?: SortOrderInput | SortOrder
+    clientSignedAt?: SortOrderInput | SortOrder
+    clientSignatureRef?: SortOrderInput | SortOrder
+    issuedAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AgreementCountOrderByAggregateInput
+    _avg?: AgreementAvgOrderByAggregateInput
+    _max?: AgreementMaxOrderByAggregateInput
+    _min?: AgreementMinOrderByAggregateInput
+    _sum?: AgreementSumOrderByAggregateInput
+  }
+
+  export type AgreementScalarWhereWithAggregatesInput = {
+    AND?: AgreementScalarWhereWithAggregatesInput | AgreementScalarWhereWithAggregatesInput[]
+    OR?: AgreementScalarWhereWithAggregatesInput[]
+    NOT?: AgreementScalarWhereWithAggregatesInput | AgreementScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Agreement"> | string
+    accountId?: StringWithAggregatesFilter<"Agreement"> | string
+    quotationId?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    number?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    fy?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    serial?: IntNullableWithAggregatesFilter<"Agreement"> | number | null
+    status?: EnumAgreementStatusWithAggregatesFilter<"Agreement"> | $Enums.AgreementStatus
+    title?: StringWithAggregatesFilter<"Agreement"> | string
+    clauses?: JsonWithAggregatesFilter<"Agreement">
+    effectiveFrom?: DateTimeNullableWithAggregatesFilter<"Agreement"> | Date | string | null
+    termMonths?: IntWithAggregatesFilter<"Agreement"> | number
+    noticeDays?: IntWithAggregatesFilter<"Agreement"> | number
+    autoRenew?: BoolWithAggregatesFilter<"Agreement"> | boolean
+    clientName?: StringWithAggregatesFilter<"Agreement"> | string
+    clientAddress?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    clientGSTIN?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    providerName?: StringWithAggregatesFilter<"Agreement"> | string
+    providerAddress?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    providerGSTIN?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    setupFee?: DecimalNullableWithAggregatesFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableWithAggregatesFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: DecimalNullableWithAggregatesFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    currency?: StringWithAggregatesFilter<"Agreement"> | string
+    providerSignedBy?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    providerSignedAt?: DateTimeNullableWithAggregatesFilter<"Agreement"> | Date | string | null
+    clientSignedByName?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    clientSignedByRole?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    clientSignedAt?: DateTimeNullableWithAggregatesFilter<"Agreement"> | Date | string | null
+    clientSignatureRef?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    issuedAt?: DateTimeNullableWithAggregatesFilter<"Agreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableWithAggregatesFilter<"Agreement"> | Date | string | null
+    terminationReason?: StringNullableWithAggregatesFilter<"Agreement"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Agreement"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Agreement"> | Date | string
+  }
+
   export type ProviderUserCreateInput = {
     id?: string
     email: string
@@ -11715,6 +18736,8 @@ export namespace Prisma {
     health?: HealthCheckCreateNestedManyWithoutAccountInput
     invoices?: InvoiceCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateInput = {
@@ -11765,6 +18788,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
     invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUpdateInput = {
@@ -11815,6 +18840,8 @@ export namespace Prisma {
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateInput = {
@@ -11865,6 +18892,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateManyInput = {
@@ -12535,6 +19564,797 @@ export namespace Prisma {
     at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type QuotationCreateInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account?: ClinicAccountCreateNestedOneWithoutQuotationsInput
+    lineItems?: QuotationLineItemCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUncheckedCreateInput = {
+    id?: string
+    accountId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lineItems?: QuotationLineItemUncheckedCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityUncheckedCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneWithoutQuotationsNestedInput
+    lineItems?: QuotationLineItemUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lineItems?: QuotationLineItemUncheckedUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUncheckedUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationCreateManyInput = {
+    id?: string
+    accountId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QuotationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationLineItemCreateInput = {
+    id?: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+    quotation: QuotationCreateNestedOneWithoutLineItemsInput
+  }
+
+  export type QuotationLineItemUncheckedCreateInput = {
+    id?: string
+    quotationId: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+  }
+
+  export type QuotationLineItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+    quotation?: QuotationUpdateOneRequiredWithoutLineItemsNestedInput
+  }
+
+  export type QuotationLineItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationLineItemCreateManyInput = {
+    id?: string
+    quotationId: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+  }
+
+  export type QuotationLineItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationLineItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationActivityCreateInput = {
+    id?: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    quotation: QuotationCreateNestedOneWithoutActivitiesInput
+  }
+
+  export type QuotationActivityUncheckedCreateInput = {
+    id?: string
+    quotationId: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type QuotationActivityUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quotation?: QuotationUpdateOneRequiredWithoutActivitiesNestedInput
+  }
+
+  export type QuotationActivityUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationActivityCreateManyInput = {
+    id?: string
+    quotationId: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type QuotationActivityUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationActivityUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementCreateInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account: ClinicAccountCreateNestedOneWithoutAgreementsInput
+    quotation?: QuotationCreateNestedOneWithoutAgreementsInput
+  }
+
+  export type AgreementUncheckedCreateInput = {
+    id?: string
+    accountId: string
+    quotationId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgreementUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneRequiredWithoutAgreementsNestedInput
+    quotation?: QuotationUpdateOneWithoutAgreementsNestedInput
+  }
+
+  export type AgreementUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementCreateManyInput = {
+    id?: string
+    accountId: string
+    quotationId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgreementUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -12798,6 +20618,18 @@ export namespace Prisma {
     none?: PlanChangeWhereInput
   }
 
+  export type QuotationListRelationFilter = {
+    every?: QuotationWhereInput
+    some?: QuotationWhereInput
+    none?: QuotationWhereInput
+  }
+
+  export type AgreementListRelationFilter = {
+    every?: AgreementWhereInput
+    some?: AgreementWhereInput
+    none?: AgreementWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -12816,6 +20648,14 @@ export namespace Prisma {
   }
 
   export type PlanChangeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type QuotationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgreementOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -13530,6 +21370,524 @@ export namespace Prisma {
     at?: SortOrder
   }
 
+  export type EnumQuotationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationStatus | EnumQuotationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationStatusFilter<$PrismaModel> | $Enums.QuotationStatus
+  }
+
+  export type EnumPipelineStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.PipelineStage | EnumPipelineStageFieldRefInput<$PrismaModel>
+    in?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumPipelineStageFilter<$PrismaModel> | $Enums.PipelineStage
+  }
+
+  export type QuotationLineItemListRelationFilter = {
+    every?: QuotationLineItemWhereInput
+    some?: QuotationLineItemWhereInput
+    none?: QuotationLineItemWhereInput
+  }
+
+  export type QuotationActivityListRelationFilter = {
+    every?: QuotationActivityWhereInput
+    some?: QuotationActivityWhereInput
+    none?: QuotationActivityWhereInput
+  }
+
+  export type QuotationLineItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type QuotationActivityOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type QuotationFySerialVersionCompoundUniqueInput = {
+    fy: string
+    serial: number
+    version: number
+  }
+
+  export type QuotationCountOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    stage?: SortOrder
+    title?: SortOrder
+    planTier?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    clientState?: SortOrder
+    clientContact?: SortOrder
+    clientEmail?: SortOrder
+    clientPhone?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    providerState?: SortOrder
+    validUntil?: SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    currency?: SortOrder
+    scope?: SortOrder
+    exclusions?: SortOrder
+    paymentTerms?: SortOrder
+    deliveryTerms?: SortOrder
+    internalNotes?: SortOrder
+    summary?: SortOrder
+    sentAt?: SortOrder
+    acceptedAt?: SortOrder
+    rejectedAt?: SortOrder
+    acceptedBy?: SortOrder
+    nextFollowUpAt?: SortOrder
+    lastContactedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QuotationAvgOrderByAggregateInput = {
+    serial?: SortOrder
+    version?: SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+  }
+
+  export type QuotationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    stage?: SortOrder
+    title?: SortOrder
+    planTier?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    clientState?: SortOrder
+    clientContact?: SortOrder
+    clientEmail?: SortOrder
+    clientPhone?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    providerState?: SortOrder
+    validUntil?: SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    currency?: SortOrder
+    scope?: SortOrder
+    exclusions?: SortOrder
+    paymentTerms?: SortOrder
+    deliveryTerms?: SortOrder
+    internalNotes?: SortOrder
+    summary?: SortOrder
+    sentAt?: SortOrder
+    acceptedAt?: SortOrder
+    rejectedAt?: SortOrder
+    acceptedBy?: SortOrder
+    nextFollowUpAt?: SortOrder
+    lastContactedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QuotationMinOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    stage?: SortOrder
+    title?: SortOrder
+    planTier?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    clientState?: SortOrder
+    clientContact?: SortOrder
+    clientEmail?: SortOrder
+    clientPhone?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    providerState?: SortOrder
+    validUntil?: SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+    currency?: SortOrder
+    scope?: SortOrder
+    exclusions?: SortOrder
+    paymentTerms?: SortOrder
+    deliveryTerms?: SortOrder
+    internalNotes?: SortOrder
+    summary?: SortOrder
+    sentAt?: SortOrder
+    acceptedAt?: SortOrder
+    rejectedAt?: SortOrder
+    acceptedBy?: SortOrder
+    nextFollowUpAt?: SortOrder
+    lastContactedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QuotationSumOrderByAggregateInput = {
+    serial?: SortOrder
+    version?: SortOrder
+    subtotal?: SortOrder
+    discountAmount?: SortOrder
+    taxableAmount?: SortOrder
+    cgst?: SortOrder
+    sgst?: SortOrder
+    igst?: SortOrder
+    total?: SortOrder
+  }
+
+  export type EnumQuotationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationStatus | EnumQuotationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationStatusWithAggregatesFilter<$PrismaModel> | $Enums.QuotationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuotationStatusFilter<$PrismaModel>
+    _max?: NestedEnumQuotationStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPipelineStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PipelineStage | EnumPipelineStageFieldRefInput<$PrismaModel>
+    in?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumPipelineStageWithAggregatesFilter<$PrismaModel> | $Enums.PipelineStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPipelineStageFilter<$PrismaModel>
+    _max?: NestedEnumPipelineStageFilter<$PrismaModel>
+  }
+
+  export type EnumQuotationLineCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationLineCategory | EnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationLineCategoryFilter<$PrismaModel> | $Enums.QuotationLineCategory
+  }
+
+  export type QuotationScalarRelationFilter = {
+    is?: QuotationWhereInput
+    isNot?: QuotationWhereInput
+  }
+
+  export type QuotationLineItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    category?: SortOrder
+    description?: SortOrder
+    unit?: SortOrder
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+    sac?: SortOrder
+  }
+
+  export type QuotationLineItemAvgOrderByAggregateInput = {
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+  }
+
+  export type QuotationLineItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    category?: SortOrder
+    description?: SortOrder
+    unit?: SortOrder
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+    sac?: SortOrder
+  }
+
+  export type QuotationLineItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    category?: SortOrder
+    description?: SortOrder
+    unit?: SortOrder
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+    sac?: SortOrder
+  }
+
+  export type QuotationLineItemSumOrderByAggregateInput = {
+    quantity?: SortOrder
+    unitPrice?: SortOrder
+    discount?: SortOrder
+    lineTotal?: SortOrder
+    sortOrder?: SortOrder
+  }
+
+  export type EnumQuotationLineCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationLineCategory | EnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationLineCategoryWithAggregatesFilter<$PrismaModel> | $Enums.QuotationLineCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuotationLineCategoryFilter<$PrismaModel>
+    _max?: NestedEnumQuotationLineCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumActivityKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ActivityKind | EnumActivityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumActivityKindFilter<$PrismaModel> | $Enums.ActivityKind
+  }
+
+  export type QuotationActivityCountOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    kind?: SortOrder
+    subject?: SortOrder
+    body?: SortOrder
+    outcome?: SortOrder
+    actor?: SortOrder
+    at?: SortOrder
+    isScheduled?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type QuotationActivityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    kind?: SortOrder
+    subject?: SortOrder
+    body?: SortOrder
+    outcome?: SortOrder
+    actor?: SortOrder
+    at?: SortOrder
+    isScheduled?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type QuotationActivityMinOrderByAggregateInput = {
+    id?: SortOrder
+    quotationId?: SortOrder
+    kind?: SortOrder
+    subject?: SortOrder
+    body?: SortOrder
+    outcome?: SortOrder
+    actor?: SortOrder
+    at?: SortOrder
+    isScheduled?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumActivityKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ActivityKind | EnumActivityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumActivityKindWithAggregatesFilter<$PrismaModel> | $Enums.ActivityKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumActivityKindFilter<$PrismaModel>
+    _max?: NestedEnumActivityKindFilter<$PrismaModel>
+  }
+
+  export type EnumAgreementStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgreementStatus | EnumAgreementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgreementStatusFilter<$PrismaModel> | $Enums.AgreementStatus
+  }
+
+  export type QuotationNullableScalarRelationFilter = {
+    is?: QuotationWhereInput | null
+    isNot?: QuotationWhereInput | null
+  }
+
+  export type AgreementFySerialCompoundUniqueInput = {
+    fy: string
+    serial: number
+  }
+
+  export type AgreementCountOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    quotationId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    title?: SortOrder
+    clauses?: SortOrder
+    effectiveFrom?: SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    autoRenew?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    monthlyFee?: SortOrder
+    currency?: SortOrder
+    providerSignedBy?: SortOrder
+    providerSignedAt?: SortOrder
+    clientSignedByName?: SortOrder
+    clientSignedByRole?: SortOrder
+    clientSignedAt?: SortOrder
+    clientSignatureRef?: SortOrder
+    issuedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminationReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgreementAvgOrderByAggregateInput = {
+    serial?: SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    monthlyFee?: SortOrder
+  }
+
+  export type AgreementMaxOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    quotationId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    title?: SortOrder
+    effectiveFrom?: SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    autoRenew?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    monthlyFee?: SortOrder
+    currency?: SortOrder
+    providerSignedBy?: SortOrder
+    providerSignedAt?: SortOrder
+    clientSignedByName?: SortOrder
+    clientSignedByRole?: SortOrder
+    clientSignedAt?: SortOrder
+    clientSignatureRef?: SortOrder
+    issuedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminationReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgreementMinOrderByAggregateInput = {
+    id?: SortOrder
+    accountId?: SortOrder
+    quotationId?: SortOrder
+    number?: SortOrder
+    fy?: SortOrder
+    serial?: SortOrder
+    status?: SortOrder
+    title?: SortOrder
+    effectiveFrom?: SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    autoRenew?: SortOrder
+    clientName?: SortOrder
+    clientAddress?: SortOrder
+    clientGSTIN?: SortOrder
+    providerName?: SortOrder
+    providerAddress?: SortOrder
+    providerGSTIN?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    monthlyFee?: SortOrder
+    currency?: SortOrder
+    providerSignedBy?: SortOrder
+    providerSignedAt?: SortOrder
+    clientSignedByName?: SortOrder
+    clientSignedByRole?: SortOrder
+    clientSignedAt?: SortOrder
+    clientSignatureRef?: SortOrder
+    issuedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminationReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgreementSumOrderByAggregateInput = {
+    serial?: SortOrder
+    termMonths?: SortOrder
+    noticeDays?: SortOrder
+    setupFee?: SortOrder
+    yearlyFee?: SortOrder
+    monthlyFee?: SortOrder
+  }
+
+  export type EnumAgreementStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgreementStatus | EnumAgreementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgreementStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgreementStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgreementStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgreementStatusFilter<$PrismaModel>
+  }
+
   export type ActivityLogCreateNestedManyWithoutActorInput = {
     create?: XOR<ActivityLogCreateWithoutActorInput, ActivityLogUncheckedCreateWithoutActorInput> | ActivityLogCreateWithoutActorInput[] | ActivityLogUncheckedCreateWithoutActorInput[]
     connectOrCreate?: ActivityLogCreateOrConnectWithoutActorInput | ActivityLogCreateOrConnectWithoutActorInput[]
@@ -13623,6 +21981,20 @@ export namespace Prisma {
     connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
   }
 
+  export type QuotationCreateNestedManyWithoutAccountInput = {
+    create?: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput> | QuotationCreateWithoutAccountInput[] | QuotationUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: QuotationCreateOrConnectWithoutAccountInput | QuotationCreateOrConnectWithoutAccountInput[]
+    createMany?: QuotationCreateManyAccountInputEnvelope
+    connect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+  }
+
+  export type AgreementCreateNestedManyWithoutAccountInput = {
+    create?: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput> | AgreementCreateWithoutAccountInput[] | AgreementUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutAccountInput | AgreementCreateOrConnectWithoutAccountInput[]
+    createMany?: AgreementCreateManyAccountInputEnvelope
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+  }
+
   export type OnboardingStepUncheckedCreateNestedManyWithoutAccountInput = {
     create?: XOR<OnboardingStepCreateWithoutAccountInput, OnboardingStepUncheckedCreateWithoutAccountInput> | OnboardingStepCreateWithoutAccountInput[] | OnboardingStepUncheckedCreateWithoutAccountInput[]
     connectOrCreate?: OnboardingStepCreateOrConnectWithoutAccountInput | OnboardingStepCreateOrConnectWithoutAccountInput[]
@@ -13656,6 +22028,20 @@ export namespace Prisma {
     connectOrCreate?: PlanChangeCreateOrConnectWithoutAccountInput | PlanChangeCreateOrConnectWithoutAccountInput[]
     createMany?: PlanChangeCreateManyAccountInputEnvelope
     connect?: PlanChangeWhereUniqueInput | PlanChangeWhereUniqueInput[]
+  }
+
+  export type QuotationUncheckedCreateNestedManyWithoutAccountInput = {
+    create?: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput> | QuotationCreateWithoutAccountInput[] | QuotationUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: QuotationCreateOrConnectWithoutAccountInput | QuotationCreateOrConnectWithoutAccountInput[]
+    createMany?: QuotationCreateManyAccountInputEnvelope
+    connect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+  }
+
+  export type AgreementUncheckedCreateNestedManyWithoutAccountInput = {
+    create?: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput> | AgreementCreateWithoutAccountInput[] | AgreementUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutAccountInput | AgreementCreateOrConnectWithoutAccountInput[]
+    createMany?: AgreementCreateManyAccountInputEnvelope
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
   }
 
   export type NullableStringFieldUpdateOperationsInput = {
@@ -13776,6 +22162,34 @@ export namespace Prisma {
     deleteMany?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
   }
 
+  export type QuotationUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput> | QuotationCreateWithoutAccountInput[] | QuotationUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: QuotationCreateOrConnectWithoutAccountInput | QuotationCreateOrConnectWithoutAccountInput[]
+    upsert?: QuotationUpsertWithWhereUniqueWithoutAccountInput | QuotationUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: QuotationCreateManyAccountInputEnvelope
+    set?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    disconnect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    delete?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    connect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    update?: QuotationUpdateWithWhereUniqueWithoutAccountInput | QuotationUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: QuotationUpdateManyWithWhereWithoutAccountInput | QuotationUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: QuotationScalarWhereInput | QuotationScalarWhereInput[]
+  }
+
+  export type AgreementUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput> | AgreementCreateWithoutAccountInput[] | AgreementUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutAccountInput | AgreementCreateOrConnectWithoutAccountInput[]
+    upsert?: AgreementUpsertWithWhereUniqueWithoutAccountInput | AgreementUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: AgreementCreateManyAccountInputEnvelope
+    set?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    disconnect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    delete?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    update?: AgreementUpdateWithWhereUniqueWithoutAccountInput | AgreementUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: AgreementUpdateManyWithWhereWithoutAccountInput | AgreementUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
+  }
+
   export type OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput = {
     create?: XOR<OnboardingStepCreateWithoutAccountInput, OnboardingStepUncheckedCreateWithoutAccountInput> | OnboardingStepCreateWithoutAccountInput[] | OnboardingStepUncheckedCreateWithoutAccountInput[]
     connectOrCreate?: OnboardingStepCreateOrConnectWithoutAccountInput | OnboardingStepCreateOrConnectWithoutAccountInput[]
@@ -13844,6 +22258,34 @@ export namespace Prisma {
     update?: PlanChangeUpdateWithWhereUniqueWithoutAccountInput | PlanChangeUpdateWithWhereUniqueWithoutAccountInput[]
     updateMany?: PlanChangeUpdateManyWithWhereWithoutAccountInput | PlanChangeUpdateManyWithWhereWithoutAccountInput[]
     deleteMany?: PlanChangeScalarWhereInput | PlanChangeScalarWhereInput[]
+  }
+
+  export type QuotationUncheckedUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput> | QuotationCreateWithoutAccountInput[] | QuotationUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: QuotationCreateOrConnectWithoutAccountInput | QuotationCreateOrConnectWithoutAccountInput[]
+    upsert?: QuotationUpsertWithWhereUniqueWithoutAccountInput | QuotationUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: QuotationCreateManyAccountInputEnvelope
+    set?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    disconnect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    delete?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    connect?: QuotationWhereUniqueInput | QuotationWhereUniqueInput[]
+    update?: QuotationUpdateWithWhereUniqueWithoutAccountInput | QuotationUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: QuotationUpdateManyWithWhereWithoutAccountInput | QuotationUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: QuotationScalarWhereInput | QuotationScalarWhereInput[]
+  }
+
+  export type AgreementUncheckedUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput> | AgreementCreateWithoutAccountInput[] | AgreementUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutAccountInput | AgreementCreateOrConnectWithoutAccountInput[]
+    upsert?: AgreementUpsertWithWhereUniqueWithoutAccountInput | AgreementUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: AgreementCreateManyAccountInputEnvelope
+    set?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    disconnect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    delete?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    update?: AgreementUpdateWithWhereUniqueWithoutAccountInput | AgreementUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: AgreementUpdateManyWithWhereWithoutAccountInput | AgreementUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
   }
 
   export type ClinicAccountCreateNestedOneWithoutStepsInput = {
@@ -13952,6 +22394,226 @@ export namespace Prisma {
     upsert?: ClinicAccountUpsertWithoutPlanChangesInput
     connect?: ClinicAccountWhereUniqueInput
     update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutPlanChangesInput, ClinicAccountUpdateWithoutPlanChangesInput>, ClinicAccountUncheckedUpdateWithoutPlanChangesInput>
+  }
+
+  export type ClinicAccountCreateNestedOneWithoutQuotationsInput = {
+    create?: XOR<ClinicAccountCreateWithoutQuotationsInput, ClinicAccountUncheckedCreateWithoutQuotationsInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutQuotationsInput
+    connect?: ClinicAccountWhereUniqueInput
+  }
+
+  export type QuotationLineItemCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput> | QuotationLineItemCreateWithoutQuotationInput[] | QuotationLineItemUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationLineItemCreateOrConnectWithoutQuotationInput | QuotationLineItemCreateOrConnectWithoutQuotationInput[]
+    createMany?: QuotationLineItemCreateManyQuotationInputEnvelope
+    connect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+  }
+
+  export type QuotationActivityCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput> | QuotationActivityCreateWithoutQuotationInput[] | QuotationActivityUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationActivityCreateOrConnectWithoutQuotationInput | QuotationActivityCreateOrConnectWithoutQuotationInput[]
+    createMany?: QuotationActivityCreateManyQuotationInputEnvelope
+    connect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+  }
+
+  export type AgreementCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput> | AgreementCreateWithoutQuotationInput[] | AgreementUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutQuotationInput | AgreementCreateOrConnectWithoutQuotationInput[]
+    createMany?: AgreementCreateManyQuotationInputEnvelope
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+  }
+
+  export type QuotationLineItemUncheckedCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput> | QuotationLineItemCreateWithoutQuotationInput[] | QuotationLineItemUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationLineItemCreateOrConnectWithoutQuotationInput | QuotationLineItemCreateOrConnectWithoutQuotationInput[]
+    createMany?: QuotationLineItemCreateManyQuotationInputEnvelope
+    connect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+  }
+
+  export type QuotationActivityUncheckedCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput> | QuotationActivityCreateWithoutQuotationInput[] | QuotationActivityUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationActivityCreateOrConnectWithoutQuotationInput | QuotationActivityCreateOrConnectWithoutQuotationInput[]
+    createMany?: QuotationActivityCreateManyQuotationInputEnvelope
+    connect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+  }
+
+  export type AgreementUncheckedCreateNestedManyWithoutQuotationInput = {
+    create?: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput> | AgreementCreateWithoutQuotationInput[] | AgreementUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutQuotationInput | AgreementCreateOrConnectWithoutQuotationInput[]
+    createMany?: AgreementCreateManyQuotationInputEnvelope
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+  }
+
+  export type EnumQuotationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.QuotationStatus
+  }
+
+  export type EnumPipelineStageFieldUpdateOperationsInput = {
+    set?: $Enums.PipelineStage
+  }
+
+  export type ClinicAccountUpdateOneWithoutQuotationsNestedInput = {
+    create?: XOR<ClinicAccountCreateWithoutQuotationsInput, ClinicAccountUncheckedCreateWithoutQuotationsInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutQuotationsInput
+    upsert?: ClinicAccountUpsertWithoutQuotationsInput
+    disconnect?: ClinicAccountWhereInput | boolean
+    delete?: ClinicAccountWhereInput | boolean
+    connect?: ClinicAccountWhereUniqueInput
+    update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutQuotationsInput, ClinicAccountUpdateWithoutQuotationsInput>, ClinicAccountUncheckedUpdateWithoutQuotationsInput>
+  }
+
+  export type QuotationLineItemUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput> | QuotationLineItemCreateWithoutQuotationInput[] | QuotationLineItemUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationLineItemCreateOrConnectWithoutQuotationInput | QuotationLineItemCreateOrConnectWithoutQuotationInput[]
+    upsert?: QuotationLineItemUpsertWithWhereUniqueWithoutQuotationInput | QuotationLineItemUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: QuotationLineItemCreateManyQuotationInputEnvelope
+    set?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    disconnect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    delete?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    connect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    update?: QuotationLineItemUpdateWithWhereUniqueWithoutQuotationInput | QuotationLineItemUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: QuotationLineItemUpdateManyWithWhereWithoutQuotationInput | QuotationLineItemUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: QuotationLineItemScalarWhereInput | QuotationLineItemScalarWhereInput[]
+  }
+
+  export type QuotationActivityUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput> | QuotationActivityCreateWithoutQuotationInput[] | QuotationActivityUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationActivityCreateOrConnectWithoutQuotationInput | QuotationActivityCreateOrConnectWithoutQuotationInput[]
+    upsert?: QuotationActivityUpsertWithWhereUniqueWithoutQuotationInput | QuotationActivityUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: QuotationActivityCreateManyQuotationInputEnvelope
+    set?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    disconnect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    delete?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    connect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    update?: QuotationActivityUpdateWithWhereUniqueWithoutQuotationInput | QuotationActivityUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: QuotationActivityUpdateManyWithWhereWithoutQuotationInput | QuotationActivityUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: QuotationActivityScalarWhereInput | QuotationActivityScalarWhereInput[]
+  }
+
+  export type AgreementUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput> | AgreementCreateWithoutQuotationInput[] | AgreementUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutQuotationInput | AgreementCreateOrConnectWithoutQuotationInput[]
+    upsert?: AgreementUpsertWithWhereUniqueWithoutQuotationInput | AgreementUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: AgreementCreateManyQuotationInputEnvelope
+    set?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    disconnect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    delete?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    update?: AgreementUpdateWithWhereUniqueWithoutQuotationInput | AgreementUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: AgreementUpdateManyWithWhereWithoutQuotationInput | AgreementUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
+  }
+
+  export type QuotationLineItemUncheckedUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput> | QuotationLineItemCreateWithoutQuotationInput[] | QuotationLineItemUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationLineItemCreateOrConnectWithoutQuotationInput | QuotationLineItemCreateOrConnectWithoutQuotationInput[]
+    upsert?: QuotationLineItemUpsertWithWhereUniqueWithoutQuotationInput | QuotationLineItemUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: QuotationLineItemCreateManyQuotationInputEnvelope
+    set?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    disconnect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    delete?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    connect?: QuotationLineItemWhereUniqueInput | QuotationLineItemWhereUniqueInput[]
+    update?: QuotationLineItemUpdateWithWhereUniqueWithoutQuotationInput | QuotationLineItemUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: QuotationLineItemUpdateManyWithWhereWithoutQuotationInput | QuotationLineItemUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: QuotationLineItemScalarWhereInput | QuotationLineItemScalarWhereInput[]
+  }
+
+  export type QuotationActivityUncheckedUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput> | QuotationActivityCreateWithoutQuotationInput[] | QuotationActivityUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: QuotationActivityCreateOrConnectWithoutQuotationInput | QuotationActivityCreateOrConnectWithoutQuotationInput[]
+    upsert?: QuotationActivityUpsertWithWhereUniqueWithoutQuotationInput | QuotationActivityUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: QuotationActivityCreateManyQuotationInputEnvelope
+    set?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    disconnect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    delete?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    connect?: QuotationActivityWhereUniqueInput | QuotationActivityWhereUniqueInput[]
+    update?: QuotationActivityUpdateWithWhereUniqueWithoutQuotationInput | QuotationActivityUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: QuotationActivityUpdateManyWithWhereWithoutQuotationInput | QuotationActivityUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: QuotationActivityScalarWhereInput | QuotationActivityScalarWhereInput[]
+  }
+
+  export type AgreementUncheckedUpdateManyWithoutQuotationNestedInput = {
+    create?: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput> | AgreementCreateWithoutQuotationInput[] | AgreementUncheckedCreateWithoutQuotationInput[]
+    connectOrCreate?: AgreementCreateOrConnectWithoutQuotationInput | AgreementCreateOrConnectWithoutQuotationInput[]
+    upsert?: AgreementUpsertWithWhereUniqueWithoutQuotationInput | AgreementUpsertWithWhereUniqueWithoutQuotationInput[]
+    createMany?: AgreementCreateManyQuotationInputEnvelope
+    set?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    disconnect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    delete?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    connect?: AgreementWhereUniqueInput | AgreementWhereUniqueInput[]
+    update?: AgreementUpdateWithWhereUniqueWithoutQuotationInput | AgreementUpdateWithWhereUniqueWithoutQuotationInput[]
+    updateMany?: AgreementUpdateManyWithWhereWithoutQuotationInput | AgreementUpdateManyWithWhereWithoutQuotationInput[]
+    deleteMany?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
+  }
+
+  export type QuotationCreateNestedOneWithoutLineItemsInput = {
+    create?: XOR<QuotationCreateWithoutLineItemsInput, QuotationUncheckedCreateWithoutLineItemsInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutLineItemsInput
+    connect?: QuotationWhereUniqueInput
+  }
+
+  export type EnumQuotationLineCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.QuotationLineCategory
+  }
+
+  export type QuotationUpdateOneRequiredWithoutLineItemsNestedInput = {
+    create?: XOR<QuotationCreateWithoutLineItemsInput, QuotationUncheckedCreateWithoutLineItemsInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutLineItemsInput
+    upsert?: QuotationUpsertWithoutLineItemsInput
+    connect?: QuotationWhereUniqueInput
+    update?: XOR<XOR<QuotationUpdateToOneWithWhereWithoutLineItemsInput, QuotationUpdateWithoutLineItemsInput>, QuotationUncheckedUpdateWithoutLineItemsInput>
+  }
+
+  export type QuotationCreateNestedOneWithoutActivitiesInput = {
+    create?: XOR<QuotationCreateWithoutActivitiesInput, QuotationUncheckedCreateWithoutActivitiesInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutActivitiesInput
+    connect?: QuotationWhereUniqueInput
+  }
+
+  export type EnumActivityKindFieldUpdateOperationsInput = {
+    set?: $Enums.ActivityKind
+  }
+
+  export type QuotationUpdateOneRequiredWithoutActivitiesNestedInput = {
+    create?: XOR<QuotationCreateWithoutActivitiesInput, QuotationUncheckedCreateWithoutActivitiesInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutActivitiesInput
+    upsert?: QuotationUpsertWithoutActivitiesInput
+    connect?: QuotationWhereUniqueInput
+    update?: XOR<XOR<QuotationUpdateToOneWithWhereWithoutActivitiesInput, QuotationUpdateWithoutActivitiesInput>, QuotationUncheckedUpdateWithoutActivitiesInput>
+  }
+
+  export type ClinicAccountCreateNestedOneWithoutAgreementsInput = {
+    create?: XOR<ClinicAccountCreateWithoutAgreementsInput, ClinicAccountUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutAgreementsInput
+    connect?: ClinicAccountWhereUniqueInput
+  }
+
+  export type QuotationCreateNestedOneWithoutAgreementsInput = {
+    create?: XOR<QuotationCreateWithoutAgreementsInput, QuotationUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutAgreementsInput
+    connect?: QuotationWhereUniqueInput
+  }
+
+  export type EnumAgreementStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AgreementStatus
+  }
+
+  export type ClinicAccountUpdateOneRequiredWithoutAgreementsNestedInput = {
+    create?: XOR<ClinicAccountCreateWithoutAgreementsInput, ClinicAccountUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: ClinicAccountCreateOrConnectWithoutAgreementsInput
+    upsert?: ClinicAccountUpsertWithoutAgreementsInput
+    connect?: ClinicAccountWhereUniqueInput
+    update?: XOR<XOR<ClinicAccountUpdateToOneWithWhereWithoutAgreementsInput, ClinicAccountUpdateWithoutAgreementsInput>, ClinicAccountUncheckedUpdateWithoutAgreementsInput>
+  }
+
+  export type QuotationUpdateOneWithoutAgreementsNestedInput = {
+    create?: XOR<QuotationCreateWithoutAgreementsInput, QuotationUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: QuotationCreateOrConnectWithoutAgreementsInput
+    upsert?: QuotationUpsertWithoutAgreementsInput
+    disconnect?: QuotationWhereInput | boolean
+    delete?: QuotationWhereInput | boolean
+    connect?: QuotationWhereUniqueInput
+    update?: XOR<XOR<QuotationUpdateToOneWithWhereWithoutAgreementsInput, QuotationUpdateWithoutAgreementsInput>, QuotationUncheckedUpdateWithoutAgreementsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -14387,6 +23049,91 @@ export namespace Prisma {
     _max?: NestedDecimalFilter<$PrismaModel>
   }
 
+  export type NestedEnumQuotationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationStatus | EnumQuotationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationStatusFilter<$PrismaModel> | $Enums.QuotationStatus
+  }
+
+  export type NestedEnumPipelineStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.PipelineStage | EnumPipelineStageFieldRefInput<$PrismaModel>
+    in?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumPipelineStageFilter<$PrismaModel> | $Enums.PipelineStage
+  }
+
+  export type NestedEnumQuotationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationStatus | EnumQuotationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationStatus[] | ListEnumQuotationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationStatusWithAggregatesFilter<$PrismaModel> | $Enums.QuotationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuotationStatusFilter<$PrismaModel>
+    _max?: NestedEnumQuotationStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPipelineStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PipelineStage | EnumPipelineStageFieldRefInput<$PrismaModel>
+    in?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PipelineStage[] | ListEnumPipelineStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumPipelineStageWithAggregatesFilter<$PrismaModel> | $Enums.PipelineStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPipelineStageFilter<$PrismaModel>
+    _max?: NestedEnumPipelineStageFilter<$PrismaModel>
+  }
+
+  export type NestedEnumQuotationLineCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationLineCategory | EnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationLineCategoryFilter<$PrismaModel> | $Enums.QuotationLineCategory
+  }
+
+  export type NestedEnumQuotationLineCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuotationLineCategory | EnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuotationLineCategory[] | ListEnumQuotationLineCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuotationLineCategoryWithAggregatesFilter<$PrismaModel> | $Enums.QuotationLineCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuotationLineCategoryFilter<$PrismaModel>
+    _max?: NestedEnumQuotationLineCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumActivityKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ActivityKind | EnumActivityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumActivityKindFilter<$PrismaModel> | $Enums.ActivityKind
+  }
+
+  export type NestedEnumActivityKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ActivityKind | EnumActivityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ActivityKind[] | ListEnumActivityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumActivityKindWithAggregatesFilter<$PrismaModel> | $Enums.ActivityKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumActivityKindFilter<$PrismaModel>
+    _max?: NestedEnumActivityKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAgreementStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgreementStatus | EnumAgreementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgreementStatusFilter<$PrismaModel> | $Enums.AgreementStatus
+  }
+
+  export type NestedEnumAgreementStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgreementStatus | EnumAgreementStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgreementStatus[] | ListEnumAgreementStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgreementStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgreementStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgreementStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgreementStatusFilter<$PrismaModel>
+  }
+
   export type ActivityLogCreateWithoutActorInput = {
     id?: string
     actorName: string
@@ -14641,6 +23388,196 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type QuotationCreateWithoutAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lineItems?: QuotationLineItemCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUncheckedCreateWithoutAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lineItems?: QuotationLineItemUncheckedCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityUncheckedCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationCreateOrConnectWithoutAccountInput = {
+    where: QuotationWhereUniqueInput
+    create: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput>
+  }
+
+  export type QuotationCreateManyAccountInputEnvelope = {
+    data: QuotationCreateManyAccountInput | QuotationCreateManyAccountInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgreementCreateWithoutAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    quotation?: QuotationCreateNestedOneWithoutAgreementsInput
+  }
+
+  export type AgreementUncheckedCreateWithoutAccountInput = {
+    id?: string
+    quotationId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgreementCreateOrConnectWithoutAccountInput = {
+    where: AgreementWhereUniqueInput
+    create: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput>
+  }
+
+  export type AgreementCreateManyAccountInputEnvelope = {
+    data: AgreementCreateManyAccountInput | AgreementCreateManyAccountInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OnboardingStepUpsertWithWhereUniqueWithoutAccountInput = {
     where: OnboardingStepWhereUniqueInput
     update: XOR<OnboardingStepUpdateWithoutAccountInput, OnboardingStepUncheckedUpdateWithoutAccountInput>
@@ -14799,6 +23736,128 @@ export namespace Prisma {
     at?: DateTimeFilter<"PlanChange"> | Date | string
   }
 
+  export type QuotationUpsertWithWhereUniqueWithoutAccountInput = {
+    where: QuotationWhereUniqueInput
+    update: XOR<QuotationUpdateWithoutAccountInput, QuotationUncheckedUpdateWithoutAccountInput>
+    create: XOR<QuotationCreateWithoutAccountInput, QuotationUncheckedCreateWithoutAccountInput>
+  }
+
+  export type QuotationUpdateWithWhereUniqueWithoutAccountInput = {
+    where: QuotationWhereUniqueInput
+    data: XOR<QuotationUpdateWithoutAccountInput, QuotationUncheckedUpdateWithoutAccountInput>
+  }
+
+  export type QuotationUpdateManyWithWhereWithoutAccountInput = {
+    where: QuotationScalarWhereInput
+    data: XOR<QuotationUpdateManyMutationInput, QuotationUncheckedUpdateManyWithoutAccountInput>
+  }
+
+  export type QuotationScalarWhereInput = {
+    AND?: QuotationScalarWhereInput | QuotationScalarWhereInput[]
+    OR?: QuotationScalarWhereInput[]
+    NOT?: QuotationScalarWhereInput | QuotationScalarWhereInput[]
+    id?: StringFilter<"Quotation"> | string
+    accountId?: StringNullableFilter<"Quotation"> | string | null
+    number?: StringNullableFilter<"Quotation"> | string | null
+    fy?: StringNullableFilter<"Quotation"> | string | null
+    serial?: IntNullableFilter<"Quotation"> | number | null
+    version?: IntFilter<"Quotation"> | number
+    status?: EnumQuotationStatusFilter<"Quotation"> | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFilter<"Quotation"> | $Enums.PipelineStage
+    title?: StringFilter<"Quotation"> | string
+    planTier?: EnumPlanTierFilter<"Quotation"> | $Enums.PlanTier
+    clientName?: StringFilter<"Quotation"> | string
+    clientAddress?: StringNullableFilter<"Quotation"> | string | null
+    clientGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    clientState?: StringNullableFilter<"Quotation"> | string | null
+    clientContact?: StringNullableFilter<"Quotation"> | string | null
+    clientEmail?: StringNullableFilter<"Quotation"> | string | null
+    clientPhone?: StringNullableFilter<"Quotation"> | string | null
+    providerName?: StringFilter<"Quotation"> | string
+    providerAddress?: StringNullableFilter<"Quotation"> | string | null
+    providerGSTIN?: StringNullableFilter<"Quotation"> | string | null
+    providerState?: StringNullableFilter<"Quotation"> | string | null
+    validUntil?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    subtotal?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    total?: DecimalFilter<"Quotation"> | Decimal | DecimalJsLike | number | string
+    currency?: StringFilter<"Quotation"> | string
+    scope?: StringNullableFilter<"Quotation"> | string | null
+    exclusions?: StringNullableFilter<"Quotation"> | string | null
+    paymentTerms?: StringNullableFilter<"Quotation"> | string | null
+    deliveryTerms?: StringNullableFilter<"Quotation"> | string | null
+    internalNotes?: StringNullableFilter<"Quotation"> | string | null
+    summary?: StringNullableFilter<"Quotation"> | string | null
+    sentAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    rejectedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    acceptedBy?: StringNullableFilter<"Quotation"> | string | null
+    nextFollowUpAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    lastContactedAt?: DateTimeNullableFilter<"Quotation"> | Date | string | null
+    createdAt?: DateTimeFilter<"Quotation"> | Date | string
+    updatedAt?: DateTimeFilter<"Quotation"> | Date | string
+  }
+
+  export type AgreementUpsertWithWhereUniqueWithoutAccountInput = {
+    where: AgreementWhereUniqueInput
+    update: XOR<AgreementUpdateWithoutAccountInput, AgreementUncheckedUpdateWithoutAccountInput>
+    create: XOR<AgreementCreateWithoutAccountInput, AgreementUncheckedCreateWithoutAccountInput>
+  }
+
+  export type AgreementUpdateWithWhereUniqueWithoutAccountInput = {
+    where: AgreementWhereUniqueInput
+    data: XOR<AgreementUpdateWithoutAccountInput, AgreementUncheckedUpdateWithoutAccountInput>
+  }
+
+  export type AgreementUpdateManyWithWhereWithoutAccountInput = {
+    where: AgreementScalarWhereInput
+    data: XOR<AgreementUpdateManyMutationInput, AgreementUncheckedUpdateManyWithoutAccountInput>
+  }
+
+  export type AgreementScalarWhereInput = {
+    AND?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
+    OR?: AgreementScalarWhereInput[]
+    NOT?: AgreementScalarWhereInput | AgreementScalarWhereInput[]
+    id?: StringFilter<"Agreement"> | string
+    accountId?: StringFilter<"Agreement"> | string
+    quotationId?: StringNullableFilter<"Agreement"> | string | null
+    number?: StringNullableFilter<"Agreement"> | string | null
+    fy?: StringNullableFilter<"Agreement"> | string | null
+    serial?: IntNullableFilter<"Agreement"> | number | null
+    status?: EnumAgreementStatusFilter<"Agreement"> | $Enums.AgreementStatus
+    title?: StringFilter<"Agreement"> | string
+    clauses?: JsonFilter<"Agreement">
+    effectiveFrom?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    termMonths?: IntFilter<"Agreement"> | number
+    noticeDays?: IntFilter<"Agreement"> | number
+    autoRenew?: BoolFilter<"Agreement"> | boolean
+    clientName?: StringFilter<"Agreement"> | string
+    clientAddress?: StringNullableFilter<"Agreement"> | string | null
+    clientGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    providerName?: StringFilter<"Agreement"> | string
+    providerAddress?: StringNullableFilter<"Agreement"> | string | null
+    providerGSTIN?: StringNullableFilter<"Agreement"> | string | null
+    setupFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: DecimalNullableFilter<"Agreement"> | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFilter<"Agreement"> | string
+    providerSignedBy?: StringNullableFilter<"Agreement"> | string | null
+    providerSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignedByName?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedByRole?: StringNullableFilter<"Agreement"> | string | null
+    clientSignedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    clientSignatureRef?: StringNullableFilter<"Agreement"> | string | null
+    issuedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"Agreement"> | Date | string | null
+    terminationReason?: StringNullableFilter<"Agreement"> | string | null
+    createdAt?: DateTimeFilter<"Agreement"> | Date | string
+    updatedAt?: DateTimeFilter<"Agreement"> | Date | string
+  }
+
   export type ClinicAccountCreateWithoutStepsInput = {
     id?: string
     slug: string
@@ -14846,6 +23905,8 @@ export namespace Prisma {
     health?: HealthCheckCreateNestedManyWithoutAccountInput
     invoices?: InvoiceCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutStepsInput = {
@@ -14895,6 +23956,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
     invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutStepsInput = {
@@ -14960,6 +24023,8 @@ export namespace Prisma {
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutStepsInput = {
@@ -15009,6 +24074,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateWithoutActivityInput = {
@@ -15058,6 +24125,8 @@ export namespace Prisma {
     health?: HealthCheckCreateNestedManyWithoutAccountInput
     invoices?: InvoiceCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutActivityInput = {
@@ -15107,6 +24176,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
     invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutActivityInput = {
@@ -15197,6 +24268,8 @@ export namespace Prisma {
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutActivityInput = {
@@ -15246,6 +24319,8 @@ export namespace Prisma {
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ProviderUserUpsertWithoutActivityInput = {
@@ -15326,6 +24401,8 @@ export namespace Prisma {
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
     invoices?: InvoiceCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutHealthInput = {
@@ -15375,6 +24452,8 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
     invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutHealthInput = {
@@ -15440,6 +24519,8 @@ export namespace Prisma {
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutHealthInput = {
@@ -15489,6 +24570,8 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateWithoutInvoicesInput = {
@@ -15538,6 +24621,8 @@ export namespace Prisma {
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
     health?: HealthCheckCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutInvoicesInput = {
@@ -15587,6 +24672,8 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
     planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutInvoicesInput = {
@@ -15652,6 +24739,8 @@ export namespace Prisma {
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutInvoicesInput = {
@@ -15701,6 +24790,8 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
     planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountCreateWithoutPlanChangesInput = {
@@ -15750,6 +24841,8 @@ export namespace Prisma {
     activity?: ActivityLogCreateNestedManyWithoutAccountInput
     health?: HealthCheckCreateNestedManyWithoutAccountInput
     invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountUncheckedCreateWithoutPlanChangesInput = {
@@ -15799,6 +24892,8 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
     health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
     invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
   }
 
   export type ClinicAccountCreateOrConnectWithoutPlanChangesInput = {
@@ -15864,6 +24959,8 @@ export namespace Prisma {
     activity?: ActivityLogUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
   }
 
   export type ClinicAccountUncheckedUpdateWithoutPlanChangesInput = {
@@ -15913,6 +25010,1320 @@ export namespace Prisma {
     activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
     health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
     invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountCreateWithoutQuotationsInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogCreateNestedManyWithoutAccountInput
+    health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    agreements?: AgreementCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountUncheckedCreateWithoutQuotationsInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
+    health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountCreateOrConnectWithoutQuotationsInput = {
+    where: ClinicAccountWhereUniqueInput
+    create: XOR<ClinicAccountCreateWithoutQuotationsInput, ClinicAccountUncheckedCreateWithoutQuotationsInput>
+  }
+
+  export type QuotationLineItemCreateWithoutQuotationInput = {
+    id?: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+  }
+
+  export type QuotationLineItemUncheckedCreateWithoutQuotationInput = {
+    id?: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+  }
+
+  export type QuotationLineItemCreateOrConnectWithoutQuotationInput = {
+    where: QuotationLineItemWhereUniqueInput
+    create: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type QuotationLineItemCreateManyQuotationInputEnvelope = {
+    data: QuotationLineItemCreateManyQuotationInput | QuotationLineItemCreateManyQuotationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type QuotationActivityCreateWithoutQuotationInput = {
+    id?: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type QuotationActivityUncheckedCreateWithoutQuotationInput = {
+    id?: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type QuotationActivityCreateOrConnectWithoutQuotationInput = {
+    where: QuotationActivityWhereUniqueInput
+    create: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type QuotationActivityCreateManyQuotationInputEnvelope = {
+    data: QuotationActivityCreateManyQuotationInput | QuotationActivityCreateManyQuotationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgreementCreateWithoutQuotationInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account: ClinicAccountCreateNestedOneWithoutAgreementsInput
+  }
+
+  export type AgreementUncheckedCreateWithoutQuotationInput = {
+    id?: string
+    accountId: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgreementCreateOrConnectWithoutQuotationInput = {
+    where: AgreementWhereUniqueInput
+    create: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type AgreementCreateManyQuotationInputEnvelope = {
+    data: AgreementCreateManyQuotationInput | AgreementCreateManyQuotationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ClinicAccountUpsertWithoutQuotationsInput = {
+    update: XOR<ClinicAccountUpdateWithoutQuotationsInput, ClinicAccountUncheckedUpdateWithoutQuotationsInput>
+    create: XOR<ClinicAccountCreateWithoutQuotationsInput, ClinicAccountUncheckedCreateWithoutQuotationsInput>
+    where?: ClinicAccountWhereInput
+  }
+
+  export type ClinicAccountUpdateToOneWithWhereWithoutQuotationsInput = {
+    where?: ClinicAccountWhereInput
+    data: XOR<ClinicAccountUpdateWithoutQuotationsInput, ClinicAccountUncheckedUpdateWithoutQuotationsInput>
+  }
+
+  export type ClinicAccountUpdateWithoutQuotationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountUncheckedUpdateWithoutQuotationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type QuotationLineItemUpsertWithWhereUniqueWithoutQuotationInput = {
+    where: QuotationLineItemWhereUniqueInput
+    update: XOR<QuotationLineItemUpdateWithoutQuotationInput, QuotationLineItemUncheckedUpdateWithoutQuotationInput>
+    create: XOR<QuotationLineItemCreateWithoutQuotationInput, QuotationLineItemUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type QuotationLineItemUpdateWithWhereUniqueWithoutQuotationInput = {
+    where: QuotationLineItemWhereUniqueInput
+    data: XOR<QuotationLineItemUpdateWithoutQuotationInput, QuotationLineItemUncheckedUpdateWithoutQuotationInput>
+  }
+
+  export type QuotationLineItemUpdateManyWithWhereWithoutQuotationInput = {
+    where: QuotationLineItemScalarWhereInput
+    data: XOR<QuotationLineItemUpdateManyMutationInput, QuotationLineItemUncheckedUpdateManyWithoutQuotationInput>
+  }
+
+  export type QuotationLineItemScalarWhereInput = {
+    AND?: QuotationLineItemScalarWhereInput | QuotationLineItemScalarWhereInput[]
+    OR?: QuotationLineItemScalarWhereInput[]
+    NOT?: QuotationLineItemScalarWhereInput | QuotationLineItemScalarWhereInput[]
+    id?: StringFilter<"QuotationLineItem"> | string
+    quotationId?: StringFilter<"QuotationLineItem"> | string
+    category?: EnumQuotationLineCategoryFilter<"QuotationLineItem"> | $Enums.QuotationLineCategory
+    description?: StringFilter<"QuotationLineItem"> | string
+    unit?: StringFilter<"QuotationLineItem"> | string
+    quantity?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFilter<"QuotationLineItem"> | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFilter<"QuotationLineItem"> | number
+    sac?: StringNullableFilter<"QuotationLineItem"> | string | null
+  }
+
+  export type QuotationActivityUpsertWithWhereUniqueWithoutQuotationInput = {
+    where: QuotationActivityWhereUniqueInput
+    update: XOR<QuotationActivityUpdateWithoutQuotationInput, QuotationActivityUncheckedUpdateWithoutQuotationInput>
+    create: XOR<QuotationActivityCreateWithoutQuotationInput, QuotationActivityUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type QuotationActivityUpdateWithWhereUniqueWithoutQuotationInput = {
+    where: QuotationActivityWhereUniqueInput
+    data: XOR<QuotationActivityUpdateWithoutQuotationInput, QuotationActivityUncheckedUpdateWithoutQuotationInput>
+  }
+
+  export type QuotationActivityUpdateManyWithWhereWithoutQuotationInput = {
+    where: QuotationActivityScalarWhereInput
+    data: XOR<QuotationActivityUpdateManyMutationInput, QuotationActivityUncheckedUpdateManyWithoutQuotationInput>
+  }
+
+  export type QuotationActivityScalarWhereInput = {
+    AND?: QuotationActivityScalarWhereInput | QuotationActivityScalarWhereInput[]
+    OR?: QuotationActivityScalarWhereInput[]
+    NOT?: QuotationActivityScalarWhereInput | QuotationActivityScalarWhereInput[]
+    id?: StringFilter<"QuotationActivity"> | string
+    quotationId?: StringFilter<"QuotationActivity"> | string
+    kind?: EnumActivityKindFilter<"QuotationActivity"> | $Enums.ActivityKind
+    subject?: StringFilter<"QuotationActivity"> | string
+    body?: StringNullableFilter<"QuotationActivity"> | string | null
+    outcome?: StringNullableFilter<"QuotationActivity"> | string | null
+    actor?: StringFilter<"QuotationActivity"> | string
+    at?: DateTimeFilter<"QuotationActivity"> | Date | string
+    isScheduled?: BoolFilter<"QuotationActivity"> | boolean
+    completedAt?: DateTimeNullableFilter<"QuotationActivity"> | Date | string | null
+    createdAt?: DateTimeFilter<"QuotationActivity"> | Date | string
+  }
+
+  export type AgreementUpsertWithWhereUniqueWithoutQuotationInput = {
+    where: AgreementWhereUniqueInput
+    update: XOR<AgreementUpdateWithoutQuotationInput, AgreementUncheckedUpdateWithoutQuotationInput>
+    create: XOR<AgreementCreateWithoutQuotationInput, AgreementUncheckedCreateWithoutQuotationInput>
+  }
+
+  export type AgreementUpdateWithWhereUniqueWithoutQuotationInput = {
+    where: AgreementWhereUniqueInput
+    data: XOR<AgreementUpdateWithoutQuotationInput, AgreementUncheckedUpdateWithoutQuotationInput>
+  }
+
+  export type AgreementUpdateManyWithWhereWithoutQuotationInput = {
+    where: AgreementScalarWhereInput
+    data: XOR<AgreementUpdateManyMutationInput, AgreementUncheckedUpdateManyWithoutQuotationInput>
+  }
+
+  export type QuotationCreateWithoutLineItemsInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account?: ClinicAccountCreateNestedOneWithoutQuotationsInput
+    activities?: QuotationActivityCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUncheckedCreateWithoutLineItemsInput = {
+    id?: string
+    accountId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    activities?: QuotationActivityUncheckedCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationCreateOrConnectWithoutLineItemsInput = {
+    where: QuotationWhereUniqueInput
+    create: XOR<QuotationCreateWithoutLineItemsInput, QuotationUncheckedCreateWithoutLineItemsInput>
+  }
+
+  export type QuotationUpsertWithoutLineItemsInput = {
+    update: XOR<QuotationUpdateWithoutLineItemsInput, QuotationUncheckedUpdateWithoutLineItemsInput>
+    create: XOR<QuotationCreateWithoutLineItemsInput, QuotationUncheckedCreateWithoutLineItemsInput>
+    where?: QuotationWhereInput
+  }
+
+  export type QuotationUpdateToOneWithWhereWithoutLineItemsInput = {
+    where?: QuotationWhereInput
+    data: XOR<QuotationUpdateWithoutLineItemsInput, QuotationUncheckedUpdateWithoutLineItemsInput>
+  }
+
+  export type QuotationUpdateWithoutLineItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneWithoutQuotationsNestedInput
+    activities?: QuotationActivityUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateWithoutLineItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    activities?: QuotationActivityUncheckedUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationCreateWithoutActivitiesInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account?: ClinicAccountCreateNestedOneWithoutQuotationsInput
+    lineItems?: QuotationLineItemCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUncheckedCreateWithoutActivitiesInput = {
+    id?: string
+    accountId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lineItems?: QuotationLineItemUncheckedCreateNestedManyWithoutQuotationInput
+    agreements?: AgreementUncheckedCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationCreateOrConnectWithoutActivitiesInput = {
+    where: QuotationWhereUniqueInput
+    create: XOR<QuotationCreateWithoutActivitiesInput, QuotationUncheckedCreateWithoutActivitiesInput>
+  }
+
+  export type QuotationUpsertWithoutActivitiesInput = {
+    update: XOR<QuotationUpdateWithoutActivitiesInput, QuotationUncheckedUpdateWithoutActivitiesInput>
+    create: XOR<QuotationCreateWithoutActivitiesInput, QuotationUncheckedCreateWithoutActivitiesInput>
+    where?: QuotationWhereInput
+  }
+
+  export type QuotationUpdateToOneWithWhereWithoutActivitiesInput = {
+    where?: QuotationWhereInput
+    data: XOR<QuotationUpdateWithoutActivitiesInput, QuotationUncheckedUpdateWithoutActivitiesInput>
+  }
+
+  export type QuotationUpdateWithoutActivitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneWithoutQuotationsNestedInput
+    lineItems?: QuotationLineItemUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateWithoutActivitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lineItems?: QuotationLineItemUncheckedUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type ClinicAccountCreateWithoutAgreementsInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogCreateNestedManyWithoutAccountInput
+    health?: HealthCheckCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeCreateNestedManyWithoutAccountInput
+    quotations?: QuotationCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountUncheckedCreateWithoutAgreementsInput = {
+    id?: string
+    slug: string
+    name: string
+    contactName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    city?: string | null
+    notes?: string | null
+    status?: $Enums.AccountStatus
+    plan?: $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    billingCycle?: $Enums.BillingCycle
+    startedAt?: Date | string | null
+    renewsAt?: Date | string | null
+    pricingModel?: $Enums.PricingModel
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    licenceFee?: Decimal | DecimalJsLike | number | string | null
+    amcPercent?: Decimal | DecimalJsLike | number | string | null
+    hostingFee?: Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: number | null
+    billingName?: string | null
+    billingAddress?: string | null
+    gstin?: string | null
+    billingState?: string | null
+    appliedPlan?: $Enums.PlanTier | null
+    appliedFeatures?: string | null
+    appliedReadOnly?: boolean | null
+    appliedAt?: Date | string | null
+    planJobId?: string | null
+    isDemo?: boolean
+    publicDomain?: string | null
+    portalDomain?: string | null
+    apiDomain?: string | null
+    neonProjectId?: string | null
+    vercelWebProjectId?: string | null
+    vercelApiProjectId?: string | null
+    provisionedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    steps?: OnboardingStepUncheckedCreateNestedManyWithoutAccountInput
+    activity?: ActivityLogUncheckedCreateNestedManyWithoutAccountInput
+    health?: HealthCheckUncheckedCreateNestedManyWithoutAccountInput
+    invoices?: InvoiceUncheckedCreateNestedManyWithoutAccountInput
+    planChanges?: PlanChangeUncheckedCreateNestedManyWithoutAccountInput
+    quotations?: QuotationUncheckedCreateNestedManyWithoutAccountInput
+  }
+
+  export type ClinicAccountCreateOrConnectWithoutAgreementsInput = {
+    where: ClinicAccountWhereUniqueInput
+    create: XOR<ClinicAccountCreateWithoutAgreementsInput, ClinicAccountUncheckedCreateWithoutAgreementsInput>
+  }
+
+  export type QuotationCreateWithoutAgreementsInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    account?: ClinicAccountCreateNestedOneWithoutQuotationsInput
+    lineItems?: QuotationLineItemCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationUncheckedCreateWithoutAgreementsInput = {
+    id?: string
+    accountId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lineItems?: QuotationLineItemUncheckedCreateNestedManyWithoutQuotationInput
+    activities?: QuotationActivityUncheckedCreateNestedManyWithoutQuotationInput
+  }
+
+  export type QuotationCreateOrConnectWithoutAgreementsInput = {
+    where: QuotationWhereUniqueInput
+    create: XOR<QuotationCreateWithoutAgreementsInput, QuotationUncheckedCreateWithoutAgreementsInput>
+  }
+
+  export type ClinicAccountUpsertWithoutAgreementsInput = {
+    update: XOR<ClinicAccountUpdateWithoutAgreementsInput, ClinicAccountUncheckedUpdateWithoutAgreementsInput>
+    create: XOR<ClinicAccountCreateWithoutAgreementsInput, ClinicAccountUncheckedCreateWithoutAgreementsInput>
+    where?: ClinicAccountWhereInput
+  }
+
+  export type ClinicAccountUpdateToOneWithWhereWithoutAgreementsInput = {
+    where?: ClinicAccountWhereInput
+    data: XOR<ClinicAccountUpdateWithoutAgreementsInput, ClinicAccountUncheckedUpdateWithoutAgreementsInput>
+  }
+
+  export type ClinicAccountUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUpdateManyWithoutAccountNestedInput
+  }
+
+  export type ClinicAccountUncheckedUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    contactName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAccountStatusFieldUpdateOperationsInput | $Enums.AccountStatus
+    plan?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    featureOverrides?: NullableJsonNullValueInput | InputJsonValue
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    billingCycle?: EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    renewsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pricingModel?: EnumPricingModelFieldUpdateOperationsInput | $Enums.PricingModel
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    licenceFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    amcPercent?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hostingFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    maxUsersOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    billingName?: NullableStringFieldUpdateOperationsInput | string | null
+    billingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    gstin?: NullableStringFieldUpdateOperationsInput | string | null
+    billingState?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedPlan?: NullableEnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier | null
+    appliedFeatures?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedReadOnly?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    planJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    isDemo?: BoolFieldUpdateOperationsInput | boolean
+    publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    neonProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelWebProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    vercelApiProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    provisionedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    steps?: OnboardingStepUncheckedUpdateManyWithoutAccountNestedInput
+    activity?: ActivityLogUncheckedUpdateManyWithoutAccountNestedInput
+    health?: HealthCheckUncheckedUpdateManyWithoutAccountNestedInput
+    invoices?: InvoiceUncheckedUpdateManyWithoutAccountNestedInput
+    planChanges?: PlanChangeUncheckedUpdateManyWithoutAccountNestedInput
+    quotations?: QuotationUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type QuotationUpsertWithoutAgreementsInput = {
+    update: XOR<QuotationUpdateWithoutAgreementsInput, QuotationUncheckedUpdateWithoutAgreementsInput>
+    create: XOR<QuotationCreateWithoutAgreementsInput, QuotationUncheckedCreateWithoutAgreementsInput>
+    where?: QuotationWhereInput
+  }
+
+  export type QuotationUpdateToOneWithWhereWithoutAgreementsInput = {
+    where?: QuotationWhereInput
+    data: XOR<QuotationUpdateWithoutAgreementsInput, QuotationUncheckedUpdateWithoutAgreementsInput>
+  }
+
+  export type QuotationUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneWithoutQuotationsNestedInput
+    lineItems?: QuotationLineItemUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lineItems?: QuotationLineItemUncheckedUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUncheckedUpdateManyWithoutQuotationNestedInput
   }
 
   export type ActivityLogCreateManyActorInput = {
@@ -16025,6 +26436,88 @@ export namespace Prisma {
     actorName: string
     jobId?: string | null
     at?: Date | string
+  }
+
+  export type QuotationCreateManyAccountInput = {
+    id?: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    version?: number
+    status?: $Enums.QuotationStatus
+    stage?: $Enums.PipelineStage
+    title: string
+    planTier?: $Enums.PlanTier
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    clientState?: string | null
+    clientContact?: string | null
+    clientEmail?: string | null
+    clientPhone?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    providerState?: string | null
+    validUntil?: Date | string | null
+    subtotal?: Decimal | DecimalJsLike | number | string
+    discountAmount?: Decimal | DecimalJsLike | number | string
+    taxableAmount?: Decimal | DecimalJsLike | number | string
+    cgst?: Decimal | DecimalJsLike | number | string
+    sgst?: Decimal | DecimalJsLike | number | string
+    igst?: Decimal | DecimalJsLike | number | string
+    total?: Decimal | DecimalJsLike | number | string
+    currency?: string
+    scope?: string | null
+    exclusions?: string | null
+    paymentTerms?: string | null
+    deliveryTerms?: string | null
+    internalNotes?: string | null
+    summary?: string | null
+    sentAt?: Date | string | null
+    acceptedAt?: Date | string | null
+    rejectedAt?: Date | string | null
+    acceptedBy?: string | null
+    nextFollowUpAt?: Date | string | null
+    lastContactedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgreementCreateManyAccountInput = {
+    id?: string
+    quotationId?: string | null
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type OnboardingStepUpdateWithoutAccountInput = {
@@ -16241,6 +26734,506 @@ export namespace Prisma {
     actorName?: StringFieldUpdateOperationsInput | string
     jobId?: NullableStringFieldUpdateOperationsInput | string | null
     at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lineItems?: QuotationLineItemUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lineItems?: QuotationLineItemUncheckedUpdateManyWithoutQuotationNestedInput
+    activities?: QuotationActivityUncheckedUpdateManyWithoutQuotationNestedInput
+    agreements?: AgreementUncheckedUpdateManyWithoutQuotationNestedInput
+  }
+
+  export type QuotationUncheckedUpdateManyWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    version?: IntFieldUpdateOperationsInput | number
+    status?: EnumQuotationStatusFieldUpdateOperationsInput | $Enums.QuotationStatus
+    stage?: EnumPipelineStageFieldUpdateOperationsInput | $Enums.PipelineStage
+    title?: StringFieldUpdateOperationsInput | string
+    planTier?: EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    clientState?: NullableStringFieldUpdateOperationsInput | string | null
+    clientContact?: NullableStringFieldUpdateOperationsInput | string | null
+    clientEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    clientPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerState?: NullableStringFieldUpdateOperationsInput | string | null
+    validUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    taxableAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    cgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sgst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    igst?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    scope?: NullableStringFieldUpdateOperationsInput | string | null
+    exclusions?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    deliveryTerms?: NullableStringFieldUpdateOperationsInput | string | null
+    internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableStringFieldUpdateOperationsInput | string | null
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    acceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    nextFollowUpAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastContactedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quotation?: QuotationUpdateOneWithoutAgreementsNestedInput
+  }
+
+  export type AgreementUncheckedUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementUncheckedUpdateManyWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationLineItemCreateManyQuotationInput = {
+    id?: string
+    category: $Enums.QuotationLineCategory
+    description: string
+    unit: string
+    quantity?: Decimal | DecimalJsLike | number | string
+    unitPrice: Decimal | DecimalJsLike | number | string
+    discount?: Decimal | DecimalJsLike | number | string
+    lineTotal?: Decimal | DecimalJsLike | number | string
+    sortOrder?: number
+    sac?: string | null
+  }
+
+  export type QuotationActivityCreateManyQuotationInput = {
+    id?: string
+    kind: $Enums.ActivityKind
+    subject: string
+    body?: string | null
+    outcome?: string | null
+    actor: string
+    at?: Date | string
+    isScheduled?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type AgreementCreateManyQuotationInput = {
+    id?: string
+    accountId: string
+    number?: string | null
+    fy?: string | null
+    serial?: number | null
+    status?: $Enums.AgreementStatus
+    title: string
+    clauses: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string | null
+    termMonths?: number
+    noticeDays?: number
+    autoRenew?: boolean
+    clientName: string
+    clientAddress?: string | null
+    clientGSTIN?: string | null
+    providerName: string
+    providerAddress?: string | null
+    providerGSTIN?: string | null
+    setupFee?: Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: Decimal | DecimalJsLike | number | string | null
+    currency?: string
+    providerSignedBy?: string | null
+    providerSignedAt?: Date | string | null
+    clientSignedByName?: string | null
+    clientSignedByRole?: string | null
+    clientSignedAt?: Date | string | null
+    clientSignatureRef?: string | null
+    issuedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminationReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QuotationLineItemUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationLineItemUncheckedUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationLineItemUncheckedUpdateManyWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    category?: EnumQuotationLineCategoryFieldUpdateOperationsInput | $Enums.QuotationLineCategory
+    description?: StringFieldUpdateOperationsInput | string
+    unit?: StringFieldUpdateOperationsInput | string
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    lineTotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    sac?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type QuotationActivityUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationActivityUncheckedUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QuotationActivityUncheckedUpdateManyWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumActivityKindFieldUpdateOperationsInput | $Enums.ActivityKind
+    subject?: StringFieldUpdateOperationsInput | string
+    body?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    actor?: StringFieldUpdateOperationsInput | string
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    isScheduled?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    account?: ClinicAccountUpdateOneRequiredWithoutAgreementsNestedInput
+  }
+
+  export type AgreementUncheckedUpdateWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgreementUncheckedUpdateManyWithoutQuotationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    number?: NullableStringFieldUpdateOperationsInput | string | null
+    fy?: NullableStringFieldUpdateOperationsInput | string | null
+    serial?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumAgreementStatusFieldUpdateOperationsInput | $Enums.AgreementStatus
+    title?: StringFieldUpdateOperationsInput | string
+    clauses?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    termMonths?: IntFieldUpdateOperationsInput | number
+    noticeDays?: IntFieldUpdateOperationsInput | number
+    autoRenew?: BoolFieldUpdateOperationsInput | boolean
+    clientName?: StringFieldUpdateOperationsInput | string
+    clientAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    clientGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    providerName?: StringFieldUpdateOperationsInput | string
+    providerAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    providerGSTIN?: NullableStringFieldUpdateOperationsInput | string | null
+    setupFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    yearlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyFee?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    providerSignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    providerSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedByRole?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignatureRef?: NullableStringFieldUpdateOperationsInput | string | null
+    issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 
