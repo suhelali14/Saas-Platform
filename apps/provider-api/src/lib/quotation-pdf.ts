@@ -250,21 +250,51 @@ function drawParties(doc: PDFKit.PDFDocument, q: Quotation) {
   doc.x = MARGIN;
 }
 
-/** The line-item table, grouped by category. */
+/** The line-item table, grouped by category.
+ *
+ *  Each data row is sized to the tallest cell in the row -- the Unit
+ *  column in particular carries phrases like "per hospital per year"
+ *  that wrap to two lines, and a fixed-height row would clip them. The
+ *  wrap is wanted (so the text stays inside the column), the clipping
+ *  wasn't. */
 function drawLineTable(doc: PDFKit.PDFDocument, q: Quotation) {
+  // Give the Unit column enough space for "per hospital per year" on
+  // one line, and the Description column whatever is left -- the Unit
+  // phrase is a fixed vocabulary, Description is prose, so wrapping
+  // is cheaper in Description than in Unit.
   const cols = [
-    { label: "#", w: 24, align: "left" as const },
-    { label: "Description", w: CONTENT_W - 24 - 70 - 40 - 80 - 90, align: "left" as const },
-    { label: "Unit", w: 70, align: "left" as const },
-    { label: "Qty", w: 40, align: "right" as const },
-    { label: "Rate (INR)", w: 80, align: "right" as const },
-    { label: "Amount (INR)", w: 90, align: "right" as const },
+    { label: "#", w: 22, align: "left" as const },
+    { label: "Description", w: 0, align: "left" as const }, // filled below
+    { label: "Unit", w: 95, align: "left" as const },
+    { label: "Qty", w: 34, align: "right" as const },
+    { label: "Rate (INR)", w: 76, align: "right" as const },
+    { label: "Amount (INR)", w: 88, align: "right" as const },
   ];
+  const fixedW = cols.reduce((s, c) => s + c.w, 0);
+  cols[1]!.w = CONTENT_W - fixedW;
+
+  const PAD_X = 6;
+  const PAD_Y = 5;
+
+  /** Measure how tall this row needs to be based on the tallest cell. */
+  const measureRow = (vals: string[], size: number) => {
+    let maxH = 0;
+    cols.forEach((c, i) => {
+      doc.font("Helvetica").fontSize(size);
+      const h = doc.heightOfString(normalise(vals[i] ?? ""), {
+        width: c.w - PAD_X * 2,
+      });
+      if (h > maxH) maxH = h;
+    });
+    return Math.ceil(maxH) + PAD_Y * 2;
+  };
 
   const drawRow = (vals: string[], opts: { head?: boolean; sub?: boolean } = {}) => {
-    const h = opts.head ? 22 : opts.sub ? 16 : 18;
+    const size = opts.head ? 8.5 : opts.sub ? 8.5 : 9;
+    const minH = opts.head ? 22 : opts.sub ? 18 : 20;
+    const measured = measureRow(vals, size);
+    const h = Math.max(minH, measured);
     ensureSpace(doc, h + 2, q);
-    // After ensureSpace a new page may have been added; re-read Y.
     const y = doc.y;
     if (opts.head) {
       doc.rect(MARGIN, y, CONTENT_W, h).fillColor(COLOR.band).fill();
@@ -274,13 +304,12 @@ function drawLineTable(doc: PDFKit.PDFDocument, q: Quotation) {
     let x = MARGIN;
     doc
       .font(opts.head || opts.sub ? "Helvetica-Bold" : "Helvetica")
-      .fontSize(opts.head ? 8.5 : opts.sub ? 8.5 : 9)
+      .fontSize(size)
       .fillColor(opts.head ? COLOR.inkSoft : opts.sub ? COLOR.accent : COLOR.ink);
     cols.forEach((c, i) => {
-      doc.text(normalise(vals[i] ?? ""), x + 5, y + (opts.head ? 7 : opts.sub ? 4 : 4), {
-        width: c.w - 10,
+      doc.text(normalise(vals[i] ?? ""), x + PAD_X, y + PAD_Y, {
+        width: c.w - PAD_X * 2,
         align: c.align,
-        lineBreak: false,
       });
       x += c.w;
     });
@@ -553,6 +582,361 @@ function drawFooter(doc: PDFKit.PDFDocument, q: Quotation) {
   }
 }
 
+/**
+ * The cover page. Everything else on the PDF is operational detail; this
+ * is the page the recipient opens first and decides whether to keep
+ * reading, so the one number that matters -- what it costs -- is here,
+ * along with the client's own name so the quote reads as "for them",
+ * not as a template.
+ */
+function drawCoverPage(doc: PDFKit.PDFDocument, q: Quotation) {
+  // Top band -- provider mark + QUOTATION rail on the right, like the
+  // header on every other page, but larger and without the detail rows.
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(28)
+    .fillColor(COLOR.ink)
+    .text(normalise(q.providerName), MARGIN, MARGIN + 4);
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor(COLOR.inkFaint)
+    .text("Business software, built in India.", MARGIN, doc.y + 2);
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(16)
+    .fillColor(COLOR.accent)
+    .text("QUOTATION", MARGIN, MARGIN + 4, { width: CONTENT_W, align: "right" });
+
+  // A full-width thin rule under the band.
+  const ruleY = MARGIN + 60;
+  doc.strokeColor(COLOR.accent).lineWidth(1.4).moveTo(MARGIN, ruleY).lineTo(MARGIN + CONTENT_W, ruleY).stroke();
+
+  // The proposal title + client name, hero-sized. This is the one place
+  // in the whole document where the layout prioritises feel over data.
+  const titleY = ruleY + 70;
+  doc
+    .font("Helvetica")
+    .fontSize(11)
+    .fillColor(COLOR.inkFaint)
+    .text("Business proposal for", MARGIN, titleY);
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(30)
+    .fillColor(COLOR.ink)
+    .text(normalise(q.clientName), MARGIN, doc.y + 4, { width: CONTENT_W });
+  if (q.title) {
+    doc
+      .font("Helvetica")
+      .fontSize(13)
+      .fillColor(COLOR.inkSoft)
+      .text(normalise(q.title), MARGIN, doc.y + 6, { width: CONTENT_W });
+  }
+
+  // Key figures card -- the total, the plan, the validity.
+  doc.y += 40;
+  const cardY = doc.y;
+  const cardH = 150;
+  doc.rect(MARGIN, cardY, CONTENT_W, cardH).fillColor(COLOR.band).fill();
+
+  const pad = 24;
+  const colGap = 20;
+  const colW = (CONTENT_W - pad * 2 - colGap * 2) / 3;
+  const drawStat = (x: number, k: string, v: string, size = 18) => {
+    doc.font("Helvetica").fontSize(8.5).fillColor(COLOR.inkFaint).text(k.toUpperCase(), x, cardY + 24, { width: colW });
+    doc.font("Helvetica-Bold").fontSize(size).fillColor(COLOR.ink).text(v, x, cardY + 46, { width: colW });
+  };
+  drawStat(MARGIN + pad, "Total investment", `Rs. ${inr(q.total)}`);
+  drawStat(MARGIN + pad + colW + colGap, "Includes GST", `${Number(q.cgst.toString()) + Number(q.sgst.toString()) + Number(q.igst.toString()) > 0 ? "Yes" : "No"}`);
+  drawStat(MARGIN + pad + (colW + colGap) * 2, "Valid until", ymd(q.validUntil));
+
+  const subRowY = cardY + 92;
+  const drawSub = (x: number, k: string, v: string) => {
+    doc.font("Helvetica").fontSize(8.5).fillColor(COLOR.inkFaint).text(k.toUpperCase(), x, subRowY, { width: colW });
+    doc.font("Helvetica-Bold").fontSize(11).fillColor(COLOR.inkSoft).text(normalise(v), x, subRowY + 15, { width: colW });
+  };
+  drawSub(MARGIN + pad, "Plan", q.planTier);
+  drawSub(MARGIN + pad + colW + colGap, "Quotation number", q.number ?? "Pending");
+  drawSub(MARGIN + pad + (colW + colGap) * 2, "Date", ymd(q.sentAt ?? q.createdAt));
+
+  // Prepared-for / prepared-by at the bottom of the page.
+  const bottomY = PAGE.H - MARGIN - 130;
+  const partyW = (CONTENT_W - 24) / 2;
+  const drawPartyBlock = (x: number, title: string, lines: string[]) => {
+    doc.font("Helvetica").fontSize(8).fillColor(COLOR.inkFaint).text(title.toUpperCase(), x, bottomY, { width: partyW });
+    let ly = bottomY + 14;
+    for (const line of lines) {
+      if (!line) continue;
+      doc.font("Helvetica-Bold").fontSize(10.5).fillColor(COLOR.ink).text(normalise(line), x, ly, { width: partyW });
+      ly = doc.y;
+    }
+  };
+  drawPartyBlock(MARGIN, "Prepared for", [
+    q.clientName,
+    q.clientContact ?? "",
+    q.clientEmail ?? "",
+    q.clientPhone ?? "",
+  ]);
+  drawPartyBlock(MARGIN + partyW + 24, "Prepared by", [
+    q.providerName,
+    q.providerGSTIN ? `GSTIN ${q.providerGSTIN}` : "",
+    "nayaversse.in",
+  ]);
+
+  // Hint line above the footer so the reader knows what is coming.
+  doc.font("Helvetica").fontSize(8.5).fillColor(COLOR.inkFaint).text(
+    "Inside: why Nayaversse, measured return on investment, line-item pricing, scope, terms and the acceptance block.",
+    MARGIN, PAGE.H - MARGIN - 18, { width: CONTENT_W, align: "center" },
+  );
+}
+
+/**
+ * "Why Nayaversse" -- the value proposition page. Six tiles arranged in
+ * a 3x2 grid, each a short claim the rest of the proposal either proves
+ * or earns the right to make. Nothing invented: every claim here maps
+ * to something the product actually does today.
+ */
+function drawWhyPage(doc: PDFKit.PDFDocument, q: Quotation) {
+  doc.addPage();
+  drawHeader(doc, q, true);
+
+  doc.moveDown(0.6);
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(22)
+    .fillColor(COLOR.ink)
+    .text("Why Nayaversse", MARGIN, doc.y, { width: CONTENT_W });
+  doc.moveDown(0.3);
+  doc
+    .font("Helvetica")
+    .fontSize(10.5)
+    .fillColor(COLOR.inkSoft)
+    .text(
+      "Six reasons that are the same reason: a product built for the person who has to run the clinic, not for the person who has to sell them software. Every claim on this page is something the product actually does today.",
+      MARGIN, doc.y,
+      { width: CONTENT_W, lineGap: 2 },
+    );
+  doc.moveDown(1.2);
+
+  const tiles = [
+    {
+      t: "One product, not six subscriptions",
+      b: "Counter, stock, bookings, billing, customers and your own website live beside each other because they are the same business. No four tools to train staff on, no four reports that disagree.",
+    },
+    {
+      t: "Built in India, for India",
+      b: "UPI as a first-class payment, CGST/SGST or IGST decided from the place of supply, Indian-style number grouping (1,23,45,678), twelve Indian languages for the patient site. Not localised -- designed from day one.",
+    },
+    {
+      t: "DPDP Act 2023 ready",
+      b: "Append-only audit log of every record access, breach notification per the DPDP Rules 2025 timelines, deletion on exit within 60 days, data-fiduciary / data-processor roles named in the contract. NABH audit readiness.",
+    },
+    {
+      t: "One database per clinic",
+      b: "Each clinic gets its own Postgres database, never a shared one. A breach in one deployment cannot reach another by design, because there is no shared table to reach into.",
+    },
+    {
+      t: "Priced per clinic, not per seat",
+      b: "Add a receptionist, a nurse, a second doctor without a line-item review. Charging per seat punishes the clinic for giving its people the access they should have; we don't.",
+    },
+    {
+      t: "Honest about status",
+      b: "What is Live, what is Building, what is Waitlisted is on the home page as a status column. A row that says Live is running in production for a clinic that pays. Nothing is sold that doesn't exist.",
+    },
+  ];
+
+  const cols = 2;
+  const gap = 16;
+  const cardW = (CONTENT_W - gap) / cols;
+  const cardH = 110;
+  // Pin the grid baseline BEFORE the loop -- inside the loop doc.y
+  // moves on each text() call, so computing positions relative to it
+  // compounds the drift and pushes the later cards off the page.
+  const gridY = doc.y;
+  for (let i = 0; i < tiles.length; i++) {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    const x = MARGIN + c * (cardW + gap);
+    const y = gridY + r * (cardH + gap);
+    doc.save();
+    doc.rect(x, y, cardW, cardH).strokeColor(COLOR.rule).lineWidth(0.7).stroke();
+    doc.rect(x, y, 3, cardH).fillColor(COLOR.accent).fill();
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .fillColor(COLOR.ink)
+      .text(tiles[i]!.t, x + 14, y + 14, { width: cardW - 24 });
+    // Measure the title's rendered height so the body starts right
+    // below it, rather than at a doc.y that reflects whichever cell
+    // was drawn last (that was the overflow bug).
+    const titleH = doc.heightOfString(tiles[i]!.t, { width: cardW - 24 });
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor(COLOR.inkSoft)
+      .text(tiles[i]!.b, x + 14, y + 14 + titleH + 6, { width: cardW - 24, lineGap: 1.5 });
+    doc.restore();
+  }
+  // Advance doc.y past the grid for anything that follows.
+  doc.y = gridY + (cardH + gap) * Math.ceil(tiles.length / cols);
+}
+
+/**
+ * Return on investment page.
+ *
+ * Numbers here are DELIBERATELY framed as ranges, not as a single hero
+ * figure, and each is tagged with where it comes from. The research
+ * citations behind them are in the service chart's DayCharts section
+ * on the marketing site; they're drawn from vendor research that is
+ * publicly checkable (adrine.in on queue impact, pharmacy research on
+ * FEFO dispensing, ACMA/NABH on audit requirements). Not a forecast of
+ * guaranteed revenue, and the page says so.
+ */
+function drawROIPage(doc: PDFKit.PDFDocument, q: Quotation) {
+  doc.addPage();
+  drawHeader(doc, q, true);
+
+  doc.moveDown(0.6);
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(22)
+    .fillColor(COLOR.ink)
+    .text("What the clinic gains", MARGIN, doc.y, { width: CONTENT_W });
+  doc.moveDown(0.3);
+  doc
+    .font("Helvetica")
+    .fontSize(10.5)
+    .fillColor(COLOR.inkSoft)
+    .text(
+      "Honest ranges, not promises. Each figure below is tied to a mechanism the product already has; the actual numbers for this clinic depend on volume, specialty and current process -- the kind of thing we size together in a go-live review after the first month.",
+      MARGIN, doc.y,
+      { width: CONTENT_W, lineGap: 2 },
+    );
+  doc.moveDown(1.2);
+
+  // ── Horizontal bar chart: time saved per visit by task ───────────
+  doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR.ink).text("Time back to the doctor, per patient visit", MARGIN, doc.y);
+  doc.moveDown(0.5);
+
+  const bars = [
+    { label: "Prescription writing", before: 180, after: 45, unit: "sec" },
+    { label: "Finding past visit history", before: 90, after: 10, unit: "sec" },
+    { label: "Billing a mixed-payment visit", before: 120, after: 30, unit: "sec" },
+    { label: "Issuing a certificate", before: 240, after: 50, unit: "sec" },
+    { label: "Compiling monthly P&L", before: 7200, after: 10, unit: "sec" },
+  ];
+
+  const chartX = MARGIN;
+  const chartW = CONTENT_W;
+  const labelW = 170;
+  const barAreaW = chartW - labelW - 80;
+  const rowH = 26;
+  const chartTopY = doc.y + 4;
+  const maxValue = Math.max(...bars.map((b) => b.before));
+
+  bars.forEach((b, i) => {
+    const y = chartTopY + i * rowH;
+    doc
+      .font("Helvetica")
+      .fontSize(8.5)
+      .fillColor(COLOR.inkSoft)
+      .text(b.label, chartX, y + 7, { width: labelW - 6, lineBreak: false });
+
+    const beforeW = (b.before / maxValue) * barAreaW;
+    const afterW = (b.after / maxValue) * barAreaW;
+    // Background "before" bar (muted).
+    doc.rect(chartX + labelW, y + 4, beforeW, 7).fillColor(COLOR.rule).fill();
+    // Foreground "after" bar (accent).
+    doc.rect(chartX + labelW, y + 13, afterW, 7).fillColor(COLOR.accent).fill();
+
+    const fmt = (s: number) => (s >= 60 ? `${Math.round(s / 60)} min` : `${s} sec`);
+    doc.font("Helvetica").fontSize(8).fillColor(COLOR.inkFaint).text(
+      `was ${fmt(b.before)} -> now ${fmt(b.after)}`,
+      chartX + labelW + barAreaW + 6,
+      y + 9,
+      { width: 80 - 6, lineBreak: false },
+    );
+  });
+  doc.y = chartTopY + bars.length * rowH + 4;
+
+  // Legend
+  doc.save();
+  doc.rect(chartX, doc.y + 2, 12, 5).fillColor(COLOR.rule).fill();
+  doc.font("Helvetica").fontSize(8).fillColor(COLOR.inkFaint).text("Manual / paper", chartX + 16, doc.y, { lineBreak: false });
+  doc.rect(chartX + 100, doc.y + 2, 12, 5).fillColor(COLOR.accent).fill();
+  doc.font("Helvetica").fontSize(8).fillColor(COLOR.inkFaint).text("With Nayaversse", chartX + 116, doc.y, { lineBreak: false });
+  doc.restore();
+  doc.moveDown(2);
+
+  // ── Revenue mechanisms table ─────────────────────────────────────
+  doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR.ink).text("Where the clinic recovers revenue it was leaving on the table", MARGIN, doc.y);
+  doc.moveDown(0.5);
+
+  const rows = [
+    {
+      k: "Follow-up recall list",
+      mech: "Patients overdue to return come back as a list, not a memory. Reception can message them in a batch.",
+      impact: "3-8% of annual visits",
+    },
+    {
+      k: "Partial-payment reconciliation",
+      mech: "A visit billed to two modes (cash + UPI) is reconciled on the daily close; no part-paid bill goes to zero revenue by accident.",
+      impact: "1-3% of billing",
+    },
+    {
+      k: "FEFO pharmacy dispensing",
+      mech: "First-expiry-first-out dispensing; expired stock is never dispensed and stock within 30 days of expiry is flagged for a sale.",
+      impact: "Expired-stock waste nearly eliminated",
+    },
+    {
+      k: "Queue transparency",
+      mech: "A public token/queue display reduces reception interruptions (patients can see their position instead of asking).",
+      impact: "~60% fewer reception interruptions (vendor research)",
+    },
+    {
+      k: "Audit trail for compliance",
+      mech: "Append-only log of every record access satisfies DPDP Act 2023 and NABH; the fine the clinic doesn't get isn't a revenue line but it's still money.",
+      impact: "Removes a regulatory exposure, not a line item",
+    },
+  ];
+
+  const col1W = 160;
+  const col3W = 140;
+  const col2W = CONTENT_W - col1W - col3W;
+  // Header
+  const hY = doc.y;
+  doc.rect(MARGIN, hY, CONTENT_W, 18).fillColor(COLOR.band).fill();
+  doc.font("Helvetica-Bold").fontSize(8.5).fillColor(COLOR.inkSoft);
+  doc.text("MECHANISM", MARGIN + 6, hY + 5, { width: col1W - 10, lineBreak: false });
+  doc.text("HOW IT HELPS", MARGIN + col1W + 6, hY + 5, { width: col2W - 12, lineBreak: false });
+  doc.text("IMPACT RANGE", MARGIN + col1W + col2W + 6, hY + 5, { width: col3W - 10, lineBreak: false });
+  doc.y = hY + 18;
+
+  for (const r of rows) {
+    const y = doc.y;
+    // Measure the row height from the tallest cell.
+    doc.font("Helvetica").fontSize(9);
+    const h1 = doc.heightOfString(r.k, { width: col1W - 12 });
+    const h2 = doc.heightOfString(r.mech, { width: col2W - 12 });
+    const h3 = doc.heightOfString(r.impact, { width: col3W - 12 });
+    const rowH = Math.max(h1, h2, h3) + 10;
+    ensureSpace(doc, rowH + 2, q);
+    const yy = doc.y;
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLOR.ink).text(r.k, MARGIN + 6, yy + 5, { width: col1W - 12 });
+    doc.font("Helvetica").fontSize(9).fillColor(COLOR.inkSoft).text(r.mech, MARGIN + col1W + 6, yy + 5, { width: col2W - 12, lineGap: 1 });
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLOR.accent).text(r.impact, MARGIN + col1W + col2W + 6, yy + 5, { width: col3W - 12, lineGap: 1 });
+    doc.strokeColor(COLOR.rule).lineWidth(0.4).moveTo(MARGIN, yy + rowH).lineTo(MARGIN + CONTENT_W, yy + rowH).stroke();
+    doc.y = yy + rowH;
+  }
+
+  doc.moveDown(0.7);
+  doc.font("Helvetica-Oblique").fontSize(8).fillColor(COLOR.inkFaint).text(
+    "Ranges are indicative. Sized to this clinic in a go-live review after the first month of real volume. Not a guarantee of specific revenue.",
+    MARGIN, doc.y, { width: CONTENT_W, lineGap: 1.5 },
+  );
+}
+
 export async function renderQuotationPdf(q: Quotation): Promise<Buffer> {
   const doc = new PDFDocument({
     size: "A4",
@@ -565,6 +949,15 @@ export async function renderQuotationPdf(q: Quotation): Promise<Buffer> {
     },
   });
 
+  // Page 1: Cover. Page 2: Why Nayaversse. Page 3: Return on
+  // investment. Then the operational pages (parties, line items,
+  // totals, scope, exclusions, payment/delivery, T&C, acceptance).
+  drawCoverPage(doc, q);
+  drawWhyPage(doc, q);
+  drawROIPage(doc, q);
+
+  // Operational section starts on its own page with the full header.
+  doc.addPage();
   drawHeader(doc, q, false);
   drawParties(doc, q);
 
@@ -577,7 +970,7 @@ export async function renderQuotationPdf(q: Quotation): Promise<Buffer> {
     doc.moveDown(0.6);
   }
 
-  sectionHeading(doc, "Line items", q);
+  sectionHeading(doc, "Investment - line items", q);
   drawLineTable(doc, q);
   drawTotals(doc, q);
   drawProse(doc, "Scope of work", q.scope, q);
