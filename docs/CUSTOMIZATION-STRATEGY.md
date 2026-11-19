@@ -252,6 +252,142 @@ None of the three is "one codebase for the group." They are all
 
 ---
 
+## Making it feel like SaaS — self-serve, not "call the founder"
+
+Everything above answers **"don't rebuild per clinic."** The other half
+of the same question: **"don't configure per clinic either."** If every
+clinic needs the founder to flip a flag, update a setting, or import
+their data by hand, the product runs like a service — the founder
+becomes the bottleneck, the business doesn't scale past ~20 clinics,
+and the pricing has to reflect that one-on-one time.
+
+A product feels like SaaS when the clinic itself does everything from
+signup to go-live without a human in the loop on our side.
+
+### Where we are today (honest)
+
+| Lifecycle step | Self-serve? | Who does it today |
+|---|---|---|
+| Discover / evaluate | Yes | The public site, the live clinic's public page, the chart with statuses. |
+| Buy / sign up | **No** | Founder in a call → quotation → agreement → manual DB provisioning. |
+| Provision infra | Partly | Provider console runs the script, but the founder clicks it. |
+| Initial clinic setup | Partly | Clinic fills in details via `SetupPrompt.tsx` + `Settings.tsx`. Good. |
+| Import existing records | **No** | No CSV import exists; founder would do it. |
+| Daily use | Yes | Clinic staff log in, work, log out. No founder involvement. |
+| Design the public site | Yes | Website designer, 6 themes, 4 layouts, section reorder. Good. |
+| Add specialty forms | Yes | Form builder, 10 starter templates, clone + edit. Good. |
+| Edit prescription layout | Yes | Document template editor. Good. |
+| Change plan tier | **No** | Founder edits through provider console. |
+| Enable a new feature (e.g. WhatsApp) | **No** | Founder flips featureOverrides. |
+| Pay a monthly invoice | **No** | Founder emails the PDF; client pays however. |
+| Suspend / renew | **No** | Founder-triggered. |
+| Cancel | **No** | Founder-handled. |
+| Export their data | Yes | Data & Backup screen. Good. |
+
+Daily use and content customization are already SaaS-shaped. **Sign-up,
+provisioning, plan changes, feature additions, payments, and
+cancellations are not.** That is the gap between "runs like a service"
+and "runs like a SaaS."
+
+### The six things that make this feel like SaaS
+
+In rough order of lift:
+
+1. **Self-serve signup & provisioning.** The clinic goes to a page,
+   enters their details, pays (or starts a free trial), and the
+   provider API runs the same provisioning job the console runs today.
+   No founder click. The clinic lands on their portal ~5 minutes later
+   with the welcome email already sent.
+
+   What exists: provisioning script, inotify-driven runner, welcome
+   email, SMTP. What's missing: a public signup page that calls the
+   same endpoints; Stripe / Razorpay for payment capture; a trial
+   mode that auto-suspends on expiry.
+
+   Effort: ~1 week once the payment flow is in.
+
+2. **Self-serve plan upgrade and addon activation.** The clinic clicks
+   "Upgrade to Standard" from Settings → Billing. The next invoice
+   shows the prorated amount; the features flip on immediately, the
+   clinic staff never waits for us. Addons (WhatsApp module, Insurance
+   module, etc.) work the same way — a checkout, not a sales call.
+
+   What exists: plan tiers, feature overrides, Razorpay would be the
+   payment collector (gap in the Feature Audit, Tier 1 #3).
+   What's missing: the self-serve upgrade UI + the webhook that
+   applies the feature change.
+
+   Effort: ~3-4 days after Razorpay is in.
+
+3. **Self-serve data import.** CSV upload for patients, drugs, old
+   prescriptions. The clinic brings its own data; we don't carry it
+   across for them.
+
+   Effort: ~3 days per entity.
+
+4. **Self-serve suspend / cancel.** The clinic can pause (stops the
+   container, keeps the data) or cancel (DPDP-compliant: export their
+   data, give them 30 days, then delete). The clinic triggers both
+   from Settings. We're informed, not asked.
+
+   Effort: ~1 week.
+
+5. **Self-serve billing history and invoice download.** The clinic
+   sees every invoice they've paid in Settings → Billing. Already
+   generated server-side in the provider API; just needs exposure to
+   the clinic portal.
+
+   Effort: ~2 days.
+
+6. **Auto-renew.** Monthly / annual auto-charge via Razorpay Standing
+   Instructions (RBI e-mandate). Important for recurring revenue that
+   doesn't need chasing. Note: standing instructions above ₹15,000
+   need OTP re-auth per RBI, so annual billing for hospital plans will
+   still have friction — this is a real industry constraint, not a
+   product gap.
+
+   Effort: ~1 week.
+
+### What that changes on our side
+
+Today the founder spends ~X hours per clinic per month on plan
+tweaks, provisioning fixes, feature flips, invoice chasing. Once the
+six items above ship, that collapses to ~zero for clinics on the
+standard plan, and the founder's time goes to:
+
+- **Enterprise deals** — where a hospital group genuinely needs
+  someone on a call.
+- **Module building** — the Tier 3 custom modules that make the
+  product differentiated.
+- **Support tickets** — not provisioning work.
+
+The pricing model can then collapse too: the "founder time" line
+item on the proposal becomes a module subscription instead. That
+is the pricing move that unlocks scaling past ~20 clinics with one
+engineer.
+
+### What stays founder-touched (deliberately)
+
+Not everything should be self-serve. Some touchpoints are too
+sensitive to automate:
+
+- **Custom module development** (Tier 3 above). A clinic asking for
+  IVF tracking gets a scoping call. Not a webform.
+- **Data recovery from backups.** A clinic that wants a point-in-time
+  restore gets a founder-approved process, not a button that could
+  destroy their current data.
+- **Large discounts and deals.** The quotation editor lets you type
+  any discount; the self-serve price page has a fixed ladder.
+  Non-standard discounts stay in sales.
+- **Compliance incident response.** A DPDP breach notification is a
+  founder call, not a dashboard.
+
+The line to hold: **routine work is self-serve, exceptional work is
+founder-touched.** If the founder is doing routine work, the product
+isn't SaaS yet.
+
+---
+
 ## What to do this quarter
 
 Before the next clinic asks for something specific:
