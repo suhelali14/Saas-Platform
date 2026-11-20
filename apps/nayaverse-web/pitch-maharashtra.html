@@ -78,7 +78,11 @@
     padding: clamp(20px, 3.4%, 64px);
     overflow: hidden;
     container-type: inline-size;
+    background: var(--paper);
   }
+  /* Hard guarantee: only the active slide is ever rendered. A slide's
+     own class (e.g. .cover) must never be able to show it. */
+  .slide:not(.is-active) { display: none !important; }
   /* The active slide becomes a flex column and allows its own content
      to scroll when it won't fit the frame. Without this, a slide with
      one more card than the 16:9 frame holds just clips or pushes
@@ -152,13 +156,12 @@
 
   /* COVER */
   .cover {
-    display: grid;
     align-content: center;
     justify-items: start;
     gap: clamp(18px, 2cqw, 36px);
     background: linear-gradient(135deg, var(--paper) 0%, var(--cream) 100%);
-    position: relative;
   }
+  .slide.cover.is-active { display: grid; }
   .cover::before {
     content: "";
     position: absolute;
@@ -318,7 +321,6 @@
     grid-template-columns: 1.6fr 1fr;
     gap: clamp(20px, 3cqw, 48px);
     align-items: stretch;
-    height: 100%;
   }
   .ask .lhs {
     background: var(--ink); color: var(--paper);
@@ -385,7 +387,7 @@
     grid-template-columns: 1fr 1fr;
     gap: clamp(20px, 3cqw, 48px);
     align-items: center;
-    height: 100%;
+    flex: 1;
   }
   .quote-slide .quote {
     font-family: var(--display);
@@ -405,7 +407,8 @@
     display: grid;
     grid-template-rows: auto 1fr;
     gap: clamp(24px, 3cqw, 44px);
-    height: 100%;
+    flex: 1;
+    min-height: 0;
   }
   .vision .statement {
     font-family: var(--display);
