@@ -13,6 +13,7 @@ import { toDateInput } from '../lib/date';
 import { Button } from '../components/Button';
 import { Pick } from '../components/Field';
 import { DuplicatePanel } from '../components/DuplicatePanel';
+import { SideBySideVisits } from '../components/SideBySideVisits';
 import { useToast } from '../components/Toast';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
@@ -326,6 +327,21 @@ export function PatientDetail() {
             <button type="button" onClick={() => setShowAll(true)} className="mt-4 text-[14px] font-medium underline underline-offset-4">
               Show {pastAndToday.length - visible.length} older day{pastAndToday.length - visible.length === 1 ? '' : 's'}
             </button>
+          )}
+          {/* Longitudinal visit comparison -- each past visit as its own
+              column, vitals / diagnosis / plan / medicines / labs /
+              specialty-form rows across them. For pregnancy follow-ups
+              and chronic-care threads this reads better than the
+              day-by-day vertical timeline above. Skipped when there
+              are fewer than two visits. */}
+          {pastAndToday.length >= 2 && (
+            <SideBySideVisits
+              appointments={data.appointments}
+              caseSheets={data.caseSheets}
+              prescriptions={data.prescriptions}
+              labOrders={data.labOrders}
+              records={dayRecords}
+            />
           )}
           <div className="mt-6 lg:hidden"><VitalsTrendSection points={vitalsTrend} /></div>
         </main>
