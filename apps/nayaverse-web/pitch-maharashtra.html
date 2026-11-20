@@ -59,18 +59,46 @@
     border-radius: 2px;
   }
   @media (max-width: 720px), (orientation: portrait) {
-    .deck { width: 100%; aspect-ratio: 3 / 4; }
+    /* On phone, drop the fixed aspect ratio and let the deck fill the
+       available height. Slides scroll internally if their content
+       is taller than the viewport, which is better than fixed
+       truncation. */
+    .deck {
+      width: 100%;
+      aspect-ratio: auto;
+      height: calc(100dvh - 80px);
+      max-height: none;
+    }
   }
 
   .slide {
     position: absolute;
     inset: 0;
     display: none;
-    padding: clamp(24px, 4%, 72px);
+    padding: clamp(20px, 3.4%, 64px);
     overflow: hidden;
     container-type: inline-size;
   }
-  .slide.is-active { display: flex; flex-direction: column; }
+  /* The active slide becomes a flex column and allows its own content
+     to scroll when it won't fit the frame. Without this, a slide with
+     one more card than the 16:9 frame holds just clips or pushes
+     content underneath the next element -- the "overlap" symptom the
+     user saw. */
+  .slide.is-active {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule) transparent;
+  }
+  .slide.is-active::-webkit-scrollbar { width: 6px }
+  .slide.is-active::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px }
+  .slide.is-active::-webkit-scrollbar-track { background: transparent }
+  /* Every direct child of a slide must respect the content width so a
+     long word, a wide table or an overflowing grid cell cannot push
+     the slide wider than the frame. */
+  .slide > * { min-width: 0; max-width: 100%; }
 
   /* Marks */
   .mark {
@@ -100,11 +128,11 @@
     text-wrap: balance;
     margin: 0;
   }
-  h1 { font-size: clamp(32px, 8cqw, 112px); font-weight: 400 }
-  h2 { font-size: clamp(28px, 5.6cqw, 72px); font-weight: 400 }
-  h3 { font-size: clamp(20px, 3.4cqw, 42px); font-weight: 500 }
-  p  { font-size: clamp(14px, 1.9cqw, 22px); line-height: 1.5; color: var(--ink-soft); margin: 0 }
-  p.lede { font-size: clamp(18px, 2.4cqw, 30px); color: var(--ink); line-height: 1.42; max-width: 32ch }
+  h1 { font-size: clamp(28px, 6.6cqw, 84px); font-weight: 400 }
+  h2 { font-size: clamp(24px, 4.6cqw, 56px); font-weight: 400 }
+  h3 { font-size: clamp(18px, 2.8cqw, 32px); font-weight: 500 }
+  p  { font-size: clamp(13px, 1.7cqw, 20px); line-height: 1.5; color: var(--ink-soft); margin: 0 }
+  p.lede { font-size: clamp(16px, 2.2cqw, 26px); color: var(--ink); line-height: 1.42; max-width: 32ch }
 
   .num { font-variant-numeric: tabular-nums }
 
@@ -157,7 +185,7 @@
   .cover h1 { font-weight: 300 }
   .cover .deva-title {
     font-family: var(--devanagari);
-    font-size: clamp(34px, 7cqw, 92px);
+    font-size: clamp(28px, 5.4cqw, 72px);
     font-weight: 400;
     color: var(--ink);
     line-height: 1.1;
@@ -301,8 +329,8 @@
   }
   .ask .lhs .headline {
     font-family: var(--display);
-    font-size: clamp(28px, 5cqw, 64px);
-    line-height: 1.04; letter-spacing: -0.02em;
+    font-size: clamp(22px, 4cqw, 48px);
+    line-height: 1.08; letter-spacing: -0.02em;
     color: var(--paper); font-weight: 400;
   }
   .ask .lhs .headline em { font-style: italic; color: var(--saffron) }
@@ -346,6 +374,11 @@
   .econ td.big-cell { font-family: var(--display); font-weight: 500; color: var(--ink); font-size: clamp(16px, 2cqw, 24px) }
   .econ tr:last-child td { border-bottom: 0 }
 
+  /* State slide collapses the 2-col mock+copy layout at narrow width. */
+  @container (max-width: 600px) {
+    .state-grid { grid-template-columns: 1fr !important }
+  }
+
   /* Quote slide */
   .quote-slide {
     display: grid;
@@ -376,9 +409,9 @@
   }
   .vision .statement {
     font-family: var(--display);
-    font-size: clamp(28px, 5.4cqw, 72px);
-    line-height: 1.04; letter-spacing: -0.02em;
-    color: var(--ink); font-weight: 400; max-width: 20ch;
+    font-size: clamp(22px, 4.2cqw, 54px);
+    line-height: 1.06; letter-spacing: -0.02em;
+    color: var(--ink); font-weight: 400; max-width: 22ch;
   }
   .vision .statement em { font-style: italic; color: var(--saffron-deep); font-weight: 500 }
   .vision .principles {
@@ -500,7 +533,7 @@
       </div>
       <div style="display: grid; grid-template-rows: 1fr auto; gap: clamp(20px, 3cqw, 40px); flex: 1">
         <div style="display: grid; place-items: center">
-          <p class="lede" style="font-family: var(--display); font-size: clamp(22px, 4.6cqw, 56px); color: var(--ink); line-height: 1.1; max-width: 22ch; text-align: left">
+          <p class="lede" style="font-family: var(--display); font-size: clamp(20px, 3.4cqw, 42px); color: var(--ink); line-height: 1.12; max-width: 24ch; text-align: left">
             A pregnant woman's antenatal record at a PHC does <em style="color: var(--accent-red); font-style: normal">not</em> travel to the sub-district hospital where she delivers.
           </p>
         </div>
@@ -665,7 +698,7 @@
         <span class="eyebrow">For the state</span>
         <span class="n">09 / 16</span>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(20px, 2.6cqw, 36px); flex: 1; align-items: stretch">
+      <div class="state-grid" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(20px, 2.6cqw, 36px); flex: 1; align-items: stretch">
         <div style="display: flex; flex-direction: column; justify-content: center; gap: clamp(14px, 2cqw, 24px)">
           <h2 style="font-size: clamp(22px, 3.6cqw, 44px); max-width: 16ch">Live district data. Compliance built in.</h2>
           <p class="desc">Because every PHC runs on the same system, the state does not run a separate monthly data-collection drive. The numbers on the district dashboard are the numbers at the counter.</p>
@@ -900,7 +933,7 @@
       </div>
       <div style="display: grid; grid-template-rows: 1fr auto; flex: 1; gap: 24px">
         <div style="display: grid; align-content: center; gap: clamp(16px, 2cqw, 28px)">
-          <div class="deva-title" style="font-family: var(--devanagari); font-size: clamp(42px, 8cqw, 112px); color: var(--ink); line-height: 1">धन्यवाद</div>
+          <div class="deva-title" style="font-family: var(--devanagari); font-size: clamp(36px, 6cqw, 84px); color: var(--ink); line-height: 1">धन्यवाद</div>
           <h2 style="max-width: 20ch; font-size: clamp(22px, 3.4cqw, 42px)">The next step is a date on the calendar, not a committee.</h2>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--rule); padding-top: clamp(14px, 2cqw, 22px); gap: 20px; flex-wrap: wrap">
