@@ -1,0 +1,999 @@
+<title>Nayaversse Maharashtra Pitch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800&family=Inter:wght@300;400;500;600;700&family=Tiro+Devanagari+Marathi:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout concept: single-slide-at-a-time deck. 16:9 canvas centered
+     in the viewport, letterboxed on wide screens, full-bleed on phones.
+     Each slide is one idea, rendered at projector scale. Keyboard
+     arrows and on-screen controls navigate; a progress indicator at
+     bottom shows where you are in the sequence. */
+  :root {
+    --saffron: #C8761A;
+    --saffron-deep: #8E4F0C;
+    --green: #15553C;
+    --ink: #1A1715;
+    --ink-soft: #4B433B;
+    --ink-faint: #665D4E;
+    --cream: #F6F0E2;
+    --paper: #FCF8EC;
+    --rule: #D9CCAE;
+    --gold: #AF8A2F;
+    --accent-red: #A1382D;
+    color-scheme: light;
+    --display: "Fraunces", "Playfair Display", Georgia, serif;
+    --body: "Inter", system-ui, -apple-system, sans-serif;
+    --devanagari: "Tiro Devanagari Marathi", "Noto Serif Devanagari", serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box }
+  html, body { height: 100% }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--body);
+    font-feature-settings: "ss01", "ss02";
+    overflow: hidden;
+  }
+  .stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: clamp(12px, 3vw, 48px);
+    padding-top: max(clamp(12px, 3vw, 48px), env(safe-area-inset-top, 0px));
+    padding-bottom: max(clamp(12px, 3vw, 48px), env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .deck {
+    position: relative;
+    width: min(100%, calc((100vh - 120px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow: 0 30px 80px -20px rgba(45, 30, 10, 0.25);
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  @media (max-width: 720px), (orientation: portrait) {
+    .deck { width: 100%; aspect-ratio: 3 / 4; }
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    padding: clamp(24px, 4%, 72px);
+    overflow: hidden;
+    container-type: inline-size;
+  }
+  .slide.is-active { display: flex; flex-direction: column; }
+
+  /* Marks */
+  .mark {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: clamp(10px, 1.2cqw, 13px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--saffron-deep);
+  }
+  .deva {
+    font-family: var(--devanagari);
+    font-weight: 400;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: clamp(32px, 8cqw, 112px); font-weight: 400 }
+  h2 { font-size: clamp(28px, 5.6cqw, 72px); font-weight: 400 }
+  h3 { font-size: clamp(20px, 3.4cqw, 42px); font-weight: 500 }
+  p  { font-size: clamp(14px, 1.9cqw, 22px); line-height: 1.5; color: var(--ink-soft); margin: 0 }
+  p.lede { font-size: clamp(18px, 2.4cqw, 30px); color: var(--ink); line-height: 1.42; max-width: 32ch }
+
+  .num { font-variant-numeric: tabular-nums }
+
+  /* Slide chrome: eyebrow + slide number */
+  .slide-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: clamp(18px, 3%, 44px);
+  }
+  .slide-head .n {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+  }
+
+  /* COVER */
+  .cover {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: clamp(18px, 2cqw, 36px);
+    background: linear-gradient(135deg, var(--paper) 0%, var(--cream) 100%);
+    position: relative;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    right: -10%;
+    top: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle at center, rgba(200, 118, 26, 0.12), transparent 70%);
+    pointer-events: none;
+  }
+  .mark-logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: clamp(18px, 2.4cqw, 28px);
+    letter-spacing: 0.01em;
+    font-weight: 500;
+  }
+  .mark-logo .tile {
+    width: 1.6em; height: 1.6em; display: grid; place-items: center;
+    background: var(--ink); color: var(--paper); font-weight: 600;
+    border-radius: 2px;
+  }
+  .cover h1 { font-weight: 300 }
+  .cover .deva-title {
+    font-family: var(--devanagari);
+    font-size: clamp(34px, 7cqw, 92px);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+  .cover .sub { color: var(--ink-soft); max-width: 36ch }
+  .cover .meta { color: var(--ink-faint); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--mono) }
+
+  /* Grid cards */
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(12px, 1.6cqw, 24px);
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(14px, 2cqw, 28px);
+  }
+  .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 1.4cqw, 20px);
+  }
+  @container (max-width: 600px) {
+    .grid-3, .grid-4 { grid-template-columns: 1fr 1fr }
+    .grid-2 { grid-template-columns: 1fr }
+  }
+  @container (max-width: 400px) {
+    .grid-3, .grid-4, .grid-2 { grid-template-columns: 1fr }
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: clamp(16px, 2.2cqw, 30px);
+    display: flex; flex-direction: column;
+    gap: clamp(8px, 1.2cqw, 16px);
+    min-width: 0;
+  }
+  .card.accented { border-left: 3px solid var(--saffron) }
+  .card.green { border-left: 3px solid var(--green) }
+  .card.gold { border-left: 3px solid var(--gold) }
+
+  .big-num {
+    font-family: var(--display);
+    font-size: clamp(32px, 5.4cqw, 68px);
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .label {
+    font-family: var(--mono);
+    font-size: clamp(9px, 1cqw, 11px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .claim {
+    font-family: var(--display);
+    font-size: clamp(16px, 2.1cqw, 26px);
+    line-height: 1.25;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .desc {
+    font-size: clamp(12px, 1.3cqw, 15px);
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* Pilot slide numbers card */
+  .outcome-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: clamp(12px, 1.5cqw, 20px) 0;
+    border-top: 1px solid var(--rule);
+    gap: 16px;
+  }
+  .outcome-row:first-child { border-top: 0 }
+  .outcome-row .what { font-family: var(--display); font-size: clamp(15px, 1.9cqw, 22px); color: var(--ink); font-weight: 500 }
+  .outcome-row .amt  { font-family: var(--mono); font-size: clamp(13px, 1.6cqw, 18px); color: var(--saffron-deep); font-variant-numeric: tabular-nums }
+
+  /* Checklist */
+  .check {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px 16px;
+    align-items: baseline;
+  }
+  .check .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--green); margin-top: 6px;
+  }
+  .check .dot.wait { background: var(--gold) }
+  .check .what { font-size: clamp(14px, 1.6cqw, 19px); color: var(--ink); font-weight: 500 }
+  .check .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* Timeline */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: relative;
+    margin-top: clamp(20px, 3cqw, 40px);
+    gap: clamp(8px, 1cqw, 16px);
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 6%; right: 6%; top: 18px;
+    height: 1px; background: var(--rule);
+  }
+  .tl-step { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; position: relative }
+  .tl-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--paper); border: 2px solid var(--saffron);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--saffron-deep);
+    z-index: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-dot.final { border-color: var(--green); color: var(--green) }
+  .tl-when { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.14em }
+  .tl-what { font-family: var(--display); font-size: clamp(14px, 1.7cqw, 20px); font-weight: 500; color: var(--ink); line-height: 1.2 }
+
+  /* Big ask */
+  .ask {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: clamp(20px, 3cqw, 48px);
+    align-items: stretch;
+    height: 100%;
+  }
+  .ask .lhs {
+    background: var(--ink); color: var(--paper);
+    padding: clamp(24px, 3cqw, 52px);
+    border-radius: 2px;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: clamp(14px, 1.6cqw, 22px);
+  }
+  .ask .lhs .headline {
+    font-family: var(--display);
+    font-size: clamp(28px, 5cqw, 64px);
+    line-height: 1.04; letter-spacing: -0.02em;
+    color: var(--paper); font-weight: 400;
+  }
+  .ask .lhs .headline em { font-style: italic; color: var(--saffron) }
+  .ask .lhs .caption { color: #CDBFA8; font-size: clamp(13px, 1.5cqw, 17px); max-width: 36ch }
+  .ask .rhs { display: flex; flex-direction: column; gap: clamp(10px, 1.4cqw, 18px) }
+  @container (max-width: 600px) {
+    .ask { grid-template-columns: 1fr }
+  }
+
+  .sub-ask {
+    padding: clamp(12px, 1.6cqw, 20px);
+    border-left: 2px solid var(--saffron);
+    background: var(--paper);
+    border-top: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .sub-ask .n {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--saffron-deep);
+  }
+  .sub-ask .t {
+    font-family: var(--display);
+    font-size: clamp(15px, 1.8cqw, 21px);
+    color: var(--ink);
+    margin-top: 2px;
+    line-height: 1.25;
+  }
+
+  /* Economics table */
+  .econ {
+    width: 100%; border-collapse: collapse;
+    font-size: clamp(12px, 1.4cqw, 16px);
+  }
+  .econ th, .econ td { padding: clamp(10px, 1.3cqw, 16px) 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top }
+  .econ th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 400 }
+  .econ td.num-cell { font-family: var(--mono); color: var(--ink); font-variant-numeric: tabular-nums }
+  .econ td.big-cell { font-family: var(--display); font-weight: 500; color: var(--ink); font-size: clamp(16px, 2cqw, 24px) }
+  .econ tr:last-child td { border-bottom: 0 }
+
+  /* Quote slide */
+  .quote-slide {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(20px, 3cqw, 48px);
+    align-items: center;
+    height: 100%;
+  }
+  .quote-slide .quote {
+    font-family: var(--display);
+    font-size: clamp(22px, 3.6cqw, 44px);
+    line-height: 1.15; letter-spacing: -0.015em;
+    font-weight: 400; color: var(--ink);
+  }
+  .quote-slide .quote::before { content: "\201C"; color: var(--saffron); font-size: 1.5em; line-height: 0; margin-right: 0.1em }
+  .quote-slide .attrib { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-top: clamp(14px, 1.6cqw, 22px) }
+  .quote-slide .card { height: fit-content }
+  @container (max-width: 600px) {
+    .quote-slide { grid-template-columns: 1fr }
+  }
+
+  /* Vision slide typography */
+  .vision {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: clamp(24px, 3cqw, 44px);
+    height: 100%;
+  }
+  .vision .statement {
+    font-family: var(--display);
+    font-size: clamp(28px, 5.4cqw, 72px);
+    line-height: 1.04; letter-spacing: -0.02em;
+    color: var(--ink); font-weight: 400; max-width: 20ch;
+  }
+  .vision .statement em { font-style: italic; color: var(--saffron-deep); font-weight: 500 }
+  .vision .principles {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(14px, 2cqw, 28px);
+    border-top: 1px solid var(--rule);
+    padding-top: clamp(16px, 2cqw, 28px);
+    align-self: end;
+  }
+  @container (max-width: 600px) {
+    .vision .principles { grid-template-columns: 1fr }
+  }
+
+  /* Divider band */
+  .band {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 2px;
+    padding: clamp(16px, 2cqw, 28px) clamp(20px, 2.6cqw, 36px);
+    display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px;
+  }
+  .band .bq { font-family: var(--display); font-size: clamp(16px, 2cqw, 24px); color: var(--paper); font-weight: 400; max-width: 30ch }
+  .band .ba { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: #CDBFA8; text-transform: uppercase }
+
+  /* Dashboard mock (state slide) */
+  .mock {
+    background: var(--ink); color: var(--paper);
+    border-radius: 2px; padding: clamp(14px, 2cqw, 24px);
+    display: grid; grid-template-rows: auto auto 1fr; gap: 14px;
+    min-height: 100%;
+  }
+  .mock-top { display: flex; justify-content: space-between; align-items: center }
+  .mock-top .title { font-family: var(--display); font-size: clamp(14px, 1.8cqw, 20px) }
+  .mock-top .pill { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; padding: 4px 8px; border: 1px solid #5B5445; border-radius: 2px; color: #CDBFA8; text-transform: uppercase }
+  .mock-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px }
+  .mock-stat { border-left: 2px solid var(--saffron); padding: 8px 10px }
+  .mock-stat .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; color: #9F9684; text-transform: uppercase }
+  .mock-stat .v { font-family: var(--display); font-size: clamp(16px, 2cqw, 26px); font-variant-numeric: tabular-nums; margin-top: 2px }
+  .mock-bars { display: flex; align-items: flex-end; gap: 4px; height: 100%; min-height: 80px; padding-top: 10px }
+  .mock-bars .bar { flex: 1; background: linear-gradient(to top, var(--saffron) 0%, var(--saffron-deep) 100%); min-width: 0; border-radius: 1px 1px 0 0; opacity: 0.9 }
+
+  /* Navigation */
+  .controls {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    background: rgba(26, 23, 21, 0.9);
+    color: var(--paper);
+    border-radius: 999px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    backdrop-filter: blur(8px);
+    z-index: 20;
+  }
+  .controls button {
+    appearance: none; background: transparent; border: 0; color: var(--paper);
+    cursor: pointer; padding: 4px 8px; font: inherit; opacity: 0.8;
+  }
+  .controls button:hover, .controls button:focus-visible { opacity: 1; outline: none }
+  .controls .sep { opacity: 0.4 }
+  .dots { display: flex; gap: 3px }
+  .dots button {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(246, 240, 226, 0.3); padding: 0;
+  }
+  .dots button.active { background: var(--saffron); transform: scale(1.3) }
+
+  :focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<div class="stage">
+  <div class="deck" id="deck">
+
+    <!-- SLIDE 1 — COVER -->
+    <section class="slide cover is-active" data-title="Cover">
+      <div class="mark-logo"><span class="tile">न</span> Nayaversse</div>
+      <div class="deva-title">नयावर्स</div>
+      <h1>A Marathi-first digital health platform for Maharashtra</h1>
+      <p class="sub" style="font-size: clamp(16px, 2cqw, 22px)">A proposal to the Government of Maharashtra for one digital health record that follows every citizen from their first PHC visit to their final discharge.</p>
+      <div class="meta" style="margin-top: clamp(16px, 2cqw, 28px)">Suhel Ali, Founder · Nayaversse · <span class="deva" style="font-family: var(--devanagari)">पुणे</span> / Pune · 2026</div>
+    </section>
+
+    <!-- SLIDE 2 — THE MOMENT -->
+    <section class="slide" data-title="The moment">
+      <div class="slide-head">
+        <span class="eyebrow">The moment</span>
+        <span class="n">02 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(14px, 2cqw, 28px)">Three things in Maharashtra just lined up.</h2>
+      <div class="grid-3" style="flex: 1; align-content: center">
+        <div class="card accented">
+          <div class="label">PRAGATI</div>
+          <div class="big-num">₹4,250 <span style="font-size: 0.5em; font-weight: 400; color: var(--ink-faint)">crore</span></div>
+          <div class="claim">Five-year state health reform, cabinet-approved.</div>
+          <div class="desc">Digital health is a named pillar, aligned explicitly with the Ayushman Bharat Digital Mission.</div>
+        </div>
+        <div class="card green">
+          <div class="label">Directive</div>
+          <div class="big-num" style="font-size: clamp(22px, 3cqw, 40px); line-height: 1.1">A big digital, AI revamp.</div>
+          <div class="claim">The Chief Minister's own stated priority.</div>
+          <div class="desc">Political cover under which state procurement moves faster than usual.</div>
+        </div>
+        <div class="card gold">
+          <div class="label">Pilot in place</div>
+          <div class="big-num" style="font-size: clamp(22px, 3cqw, 40px); line-height: 1.1">Raigad.</div>
+          <div class="claim">ABDM Model District already chosen.</div>
+          <div class="desc">Whatever ships there becomes the template for the other thirty-five.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3 — TODAY -->
+    <section class="slide" data-title="Today">
+      <div class="slide-head">
+        <span class="eyebrow">Today</span>
+        <span class="n">03 / 16</span>
+      </div>
+      <div style="display: grid; grid-template-rows: 1fr auto; gap: clamp(20px, 3cqw, 40px); flex: 1">
+        <div style="display: grid; place-items: center">
+          <p class="lede" style="font-family: var(--display); font-size: clamp(22px, 4.6cqw, 56px); color: var(--ink); line-height: 1.1; max-width: 22ch; text-align: left">
+            A pregnant woman's antenatal record at a PHC does <em style="color: var(--accent-red); font-style: normal">not</em> travel to the sub-district hospital where she delivers.
+          </p>
+        </div>
+        <div class="band">
+          <div class="bq">It lives on paper. The doctor who sees her next starts from the complaint, not from the record.</div>
+          <div class="ba">The gap Nayaversse closes</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4 — VISION -->
+    <section class="slide" data-title="The vision">
+      <div class="slide-head">
+        <span class="eyebrow">The vision</span>
+        <span class="n">04 / 16</span>
+      </div>
+      <div class="vision">
+        <div class="statement">
+          Every citizen's health record follows them — <em>from the first PHC visit, in Marathi, on their phone, forever.</em>
+        </div>
+        <div class="principles">
+          <div>
+            <div class="label">For the citizen</div>
+            <div class="claim" style="margin-top: 8px">One ABHA ID from the first visit.</div>
+            <div class="desc" style="margin-top: 6px">No more re-telling your history at every counter.</div>
+          </div>
+          <div>
+            <div class="label">For the clinician</div>
+            <div class="claim" style="margin-top: 8px">A single screen; the previous visit beside today's.</div>
+            <div class="desc" style="margin-top: 6px">Decisions off data, not off memory.</div>
+          </div>
+          <div>
+            <div class="label">For the state</div>
+            <div class="claim" style="margin-top: 8px">Live district data, and compliance built in.</div>
+            <div class="desc" style="margin-top: 6px">PRAGATI reporting without a separate collection drive.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5 — WHAT NAYAVERSSE IS -->
+    <section class="slide" data-title="What it is">
+      <div class="slide-head">
+        <span class="eyebrow">What Nayaversse is</span>
+        <span class="n">05 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(18px, 2.5cqw, 36px); max-width: 24ch">One Indian-built product. Three pillars, one architecture.</h2>
+      <div class="grid-3" style="flex: 1; align-content: center">
+        <div class="card accented">
+          <div class="label">01. Clinical</div>
+          <div class="claim">EMR, OPD triage queue, prescriptions, pharmacy with first-expiry dispensing, lab orders, discharge.</div>
+          <div class="desc">The system a doctor uses during every visit. Works on a basic laptop or a tablet.</div>
+        </div>
+        <div class="card green">
+          <div class="label">02. Citizen</div>
+          <div class="claim">ABHA on first visit, queue position on their phone, prescription in Marathi, their history, forever.</div>
+          <div class="desc">The patient-facing side runs in twelve Indian languages, Marathi default.</div>
+        </div>
+        <div class="card gold">
+          <div class="label">03. State</div>
+          <div class="claim">District-level dashboards, PRAGATI metrics, MJPJAY claim submission, audit trail for DPDP.</div>
+          <div class="desc">The layer the state sees. Data is current because it comes from the same system clinicians already use.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6 — RUNNING TODAY -->
+    <section class="slide" data-title="Running today">
+      <div class="slide-head">
+        <span class="eyebrow">Running today</span>
+        <span class="n">06 / 16</span>
+      </div>
+      <div class="quote-slide">
+        <div>
+          <div class="quote">This is not a pitch for something we plan to build. It is live, in Pune, since October 2026.</div>
+          <div class="attrib">Vadgaonkar Clinic · Dr Asif Momin + 2 staff</div>
+        </div>
+        <div class="card accented">
+          <div class="label">Live reference</div>
+          <h3 style="color: var(--ink)">Vadgaonkar Clinic, Pune</h3>
+          <div class="outcome-row">
+            <span class="what">OPD queue, patients, UHID</span>
+            <span class="amt">Live</span>
+          </div>
+          <div class="outcome-row">
+            <span class="what">Prescription, pharmacy, billing</span>
+            <span class="amt">Live</span>
+          </div>
+          <div class="outcome-row">
+            <span class="what">Public clinic website</span>
+            <span class="amt">Live</span>
+          </div>
+          <div class="outcome-row">
+            <span class="what">Append-only audit log</span>
+            <span class="amt">Live</span>
+          </div>
+          <div class="outcome-row">
+            <span class="what">Marathi / Hindi / English</span>
+            <span class="amt">Live</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7 — FOR THE CITIZEN -->
+    <section class="slide" data-title="For the citizen">
+      <div class="slide-head">
+        <span class="eyebrow">For the citizen</span>
+        <span class="n">07 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(18px, 2.5cqw, 36px); max-width: 24ch">Four things change, on the first day.</h2>
+      <div class="grid-4" style="flex: 1; align-content: center">
+        <div class="card">
+          <div class="label">01</div>
+          <div class="claim">An ABHA ID, created in reception, in two minutes.</div>
+        </div>
+        <div class="card">
+          <div class="label">02</div>
+          <div class="claim">Queue position visible on the waiting-room screen and on their phone.</div>
+        </div>
+        <div class="card">
+          <div class="label">03</div>
+          <div class="claim">Prescription printed in Marathi, also sent to their WhatsApp.</div>
+        </div>
+        <div class="card">
+          <div class="label">04</div>
+          <div class="claim">Every record stays with them — across every PHC, CHC, DH they visit.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8 — FOR THE PHC -->
+    <section class="slide" data-title="For the PHC">
+      <div class="slide-head">
+        <span class="eyebrow">For the PHC</span>
+        <span class="n">08 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(18px, 2.5cqw, 36px); max-width: 26ch">Paper registers replaced with one screen, Marathi default.</h2>
+      <div class="grid-4" style="flex: 1; align-content: center">
+        <div class="card accented">
+          <div class="label">Receptionist</div>
+          <div class="claim">Register, triage, print the OPD slip. ~25 seconds per patient.</div>
+        </div>
+        <div class="card accented">
+          <div class="label">Doctor</div>
+          <div class="claim">Case sheet, previous visit side-by-side, prescription from the drug catalogue.</div>
+        </div>
+        <div class="card accented">
+          <div class="label">Pharmacy</div>
+          <div class="claim">First-expiry dispensing. Expired stock never dispensed; near-expiry flagged.</div>
+        </div>
+        <div class="card accented">
+          <div class="label">In-charge</div>
+          <div class="claim">Daily close in two taps. Monthly report ready without a separate collection round.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9 — FOR THE STATE -->
+    <section class="slide" data-title="For the state">
+      <div class="slide-head">
+        <span class="eyebrow">For the state</span>
+        <span class="n">09 / 16</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(20px, 2.6cqw, 36px); flex: 1; align-items: stretch">
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: clamp(14px, 2cqw, 24px)">
+          <h2 style="font-size: clamp(22px, 3.6cqw, 44px); max-width: 16ch">Live district data. Compliance built in.</h2>
+          <p class="desc">Because every PHC runs on the same system, the state does not run a separate monthly data-collection drive. The numbers on the district dashboard are the numbers at the counter.</p>
+          <p class="desc">DPDP Act 2023, NABH audit obligations and ABDM alignment are not a parallel compliance project; they are properties of the software itself.</p>
+        </div>
+        <div class="mock">
+          <div class="mock-top">
+            <div class="title">District: Sangli · Today</div>
+            <div class="pill">Live</div>
+          </div>
+          <div class="mock-stats">
+            <div class="mock-stat"><div class="k">OPD today</div><div class="v">1,847</div></div>
+            <div class="mock-stat"><div class="k">ABHA created</div><div class="v">912</div></div>
+            <div class="mock-stat"><div class="k">Antenatal</div><div class="v">108</div></div>
+            <div class="mock-stat"><div class="k">MJPJAY claims</div><div class="v">27</div></div>
+          </div>
+          <div class="mock-bars" aria-hidden="true">
+            <div class="bar" style="height: 42%"></div><div class="bar" style="height: 58%"></div><div class="bar" style="height: 78%"></div><div class="bar" style="height: 66%"></div>
+            <div class="bar" style="height: 90%"></div><div class="bar" style="height: 72%"></div><div class="bar" style="height: 48%"></div><div class="bar" style="height: 55%"></div>
+            <div class="bar" style="height: 82%"></div><div class="bar" style="height: 95%"></div><div class="bar" style="height: 68%"></div><div class="bar" style="height: 74%"></div>
+          </div>
+          <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; color: #9F9684; text-transform: uppercase">Hourly OPD volume across 45 PHCs · indicative layout</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10 — WHY NAYAVERSSE -->
+    <section class="slide" data-title="Why">
+      <div class="slide-head">
+        <span class="eyebrow">Why Nayaversse</span>
+        <span class="n">10 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(18px, 2.5cqw, 36px); max-width: 22ch">Three things no competitor in this room can match.</h2>
+      <div class="grid-3" style="flex: 1; align-content: center">
+        <div class="card accented">
+          <div class="label">One</div>
+          <h3 style="color: var(--ink); font-size: clamp(16px, 2.2cqw, 26px)">Marathi as a first-class language.</h3>
+          <div class="desc">Not translated afterwards; designed for it. Staff screens, prescriptions, patient phone, in Marathi by default.</div>
+        </div>
+        <div class="card green">
+          <div class="label">Two</div>
+          <h3 style="color: var(--ink); font-size: clamp(16px, 2.2cqw, 26px)">One database per facility.</h3>
+          <div class="desc">A breach in one PHC can never reach the records of any other. The architecture refuses the shared-tenancy risk other vendors live with.</div>
+        </div>
+        <div class="card gold">
+          <div class="label">Three</div>
+          <h3 style="color: var(--ink); font-size: clamp(16px, 2.2cqw, 26px)">Honest about status.</h3>
+          <div class="desc">Every claim we make on our chart is marked Live, Building or Waitlisted. The build fails if the words don't match reality.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11 — COMPLIANCE -->
+    <section class="slide" data-title="Compliance">
+      <div class="slide-head">
+        <span class="eyebrow">Compliance stack</span>
+        <span class="n">11 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(16px, 2cqw, 28px); max-width: 26ch">Built against the standards the state audits against, not against a feature matrix.</h2>
+      <div class="grid-2" style="flex: 1; align-content: center">
+        <div class="card">
+          <div class="label">Shipped today</div>
+          <div class="check" style="margin-top: 10px">
+            <span class="dot"></span><span class="what">DPDP Act 2023 — append-only audit log of every record access</span><span class="meta">Live</span>
+            <span class="dot"></span><span class="what">NABH-aligned record-keeping and breach notification</span><span class="meta">Live</span>
+            <span class="dot"></span><span class="what">Indian data residency — ap-south-1 hosted</span><span class="meta">Live</span>
+            <span class="dot"></span><span class="what">Marathi / Hindi / English staff and patient UI</span><span class="meta">Live</span>
+            <span class="dot"></span><span class="what">One database per facility — no shared PHI pool</span><span class="meta">Live</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">On the 90-day roadmap</div>
+          <div class="check" style="margin-top: 10px">
+            <span class="dot wait"></span><span class="what">ABDM M1 — Health Facility Registry</span><span class="meta">Week 3-4</span>
+            <span class="dot wait"></span><span class="what">ABDM M2 — Healthcare Professional Registry</span><span class="meta">Week 5-6</span>
+            <span class="dot wait"></span><span class="what">ABDM M3 — ABHA generation + linking</span><span class="meta">Week 7-8</span>
+            <span class="dot wait"></span><span class="what">FHIR R4 export</span><span class="meta">Week 7-8</span>
+            <span class="dot wait"></span><span class="what">MJPJAY / SHAS claim submission</span><span class="meta">Week 10-12</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12 — PILOT PROPOSAL -->
+    <section class="slide" data-title="Pilot">
+      <div class="slide-head">
+        <span class="eyebrow">The pilot</span>
+        <span class="n">12 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(16px, 2cqw, 28px); max-width: 20ch">One district. Ninety days. Measured outcomes.</h2>
+      <div class="grid-2" style="flex: 1; align-content: center">
+        <div class="card accented">
+          <div class="label">What we bring</div>
+          <div class="outcome-row"><span class="what">Five PHCs, fully live</span><span class="amt">Day 60</span></div>
+          <div class="outcome-row"><span class="what">ABHA generation for every patient</span><span class="amt">Day 1</span></div>
+          <div class="outcome-row"><span class="what">Marathi staff training, on-site</span><span class="amt">Day 1-15</span></div>
+          <div class="outcome-row"><span class="what">Phone support in Marathi, 9-6 Mon-Sat</span><span class="amt">Day 1-90</span></div>
+          <div class="outcome-row"><span class="what">Two integration engineers on the ground</span><span class="amt">Day 1-90</span></div>
+        </div>
+        <div class="card green">
+          <div class="label">What we commit</div>
+          <div class="outcome-row"><span class="what">ABHA generation rate</span><span class="amt">&ge; 80% of OPD</span></div>
+          <div class="outcome-row"><span class="what">Average OPD processing</span><span class="amt">Under 5 min</span></div>
+          <div class="outcome-row"><span class="what">Pharmacy expiry waste</span><span class="amt">Near zero</span></div>
+          <div class="outcome-row"><span class="what">Monthly PRAGATI report</span><span class="amt">Auto-generated</span></div>
+          <div class="outcome-row"><span class="what">Audit log, every access</span><span class="amt">100%</span></div>
+        </div>
+      </div>
+      <div class="band" style="margin-top: clamp(14px, 2cqw, 22px)">
+        <div class="bq">The pilot is at our cost. The state's exposure is the staff time to adopt it.</div>
+        <div class="ba">No sanction fee for the first 90 days</div>
+      </div>
+    </section>
+
+    <!-- SLIDE 13 — ECONOMICS -->
+    <section class="slide" data-title="Economics">
+      <div class="slide-head">
+        <span class="eyebrow">Economics</span>
+        <span class="n">13 / 16</span>
+      </div>
+      <h2 style="margin-bottom: clamp(16px, 2cqw, 28px); max-width: 26ch">Priced for the state to adopt at scale, not for a single-contract windfall.</h2>
+      <table class="econ" style="flex: 1">
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>What it covers</th>
+            <th>Year 1</th>
+            <th>Recurring / year</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="big-cell">Pilot</td>
+            <td>5 PHCs, 90 days, measured outcomes</td>
+            <td class="num-cell" style="color: var(--green); font-weight: 500">At our cost</td>
+            <td class="num-cell">—</td>
+          </tr>
+          <tr>
+            <td class="big-cell">One district</td>
+            <td>45 PHCs · 10 CHCs · 7 Rural Hospitals · 1 District Hospital</td>
+            <td class="num-cell big-cell" style="color: var(--saffron-deep)">₹1.9–2.0 cr</td>
+            <td class="num-cell">₹75 lakh</td>
+          </tr>
+          <tr>
+            <td class="big-cell">Six-district bundle</td>
+            <td>Western Maharashtra (Pune, Satara, Sangli, Kolhapur, Solapur, Ahmednagar)</td>
+            <td class="num-cell big-cell" style="color: var(--saffron-deep)">₹9.6 cr</td>
+            <td class="num-cell">₹4.2 cr</td>
+          </tr>
+          <tr>
+            <td class="big-cell">State-wide</td>
+            <td>All 36 districts, phased over 18 months</td>
+            <td class="num-cell big-cell" style="color: var(--saffron-deep)">₹52 cr</td>
+            <td class="num-cell">₹22 cr</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top: clamp(10px, 1.4cqw, 16px); font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint)">
+        ~ ₹2.50 per Maharashtrian per year at state scale. One monthly WhatsApp message.
+      </div>
+    </section>
+
+    <!-- SLIDE 14 — TIMELINE -->
+    <section class="slide" data-title="Timeline">
+      <div class="slide-head">
+        <span class="eyebrow">Timeline</span>
+        <span class="n">14 / 16</span>
+      </div>
+      <h2 style="max-width: 24ch">From pilot to state in eighteen months.</h2>
+      <div class="timeline" style="flex: 1">
+        <div class="tl-step">
+          <div class="tl-dot">01</div>
+          <div class="tl-when">Day 0–90</div>
+          <div class="tl-what">Pilot in one district. Five PHCs live.</div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot">02</div>
+          <div class="tl-when">Month 3–9</div>
+          <div class="tl-what">Full district rollout. 63 facilities. ABDM aligned.</div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot">03</div>
+          <div class="tl-when">Month 9–18</div>
+          <div class="tl-what">Western Maharashtra bundle. Six districts.</div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot final">04</div>
+          <div class="tl-when">Month 18+</div>
+          <div class="tl-what">State-wide rollout. Every PHC, Marathi default.</div>
+        </div>
+      </div>
+      <div class="band" style="margin-top: clamp(20px, 3cqw, 36px)">
+        <div class="bq">Not a plan contingent on fundraising. The pilot requires no sanction fee; the first district pays for the next.</div>
+        <div class="ba">Self-funding roll-out</div>
+      </div>
+    </section>
+
+    <!-- SLIDE 15 — THE ASK -->
+    <section class="slide" data-title="The ask">
+      <div class="slide-head">
+        <span class="eyebrow">The ask</span>
+        <span class="n">15 / 16</span>
+      </div>
+      <div class="ask" style="flex: 1">
+        <div class="lhs">
+          <div class="label" style="color: var(--saffron)">One decision</div>
+          <div class="headline">Sanction a <em>ninety-day pilot</em> in one district.</div>
+          <div class="caption">No cost to the state. Measured outcomes committed above. If the district isn't convinced at day 90, we walk away.</div>
+        </div>
+        <div class="rhs">
+          <div class="sub-ask">
+            <div class="n">Ask 1</div>
+            <div class="t">Name the district. Our recommendation: Sangli, where we have a live clinical reference nearby.</div>
+          </div>
+          <div class="sub-ask">
+            <div class="n">Ask 2</div>
+            <div class="t">Introduction to the District Health Officer and Zilla Parishad CEO to begin the week.</div>
+          </div>
+          <div class="sub-ask">
+            <div class="n">Ask 3</div>
+            <div class="t">A press note at day 90 if the results support one — on the state's terms, not ours.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 16 — THANK YOU -->
+    <section class="slide" data-title="Thank you">
+      <div class="slide-head">
+        <span class="eyebrow">Thank you</span>
+        <span class="n">16 / 16</span>
+      </div>
+      <div style="display: grid; grid-template-rows: 1fr auto; flex: 1; gap: 24px">
+        <div style="display: grid; align-content: center; gap: clamp(16px, 2cqw, 28px)">
+          <div class="deva-title" style="font-family: var(--devanagari); font-size: clamp(42px, 8cqw, 112px); color: var(--ink); line-height: 1">धन्यवाद</div>
+          <h2 style="max-width: 20ch; font-size: clamp(22px, 3.4cqw, 42px)">The next step is a date on the calendar, not a committee.</h2>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--rule); padding-top: clamp(14px, 2cqw, 22px); gap: 20px; flex-wrap: wrap">
+          <div>
+            <div class="label">Founder</div>
+            <div style="font-family: var(--display); font-size: clamp(16px, 2cqw, 24px); color: var(--ink); margin-top: 4px">Suhel Ali</div>
+            <div class="desc" style="margin-top: 2px">Nayaversse · Pune / Sangli</div>
+          </div>
+          <div style="text-align: right">
+            <div class="label">Contact</div>
+            <div class="desc" style="margin-top: 4px; font-family: var(--mono); font-size: clamp(11px, 1.3cqw, 14px); color: var(--ink)">+91 75584 36263<br>nayaversse.in</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<nav class="controls" aria-label="Deck controls">
+  <button type="button" id="prev" aria-label="Previous slide">◀</button>
+  <span><span id="pos">1</span> / <span id="total">16</span></span>
+  <span class="sep">·</span>
+  <div class="dots" id="dots" role="tablist" aria-label="Slide picker"></div>
+  <span class="sep">·</span>
+  <button type="button" id="next" aria-label="Next slide">▶</button>
+</nav>
+
+<script>
+  // Simple deck controller: shows one .slide at a time, arrow keys +
+  // on-screen controls + dot picker navigate. State lives in the DOM
+  // (the `.is-active` class) so there is no framework and no load
+  // cost. The hash reflects slide index as `#s3`, so a link to a
+  // specific slide survives a reload.
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+    var dots = document.getElementById("dots");
+    var pos = document.getElementById("pos");
+    var total = document.getElementById("total");
+    total.textContent = slides.length;
+
+    slides.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-label", "Slide " + (i + 1) + " — " + (s.dataset.title || ""));
+      b.addEventListener("click", function () { go(i); });
+      dots.appendChild(b);
+    });
+
+    var idx = 0;
+    function hashIndex() {
+      var m = /^#s(\d+)$/.exec(location.hash);
+      if (!m) return 0;
+      var n = parseInt(m[1], 10) - 1;
+      return Math.max(0, Math.min(slides.length - 1, n));
+    }
+    function render() {
+      slides.forEach(function (s, i) { s.classList.toggle("is-active", i === idx); });
+      Array.prototype.forEach.call(dots.children, function (b, i) {
+        b.classList.toggle("active", i === idx);
+        b.setAttribute("aria-selected", i === idx ? "true" : "false");
+      });
+      pos.textContent = idx + 1;
+    }
+    function go(n) {
+      idx = Math.max(0, Math.min(slides.length - 1, n));
+      if (location.hash !== "#s" + (idx + 1)) {
+        history.replaceState(null, "", "#s" + (idx + 1));
+      }
+      render();
+    }
+    document.getElementById("prev").addEventListener("click", function () { go(idx - 1); });
+    document.getElementById("next").addEventListener("click", function () { go(idx + 1); });
+    window.addEventListener("keydown", function (e) {
+      if (e.target && ["INPUT", "TEXTAREA"].indexOf(e.target.tagName) !== -1) return;
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(idx + 1); }
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(idx - 1); }
+      else if (e.key === "Home") { go(0); }
+      else if (e.key === "End") { go(slides.length - 1); }
+    });
+    // Swipe on touch devices. Minimal: 60px horizontal threshold.
+    var sx = 0;
+    window.addEventListener("touchstart", function (e) { if (e.touches[0]) sx = e.touches[0].clientX; }, { passive: true });
+    window.addEventListener("touchend", function (e) {
+      if (!e.changedTouches[0]) return;
+      var dx = e.changedTouches[0].clientX - sx;
+      if (Math.abs(dx) < 60) return;
+      go(dx < 0 ? idx + 1 : idx - 1);
+    }, { passive: true });
+    window.addEventListener("hashchange", function () { idx = hashIndex(); render(); });
+
+    idx = hashIndex();
+    render();
+  })();
+</script>
