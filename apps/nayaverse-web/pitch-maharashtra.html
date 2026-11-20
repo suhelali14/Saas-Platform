@@ -376,6 +376,13 @@
   .econ td.big-cell { font-family: var(--display); font-weight: 500; color: var(--ink); font-size: clamp(16px, 2cqw, 24px) }
   .econ tr:last-child td { border-bottom: 0 }
 
+  /* Slide 3: six compact patient cards, sized to fit the 16:9 frame
+     alongside the heading and the band without scrolling. */
+  .today-grid { gap: clamp(10px, 1.2cqw, 16px) }
+  .today-grid .card { padding: clamp(12px, 1.6cqw, 20px); gap: 6px }
+  .today-grid .claim { font-size: clamp(14px, 1.7cqw, 20px) }
+  .today-grid .desc { font-size: clamp(11px, 1.15cqw, 14px) }
+
   /* State slide collapses the 2-col mock+copy layout at narrow width. */
   @container (max-width: 600px) {
     .state-grid { grid-template-columns: 1fr !important }
@@ -535,13 +542,43 @@
         <span class="n">03 / 16</span>
       </div>
       <div style="display: grid; grid-template-rows: 1fr auto; gap: clamp(20px, 3cqw, 40px); flex: 1">
-        <div style="display: grid; place-items: center">
-          <p class="lede" style="font-family: var(--display); font-size: clamp(20px, 3.4cqw, 42px); color: var(--ink); line-height: 1.12; max-width: 24ch; text-align: left">
-            A pregnant woman's antenatal record at a PHC does <em style="color: var(--accent-red); font-style: normal">not</em> travel to the sub-district hospital where she delivers.
-          </p>
+        <div style="display: flex; flex-direction: column; gap: clamp(12px, 1.8cqw, 22px); min-height: 0">
+          <h2 style="font-size: clamp(20px, 3.4cqw, 40px); max-width: 30ch">A patient's record stops at the door of the facility that wrote it. For every patient.</h2>
+          <div class="grid-3 today-grid">
+            <div class="card">
+              <div class="label">Chronic care</div>
+              <div class="claim">The diabetic on monthly review.</div>
+              <div class="desc">Every visit starts from zero. Last month's sugar reading and dose sit in a register at another PHC.</div>
+            </div>
+            <div class="card">
+              <div class="label">Mother and child</div>
+              <div class="claim">The pregnant woman, the newborn.</div>
+              <div class="desc">Antenatal notes don't reach the hospital where she delivers. Immunisation cards get lost.</div>
+            </div>
+            <div class="card">
+              <div class="label">Emergency</div>
+              <div class="claim">The accident case at the District Hospital.</div>
+              <div class="desc">Arrives with no allergy record, no list of current medicines, no history.</div>
+            </div>
+            <div class="card">
+              <div class="label">Elderly</div>
+              <div class="claim">The senior on BP and heart medicines.</div>
+              <div class="desc">Three doctors adjust the dose. None of them sees what the others wrote.</div>
+            </div>
+            <div class="card">
+              <div class="label">Long treatment</div>
+              <div class="claim">The TB patient on a six-month course.</div>
+              <div class="desc">History split between the PHC, the CHC and a separate programme register.</div>
+            </div>
+            <div class="card">
+              <div class="label">The district</div>
+              <div class="claim">The District Health Officer.</div>
+              <div class="desc">Sees last month's figures, collected by hand, weeks after the fact.</div>
+            </div>
+          </div>
         </div>
         <div class="band">
-          <div class="bq">It lives on paper. The doctor who sees her next starts from the complaint, not from the record.</div>
+          <div class="bq">It lives on paper, inside the facility that wrote it. The next doctor starts from the complaint, not from the record.</div>
           <div class="ba">The gap Nayaversse closes</div>
         </div>
       </div>
@@ -715,7 +752,7 @@
           <div class="mock-stats">
             <div class="mock-stat"><div class="k">OPD today</div><div class="v">1,847</div></div>
             <div class="mock-stat"><div class="k">ABHA created</div><div class="v">912</div></div>
-            <div class="mock-stat"><div class="k">Antenatal</div><div class="v">108</div></div>
+            <div class="mock-stat"><div class="k">Follow-ups due</div><div class="v">214</div></div>
             <div class="mock-stat"><div class="k">MJPJAY claims</div><div class="v">27</div></div>
           </div>
           <div class="mock-bars" aria-hidden="true">
