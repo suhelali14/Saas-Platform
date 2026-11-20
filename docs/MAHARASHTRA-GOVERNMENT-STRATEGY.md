@@ -135,9 +135,11 @@ realistic first move)
 
 - Approach one District Health Officer (DHO) with a complete
   Nayaversse-for-PHC package.
-- Pitch: "One PHC, free pilot for three months. If you see 2x faster
-  OPD processing and ABHA IDs created for every patient, we scale to
-  the district."
+- Pitch: "Five PHCs, a paid 90-day pilot at ₹12 lakh. If you see 2x
+  faster OPD processing and ABHA IDs created for every patient, we
+  scale to the district, and the pilot fee is credited against it."
+- No free pilots. A free pilot spends our cash for three months and
+  gives the district no reason to commit.
 - Likely targets: a district where you have a personal connection, or
   Raigad (because the state has already blessed it as the ABDM Model
   District). **Sangli (where Vadgaonkar Clinic is) is a possible
@@ -244,9 +246,14 @@ digital health record"), harder to cost-model.
 
 ### What's actually realistic to quote in a pilot
 
-For a **single-PHC proof-of-concept**: **free for 3 months**, then
-₹18,000/year licence + ₹15,000 one-time setup. Keep the sunk cost
-tiny for the DHO to say yes.
+For a **5-PHC paid pilot**: **₹12 lakh for 90 days**, half on the work
+order, half at day 60 go-live. Our cost is about ₹5.8 lakh (one
+implementation lead on site, part of an engineer remotely, travel,
+training, infra, Marathi phone support), so the pilot itself makes
+~50% margin. If the district signs the full contract within six months
+the fee is credited against it, which is a discount on future revenue,
+not cash out. Confirm the district's financial-delegation limit before
+quoting; ₹12 lakh is meant to sit inside it.
 
 For a **single-district pilot** (3-5 PHCs): **₹3-5 lakh one-time +
 ₹2-3 lakh/year**. Still small enough to be spent out of the DHO's
@@ -302,7 +309,7 @@ work:
 | 3-4 | Build HFR registration flow (M1) — our clinic becomes a listed health facility |
 | 5-6 | Build HPR registration (M2) + ABHA generation (M3) |
 | 7-8 | FHIR R4 export for prescription + case sheet |
-| 7-9 | Approach DHO Sangli with a one-page offer: free PHC pilot, 3 months, full ABDM alignment |
+| 7-9 | Approach DHO Sangli with a one-page offer: paid 5-PHC pilot, ₹12 lakh, 90 days, full ABDM alignment |
 | 10-11 | SMS/WhatsApp integration (via MSG91 or Gupshup) so recall workflows actually recall |
 | 10-12 | Draft MJPJAY claim submission flow, submit for SHAS review |
 | 12 | Collateral: a 4-page govt-pitch deck + this document |
@@ -332,8 +339,8 @@ care about feature matrices.
    hospital using us is ABDM-ready and SHAS-ready on day one."
 
 3. "Our pricing per PHC is ~₹18,000 per year, less than one month of a
-   receptionist's salary — and we'll run a free three-month pilot in
-   any district that wants one."
+   receptionist's salary. A 90-day pilot in five PHCs is ₹12 lakh, and
+   it is credited against the district contract if you go ahead."
 
 The second sentence becomes true when the ABDM / NHCX work ships. The
 third is already commercially workable. The first is already true.

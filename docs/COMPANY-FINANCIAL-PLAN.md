@@ -330,7 +330,7 @@ multiple for an Indian healthtech at that scale).
 **Bootstrap for 6-9 months after the job switch, then raise an angel
 round of ₹75L-1 cr to fund the 10-person team.** The angel-round
 narrative is strongest when you have:
-- One live district pilot (even unpaid)
+- One live district pilot (paid; never run one free)
 - 20-30 paying clinics
 - ABDM certification in progress
 
