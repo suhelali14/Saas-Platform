@@ -353,6 +353,7 @@ model Appointment {
   prescriptions Prescription[] @relation("AppointmentPrescriptions")
   certificates  Certificate[]  @relation("AppointmentCertificates")
   invoices      Invoice[]      @relation("AppointmentInvoices")
+  invoiceItems  InvoiceItem[]  @relation("AppointmentInvoiceItems")
   labOrders     LabOrder[]     @relation("AppointmentLabOrders")
   specialtyRecords SpecialtyRecord[]
 
@@ -474,6 +475,8 @@ model ServiceItem {
   description  String?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+
+  invoiceItems InvoiceItem[]
 
   @@unique([doctorId, name])
   @@index([category, isActive])
@@ -654,6 +657,21 @@ model InvoiceItem {
   description String
   quantity    Int                  @default(1)
   amount      Decimal              @db.Decimal(10, 2)
+  /// Which ServiceItem this line came from, if picked from the board.
+  /// Null = typed freehand. Kept for audit of "doctor's price went up
+  /// this quarter" questions a year later.
+  serviceItemId String?
+  serviceItem   ServiceItem? @relation(fields: [serviceItemId], references: [id], onDelete: SetNull)
+  /// Which visit this line belongs to. On a patient-level bill that
+  /// spans multiple appointments (e.g. an admission), lets the printed
+  /// bill group lines by visit date. Null = clinic dispensed outside a
+  /// visit (rare, kept open).
+  appointmentId String?
+  appointment   Appointment? @relation("AppointmentInvoiceItems", fields: [appointmentId], references: [id], onDelete: SetNull)
+  addedAt       DateTime     @default(now())
+
+  @@index([appointmentId])
+  @@index([serviceItemId])
 }
 
 model Payment {

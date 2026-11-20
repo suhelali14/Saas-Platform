@@ -5,6 +5,7 @@ import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanel
 import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CaseSheetForm, PrescriptionForm, CertificateForm, LabOrderForm } from '../components/ClinicalForms';
+import { VisitCharges } from '../components/VisitCharges';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
 
@@ -228,6 +229,11 @@ export function Encounter() {
       {panel === 'labs' && (
         <LabOrderForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
       )}
+
+      {/* Charges + payment for this visit. Lives inside the Encounter so a
+          clinic without a dedicated cashier can bill before the patient
+          leaves, without navigating to Billing. */}
+      <VisitCharges appointmentId={appointment.id} doctorId={appointment.doctor?.id ?? null} onChanged={load} />
 
       <h2 className="text-[16px] font-semibold mb-3 mt-8">This visit</h2>
       <div className="flex flex-col gap-3">

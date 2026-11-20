@@ -24,12 +24,38 @@ const createInvoiceSchema = z.object({
   appointmentId: z.string().optional(),
 });
 
-const itemSchema = z.object({
-  category: z.nativeEnum(InvoiceItemCategory),
-  description: z.string().min(1).max(300),
-  quantity: z.coerce.number().int().min(1).max(1000).default(1),
-  amount: z.coerce.number().min(0).max(10_000_000),
-});
+/**
+ * A line on an invoice.
+ *
+ * Three ways in:
+ *   1. Everything spelled out -- category + description + amount -- for
+ *      the one-off line a doctor types freely. This is the historical
+ *      path and still works.
+ *   2. `serviceItemId` picked from the clinic's / doctor's catalogue
+ *      ("bill board"). The description / amount / category are filled
+ *      in from the catalogue entry; any field sent explicitly overrides
+ *      the catalogue (because the board is the default, the bill is
+ *      where negotiation lives).
+ *   3. `appointmentId` attaches this line to a specific visit, so a
+ *      multi-visit episode bill can group lines by date on the printed
+ *      receipt.
+ *
+ * Catalogue-only requests are the common case now; the explicit fields
+ * become optional in that path.
+ */
+const itemSchema = z
+  .object({
+    serviceItemId: z.string().optional(),
+    appointmentId: z.string().optional(),
+    category: z.nativeEnum(InvoiceItemCategory).optional(),
+    description: z.string().min(1).max(300).optional(),
+    quantity: z.coerce.number().int().min(1).max(1000).default(1),
+    amount: z.coerce.number().min(0).max(10_000_000).optional(),
+  })
+  .refine(
+    (v) => v.serviceItemId || (v.category && v.description && v.amount !== undefined),
+    { message: "Either pick a service item, or supply category + description + amount." },
+  );
 
 const paymentSchema = z.object({
   amount: z.coerce.number().min(0.01).max(10_000_000),
@@ -138,9 +164,79 @@ export async function clinicBillingRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
     }
-    await prisma.invoiceItem.create({ data: { invoiceId: id, ...parsed.data } });
+
+    // If a ServiceItem was picked, fill in the fields not explicitly
+    // overridden in the request. Explicit fields always win -- the
+    // board's price is a default, not a lock.
+    let { serviceItemId, appointmentId, category, description, amount, quantity } = parsed.data;
+    if (serviceItemId) {
+      const si = await prisma.serviceItem.findUnique({ where: { id: serviceItemId } });
+      if (!si || !si.isActive) {
+        return reply.status(400).send({ error: "Service item not found or inactive." });
+      }
+      category = category ?? si.category;
+      description = description ?? (si.code ? `${si.name} (${si.code})` : si.name);
+      amount = amount ?? Number(si.defaultPrice.toString());
+    }
+
+    await prisma.invoiceItem.create({
+      data: {
+        invoiceId: id,
+        category: category as InvoiceItemCategory,
+        description: description!,
+        quantity: quantity,
+        amount: amount!,
+        serviceItemId: serviceItemId ?? null,
+        appointmentId: appointmentId ?? invoice.appointmentId ?? null,
+      },
+    });
     const updated = await prisma.invoice.findUnique({ where: { id }, include: INVOICE_INCLUDE });
     return { ...updated!, ...summarize(updated!.items, updated!.payments, updated!) };
+  });
+
+  /**
+   * Visit-centric invoice -- the "charge-before-close" entrypoint.
+   *
+   * Returns the invoice for this appointment, creating one if the visit
+   * doesn't yet have one. This is what the Encounter screen hits so the
+   * doctor / receptionist can add charges and take payment WITHOUT
+   * leaving the visit to navigate to Billing. For clinics without a
+   * dedicated cashier module, this is the billing UI.
+   *
+   * The invoice gets the clinic's default consultation fee pre-loaded
+   * on first creation, same as POST /invoices does, since every visit
+   * at least charges for the consultation. Subsequent calls return the
+   * same invoice -- idempotent by appointment.
+   */
+  app.get("/api/clinic/appointments/:id/invoice", async (request, reply) => {
+    const auth = requireBillingAuth(request, reply);
+    if (!auth) return;
+    const { id } = request.params as { id: string };
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      select: { id: true, patientId: true },
+    });
+    if (!appointment) return reply.status(404).send({ error: "Appointment not found" });
+
+    const existing = await prisma.invoice.findFirst({
+      where: { appointmentId: id },
+      include: INVOICE_INCLUDE,
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) return { ...existing, ...summarize(existing.items, existing.payments, existing) };
+
+    const clinic = await prisma.clinic.findFirst({ select: { defaultConsultationFee: true } });
+    const created = await prisma.invoice.create({
+      data: {
+        patientId: appointment.patientId,
+        appointmentId: id,
+        items: clinic?.defaultConsultationFee
+          ? { create: [{ category: "CONSULTATION", description: "Consultation Fee", quantity: 1, amount: clinic.defaultConsultationFee, appointmentId: id }] }
+          : undefined,
+      },
+      include: INVOICE_INCLUDE,
+    });
+    return reply.status(201).send({ ...created, ...summarize(created.items, created.payments, created) });
   });
 
   app.delete("/api/clinic/invoices/:id/items/:itemId", async (request, reply) => {
