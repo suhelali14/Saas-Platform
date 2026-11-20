@@ -673,7 +673,7 @@ export const hi: Content = {
           ],
         },
       ],
-      cta: { label: 'सूची देखें', href: '/hi/#chart' },
+      cta: { label: 'सूची देखें', href: '/hi/#services' },
     },
 
     features: {
@@ -749,7 +749,7 @@ export const hi: Content = {
           ],
         },
       ],
-      cta: { label: 'संस्थापक से बात करें', href: '/hi/#enquire' },
+      cta: { label: 'संस्थापक से बात करें', href: '/hi/#enquiry' },
     },
 
     whyNayaversse: {
@@ -859,7 +859,7 @@ export const hi: Content = {
           ],
         },
       ],
-      cta: { label: 'अस्पताल पर बात करें', href: '/hi/#enquire' },
+      cta: { label: 'अस्पताल पर बात करें', href: '/hi/#enquiry' },
     },
 
     forMultiSpecialty: {
@@ -900,7 +900,7 @@ export const hi: Content = {
           ],
         },
       ],
-      cta: { label: 'संस्थापक से बात करें', href: '/hi/#enquire' },
+      cta: { label: 'संस्थापक से बात करें', href: '/hi/#enquiry' },
     },
 
     blog: {
@@ -920,7 +920,7 @@ export const hi: Content = {
           ],
         },
       ],
-      cta: { label: 'सूची पढ़ें', href: '/hi/#chart' },
+      cta: { label: 'सूची पढ़ें', href: '/hi/#services' },
     },
   },
 };

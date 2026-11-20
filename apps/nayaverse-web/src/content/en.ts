@@ -677,7 +677,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'See the chart', href: '/#chart' },
+      cta: { label: 'See the chart', href: '/#services' },
     },
 
     features: {
@@ -753,7 +753,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'Talk to the founder', href: '/#enquire' },
+      cta: { label: 'Talk to the founder', href: '/#enquiry' },
     },
 
     whyNayaversse: {
@@ -863,7 +863,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'Talk about a hospital', href: '/#enquire' },
+      cta: { label: 'Talk about a hospital', href: '/#enquiry' },
     },
 
     forMultiSpecialty: {
@@ -904,7 +904,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'Talk to the founder', href: '/#enquire' },
+      cta: { label: 'Talk to the founder', href: '/#enquiry' },
     },
 
     blog: {
@@ -924,7 +924,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'Read the chart', href: '/#chart' },
+      cta: { label: 'Read the chart', href: '/#services' },
     },
   },
 };

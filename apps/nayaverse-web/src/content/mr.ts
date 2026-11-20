@@ -673,7 +673,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'यादी पहा', href: '/mr/#chart' },
+      cta: { label: 'यादी पहा', href: '/mr/#services' },
     },
 
     features: {
@@ -749,7 +749,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'संस्थापकाशी बोला', href: '/mr/#enquire' },
+      cta: { label: 'संस्थापकाशी बोला', href: '/mr/#enquiry' },
     },
 
     whyNayaversse: {
@@ -859,7 +859,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'रुग्णालयाबद्दल बोला', href: '/mr/#enquire' },
+      cta: { label: 'रुग्णालयाबद्दल बोला', href: '/mr/#enquiry' },
     },
 
     forMultiSpecialty: {
@@ -900,7 +900,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'संस्थापकाशी बोला', href: '/mr/#enquire' },
+      cta: { label: 'संस्थापकाशी बोला', href: '/mr/#enquiry' },
     },
 
     blog: {
@@ -920,7 +920,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'यादी वाचा', href: '/mr/#chart' },
+      cta: { label: 'यादी वाचा', href: '/mr/#services' },
     },
   },
 };

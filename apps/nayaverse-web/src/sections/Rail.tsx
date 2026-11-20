@@ -17,15 +17,23 @@ export function Rail({ onEnquire }: { onEnquire: () => void }) {
   const { locale, page } = useContentCtx();
   const home = pathFor(locale, 'home');
 
-  // Dropped in this order as the rail narrows. Every one of them is also in
-  // the footer, so nothing here becomes unreachable -- unlike the language
-  // switcher below, which never drops.
+  // Each link goes to its own prerendered page where one exists (About,
+  // Features, Fares, Stories), with a hash fallback to the home page
+  // section for the two that are still single-page only (the Businesses
+  // chart and the Questions block). This matters: a nav that sends the
+  // reader to /#about from the About page looks like "URL changed but
+  // nothing navigated" -- the browser landed on home and scrolled to a
+  // section, which is not what the reader asked for.
+  //
+  // Dropped in this order as the rail narrows. Every one of them is also
+  // in the footer, so nothing here becomes unreachable -- unlike the
+  // language switcher below, which never drops.
   const links = [
     { label: nav.businesses, href: `${home}#services`, cls: 'hidden md:inline-block' },
-    { label: nav.health, href: `${home}#health`, cls: 'hidden md:inline-block' },
-    { label: nav.system, href: `${home}#system`, cls: 'hidden lg:inline-block' },
+    { label: nav.health, href: pathFor(locale, 'for-clinics'), cls: 'hidden md:inline-block' },
+    { label: nav.system, href: pathFor(locale, 'features'), cls: 'hidden lg:inline-block' },
     { label: nav.fares, href: pathFor(locale, 'pricing'), cls: 'hidden sm:inline-block' },
-    { label: nav.about, href: `${home}#about`, cls: 'hidden xl:inline-block' },
+    { label: nav.about, href: pathFor(locale, 'about'), cls: 'hidden xl:inline-block' },
     { label: nav.questions, href: `${home}#conditions`, cls: 'hidden lg:inline-block' },
   ];
 
