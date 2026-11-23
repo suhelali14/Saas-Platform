@@ -807,7 +807,7 @@ export const en = {
         {
           heading: 'A live clinic',
           body: [
-            "Vadgaonkar Clinic in Pune — Dr Asif Momin plus two staff — has been running on this system since October 2026. They book, bill, prescribe, dispense and close their day on it. That is the row the chart calls Live.",
+            "Vadgaonkar Clinic in Walwa, Sangli — Dr Asif Momin plus two staff — has been running on this system since October 2026. They book, bill, prescribe, dispense and close their day on it. That is the row the chart calls Live.",
           ],
         },
       ],
@@ -897,9 +897,9 @@ export const en = {
       lede: 'One clinic in production today. When there is a second, this page has a second row.',
       sections: [
         {
-          heading: 'Vadgaonkar Clinic, Pune',
+          heading: 'Vadgaonkar Clinic, Walwa (Sangli)',
           body: [
-            "Dr Asif Momin runs Vadgaonkar Clinic in Pune with two staff. The clinic went live on Nayaversse in October 2026 — the queue, patients, prescriptions, billing and the public website all running on it from the first day. The system was shaped around what the clinic actually does each day; everything that is on the chart for a Live clinic is on the chart because Vadgaonkar Clinic needed it.",
+            "Dr Asif Momin runs Vadgaonkar Clinic in Walwa, Sangli district, with two staff. The clinic went live on Nayaversse in October 2026 — the queue, patients, prescriptions, billing and the public website all running on it from the first day. The system was shaped around what the clinic actually does each day; everything that is on the chart for a Live clinic is on the chart because Vadgaonkar Clinic needed it.",
             "If you want to talk to a clinic that uses this software, say so when you enquire. We will ask Dr Momin first; the answer is his to give, not ours.",
           ],
         },
