@@ -677,7 +677,7 @@ export const hi: Content = {
     },
 
     founder: {
-      title: 'Suhel Ali Pakjade',
+      title: 'Suhelali Pakjade',
       lede: 'नयावर्स के संस्थापक। सांगली, महाराष्ट्र के सॉफ्टवेयर डेवलपर, जो सॉफ्टवेयर ख़ुद लिखते हैं और कंपनी सबके सामने बना रहे हैं।',
       sections: [
         {

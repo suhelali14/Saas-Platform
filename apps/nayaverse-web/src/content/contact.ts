@@ -41,11 +41,11 @@ export const contactReady = Boolean(contact.whatsapp || contact.phone || contact
  * are how Google ties the person on this site to the person on those sites.
  */
 export const founder = {
-  name: 'Suhel Ali Pakjade',
-  alternateName: ['Suhelali Pakjade', 'Suhel Ali', 'Suhelali'],
+  name: 'Suhelali Pakjade',
+  alternateName: ['Suhel Ali Pakjade', 'Suhelali Shakil Pakjade', 'Suhel Ali', 'Suhelali'],
   jobTitle: 'Founder',
   homeLocation: 'Sangli, Maharashtra, India',
-  sameAs: [] as string[],
+  sameAs: ['https://www.linkedin.com/in/suhelali-pakjade-0842b9226/'] as string[],
 };
 
 /**

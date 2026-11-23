@@ -681,7 +681,7 @@ export const en = {
     },
 
     founder: {
-      title: 'Suhel Ali Pakjade',
+      title: 'Suhelali Pakjade',
       lede: 'Founder of Nayaversse. A software developer from Sangli, Maharashtra, who writes the software himself and is building the company in the open.',
       sections: [
         {
