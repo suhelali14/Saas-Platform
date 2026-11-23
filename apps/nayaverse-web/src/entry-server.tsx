@@ -21,7 +21,8 @@ import {
 import { pageToSimpleKey } from './sections/SimplePage';
 import { serviceRows } from './content/structure';
 import { chartDefs } from './content/structure';
-import { site } from './content/contact';
+import { site, contact } from './content/contact';
+import { searchTitles } from './content/seo';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -51,7 +52,7 @@ function jsonLd(locale: Locale) {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'sales',
-      telephone: '+91 75584 36263',
+      telephone: contact.phone,
       areaServed: 'IN',
       availableLanguage: ['en', 'hi', 'mr'],
     },
@@ -74,29 +75,73 @@ function jsonLd(locale: Locale) {
       availability: 'https://schema.org/LimitedAvailability',
     },
   };
-  return JSON.stringify([org, app]);
+  // The site itself, with the spellings people actually type. The brand was
+  // Nayaverse before it was Nayaversse, and plenty of searches still drop the
+  // second "s"; alternateName is how a search engine learns those are this
+  // site rather than a different one.
+  const website = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: t.site.name,
+    alternateName: ['Nayaverse', 'नयावर्स'],
+    url: site.url,
+    inLanguage: htmlLang[locale],
+  };
+  return [org, app, website];
 }
 
-export function render(locale: Locale, page: Page) {
+/**
+ * A secondary page's place in the site, for the breadcrumb trail a search
+ * result can show under the title ("nayaversse.in > For clinics").
+ */
+function breadcrumb(locale: Locale, page: Page) {
+  if (page === 'home' || page === '404') return null;
   const t = content[locale];
-  const path = pathFor(locale, page);
+  const simpleKey = pageToSimpleKey(page);
+  const name = simpleKey ? t.simplePages[simpleKey].title : page === 'pricing' ? t.farePanel.pageHeading : page;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: t.site.name, item: `${site.url}${pathFor(locale, 'home')}` },
+      { '@type': 'ListItem', position: 2, name, item: `${site.url}${pathFor(locale, page)}` },
+    ],
+  };
+}
+
+/**
+ * The title and description a page carries in search results. Also read by
+ * scripts/prerender.mjs for llms.txt, so the two can never disagree.
+ */
+export function pageMeta(locale: Locale, page: Page) {
+  const t = content[locale];
   // The secondary pages each have their own title and lede that a crawler
   // reads as the <title> and meta description -- the reason this page
   // exists is to be found by someone searching for that exact thing.
   const simpleKey = pageToSimpleKey(page);
   const simple = simpleKey ? t.simplePages[simpleKey] : null;
-  const title = simple
+  const fallback = simple
     ? `${simple.title} - ${t.site.name}`
     : page === 'pricing'
     ? `${t.farePanel.pageHeading} - ${t.site.name}`
     : page === '404'
     ? `${t.notFound.heading} - ${t.site.name}`
     : `${t.site.name} - ${t.site.tagline}`;
+  const title = (page !== '404' && searchTitles[locale][page]) || fallback;
   const description = simple
     ? simple.lede
     : page === 'pricing'
     ? t.farePanel.pageLede
     : t.site.description;
+  return { title, description };
+}
+
+export function render(locale: Locale, page: Page) {
+  const t = content[locale];
+  const path = pathFor(locale, page);
+  const { title, description } = pageMeta(locale, page);
+  const crumbs = breadcrumb(locale, page);
+  const ld = JSON.stringify(crumbs ? [...jsonLd(locale), crumbs] : jsonLd(locale)).replace(/</g, '\\u003c');
 
   const html = renderToString(<App locale={locale} page={page} />);
 
@@ -147,7 +192,7 @@ export function render(locale: Locale, page: Page) {
     `<meta name="twitter:description" content="${esc(description)}" />`,
     `<meta name="twitter:image" content="${ogImage}" />`,
     page === '404' ? '<meta name="robots" content="noindex" />' : '',
-    `<script type="application/ld+json">${jsonLd(locale)}</script>`,
+    `<script type="application/ld+json">${ld}</script>`,
   ]
     .filter(Boolean)
     .join('\n    ');
@@ -155,7 +200,7 @@ export function render(locale: Locale, page: Page) {
   return { html, head, lang: htmlLang[locale], path };
 }
 
-export { allRoutes, locales, pathFor, content };
+export { allRoutes, locales, pathFor, content, site, contact };
 
 /**
  * What each page is supposed to claim, counted from the content itself.

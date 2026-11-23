@@ -31,7 +31,18 @@ for (const marker of ['<!--app-html-->', '<!--app-head-->', 'lang="en-IN"']) {
 }
 
 const mod = await import(pathToFileURL(ssr).href);
-const { render, allRoutes, pathFor, facts, statusWords, locales, content } = mod;
+const { render, allRoutes, pathFor, facts, statusWords, locales, content, site, contact, pageMeta } = mod;
+
+/*
+ * The one origin every URL this script writes is built from. It comes from
+ * the same constant the pages use for their canonical links, so robots.txt,
+ * the sitemap and the pages cannot name different domains again. (They did:
+ * this file once hardcoded the old brand's domain, and for weeks the sitemap
+ * pointed every crawler at nayaverse.in while each page said its canonical
+ * home was nayaversse.in.)
+ */
+const origin = String(site?.url ?? '').replace(/\/+$/, '');
+if (!/^https:\/\/[a-z0-9.-]+$/.test(origin)) die(`site.url is "${origin}" -- expected https://host`);
 
 /**
  * Where a route's file goes: one flat file per route, never a directory
@@ -80,6 +91,13 @@ for (const { locale, page, file, html, out } of written) {
 
   if (!/<title>[^<]+<\/title>/.test(out)) problems.push(`${name}: no title`);
   if (!out.includes('rel="canonical"')) problems.push(`${name}: no canonical link`);
+  // Every absolute link a crawler is told about must be on the one origin the
+  // sitemap uses, or the sitemap and the page disagree about where it lives.
+  for (const [, href] of out.matchAll(/<link rel="(?:canonical|alternate)"[^>]*href="([^"]+)"/g)) {
+    if (!href.startsWith(origin + '/') && href !== origin) {
+      problems.push(`${name}: links to ${href}, which is not on ${origin}`);
+    }
+  }
   if (out.includes('<!--app-html-->')) problems.push(`${name}: marker left unreplaced`);
   if (page !== '404' && !out.includes('hreflang')) {
     problems.push(`${name}: no hreflang -- the three languages would compete with each other`);
@@ -163,7 +181,6 @@ if (problems.length) {
 
 /* ------------------------------------------------------- robots + sitemap -- */
 
-const origin = 'https://www.nayaverse.in';
 const today = new Date().toISOString().slice(0, 10);
 const indexable = allRoutes.filter((r) => r.page !== '404');
 
@@ -262,10 +279,51 @@ fs.writeFileSync(
   'utf8',
 );
 
+/*
+ * llms.txt: a plain-text map of the site for AI assistants and the search
+ * tools built on them (llmstxt.org). It is written from the same titles and
+ * descriptions the pages carry, so it cannot claim something a page does not.
+ */
+const en = content.en;
+const llmsPages = indexable
+  .filter((r) => r.locale === 'en')
+  .map(({ page }) => {
+    const { title, description } = pageMeta('en', page);
+    return `- [${title}](${origin}${pathFor('en', page)}): ${description}`;
+  })
+  .join('\n');
+const llms = [
+  `# ${en.site.name}`,
+  '',
+  `> ${en.site.description}`,
+  '',
+  en.hero.lede,
+  '',
+  'Every page has a status. Live means it runs in production for a business that pays for it; Building means it is being built now; Waitlist means it is not planned yet. Only what is marked Live is for sale.',
+  '',
+  '## Pages',
+  '',
+  llmsPages,
+  '',
+  '## Languages',
+  '',
+  `Every page is also published in Hindi (${origin}/hi) and Marathi (${origin}/mr).`,
+  '',
+  '## Contact',
+  '',
+  contact?.phone ? `- Phone and WhatsApp: ${contact.phone}` : null,
+  contact?.email ? `- Email: ${contact.email}` : null,
+  `- Website: ${origin}`,
+  '',
+]
+  .filter((l) => l !== null)
+  .join('\n');
+fs.writeFileSync(path.join(dist, 'llms.txt'), llms, 'utf8');
+
 for (const { locale, page, file, bytes, html } of written) {
   const name = path.relative(dist, file).replace(/\\/g, '/');
   console.log(
     `prerender: ${`${locale}/${page}`.padEnd(13)} -> ${name.padEnd(17)} ${String(bytes).padStart(7)} bytes  (${html.length} markup)`,
   );
 }
-console.log(`prerender: robots.txt and sitemap.xml written (${indexable.length} urls)`);
+console.log(`prerender: robots.txt, sitemap.xml and llms.txt written (${indexable.length} urls on ${origin})`);
