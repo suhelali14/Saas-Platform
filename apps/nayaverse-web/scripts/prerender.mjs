@@ -30,6 +30,23 @@ for (const marker of ['<!--app-html-->', '<!--app-head-->', 'lang="en-IN"']) {
   if (!template.includes(marker)) die(`index.html has no ${marker} -- nothing to inject into`);
 }
 
+/*
+ * The stylesheet goes inside each page rather than beside it. As a separate
+ * file it blocks the first paint for one more round trip, and on a phone on
+ * mobile data that round trip was most of the 3 seconds Lighthouse measured
+ * before the hero text appeared, although the text itself was already in the
+ * HTML. It is about 17KB gzipped, every url() in it is absolute (/assets/...)
+ * or a data: URI, so it reads the same inline as it did from /assets/.
+ */
+let pageTemplate = template;
+const cssLink = template.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/);
+if (cssLink) {
+  const css = fs.readFileSync(path.join(dist, cssLink[1].slice(1)), 'utf8');
+  if (/<\/style/i.test(css)) die(`${cssLink[1]} contains "</style" -- cannot be inlined safely`);
+  if (/url\((?!["']?(?:\/|data:))/i.test(css)) die(`${cssLink[1]} has a relative url() that would break inline`);
+  pageTemplate = template.replace(cssLink[0], () => `<style>${css}</style>`);
+}
+
 const mod = await import(pathToFileURL(ssr).href);
 const { render, allRoutes, pathFor, facts, statusWords, locales, content, site, contact, pageMeta } = mod;
 
@@ -64,7 +81,7 @@ const written = [];
 
 for (const { locale, page } of allRoutes) {
   const { html, head, lang } = render(locale, page);
-  const out = template
+  const out = pageTemplate
     .replace('lang="en-IN"', `lang="${lang}"`)
     .replace('<!--app-head-->', head)
     .replace('<!--app-html-->', html);
@@ -226,6 +243,18 @@ const vercelConfig = {
   ],
   rewrites,
   headers: [
+    // Baseline security headers on every response. HSTS already comes from
+    // Vercel. No Content-Security-Policy yet: the page carries inline JSON-LD
+    // and a WebGL scene, and a wrong CSP breaks the site silently.
+    {
+      source: '/(.*)',
+      headers: [
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+      ],
+    },
     {
       source: '/assets/(.*)',
       headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],

@@ -6,6 +6,7 @@
  */
 import { StrictMode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
+import { inject } from '@vercel/analytics';
 import '@fontsource/barlow-condensed/500.css';
 import '@fontsource/barlow-condensed/600.css';
 import '@fontsource-variable/ibm-plex-sans';
@@ -35,3 +36,9 @@ if (container) {
   if (container.firstElementChild) hydrateRoot(container, tree);
   else createRoot(container).render(tree);
 }
+
+// Vercel Web Analytics: page views, referrers, countries, devices. No cookies
+// and no personal data, so no consent banner is needed. It only counts once the
+// Analytics tab is enabled on the Vercel project, and in development it logs
+// to the console instead of sending.
+inject({ mode: import.meta.env.PROD ? 'production' : 'development' });
