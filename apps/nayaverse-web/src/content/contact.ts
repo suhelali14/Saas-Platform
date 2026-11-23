@@ -33,6 +33,29 @@ export const contact: Contact = {
 
 export const contactReady = Boolean(contact.whatsapp || contact.phone || contact.email);
 
+/**
+ * The founder, as search engines should know him. `alternateName` carries
+ * the spellings people actually type for his name, so each of them leads to
+ * the same person and this site. `sameAs` lists profiles that are his; add
+ * each one as it exists (X, Instagram, LinkedIn, YouTube, GitHub). Those links
+ * are how Google ties the person on this site to the person on those sites.
+ */
+export const founder = {
+  name: 'Suhel Ali Pakjade',
+  alternateName: ['Suhelali Pakjade', 'Suhel Ali', 'Suhelali'],
+  jobTitle: 'Founder',
+  homeLocation: 'Sangli, Maharashtra, India',
+  sameAs: [] as string[],
+};
+
+/**
+ * Google Search Console ownership check (URL-prefix property, "HTML tag"
+ * method): paste only the content="..." value Google shows. Empty means no
+ * tag is written. Safe to leave in place after verifying; removing it later
+ * un-verifies the property.
+ */
+export const googleSiteVerification = '';
+
 export const site = {
   domain: 'www.nayaversse.in',
   url: 'https://www.nayaversse.in',

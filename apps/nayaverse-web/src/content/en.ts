@@ -680,6 +680,38 @@ export const en = {
       cta: { label: 'See the chart', href: '/#services' },
     },
 
+    founder: {
+      title: 'Suhel Ali Pakjade',
+      lede: 'Founder of Nayaversse. A software developer from Sangli, Maharashtra, who writes the software himself and is building the company in the open.',
+      sections: [
+        {
+          heading: 'What he is building',
+          body: [
+            "Nayaversse is one system for how a small business runs: the counter, stock, bookings, billing, customers and the business's own website. The clinic version is live at Vadgaonkar Clinic in Walwa, Sangli. Versions for shops, salons, gyms and food are being built, and every row of the chart on the home page says which is which.",
+          ],
+        },
+        {
+          heading: 'Before Nayaversse',
+          body: [
+            'He started two or three companies while still in college. None of them worked, and he says so. He was placed as a software developer in his third year, and he builds Nayaversse alongside that work.',
+          ],
+        },
+        {
+          heading: 'Building in public',
+          body: [
+            'He shows the work as it happens on Instagram and X: what got built, which clients said no, and the real numbers.',
+          ],
+        },
+        {
+          heading: 'Talk to him',
+          body: [
+            'If you run a clinic, a shop or a small business and want to see the software, use the enquiry form or send a WhatsApp message. Both reach him directly.',
+          ],
+        },
+      ],
+      cta: { label: 'Talk to the founder', href: '/#enquiry' },
+    },
+
     features: {
       title: 'What the system does',
       lede: 'Six things that live next to each other, not six products stitched together: the counter, what is left, who is booked, what was billed, who owes you, and your own website.',

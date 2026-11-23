@@ -25,9 +25,11 @@ export interface SimplePageContent {
   cta: { label: string; href: string };
 }
 
-/** All ten secondary pages that use the same renderer. */
+/** All eleven secondary pages that use the same renderer. */
 export interface SimplePages {
   about: SimplePageContent;
+  /** The founder's own page: the one a search for his name should land on. */
+  founder: SimplePageContent;
   features: SimplePageContent;
   security: SimplePageContent;
   whyNayaversse: SimplePageContent;

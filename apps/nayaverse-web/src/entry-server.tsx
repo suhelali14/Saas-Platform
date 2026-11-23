@@ -21,7 +21,7 @@ import {
 import { pageToSimpleKey } from './sections/SimplePage';
 import { serviceRows } from './content/structure';
 import { chartDefs } from './content/structure';
-import { site, contact } from './content/contact';
+import { site, contact, founder, googleSiteVerification } from './content/contact';
 import { searchTitles } from './content/seo';
 
 const esc = (s: string) =>
@@ -36,6 +36,22 @@ const esc = (s: string) =>
  * the box with the logo, description and social links. Google treats a
  * JSON-LD array as independent entities, so one script block is enough.
  */
+/** The founder as a schema.org Person. One shape everywhere, so every page
+ *  describes the same person and points at the same profile page. */
+function founderPerson() {
+  return {
+    '@type': 'Person',
+    '@id': `${site.url}/founder#person`,
+    name: founder.name,
+    alternateName: founder.alternateName,
+    jobTitle: founder.jobTitle,
+    url: `${site.url}/founder`,
+    homeLocation: { '@type': 'Place', name: founder.homeLocation },
+    worksFor: { '@type': 'Organization', name: 'Nayaversse', url: site.url },
+    ...(founder.sameAs.length ? { sameAs: founder.sameAs } : {}),
+  };
+}
+
 function jsonLd(locale: Locale) {
   const t = content[locale];
   const org = {
@@ -45,6 +61,7 @@ function jsonLd(locale: Locale) {
     url: site.url,
     logo: `${site.url}/logo.png`,
     description: t.site.description,
+    founder: founderPerson(),
     sameAs: [
       // Add social profiles here as they exist. Omitting the array is
       // also fine; Google uses what is there and ignores what is not.
@@ -141,7 +158,21 @@ export function render(locale: Locale, page: Page) {
   const path = pathFor(locale, page);
   const { title, description } = pageMeta(locale, page);
   const crumbs = breadcrumb(locale, page);
-  const ld = JSON.stringify(crumbs ? [...jsonLd(locale), crumbs] : jsonLd(locale)).replace(/</g, '\\u003c');
+  // The founder page is a profile page in Google's terms: one page whose main
+  // subject is one person. Marked up as such, it is the page a search for his
+  // name is meant to land on.
+  const profile =
+    page === 'founder'
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ProfilePage',
+          url: `${site.url}${path}`,
+          inLanguage: htmlLang[locale],
+          mainEntity: { ...founderPerson(), description: description },
+        }
+      : null;
+  const blocks = [...jsonLd(locale), ...(crumbs ? [crumbs] : []), ...(profile ? [profile] : [])];
+  const ld = JSON.stringify(blocks).replace(/</g, '\\u003c');
 
   const html = renderToString(<App locale={locale} page={page} />);
 
@@ -192,6 +223,9 @@ export function render(locale: Locale, page: Page) {
     `<meta name="twitter:description" content="${esc(description)}" />`,
     `<meta name="twitter:image" content="${ogImage}" />`,
     page === '404' ? '<meta name="robots" content="noindex" />' : '',
+    googleSiteVerification
+      ? `<meta name="google-site-verification" content="${esc(googleSiteVerification)}" />`
+      : '',
     `<script type="application/ld+json">${ld}</script>`,
   ]
     .filter(Boolean)

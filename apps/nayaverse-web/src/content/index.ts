@@ -44,6 +44,7 @@ export type Page =
   | 'home'
   | 'pricing'
   | 'about'
+  | 'founder'
   | 'features'
   | 'security'
   | 'why-nayaversse'
@@ -61,6 +62,7 @@ export type RouteInfo = { locale: Locale; page: Page };
 const SIMPLE_PAGES: { page: Exclude<Page, 'home' | '404'>; slug: string }[] = [
   { page: 'pricing', slug: 'pricing' },
   { page: 'about', slug: 'about' },
+  { page: 'founder', slug: 'founder' },
   { page: 'features', slug: 'features' },
   { page: 'security', slug: 'security' },
   { page: 'why-nayaversse', slug: 'why-nayaversse' },

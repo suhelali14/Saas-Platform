@@ -20,6 +20,7 @@ import { Band, BandItem, Heading, Panel } from '@/components/primitives';
 /** Which `simplePages` key renders which Page. */
 const PAGE_TO_KEY: Partial<Record<Page, keyof SimplePages>> = {
   about: 'about',
+  founder: 'founder',
   features: 'features',
   security: 'security',
   'why-nayaversse': 'whyNayaversse',

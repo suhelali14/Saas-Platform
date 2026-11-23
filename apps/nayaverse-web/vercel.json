@@ -45,6 +45,10 @@
       "destination": "/about.html"
     },
     {
+      "source": "/founder",
+      "destination": "/founder.html"
+    },
+    {
       "source": "/features",
       "destination": "/features.html"
     },
@@ -93,6 +97,10 @@
       "destination": "/hi/about.html"
     },
     {
+      "source": "/hi/founder",
+      "destination": "/hi/founder.html"
+    },
+    {
       "source": "/hi/features",
       "destination": "/hi/features.html"
     },
@@ -139,6 +147,10 @@
     {
       "source": "/mr/about",
       "destination": "/mr/about.html"
+    },
+    {
+      "source": "/mr/founder",
+      "destination": "/mr/founder.html"
     },
     {
       "source": "/mr/features",

@@ -18,6 +18,7 @@ export function Footer() {
     { label: nav.system, href: `${pathFor(locale, 'home')}#manifest` },
     { label: nav.fares, href: pathFor(locale, 'pricing') },
     { label: simplePages.about.title, href: pathFor(locale, 'about') },
+    { label: simplePages.founder.title, href: pathFor(locale, 'founder') },
     { label: simplePages.features.title, href: pathFor(locale, 'features') },
     { label: simplePages.security.title, href: pathFor(locale, 'security') },
     { label: simplePages.whyNayaversse.title, href: pathFor(locale, 'why-nayaversse') },
