@@ -48,7 +48,10 @@ if (cssLink) {
 }
 
 const mod = await import(pathToFileURL(ssr).href);
-const { render, allRoutes, pathFor, facts, statusWords, locales, content, site, contact, pageMeta } = mod;
+const {
+  render, allRoutes, pathFor, facts, statusWords, locales, localesFor, content, site, contact, pageMeta,
+  guides, guidesIndex, founder,
+} = mod;
 
 /*
  * The one origin every URL this script writes is built from. It comes from
@@ -73,6 +76,12 @@ if (!/^https:\/\/[a-z0-9.-]+$/.test(origin)) die(`site.url is "${origin}" -- exp
  */
 const fileFor = (locale, page) => {
   if (page === '404') return locale === 'en' ? '404.html' : `${locale}/404.html`;
+  // Guides live under /guides; their page key ("guide:slug") is not a filename.
+  if (page === 'guides') return locale === 'en' ? 'guides.html' : `${locale}/guides.html`;
+  if (page.startsWith('guide:')) {
+    const slug = page.slice('guide:'.length);
+    return locale === 'en' ? `guides/${slug}.html` : `${locale}/guides/${slug}.html`;
+  }
   if (locale === 'en') return page === 'home' ? 'index.html' : `${page}.html`;
   return page === 'home' ? `${locale}.html` : `${locale}/${page}.html`;
 };
@@ -282,9 +291,13 @@ for (const r of rewrites) {
   }
 }
 
+// Content-Signal (contentsignals.org) says what the content may be used for.
+// Everything here is published to be found, quoted and recommended, by search
+// engines and by AI assistants alike, so every use is a yes. Crawlers that do
+// not know the line ignore it.
 fs.writeFileSync(
   path.join(dist, 'robots.txt'),
-  `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`,
+  `User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=yes\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`,
   'utf8',
 );
 
@@ -292,7 +305,7 @@ fs.writeFileSync(
 // translations of one page rather than three thin pages about the same thing.
 const urls = indexable
   .map(({ locale, page }) => {
-    const alts = locales
+    const alts = localesFor(page)
       .map(
         (l) =>
           `    <xhtml:link rel="alternate" hreflang="${l}-IN" href="${origin}${pathFor(l, page)}"/>`,
@@ -314,13 +327,16 @@ fs.writeFileSync(
  * descriptions the pages carry, so it cannot claim something a page does not.
  */
 const en = content.en;
+const isGuide = (page) => page === 'guides' || page.startsWith('guide:');
+const llmsLine = (page) => {
+  const { title, description } = pageMeta('en', page);
+  return `- [${title}](${origin}${pathFor('en', page)}): ${description}`;
+};
 const llmsPages = indexable
-  .filter((r) => r.locale === 'en')
-  .map(({ page }) => {
-    const { title, description } = pageMeta('en', page);
-    return `- [${title}](${origin}${pathFor('en', page)}): ${description}`;
-  })
+  .filter((r) => r.locale === 'en' && !isGuide(r.page))
+  .map(({ page }) => llmsLine(page))
   .join('\n');
+const llmsGuides = guides.map((g) => llmsLine(`guide:${g.slug}`)).join('\n');
 const llms = [
   `# ${en.site.name}`,
   '',
@@ -333,6 +349,12 @@ const llms = [
   '## Pages',
   '',
   llmsPages,
+  '',
+  '## Guides for clinics',
+  '',
+  `${guidesIndex.lede} The full text of every guide is at ${origin}/llms-full.txt.`,
+  '',
+  llmsGuides,
   '',
   '## Languages',
   '',
@@ -348,6 +370,36 @@ const llms = [
   .filter((l) => l !== null)
   .join('\n');
 fs.writeFileSync(path.join(dist, 'llms.txt'), llms, 'utf8');
+
+/*
+ * llms-full.txt: every guide in full, as Markdown, in one file. An assistant
+ * answering "what should a prescription in India contain" can read the whole
+ * answer, with its sources and its date, without rendering six pages.
+ */
+const md = (g) =>
+  [
+    `# ${g.title}`,
+    '',
+    `Source: ${origin}${pathFor('en', `guide:${g.slug}`)}`,
+    `Author: ${founder.name}, founder of Nayaversse · Updated ${g.updated}`,
+    '',
+    `> ${g.description}`,
+    '',
+    ...g.sections.flatMap((s) => [
+      `## ${s.heading}`,
+      '',
+      ...s.body.flatMap((p) => [p, '']),
+      ...(s.list ? [...s.list.map((i) => `- ${i}`), ''] : []),
+    ]),
+    '## Questions',
+    '',
+    ...g.faqs.flatMap((f) => [`**${f.q}**`, '', f.a, '']),
+  ].join('\n');
+fs.writeFileSync(
+  path.join(dist, 'llms-full.txt'),
+  `# ${en.site.name}: guides for clinics\n\n> ${guidesIndex.lede}\n\n---\n\n` + guides.map(md).join('\n---\n\n'),
+  'utf8',
+);
 
 for (const { locale, page, file, bytes, html } of written) {
   const name = path.relative(dist, file).replace(/\\/g, '/');

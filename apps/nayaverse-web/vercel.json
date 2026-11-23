@@ -85,6 +85,30 @@
       "destination": "/blog.html"
     },
     {
+      "source": "/guides",
+      "destination": "/guides.html"
+    },
+    {
+      "source": "/guides/how-to-choose-clinic-management-software",
+      "destination": "/guides/how-to-choose-clinic-management-software.html"
+    },
+    {
+      "source": "/guides/opd-queue-management",
+      "destination": "/guides/opd-queue-management.html"
+    },
+    {
+      "source": "/guides/dpdp-act-for-clinics",
+      "destination": "/guides/dpdp-act-for-clinics.html"
+    },
+    {
+      "source": "/guides/prescription-format-india",
+      "destination": "/guides/prescription-format-india.html"
+    },
+    {
+      "source": "/guides/clinic-billing-upi-gst",
+      "destination": "/guides/clinic-billing-upi-gst.html"
+    },
+    {
       "source": "/hi",
       "destination": "/hi.html"
     },

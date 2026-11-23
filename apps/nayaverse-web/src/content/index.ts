@@ -17,6 +17,7 @@
 import { en, type Content } from './en';
 import { hi } from './hi';
 import { mr } from './mr';
+import { guides, guideBySlug } from './guides';
 
 export type Locale = 'en' | 'hi' | 'mr';
 export type { Content };
@@ -54,9 +55,27 @@ export type Page =
   | 'for-multi-specialty'
   | 'stories'
   | 'blog'
+  | 'guides'
+  | GuidePage
   | '404';
 
+/** One guide, by its slug: `guide:opd-queue-management`. */
+export type GuidePage = `guide:${string}`;
+
+export const isGuidePage = (page: Page): page is GuidePage => page.startsWith('guide:');
+export const guideSlug = (page: GuidePage) => page.slice('guide:'.length);
+
 export type RouteInfo = { locale: Locale; page: Page };
+
+/**
+ * The languages a page exists in. Everything is in all three, except the
+ * guides, which are English until their translations are written. Every
+ * hreflang list, sitemap entry and language-switcher link reads this, so a
+ * crawler or a visitor is never sent to a translation that does not exist.
+ */
+export function localesFor(page: Page): Locale[] {
+  return page === 'guides' || isGuidePage(page) ? ['en'] : locales;
+}
 
 /** Pages that live at /<slug>, matched by their slug on URL resolution. */
 const SIMPLE_PAGES: { page: Exclude<Page, 'home' | '404'>; slug: string }[] = [
@@ -85,8 +104,13 @@ export function resolveRoute(pathname: string): RouteInfo {
 
   if (parts.length === 0) return { locale, page: 'home' };
   if (parts.length === 1) {
+    if (parts[0] === 'guides') return { locale, page: 'guides' };
     const hit = SIMPLE_PAGES.find((r) => r.slug === parts[0]);
     if (hit) return { locale, page: hit.page };
+  }
+  if (parts.length === 2 && parts[0] === 'guides') {
+    const g = guideBySlug(parts[1]!);
+    if (g) return { locale, page: `guide:${g.slug}` };
   }
   return { locale, page: '404' };
 }
@@ -96,12 +120,22 @@ export function resolveRoute(pathname: string): RouteInfo {
 export function pathFor(locale: Locale, page: Page): string {
   const prefix = locale === 'en' ? '' : `/${locale}`;
   if (page === '404') return `${prefix}/404`;
+  if (page === 'guides') return `${prefix}/guides`;
+  if (isGuidePage(page)) return `${prefix}/guides/${guideSlug(page)}`;
   const hit = SIMPLE_PAGES.find((r) => r.page === page);
   if (hit) return `${prefix}/${hit.slug}`;
   return prefix || '/';
 }
 
-/** Every path that gets prerendered. */
+/** Every path that gets prerendered: each page in each language it exists in. */
 export const allRoutes: RouteInfo[] = locales.flatMap((locale) =>
-  (['home', ...SIMPLE_PAGES.map((p) => p.page), '404'] as Page[]).map((page) => ({ locale, page })),
+  ([
+    'home',
+    ...SIMPLE_PAGES.map((p) => p.page),
+    'guides',
+    ...guides.map((g) => `guide:${g.slug}` as GuidePage),
+    '404',
+  ] as Page[])
+    .filter((page) => page === '404' || localesFor(page).includes(locale))
+    .map((page) => ({ locale, page })),
 );

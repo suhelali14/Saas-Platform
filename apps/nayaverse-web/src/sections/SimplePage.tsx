@@ -60,10 +60,10 @@ export function SimplePage({ locale, page }: { locale: Locale; page: Page }) {
             <BandItem grow>{copy.title}</BandItem>
           </Band>
           <div className="px-5 py-8 sm:px-10 sm:py-11">
-            <Heading as="h1" className="text-[clamp(2.2rem,6vw,3.6rem)] text-[var(--board-ink)]">
+            <Heading as="h1" className="text-[clamp(2.2rem,6vw,3.6rem)] text-[var(--ink)]">
               {copy.title}
             </Heading>
-            <p className="t-lede mt-5 max-w-[48rem] text-pretty text-[var(--board-ink-soft)]">
+            <p className="t-lede mt-5 max-w-[48rem] text-pretty text-[var(--ink-soft)]">
               {copy.lede}
             </p>
           </div>

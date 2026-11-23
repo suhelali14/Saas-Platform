@@ -9,7 +9,7 @@
  * Fares never drops. The price is what people came for.
  */
 import { useContent, useContentCtx } from '@/content/use-content';
-import { localeNames, locales, pathFor, type Locale } from '@/content/index';
+import { localeNames, locales, localesFor, pathFor, type Locale } from '@/content/index';
 import { cx } from '@/components/primitives';
 
 export function Rail({ onEnquire }: { onEnquire: () => void }) {
@@ -67,7 +67,7 @@ export function Rail({ onEnquire }: { onEnquire: () => void }) {
               return (
                 <li key={l}>
                   <a
-                    href={pathFor(l, page === '404' ? 'home' : page)}
+                    href={pathFor(l, page !== '404' && localesFor(page).includes(l) ? page : 'home')}
                     hrefLang={l}
                     lang={l}
                     aria-current={current ? 'true' : undefined}

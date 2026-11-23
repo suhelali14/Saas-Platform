@@ -12,8 +12,11 @@ import { App } from './App';
 import {
   allRoutes,
   content,
+  guideSlug,
   htmlLang,
+  isGuidePage,
   locales,
+  localesFor,
   pathFor,
   type Locale,
   type Page,
@@ -23,6 +26,7 @@ import { serviceRows } from './content/structure';
 import { chartDefs } from './content/structure';
 import { site, contact, founder, googleSiteVerification } from './content/contact';
 import { searchTitles } from './content/seo';
+import { guides, guidesIndex, guideBySlug } from './content/guides';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -62,6 +66,25 @@ function jsonLd(locale: Locale) {
     logo: `${site.url}/logo.png`,
     description: t.site.description,
     founder: founderPerson(),
+    // What the company is an authority on, in the words people search with.
+    // Assistants match a question to the entities that "know about" it.
+    knowsAbout: [
+      'Clinic management software',
+      'Hospital management software',
+      'OPD queue management',
+      'Electronic medical records',
+      'Prescription software',
+      'Pharmacy inventory management',
+      'Clinic billing',
+      'Patient data protection under the DPDP Act',
+    ],
+    areaServed: { '@type': 'Country', name: 'India' },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: contact.city,
+      addressRegion: 'Maharashtra',
+      addressCountry: 'IN',
+    },
     sameAs: [
       // Add social profiles here as they exist. Omitting the array is
       // also fine; Google uses what is there and ignores what is not.
@@ -114,16 +137,62 @@ function jsonLd(locale: Locale) {
 function breadcrumb(locale: Locale, page: Page) {
   if (page === 'home' || page === '404') return null;
   const t = content[locale];
-  const simpleKey = pageToSimpleKey(page);
-  const name = simpleKey ? t.simplePages[simpleKey].title : page === 'pricing' ? t.farePanel.pageHeading : page;
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: t.site.name, item: `${site.url}${pathFor(locale, 'home')}` },
-      { '@type': 'ListItem', position: 2, name, item: `${site.url}${pathFor(locale, page)}` },
-    ],
-  };
+  const crumb = (position: number, name: string, p: Page) => ({
+    '@type': 'ListItem',
+    position,
+    name,
+    item: `${site.url}${pathFor(locale, p)}`,
+  });
+  const items = [crumb(1, t.site.name, 'home')];
+  if (page === 'guides') {
+    items.push(crumb(2, guidesIndex.title, 'guides'));
+  } else if (isGuidePage(page)) {
+    const g = guideBySlug(guideSlug(page));
+    items.push(crumb(2, guidesIndex.title, 'guides'), crumb(3, g ? g.title : page, page));
+  } else {
+    const simpleKey = pageToSimpleKey(page);
+    const name = simpleKey ? t.simplePages[simpleKey].title : page === 'pricing' ? t.farePanel.pageHeading : page;
+    items.push(crumb(2, name, page));
+  }
+  return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items };
+}
+
+/**
+ * A guide as an Article written by the founder, plus its questions as a
+ * FAQPage. The Article ties the advice to a named, dated author; the FAQ is
+ * the question-and-answer form search engines and AI assistants lift answers
+ * from, so the answers are written to stand on their own.
+ */
+function guideLd(page: Page) {
+  if (!isGuidePage(page)) return [];
+  const g = guideBySlug(guideSlug(page));
+  if (!g) return [];
+  const url = `${site.url}${pathFor('en', page)}`;
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: g.title,
+      description: g.description,
+      url,
+      mainEntityOfPage: url,
+      inLanguage: 'en-IN',
+      datePublished: g.published,
+      dateModified: g.updated,
+      author: { '@type': 'Person', '@id': `${site.url}/founder#person`, name: founder.name, url: `${site.url}/founder` },
+      publisher: { '@type': 'Organization', name: 'Nayaversse', url: site.url, logo: `${site.url}/logo.png` },
+      image: `${site.url}/og.png`,
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: g.faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ];
 }
 
 /**
@@ -132,6 +201,11 @@ function breadcrumb(locale: Locale, page: Page) {
  */
 export function pageMeta(locale: Locale, page: Page) {
   const t = content[locale];
+  if (page === 'guides') return { title: guidesIndex.searchTitle, description: guidesIndex.lede };
+  if (isGuidePage(page)) {
+    const g = guideBySlug(guideSlug(page));
+    if (g) return { title: g.searchTitle, description: g.description };
+  }
   // The secondary pages each have their own title and lede that a crawler
   // reads as the <title> and meta description -- the reason this page
   // exists is to be found by someone searching for that exact thing.
@@ -171,14 +245,20 @@ export function render(locale: Locale, page: Page) {
           mainEntity: { ...founderPerson(), description: description },
         }
       : null;
-  const blocks = [...jsonLd(locale), ...(crumbs ? [crumbs] : []), ...(profile ? [profile] : [])];
+  const blocks = [
+    ...jsonLd(locale),
+    ...(crumbs ? [crumbs] : []),
+    ...(profile ? [profile] : []),
+    ...guideLd(page),
+  ];
   const ld = JSON.stringify(blocks).replace(/</g, '\\u003c');
 
   const html = renderToString(<App locale={locale} page={page} />);
 
   // Every language declares the others, so the three are one document in
-  // three languages rather than three pages competing with each other.
-  const alternates = page === '404' ? [] : locales.map(
+  // three languages rather than three pages competing with each other. A page
+  // that exists in fewer languages (the guides) declares only those.
+  const alternates = page === '404' ? [] : localesFor(page).map(
     (l) =>
       `<link rel="alternate" hreflang="${htmlLang[l]}" href="${site.url}${pathFor(l, page)}" />`,
   );
@@ -208,7 +288,7 @@ export function render(locale: Locale, page: Page) {
     `<meta name="application-name" content="${esc(t.site.name)}" />`,
     `<meta name="apple-mobile-web-app-title" content="${esc(t.site.name)}" />`,
     ...alternates,
-    `<meta property="og:type" content="website" />`,
+    `<meta property="og:type" content="${isGuidePage(page) ? 'article' : 'website'}" />`,
     `<meta property="og:site_name" content="${esc(t.site.name)}" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
@@ -234,7 +314,7 @@ export function render(locale: Locale, page: Page) {
   return { html, head, lang: htmlLang[locale], path };
 }
 
-export { allRoutes, locales, pathFor, content, site, contact };
+export { allRoutes, locales, localesFor, pathFor, content, site, contact, founder, guides, guidesIndex };
 
 /**
  * What each page is supposed to claim, counted from the content itself.

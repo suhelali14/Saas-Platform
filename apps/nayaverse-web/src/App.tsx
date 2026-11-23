@@ -27,6 +27,8 @@ import { Conditions } from '@/sections/Conditions';
 import { Enquiry } from '@/sections/Enquiry';
 import { Footer } from '@/sections/Footer';
 import { SimplePage, pageToSimpleKey } from '@/sections/SimplePage';
+import { GuideArticle, GuidesIndex } from '@/sections/Guides';
+import { isGuidePage } from '@/content/index';
 import { Board, Heading } from '@/components/primitives';
 
 function useEnquire() {
@@ -116,6 +118,20 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
         {pageToSimpleKey(page) && (
           <>
             <Reveal defer><SimplePage locale={locale} page={page} /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {page === 'guides' && (
+          <>
+            <Reveal defer><GuidesIndex /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {isGuidePage(page) && (
+          <>
+            <Reveal defer><GuideArticle page={page} /></Reveal>
             <Reveal defer><Enquiry /></Reveal>
           </>
         )}

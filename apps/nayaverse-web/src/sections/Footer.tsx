@@ -9,6 +9,8 @@ import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
 import { site, studioUrl } from '@/content/contact';
 
+const GUIDES_LABEL = { en: 'Guides for clinics', hi: 'क्लिनिक गाइड (English)', mr: 'क्लिनिक मार्गदर्शक (English)' } as const;
+
 export function Footer() {
   const { footer, nav, site: siteText, simplePages } = useContent();
   const { locale } = useContentCtx();
@@ -25,6 +27,8 @@ export function Footer() {
     { label: simplePages.forClinics.title, href: pathFor(locale, 'for-clinics') },
     { label: simplePages.stories.title, href: pathFor(locale, 'stories') },
     { label: simplePages.blog.title, href: pathFor(locale, 'blog') },
+    // The guides are English for now, so every language links to the English index.
+    { label: GUIDES_LABEL[locale], href: pathFor('en', 'guides') },
     { label: nav.questions, href: `${pathFor(locale, 'home')}#conditions` },
     ...(studioUrl ? [{ label: footer.studio.label, href: studioUrl }] : []),
   ];

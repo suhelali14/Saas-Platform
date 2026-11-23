@@ -369,6 +369,18 @@ jobs:
             --retries 8 --wait-ms 15000 \
             --routes ".,pricing,hi,hi/pricing,mr,mr/pricing,robots.txt,sitemap.xml"
 
+      # Tell Bing and the other IndexNow engines what is live, the moment it
+      # is live. Bing's index is what ChatGPT search and Copilot answer from.
+      # Runs after the live check so the key file is already being served,
+      # and never fails the deploy: scripts/indexnow.mjs only reports.
+      - name: Tell IndexNow engines the pages changed
+        if: >-
+          steps.gate.outputs.run == 'true'
+          && matrix.app == 'nayaverse-web'
+        continue-on-error: true
+        working-directory: apps/nayaverse-web
+        run: node scripts/indexnow.mjs
+
       # Responsive breakage used to be checked by taking screenshots and
       # looking at them. That is how a layout came to be "fixed" for a bug
       # that did not exist: Chrome on Windows cannot open a window narrower
