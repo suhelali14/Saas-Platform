@@ -39,20 +39,31 @@ Ten seconds in:
 
 ![Listening, 10 seconds](05-listening-10s.png)
 
-Eighteen seconds in, the first medicine being written:
+### The doctor can leave the visit and it keeps listening
 
-![Listening, 18 seconds](06-listening-18s.png)
+Mid-recording, the test opens **All patients**, as a doctor would to look
+something up. The listening does not stop. A bar at the bottom of every
+screen shows who is being listened to, for how long, what is being
+written and how much speech has been heard, with a Stop button.
 
-Twenty-eight seconds in:
+![Still listening on another screen](06-listening-while-on-another-screen.png)
 
-![Listening, 28 seconds](07-listening-28s.png)
+Tapping the bar goes back to the visit, where the note has kept filling
+in while the doctor was away:
+
+![Back on the visit](07-listening-back-on-the-visit.png)
+
+The timings in the table above are from an earlier run of the same
+recording; this run's are in results.json and differ by a second or two.
 
 ## 2. Stop: the note becomes the doctor's to check
 
-On **Stop and check the note** the same note opens as an editable form,
-0.4 seconds later. Each medicine shows the words it was heard in. This
-note was read by the assistant's own rules, so it cost nothing in
-language-model fees.
+On **Stop and check the note** the same note opens as an editable form.
+Each medicine shows the words it was heard in. When the rules alone can
+read the whole note this takes under half a second and costs nothing in
+language-model fees; in the last run the microphone clipped the first
+word, the rules could not place the complaint, and the language model
+read it through instead, which took 6.7 seconds.
 
 ![The draft after listening](08-draft-from-listening.png)
 
@@ -119,6 +130,11 @@ No part of the page scrolls sideways.
 | "Tab Azithromycin 500 roz" was read with "roz" in the name | Fixed |
 | An allergy written as a family ("Penicillin", "Sulfa drugs") did not flag a member of it | Fixed for penicillins, sulfa drugs, NSAIDs, cephalosporins, quinolones |
 | Vitals in the draft had no labels once filled in | Fixed |
+| Leaving the visit screen stopped the recording | Fixed: the recorder lives above the screens and a bar follows the doctor |
+| A refused save looked like a save that never finished: the reason was shown a screen above the button | Fixed: the reason is beside the button and the line at fault is outlined |
+| A warning about a medicine stayed after the doctor typed a different name over it | Fixed |
+| "Dolo 650 tablet करू" put "करू" on the prescription | Fixed |
+| Only the patient's name and phone were removed before the language model read the text | Fixed: address, email, file number, emergency contact and the doctor's name are removed too |
 | A medicine said by its salt ("Amoxicillin 500", "Zinc 20") is matched to one arbitrary brand | Open. It is flagged as a close match and other brands are offered, but the first pick is not meaningful. |
 
 ## What it cost

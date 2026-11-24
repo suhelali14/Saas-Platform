@@ -202,7 +202,7 @@ export function Encounter() {
       {/* Above the forms it fills in: a doctor who uses it does not open
           them, and one who does not is one scroll from where they were. */}
       {canWriteClinical && hasModule('scribe') && (
-        <ScribePanel appointmentId={appointment.id} onSaved={load} />
+        <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} onSaved={load} />
       )}
 
       {canWriteClinical && (

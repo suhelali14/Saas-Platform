@@ -1,27 +1,32 @@
 {
-  "ranAt": "2026-11-24T20:30:53.922Z",
+  "ranAt": "2026-11-24T20:54:50.958Z",
   "steps": [
+    {
+      "name": "listening: still going on another screen",
+      "url": "http://localhost:5173/patients",
+      "dock": "Listening · 0:18 · Ishaan Kulkarni Writing the prescription: Dolo 650 Tablet · speech heard 0:14 Stop"
+    },
     {
       "name": "listening: pieces as they were heard",
       "pieces": [
         {
-          "atSecond": 6,
+          "atSecond": 7,
           "status": 200,
-          "heard": "Complaint fever and dry cough for 3 days. Diagnosis viral fever.",
+          "heard": "Fever and dry cough for 3 days. Diagnosis: Viral fever.",
           "medicinesSoFar": 0,
           "model": null
         },
         {
-          "atSecond": 15,
+          "atSecond": 16,
           "status": 200,
-          "heard": "BP 130 by 80. Tablet Dolo 650, twice a day, for five days, after food.",
+          "heard": "BP 130 by 80. Tablet Dolo 650 twice a day for five days after food.",
           "medicinesSoFar": 1,
           "model": null
         },
         {
-          "atSecond": 21,
+          "atSecond": 22,
           "status": 200,
-          "heard": "Capsule PAN 40, once daily, before food, for 2 weeks.",
+          "heard": "Capsule PAN 40 once daily before food for two weeks.",
           "medicinesSoFar": 2,
           "model": null
         },
@@ -36,11 +41,11 @@
     },
     {
       "name": "listening: draft shown",
-      "msFromStopToDraft": 441,
+      "msFromStopToDraft": 6695,
       "engine": {
         "rules": true,
-        "model": null,
-        "reason": "The note named its own sections, so no model was used."
+        "model": "claude-haiku-5-5",
+        "reason": "A conversation, read by the language model and checked by rule."
       },
       "medicines": [
         "Dolo 650 Tablet | 1-0-1 | BD | 5 days | After food",
@@ -53,24 +58,24 @@
         "Complete Blood Count (CBC)"
       ],
       "followUpInDays": 7,
-      "complaint": "Fever and dry cough for 3 days",
+      "complaint": "Fever and dry cough x 3 days",
       "diagnosis": "Viral fever",
       "flags": [],
-      "transcript": "Complaint fever and dry cough for 3 days. Diagnosis viral fever.\nBP 130 by 80. Tablet Dolo 650, twice a day, for five days, after food.\nCapsule PAN 40, once daily, before food, for 2 weeks.\nDo a CBC review after one week."
+      "transcript": "Fever and dry cough for 3 days. Diagnosis: Viral fever.\nBP 130 by 80. Tablet Dolo 650 twice a day for five days after food.\nCapsule PAN 40 once daily before food for two weeks.\nDo a CBC review after one week."
     },
     {
       "name": "listening: confirmed",
       "status": 201,
       "body": {
-        "caseSheetId": "cmwv5gz9d0029wm20tj1czywc",
-        "prescriptionId": "cmwv5gz9g002bwm2044pw4rhs",
-        "labOrderId": "cmwv5gz9m002gwm20wcn3lblk",
+        "caseSheetId": "cmwv6bw50007nwmgc2m3dez35",
+        "prescriptionId": "cmwv6bw52007pwmgcuc1vno4y",
+        "labOrderId": "cmwv6bw53007uwmgclc2i61nv",
         "labTestsSkipped": false
       }
     },
     {
       "name": "conversation: draft shown",
-      "ms": 6666,
+      "ms": 7492,
       "engine": {
         "rules": true,
         "model": "claude-haiku-5-5",
@@ -79,7 +84,7 @@
       "complaint": "Sore throat x 4 days with fever",
       "history": "Sore throat x 4 days, fever, painful swallowing. Mild cough. No ear pain. On examination: tonsils swollen and red.",
       "diagnosis": "Acute tonsillitis",
-      "advice": "Warm water gargles. Avoid cold drinks. Return after 5 days.",
+      "advice": "Warm water gargles. Avoid cold drinks.",
       "vitals": {
         "bp": "126/82",
         "temp": "101",
@@ -98,7 +103,7 @@
         "warning: \"Amoxicillin 500\" was matched to DavaIndia Amoxycillin 500mg Capsule by a close spelling. Check it is the one you meant."
       ],
       "leftover": [
-        "Known penicillin allergy on file; amoxicillin prescribed, please verify"
+        "Known penicillin allergy on file, but Cap Amoxicillin (a penicillin) was prescribed. Please verify before the patient takes it."
       ]
     },
     {
@@ -106,7 +111,7 @@
     },
     {
       "name": "phone dictation: draft shown",
-      "ms": 150,
+      "ms": 147,
       "engine": {
         "rules": true,
         "model": null,

@@ -14,6 +14,8 @@ import { areasFor, type Area } from '../lib/areas';
 import { SetupPrompt } from './SetupPrompt';
 import { QuickSwitcher } from './QuickSwitcher';
 import { SkeletonPage } from './Skeleton';
+import { ScribeProvider } from '../contexts/ScribeContext';
+import { ScribeDock } from './ScribeDock';
 
 /** How a role reads in the sidebar: a word, not a code. */
 const ROLE_WORDS: Record<string, string> = {
@@ -178,6 +180,11 @@ export function Layout() {
   );
 
   return (
+    // The assistant's recorder is held here, in the shell, because the
+    // shell is the one thing on screen for the whole session: a doctor
+    // who leaves the visit page to look at a history must not end the
+    // listening by doing so. See contexts/ScribeContext.tsx.
+    <ScribeProvider>
     <div className="portal min-h-screen bg-background text-foreground md:flex">
       {/*
         Past the nav, in one key.
@@ -276,7 +283,9 @@ export function Layout() {
       {/* Overlays everything, so it is mounted on the shell rather than
           inside a page. Ctrl+K from any screen. */}
       <QuickSwitcher />
+      <ScribeDock />
     </div>
+    </ScribeProvider>
   );
 }
 
