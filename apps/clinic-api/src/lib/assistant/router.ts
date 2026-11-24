@@ -135,9 +135,11 @@ const ABOUT_PATIENT: { said: RegExp; action: string }[] = [
 
 /** Questions about the clinic's day, not about one patient. */
 const ABOUT_CLINIC: { said: RegExp; action: string }[] = [
+  { said: /\bassistant\b.{0,20}\b(?:usage|used|cost|costs?|spend|spent|bill|kharcha)\b|\b(?:usage|cost|spend) of (?:the )?assistant\b/i, action: "assistant_usage" },
   { said: /\b(?:who(?:'s| is) (?:next|waiting)|how many (?:patients?|people) (?:are )?(?:waiting|left|today)|waiting (?:patients?|count)|kitne (?:patient|mareez|marij)|kiti (?:patient|peshant)|next patient)\b|कितने मरीज|किती पेशंट|पुढचा पेशंट|अगला मरीज/i, action: "queue_summary" },
   { said: /\b(?:what (?:needs|is) (?:my )?attention|what(?:'s| is) pending|anything pending|pending (?:work|things|kaam)|to[- ]?do)\b|काय बाकी|क्या बाकी|काय राहिलं/i, action: "needs_attention" },
   { said: /\b(?:follow[- ]?ups?|recalls?)\b.{0,14}\b(?:due|today|pending|overdue|list)\b|\bwho(?:'s| is) (?:due|overdue)\b/i, action: "followups_due" },
+  { said: /\b(?:stopped coming|not (?:come|been|seen|visited)|haven'?t (?:come|been|visited)|gone quiet|call back|lost to follow[- ]?up|nahi aaye|nahin aaye|aale nahi)\b|नहीं आए|आले नाहीत/i, action: "recall_list" },
   { said: /\b(?:today'?s?|aaj(?:cha|che|ka|ki)?)\b.{0,12}\b(?:collection|earning|income|cash|kamai|jama)\b|\bhow much (?:did we|have we) (?:collect|earn)\w*\b|आजची जमा|आज की कमाई|आजचा गल्ला/i, action: "todays_collection" },
 ];
 

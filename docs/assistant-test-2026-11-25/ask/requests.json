@@ -1,0 +1,1198 @@
+{
+  "ranAt": "2026-11-24T21:21:38.332Z",
+  "rule": 17,
+  "model": 12,
+  "results": [
+    {
+      "text": "who is next",
+      "by": "rule",
+      "ms": 7,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "13 booked today",
+        "lines": [
+          {
+            "label": "Waiting",
+            "text": "2"
+          },
+          {
+            "label": "With the doctor",
+            "text": "1"
+          },
+          {
+            "label": "Seen",
+            "text": "9"
+          },
+          {
+            "label": "Yet to arrive",
+            "text": "1"
+          },
+          {
+            "label": "Next",
+            "text": "Token 5 · Ramesh Joshi · allergic to Penicillin",
+            "to": "/appointments/cmwv4nlid004vwm6ge6acc6dk/encounter"
+          },
+          {
+            "label": "Then",
+            "text": "Token 8 · Aarav Kale",
+            "to": "/appointments/cmwv4nlig0051wm6grzwn0vml/encounter"
+          }
+        ],
+        "to": "/queue",
+        "toLabel": "Open the queue"
+      }
+    },
+    {
+      "text": "kitne patient baki hain",
+      "by": "rule",
+      "ms": 6,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "13 booked today",
+        "lines": [
+          {
+            "label": "Waiting",
+            "text": "2"
+          },
+          {
+            "label": "With the doctor",
+            "text": "1"
+          },
+          {
+            "label": "Seen",
+            "text": "9"
+          },
+          {
+            "label": "Yet to arrive",
+            "text": "1"
+          },
+          {
+            "label": "Next",
+            "text": "Token 5 · Ramesh Joshi · allergic to Penicillin",
+            "to": "/appointments/cmwv4nlid004vwm6ge6acc6dk/encounter"
+          },
+          {
+            "label": "Then",
+            "text": "Token 8 · Aarav Kale",
+            "to": "/appointments/cmwv4nlig0051wm6grzwn0vml/encounter"
+          }
+        ],
+        "to": "/queue",
+        "toLabel": "Open the queue"
+      }
+    },
+    {
+      "text": "open billing",
+      "by": "rule",
+      "ms": 5,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/billing",
+        "say": "Opening Billing."
+      }
+    },
+    {
+      "text": "लॅब उघडा",
+      "by": "rule",
+      "ms": 5,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/labs",
+        "say": "Opening Lab orders."
+      }
+    },
+    {
+      "text": "what needs my attention",
+      "by": "rule",
+      "ms": 69,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Waiting to be dealt with",
+        "lines": [
+          {
+            "label": "5",
+            "text": "completed visits not billed",
+            "to": "/billing",
+            "tone": "warning"
+          },
+          {
+            "label": "8",
+            "text": "lab orders awaiting results",
+            "to": "/labs"
+          },
+          {
+            "label": "7",
+            "text": "prescriptions to dispense",
+            "to": "/pharmacy"
+          }
+        ]
+      }
+    },
+    {
+      "text": "follow-ups due today",
+      "by": "rule",
+      "ms": 10,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "No follow-ups are due",
+        "lines": [
+          {
+            "text": "Nobody is due back in the next week.",
+            "tone": "muted"
+          }
+        ]
+      }
+    },
+    {
+      "text": "aaj ka collection kitna hua",
+      "by": "rule",
+      "ms": 11,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "₹0 collected today",
+        "lines": [
+          {
+            "label": "Still owed",
+            "text": "₹3,300",
+            "tone": "warning"
+          },
+          {
+            "label": "Not billed",
+            "text": "5 visits seen today with no bill",
+            "tone": "warning"
+          }
+        ],
+        "to": "/billing",
+        "toLabel": "Open billing"
+      }
+    },
+    {
+      "text": "find patient Ramesh Joshi",
+      "by": "rule",
+      "ms": 9,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "say": "Opening Ramesh Joshi's file."
+      }
+    },
+    {
+      "text": "Fatima ki file kholo",
+      "by": "rule",
+      "ms": 4,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/patients/cmwv4nlge000gwm6gr5gyqgzg",
+        "say": "Opening Fatima Sayyed's file."
+      }
+    },
+    {
+      "text": "which screen shows me who looked at a patient's file",
+      "by": "model",
+      "ms": 1034,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/audit",
+        "say": "Opening Audit log."
+      }
+    },
+    {
+      "text": "give me a summary",
+      "by": "rule",
+      "ms": 38,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi, in brief",
+        "lines": [
+          {
+            "label": "Patient",
+            "text": "Ramesh Joshi · 64 years · Male · B+"
+          },
+          {
+            "label": "Allergies",
+            "text": "Penicillin",
+            "tone": "danger"
+          },
+          {
+            "label": "Long-term",
+            "text": "Hypertension, Type 2 diabetes"
+          },
+          {
+            "label": "Last medicines",
+            "text": "Dolo 650 Tablet, PAN 40 Tablet (today)"
+          },
+          {
+            "label": "09 Nov 2026",
+            "text": "Hypertension, controlled; acute bronchitis — Routine review, mild cough for 3 days"
+          },
+          {
+            "label": "25 Sept 2026",
+            "text": "Hypertension; Type 2 diabetes mellitus — Review of BP and sugar"
+          },
+          {
+            "label": "25 Aug 2026",
+            "text": "Hypertension, uncontrolled — Headache, giddiness in the morning"
+          },
+          {
+            "label": "Tests awaited",
+            "text": "HbA1c, Lipid Profile, HbA1c, Lipid Profile",
+            "tone": "warning"
+          },
+          {
+            "label": "Follow-up",
+            "text": "Was due 09 Nov 2026",
+            "tone": "warning"
+          },
+          {
+            "label": "Desk note",
+            "text": "[demo] Made-up patient for the demonstration.",
+            "tone": "muted"
+          }
+        ],
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "toLabel": "Open the full file"
+      }
+    },
+    {
+      "text": "show his last prescription",
+      "by": "rule",
+      "ms": 14,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi's last prescription, today",
+        "lines": [
+          {
+            "text": "Dolo 650 Tablet · 1-0-1 · BD · 3 days · After food"
+          },
+          {
+            "text": "PAN 40 Tablet · 1-0-0 · OD · 2 weeks · Before food"
+          },
+          {
+            "label": "Given by",
+            "text": "Meera Kulkarni on 25 Nov 2026",
+            "tone": "muted"
+          }
+        ],
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "toLabel": "Open the full file"
+      }
+    },
+    {
+      "text": "lab reports aaye kya",
+      "by": "rule",
+      "ms": 10,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi's lab tests",
+        "lines": [
+          {
+            "label": "25 Nov 2026",
+            "text": "HbA1c: awaited",
+            "tone": "warning"
+          },
+          {
+            "label": "25 Nov 2026",
+            "text": "Lipid Profile: awaited",
+            "tone": "warning"
+          },
+          {
+            "label": "25 Nov 2026",
+            "text": "HbA1c: awaited",
+            "tone": "warning"
+          },
+          {
+            "label": "25 Nov 2026",
+            "text": "Lipid Profile: awaited",
+            "tone": "warning"
+          },
+          {
+            "label": "25 Sept 2026",
+            "text": "HbA1c: 7.6 %  (normal <5.7%)"
+          },
+          {
+            "label": "25 Aug 2026",
+            "text": "Lipid Profile: Total cholesterol 228 mg/dL, LDL 148"
+          },
+          {
+            "label": "25 Aug 2026",
+            "text": "Blood Sugar (Fasting): 142 mg/dL"
+          }
+        ],
+        "to": "/labs",
+        "toLabel": "Open lab orders"
+      }
+    },
+    {
+      "text": "BP trend",
+      "by": "rule",
+      "ms": 12,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi's vitals, newest first",
+        "lines": [
+          {
+            "label": "25 Nov 2026",
+            "text": "BP 128/82   Wt 76   Pulse 96   SpO2 98   Temp 100.4"
+          },
+          {
+            "label": "09 Nov 2026",
+            "text": "BP 134/84   Wt 76   Pulse 78   SpO2 97   Temp 99.1"
+          },
+          {
+            "label": "25 Sept 2026",
+            "text": "BP 146/90   Wt 77   Pulse 80   SpO2 98   Temp 98.2"
+          },
+          {
+            "label": "25 Aug 2026",
+            "text": "BP 164/98   Wt 78   Pulse 84   SpO2 97   Temp 98.4"
+          }
+        ],
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "toLabel": "See the chart"
+      }
+    },
+    {
+      "text": "how much does he owe",
+      "by": "rule",
+      "ms": 16,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi owes ₹900",
+        "lines": [
+          {
+            "label": "25 Nov 2026",
+            "text": "₹900 of ₹900 still to pay"
+          }
+        ],
+        "to": "/billing",
+        "toLabel": "Open billing"
+      }
+    },
+    {
+      "text": "what happened on the visit of 9 November",
+      "by": "rule",
+      "ms": 6,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi, 09 Nov 2026",
+        "lines": [
+          {
+            "label": "Complaint",
+            "text": "Routine review, mild cough for 3 days"
+          },
+          {
+            "label": "Diagnosis",
+            "text": "Hypertension, controlled; acute bronchitis"
+          },
+          {
+            "label": "Vitals",
+            "text": "BP 134/84   Temp 99.1   Pulse 78   SpO2 97   Wt 76"
+          },
+          {
+            "label": "Seen by",
+            "text": "Meera Kulkarni",
+            "tone": "muted"
+          },
+          {
+            "label": "Medicine",
+            "text": "Amlodipine 5mg Tablet · 1 tab · OD · 30 days · After breakfast"
+          },
+          {
+            "label": "Medicine",
+            "text": "Metformin 500mg Tablet · 1 tab · BD · 30 days · After meals"
+          },
+          {
+            "label": "Medicine",
+            "text": "Azithromycin 500mg Tablet · 1 tab · OD · 3 days · Not penicillin: patient is allergic"
+          }
+        ],
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "toLabel": "Open the full file"
+      }
+    },
+    {
+      "text": "add his wife Sunanda to the family, she is 58 and has thyroid",
+      "by": "model",
+      "ms": 1095,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "add_family_member",
+        "params": {
+          "relation": "SPOUSE",
+          "name": "Sunanda",
+          "age": 58,
+          "gender": "Female",
+          "notes": "has thyroid",
+          "relatedPatientId": null
+        },
+        "title": "Add Sunanda to Ramesh Joshi's family?",
+        "lines": [
+          {
+            "label": "Relation",
+            "text": "Spouse"
+          },
+          {
+            "label": "Name",
+            "text": "Sunanda"
+          },
+          {
+            "label": "Age",
+            "text": "58"
+          },
+          {
+            "label": "Sex",
+            "text": "Female"
+          },
+          {
+            "label": "Note",
+            "text": "has thyroid"
+          },
+          {
+            "text": "They have no file of their own here; only their details are kept on this patient's file.",
+            "tone": "muted"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Sunanda is now on the family list.",
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp"
+      }
+    },
+    {
+      "text": "family members dikhao",
+      "by": "rule",
+      "ms": 10,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi's family",
+        "lines": [
+          {
+            "label": "Spouse",
+            "text": "Sunanda · 58y · Female · has thyroid"
+          },
+          {
+            "label": "Brother or sister",
+            "text": "Suresh · 60y · Male · Had a heart attack last year"
+          },
+          {
+            "label": "Spouse",
+            "text": "Sunanda · 58y · Female · has thyroid"
+          },
+          {
+            "label": "Spouse",
+            "text": "Sunanda · 58y · Female · has thyroid"
+          }
+        ],
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
+        "toLabel": "Open the full file"
+      }
+    },
+    {
+      "text": "book him again after two weeks for a sugar review",
+      "by": "model",
+      "ms": 864,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "book_visit",
+        "params": {
+          "date": "2026-12-09",
+          "reason": "Sugar review"
+        },
+        "title": "Book Ramesh Joshi for Wednesday, 9 December 2026?",
+        "lines": [
+          {
+            "label": "For",
+            "text": "Sugar review"
+          },
+          {
+            "text": "Booked for 10:00 in the morning. The time can be changed from the queue.",
+            "tone": "muted"
+          },
+          {
+            "text": "They are already booked on that day.",
+            "tone": "warning"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Booked for 09 Dec 2026.",
+        "to": "/queue"
+      }
+    },
+    {
+      "text": "BP is 142 by 90 and weight 77",
+      "by": "rule",
+      "ms": 4,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "record_vitals",
+        "params": {
+          "bp": "142/90",
+          "weight": "77"
+        },
+        "title": "Record these vitals on this visit?",
+        "lines": [
+          {
+            "label": "BP",
+            "text": "142/90"
+          },
+          {
+            "label": "Weight",
+            "text": "77"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Vitals recorded on this visit."
+      }
+    },
+    {
+      "text": "order HbA1c and a lipid profile and an MRI",
+      "by": "model",
+      "ms": 704,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "order_tests",
+        "params": {
+          "tests": [
+            "HbA1c",
+            "Lipid Profile"
+          ]
+        },
+        "title": "Order these 2 tests for Ramesh Joshi?",
+        "lines": [
+          {
+            "text": "HbA1c"
+          },
+          {
+            "text": "Lipid Profile"
+          },
+          {
+            "text": "Not on the clinic's test list, so not ordered: MRI",
+            "tone": "warning"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Ordered: HbA1c, Lipid Profile.",
+        "to": "/labs"
+      }
+    },
+    {
+      "text": "add a consultation charge",
+      "by": "model",
+      "ms": 1351,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "Is it a general consultation or a follow-up consultation?"
+      }
+    },
+    {
+      "text": "give him sick leave for three days for viral fever",
+      "by": "model",
+      "ms": 925,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "issue_certificate",
+        "params": {
+          "type": "SICK_LEAVE",
+          "days": 3,
+          "reason": "Viral fever"
+        },
+        "title": "Issue a sick leave certificate for Ramesh Joshi?",
+        "lines": [
+          {
+            "label": "Rest",
+            "text": "3 days, 25 Nov 2026 to 27 Nov 2026"
+          },
+          {
+            "label": "For",
+            "text": "Viral fever"
+          },
+          {
+            "text": "It is issued in your name, on the clinic's own certificate wording.",
+            "tone": "muted"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "The certificate is issued. It is on the patient's file, ready to print.",
+        "to": "/patients/cmwv4nlg40005wm6gf7mc64bp"
+      }
+    },
+    {
+      "text": "fill the diabetes review: fasting sugar 148, post meal 210, he checks his feet daily",
+      "by": "model",
+      "ms": 1325,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "fill_form_diabetes_review",
+        "params": {
+          "fbs": 148,
+          "ppbs": 210,
+          "notes": "Checks feet daily at home."
+        },
+        "title": "Fill in \"Diabetes review\" with this?",
+        "lines": [
+          {
+            "label": "Fasting sugar",
+            "text": "148 mg/dL"
+          },
+          {
+            "label": "Sugar 2 h after food",
+            "text": "210 mg/dL"
+          },
+          {
+            "label": "Notes",
+            "text": "Checks feet daily at home."
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "\"Diabetes review\" is filled in and saved."
+      }
+    },
+    {
+      "text": "antenatal visit: weight 85 kilo, BP 130 over 80, fetal heart rate 144, no swelling",
+      "by": "model",
+      "ms": 1365,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "fill_form_antenatal",
+        "params": {
+          "weight": 85,
+          "bp_systolic": 130,
+          "bp_diastolic": 80,
+          "fhr": 144,
+          "oedema": "None"
+        },
+        "title": "Fill in \"Antenatal visit\" with this?",
+        "lines": [
+          {
+            "label": "Weight",
+            "text": "85 kg"
+          },
+          {
+            "label": "BP, systolic",
+            "text": "130 mmHg"
+          },
+          {
+            "label": "BP, diastolic",
+            "text": "80 mmHg"
+          },
+          {
+            "label": "Fetal heart rate",
+            "text": "144 /min"
+          },
+          {
+            "label": "Oedema",
+            "text": "None"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "\"Antenatal visit\" is filled in and saved."
+      }
+    },
+    {
+      "text": "delete this patient",
+      "by": "model",
+      "ms": 856,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "I can't delete patient records from here, and none of the tools I have can do that. If you need a record removed, that has to be done through the clinic's admin side of the software."
+      }
+    },
+    {
+      "text": "give sick leave",
+      "by": "model",
+      "ms": 846,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "How many days of rest should I put on the sick leave certificate, starting today?"
+      }
+    },
+    {
+      "text": "prescribe amoxicillin 500 three times a day",
+      "by": "model",
+      "ms": 785,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "I need a little more before I can write that. DavaIndia Amoxycillin 500mg Capsule: for how long. Say it again with those."
+      }
+    },
+    {
+      "text": "show her last prescription",
+      "by": "model",
+      "ms": 985,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "Which patient should I open? No record is open on your screen right now. Tell me the name, phone number or file number."
+      }
+    }
+  ],
+  "harder": [
+    {
+      "as": "doctor",
+      "text": "give him sick leave",
+      "by": "model",
+      "ms": 757,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "How many days of sick leave should I issue, starting today?"
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "three days, for viral fever",
+      "by": "model",
+      "ms": 806,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "issue_certificate",
+        "params": {
+          "type": "SICK_LEAVE",
+          "days": 3,
+          "reason": "Viral fever"
+        },
+        "title": "Issue a sick leave certificate for Ramesh Joshi?",
+        "lines": [
+          {
+            "label": "Rest",
+            "text": "3 days, 25 Nov 2026 to 27 Nov 2026"
+          },
+          {
+            "label": "For",
+            "text": "Viral fever"
+          },
+          {
+            "text": "It is issued in your name, on the clinic's own certificate wording.",
+            "tone": "muted"
+          }
+        ]
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "which screen shows me who looked at a patient's file",
+      "by": "model",
+      "ms": 971,
+      "kind": "go",
+      "reply": {
+        "kind": "go",
+        "to": "/audit",
+        "say": "Opening Audit log."
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "prescribe amoxicillin 500 three times a day for five days after food",
+      "by": "model",
+      "ms": 816,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "write_prescription",
+        "params": {
+          "medicines": [
+            {
+              "name": "DavaIndia Amoxycillin 500mg Capsule",
+              "drugId": "cmwv4uo2w1b03wmzcqgcbqdcc",
+              "dosage": "1-1-1",
+              "frequency": "TDS",
+              "duration": "5 days",
+              "instructions": "After food"
+            }
+          ]
+        },
+        "title": "Write this prescription for Ramesh Joshi?",
+        "lines": [
+          {
+            "text": "1.  DavaIndia Amoxycillin 500mg Capsule · 1-1-1 · TDS · 5 days · After food"
+          },
+          {
+            "text": "Amoxycillin (500mg)",
+            "tone": "muted"
+          },
+          {
+            "text": "DavaIndia Amoxycillin 500mg Capsule: this patient's file lists an allergy to Penicillin, and this medicine may be related to it.",
+            "tone": "danger"
+          },
+          {
+            "text": "\"Amoxicillin 500\" was matched to DavaIndia Amoxycillin 500mg Capsule by a close spelling. Check it is the one you meant.",
+            "tone": "warning"
+          }
+        ]
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "prescribe Dolo 650 twice a day for 3 days after food and Pan 40 once daily before food for 2 weeks",
+      "by": "model",
+      "ms": 955,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "write_prescription",
+        "params": {
+          "medicines": [
+            {
+              "name": "Dolo 650 Tablet",
+              "drugId": "cmwv4unsy17m8wmzcy3zauadd",
+              "dosage": "1-0-1",
+              "frequency": "BD",
+              "duration": "3 days",
+              "instructions": "After food"
+            },
+            {
+              "name": "PAN 40 Tablet",
+              "drugId": "cmwv4uurj3lupwmzcf6n5waw3",
+              "dosage": "1-0-0",
+              "frequency": "OD",
+              "duration": "2 weeks",
+              "instructions": "Before food"
+            }
+          ]
+        },
+        "title": "Write this prescription for Ramesh Joshi?",
+        "lines": [
+          {
+            "text": "1.  Dolo 650 Tablet · 1-0-1 · BD · 3 days · After food"
+          },
+          {
+            "text": "Paracetamol (650mg)",
+            "tone": "muted"
+          },
+          {
+            "text": "2.  PAN 40 Tablet · 1-0-0 · OD · 2 weeks · Before food"
+          },
+          {
+            "text": "Pantoprazole (40mg)",
+            "tone": "muted"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Prescription saved: Dolo 650 Tablet, PAN 40 Tablet.",
+        "to": "/appointments/cmwv4nlid004vwm6ge6acc6dk/encounter"
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "temperature 100.4, pulse 96, SpO2 98",
+      "by": "rule",
+      "ms": 4,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "record_vitals",
+        "params": {
+          "temp": "100.4",
+          "spo2": "98",
+          "pulse": "96"
+        },
+        "title": "Record these vitals on this visit?",
+        "lines": [
+          {
+            "label": "Temperature",
+            "text": "100.4"
+          },
+          {
+            "label": "SpO2",
+            "text": "98"
+          },
+          {
+            "label": "Pulse",
+            "text": "96"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Vitals recorded on this visit."
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "add a general consultation charge",
+      "by": "model",
+      "ms": 757,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "add_charge",
+        "params": {
+          "item": "General Consultation",
+          "quantity": 1,
+          "serviceItemId": "cmwv57qt3000kwmxgjvv4xs8s"
+        },
+        "title": "Add this charge to the visit's bill?",
+        "lines": [
+          {
+            "label": "Charge",
+            "text": "General Consultation"
+          },
+          {
+            "label": "Amount",
+            "text": "₹500"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "General Consultation added. The bill now stands at ₹1,400."
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "patients with diabetes who have not come for three months",
+      "by": "rule",
+      "ms": 10,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "1 missed a follow-up, 0 gone quiet for 6 months",
+        "lines": [
+          {
+            "label": "Missed",
+            "text": "Ganesh Kamble · Type 2 diabetes with peripheral neuropathy · 90210 55555",
+            "to": "/patients/cmwv4nlgf000hwm6gqda5t05o",
+            "tone": "warning"
+          }
+        ],
+        "to": "/reminders",
+        "toLabel": "Open follow-ups"
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "register a new patient Kiran Deshpande, 34, male, phone 98220 55123",
+      "by": "model",
+      "ms": 898,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "register_patient",
+        "params": {
+          "name": "Kiran Deshpande",
+          "age": 34,
+          "gender": "Male",
+          "phone": "98220 55123"
+        },
+        "title": "Register Kiran Deshpande as a new patient?",
+        "lines": [
+          {
+            "label": "Name",
+            "text": "Kiran Deshpande"
+          },
+          {
+            "label": "Age",
+            "text": "34"
+          },
+          {
+            "label": "Sex",
+            "text": "Male"
+          },
+          {
+            "label": "Phone",
+            "text": "98220 55123"
+          }
+        ]
+      }
+    },
+    {
+      "guard": "lookup as change",
+      "reply": {
+        "kind": "sorry",
+        "say": "That is not something I can do."
+      }
+    },
+    {
+      "guard": "bad parameters",
+      "reply": {
+        "kind": "sorry",
+        "say": "I did not catch enough to do that. Say it once more with the details."
+      }
+    },
+    {
+      "guard": "no such action",
+      "reply": {
+        "kind": "sorry",
+        "say": "That is not something I can do."
+      }
+    },
+    {
+      "as": "reception",
+      "text": "who is next",
+      "by": "rule",
+      "ms": 4,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "13 booked today",
+        "lines": [
+          {
+            "label": "Waiting",
+            "text": "2"
+          },
+          {
+            "label": "With the doctor",
+            "text": "1"
+          },
+          {
+            "label": "Seen",
+            "text": "9"
+          },
+          {
+            "label": "Yet to arrive",
+            "text": "1"
+          },
+          {
+            "label": "Next",
+            "text": "Token 5 · Ramesh Joshi · allergic to Penicillin",
+            "to": "/appointments/cmwv4nlid004vwm6ge6acc6dk/encounter"
+          },
+          {
+            "label": "Then",
+            "text": "Token 8 · Aarav Kale",
+            "to": "/appointments/cmwv4nlig0051wm6grzwn0vml/encounter"
+          }
+        ],
+        "to": "/queue",
+        "toLabel": "Open the queue"
+      }
+    },
+    {
+      "as": "reception",
+      "text": "how much does he owe",
+      "by": "rule",
+      "ms": 4,
+      "kind": "answer",
+      "reply": {
+        "kind": "answer",
+        "title": "Ramesh Joshi owes ₹1,400",
+        "lines": [
+          {
+            "label": "25 Nov 2026",
+            "text": "₹1,400 of ₹1,400 still to pay"
+          }
+        ],
+        "to": "/billing",
+        "toLabel": "Open billing"
+      }
+    },
+    {
+      "as": "reception",
+      "text": "prescribe Dolo 650 twice a day for 3 days",
+      "by": "model",
+      "ms": 1070,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "Prescribing isn't available on your login, so I can't add Dolo 650 to this visit."
+      }
+    },
+    {
+      "as": "reception",
+      "text": "give him sick leave for two days",
+      "by": "model",
+      "ms": 1863,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "I can't issue a sick leave from this login. I can book a follow-up visit for this patient or check his visit details."
+      }
+    },
+    {
+      "as": "reception",
+      "text": "open audit log",
+      "by": "rule",
+      "ms": 2,
+      "kind": "sorry",
+      "reply": {
+        "kind": "sorry",
+        "say": "Audit log is for the clinic's admin."
+      }
+    },
+    {
+      "as": "reception",
+      "text": "BP 128 by 82, weight 76",
+      "by": "rule",
+      "ms": 3,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "record_vitals",
+        "params": {
+          "bp": "128/82",
+          "weight": "76"
+        },
+        "title": "Record these vitals on this visit?",
+        "lines": [
+          {
+            "label": "BP",
+            "text": "128/82"
+          },
+          {
+            "label": "Weight",
+            "text": "76"
+          }
+        ]
+      },
+      "confirmed": {
+        "kind": "done",
+        "say": "Vitals recorded on this visit."
+      }
+    },
+    {
+      "guard": "reception forging a prescription",
+      "reply": {
+        "kind": "sorry",
+        "say": "That is not available to your login in this clinic."
+      }
+    },
+    {
+      "guard": "no sign-in",
+      "status": 401
+    }
+  ]
+}

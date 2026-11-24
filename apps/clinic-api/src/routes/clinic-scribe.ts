@@ -10,6 +10,7 @@ import type { Draft } from "../lib/scribe/checks.js";
 import { clinicHost, doctorHabits } from "../lib/scribe/clinic-host.js";
 import { createReader, modelAvailable } from "../lib/scribe/model.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
+import { count, listeningIsCapped } from "../lib/assistant/meter.js";
 
 /**
  * The clinic assistant.
@@ -173,6 +174,10 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: `Listening stops after ${env.SCRIBE_MAX_MINUTES} minutes for one visit. Make the note from what has been heard.`, limit: true });
     }
 
+    if (await listeningIsCapped()) {
+      return reply.status(409).send({ error: "The assistant has reached today's limit for listening in this clinic. Make the note from what has been heard, or type the rest.", limit: true });
+    }
+
     const file = await request.file();
     if (!file) return reply.status(400).send({ error: "No audio was sent." });
     if (!AUDIO_TYPES.test(file.mimetype)) return reply.status(400).send({ error: "That is not an audio recording." });
@@ -204,6 +209,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       RETURNING transcript
     `;
     const transcript = updated[0]?.transcript ?? "";
+    void count({ audioSeconds: seconds });
 
     /*
      * The note so far, sent back with every piece.
@@ -236,6 +242,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
           reader: useModel ? createReader() : null,
           quiet: true,
         });
+        if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens });
         live = carryOver(previous, draft, { transcript, allergies: patient.allergies });
         await prisma.scribeSession.update({
           where: { id },
@@ -299,6 +306,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       reader: createReader(),
     });
     const usage = built.usage;
+    if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens });
     // The final pass reads the whole consultation and stands on its own.
     // Only when the model did not answer is what it wrote earlier, while
     // listening, kept -- rather than handing back a note with the history

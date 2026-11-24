@@ -18,6 +18,7 @@ import { pickAction, pickerAvailable } from "./pick.js";
 import { actionNamed, actionsFor, type RunContext } from "./actions.js";
 import { formActions } from "./forms.js";
 import { sorry, type Action, type Reply } from "./registry.js";
+import { modelIsCapped } from "./meter.js";
 
 export interface Answered {
   reply: Reply;
@@ -74,6 +75,9 @@ export async function ask(text: string, context: RunContext, pending?: { request
   }
 
   if (!pickerAvailable()) return { reply: sorry(HELP), by: "none", action: null, usage: null };
+  if (await modelIsCapped()) {
+    return { reply: sorry("The assistant has reached today's limit for requests it has to think about. The everyday ones still work: “who is next”, “show her last prescription”, “open billing”."), by: "none", action: null, usage: null };
+  }
 
   const forms = await formActions(context).catch(() => []);
   const offered = [...actionsFor(context.asker), ...forms];

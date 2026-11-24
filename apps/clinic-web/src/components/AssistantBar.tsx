@@ -74,6 +74,16 @@ function pickMimeType(): string {
   return '';
 }
 
+/**
+ * A few things worth asking, offered when the line is empty.
+ *
+ * Somebody who has never used the app does not know what it can be asked.
+ * These are the everyday ones, each answered by rule: tapping one costs
+ * nothing and shows what kind of thing to ask next.
+ */
+const ON_A_PATIENT = ['Summary', 'Last prescription', 'Lab reports', 'BP trend', 'Past visits'];
+const ANYWHERE = ['Who is next', 'What needs attention', 'Follow-ups due', "Today's collection"];
+
 /** A request is one sentence. Past this the microphone lets go by itself. */
 const MAX_HOLD_MS = 20_000;
 
@@ -88,6 +98,7 @@ export function AssistantBar() {
   const [busy, setBusy] = useState(false);
   const [holding, setHolding] = useState(false);
   const [canHear, setCanHear] = useState(false);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -257,6 +268,25 @@ export function AssistantBar() {
         </div>
       )}
 
+      {/* ── Things to ask, while the line is empty and in use ────────── */}
+      {focused && !text && !reply && !busy && !holding && (
+        <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Things you can ask">
+          {(onScreen(pathname).appointmentId || onScreen(pathname).patientId ? ON_A_PATIENT : ANYWHERE).map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              // Before the input loses focus, or the row is gone by the
+              // time the tap lands on it.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => void ask(suggestion)}
+              className="rounded-full border border-border/20 bg-background px-3 py-1.5 text-[13px] font-medium shadow-overlay hover:bg-accent"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── The bar ──────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/20 bg-background shadow-overlay">
         <ScribeStatusRow />
@@ -287,9 +317,11 @@ export function AssistantBar() {
             ref={inputRef}
             value={holding ? '' : text}
             onChange={(e) => setText(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             disabled={busy || holding}
             autoComplete="off"
-            placeholder={holding ? 'Listening… let go when you have said it' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask for anything, or hold the mic and say it' : 'Ask for anything: “show her last prescription”, “open billing”'}
+            placeholder={holding ? 'Listening… let go when done' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask, or hold the mic and say it' : 'Ask for anything'}
             className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[15px] outline-none placeholder:text-muted-foreground/70"
           />
           <button type="submit" disabled={busy || holding || !text.trim()} aria-label="Ask" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">

@@ -70,6 +70,12 @@ test("questions about the day", () => {
   assert.equal(route("what needs my attention", noPatient)?.action, "needs_attention");
   assert.equal(route("follow-ups due today", noPatient)?.action, "followups_due");
   assert.equal(route("aaj ka collection kitna hua", noPatient)?.action, "todays_collection");
+  assert.equal(route("which patients have stopped coming", noPatient)?.action, "recall_list");
+  assert.equal(route("how much has the assistant cost this month", noPatient)?.action, "assistant_usage");
+  // The chips the bar offers must each be answered by rule, for nothing.
+  for (const chip of ["Who is next", "What needs attention", "Follow-ups due", "Today's collection"]) assert.ok(route(chip, noPatient), chip);
+  for (const chip of ["Summary", "Last prescription", "Lab reports", "BP trend", "Past visits"]) assert.ok(route(chip, onPatient), chip);
+  assert.equal(route("kaun se patient nahi aaye", noPatient)?.action, "recall_list");
 });
 
 test("a patient is found by name, phone or file number", () => {
@@ -94,6 +100,6 @@ test("vitals said as numbers on an open visit are recorded by rule", () => {
 test("anything a rule does not recognise is left for the model", () => {
   assert.equal(route("add her husband Rajesh to the family, he has diabetes", onPatient), null);
   assert.equal(route("book her again after two weeks with Dr Meera", onPatient), null);
-  assert.equal(route("which patients with diabetes have not come in three months", noPatient), null);
+  assert.equal(route("list every patient over sixty with a sugar above 200", noPatient), null);
   assert.equal(route("", noPatient), null);
 });

@@ -122,6 +122,14 @@ const envSchema = z.object({
   // Lower is livelier and costs more; 0 uses the model only at the end.
   SCRIBE_LIVE_SECONDS: z.coerce.number().int().min(0).max(600).default(40),
 
+  // Cost guards for the whole clinic, per day (lib/assistant/meter.ts).
+  // Set well above a busy day's real use, so they are never met in
+  // ordinary work and stop only a fault: a microphone left recording, a
+  // script asking in a loop. Ten hours of speech; three thousand requests
+  // that needed a model.
+  ASSISTANT_DAILY_AUDIO_MINUTES: z.coerce.number().int().min(1).max(100_000).default(600),
+  ASSISTANT_DAILY_MODEL_CALLS: z.coerce.number().int().min(1).max(1_000_000).default(3000),
+
   // Cost guard: the longest one consultation may be listened to, in
   // minutes. A recording left running over lunch should stop on its own.
   SCRIBE_MAX_MINUTES: z.coerce.number().int().min(1).max(120).default(30),

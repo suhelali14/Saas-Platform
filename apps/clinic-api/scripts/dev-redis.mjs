@@ -91,6 +91,14 @@ const run = (argv) => {
       const entry = store.get(key);
       return entry && 'value' in entry ? bulk(entry.value) : nil();
     }
+    // The assistant's usage counters (lib/assistant/meter.ts).
+    case 'INCRBY': {
+      const [key, by] = a;
+      const before = alive(key) ? Number(store.get(key)?.value ?? 0) : 0;
+      const after = before + Number(by);
+      store.set(key, { value: String(after) });
+      return int(after);
+    }
     case 'MGET':
       return array(a.map((key) => {
         if (!alive(key)) return nil();

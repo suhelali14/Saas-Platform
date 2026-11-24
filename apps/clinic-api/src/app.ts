@@ -42,7 +42,28 @@ import { clinicScribeRoutes } from "./routes/clinic-scribe.js";
 import { clinicAssistantRoutes } from "./routes/clinic-assistant.js";
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  /*
+   * In production every request arrives through nginx on the same
+   * machine, so without this the address Fastify sees for EVERYBODY is
+   * the proxy's. Two things were quietly wrong because of it:
+   *
+   *   - Rate limits are counted per address. With one address for the
+   *     whole world, the login limit of five a minute was shared by every
+   *     user of the clinic and every stranger on the internet: anybody
+   *     could keep a clinic's staff locked out of signing in with five
+   *     wrong guesses a minute.
+   *   - The audit log records the address of each access. It recorded the
+   *     proxy's, every time.
+   *
+   * Only this machine and its private networks are trusted as proxies,
+   * not every address in the header: nginx appends the address it
+   * actually saw to X-Forwarded-For, and reading back from that end past
+   * our own proxy stops at the first address that is not ours -- the one
+   * entry a client cannot write for itself. The container's port is
+   * bound to 127.0.0.1 (deploy/render-compose.sh), so nothing but that
+   * nginx can reach this server to claim otherwise.
+   */
+  const app = Fastify({ logger: true, trustProxy: env.NODE_ENV === "production" ? ["loopback", "uniquelocal"] : false });
 
   /**
    * A client that navigates away, or aborts a request it no longer needs,
@@ -177,6 +198,10 @@ export function buildApp() {
       // booking request or feedback goes through, and a patient is never
       // shown a message about the clinic's account with Nayaversse.
       if (path.startsWith("/api/clinic/public/")) return;
+      // Asking the assistant is a POST, and looking something up through
+      // it changes nothing. A change it is asked to make goes through the
+      // app's own route, which this same hook refuses.
+      if (path === "/api/clinic/assistant/ask" || path === "/api/clinic/assistant/voice") return;
       return reply.status(423).send({
         error: "This clinic's account is paused, so nothing can be changed right now. Everything can still be viewed and exported. Please contact Nayaversse.",
         readOnly: true,

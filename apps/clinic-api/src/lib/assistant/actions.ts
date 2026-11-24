@@ -29,6 +29,7 @@ import { clinicHost, doctorHabits } from "../scribe/clinic-host.js";
 import { checkDraft } from "../scribe/checks.js";
 import { SCREENS } from "./router.js";
 import { sorry, strictObject, type Action, type ActionContext, type Asker, type Line, type Reply } from "./registry.js";
+import { estimatedRupees, usage as meterUsage } from "./meter.js";
 
 /** How a write reaches the app: its own route, as the person asking. */
 export type Call = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, payload?: unknown) => Promise<{ status: number; body: any }>;
@@ -463,6 +464,30 @@ const followupsDue: Action = {
   },
 };
 
+const recallList: Action = {
+  name: "recall_list",
+  summary: "Lists patients who should have come back and have not: those whose follow-up date has passed, and those with a long-term condition (diabetes, blood pressure and the like) who have not been seen for some months. Use it for 'who has stopped coming', 'patients not seen in three months', 'who should I call back'.",
+  kind: "read",
+  schema: z.object({ months: z.number().int().min(1).max(36).nullable().optional() }),
+  jsonSchema: strictObject({ months: { type: ["number", "null"], description: "How many months without a visit counts as gone quiet. Leave out for the usual six." } }),
+  allowed: anyone,
+  async run(context: RunContext, params: { months?: number | null }) {
+    const res = await context.call("GET", `/api/clinic/patients-recall?months=${params.months ?? 6}`);
+    if (res.status !== 200) return refusal(res, "The recall list could not be read.");
+    type Row = { patientId: string; name: string; phone: string | null; detail: string; dueOn: string | null; lastSeen: string | null };
+    const overdue = (res.body.overdue ?? []) as Row[];
+    const quiet = (res.body.quiet ?? []) as Row[];
+    if (overdue.length === 0 && quiet.length === 0) {
+      return { kind: "answer", title: "Nobody is overdue to come back", lines: [{ text: `No missed follow-ups, and no long-term patient unseen for ${res.body.quietMonths} months.`, tone: "muted" }] };
+    }
+    const lines: Line[] = [
+      ...overdue.slice(0, 6).map((r): Line => ({ label: "Missed", text: [r.name, r.detail, r.phone].filter(Boolean).join(" · "), to: `/patients/${r.patientId}`, tone: "warning" })),
+      ...quiet.slice(0, 6).map((r): Line => ({ label: "Gone quiet", text: [r.name, r.detail, r.lastSeen ? `last seen ${day(r.lastSeen)}` : null, r.phone].filter(Boolean).join(" · "), to: `/patients/${r.patientId}` })),
+    ];
+    return { kind: "answer", title: `${overdue.length} missed a follow-up, ${quiet.length} gone quiet for ${res.body.quietMonths} months`, lines, to: "/reminders", toLabel: "Open follow-ups" };
+  },
+};
+
 const todaysCollection: Action = {
   name: "todays_collection",
   summary: "Says how much money the clinic has collected today, split by cash, UPI and card, and how much is outstanding.",
@@ -486,6 +511,34 @@ const todaysCollection: Action = {
       ],
       to: "/billing",
       toLabel: "Open billing",
+    };
+  },
+};
+
+const assistantUsage: Action = {
+  name: "assistant_usage",
+  summary: "Says how much the assistant itself has been used today and over the last thirty days, and roughly what that cost: minutes listened, requests answered by rule for nothing, and requests that needed a model.",
+  kind: "read",
+  schema: NONE,
+  jsonSchema: NO_PARAMS,
+  allowed: (asker) => asker.isAdmin,
+  async run() {
+    const used = await meterUsage();
+    if (!used) return sorry("The assistant's usage could not be read just now.");
+    const rupees = (n: number) => `₹${n < 10 ? n.toFixed(2) : Math.round(n).toLocaleString("en-IN")}`;
+    const today = estimatedRupees(used.today);
+    const month = estimatedRupees(used.month);
+    const minutes = (seconds: number) => `${Math.round(seconds / 60)} min`;
+    return {
+      kind: "answer",
+      title: `About ${rupees(today.total)} today, ${rupees(month.total)} in the last 30 days`,
+      lines: [
+        { label: "Listened", text: `${minutes(used.today.audioSeconds)} today · ${minutes(used.month.audioSeconds)} in 30 days · about ${rupees(month.speech)}` },
+        { label: "By a model", text: `${used.today.modelCalls} today · ${used.month.modelCalls} in 30 days · about ${rupees(month.model)}` },
+        { label: "By rule, free", text: `${used.today.ruleAnswers} today · ${used.month.ruleAnswers} in 30 days` },
+        { label: "Daily ceiling", text: `${used.ceilings.audioMinutes} minutes of listening, ${used.ceilings.modelCalls} model requests`, tone: "muted" },
+        { text: "These are estimates from the providers' published rates. Their invoices are the exact figures.", tone: "muted" },
+      ],
     };
   },
 };
@@ -700,7 +753,7 @@ const orderTests: Action = {
 
 const addCharge: Action = {
   name: "add_charge",
-  summary: "Adds a charge to the bill of the visit that is open, by the name of the service or procedure as the clinic lists it (dressing, ECG, injection, consultation).",
+  summary: "Adds a charge to the bill of the visit that is open, by the name of the service or procedure as the clinic lists it (dressing, ECG, injection, general consultation, follow-up consultation). Keep every word of the name that was said, including 'general' or 'follow-up'.",
   kind: "write",
   needsPatient: true,
   module: "billing",
@@ -875,7 +928,7 @@ const writePrescription: Action = {
     const flags = checkDraft({ medicines: resolved, transcript: resolved.map((m) => m.source).join(". "), allergies: patient.allergies }).filter((f) => f.kind !== "unverified");
     const lines: Line[] = [];
     resolved.forEach((m, i) => {
-      lines.push({ label: `${i + 1}`, text: medicineLine(m) });
+      lines.push({ text: `${i + 1}.  ${medicineLine(m)}` });
       if (m.composition) lines.push({ text: m.composition, tone: "muted" });
       for (const note of m.notes) lines.push({ text: note, tone: "muted" });
       for (const f of flags.filter((x) => x.medicine === i)) lines.push({ text: f.message, tone: f.level === "danger" ? "danger" : "warning" });
@@ -966,7 +1019,7 @@ const registerPatient: Action = {
 
 export const ACTIONS: Action[] = [
   findPatient, patientBrief, lastPrescription, labResults, visitHistory, visitOnDate, vitalsTrend, patientDues, familyMembers,
-  queueSummary, needsAttention, followupsDue, todaysCollection,
+  queueSummary, needsAttention, followupsDue, recallList, todaysCollection, assistantUsage,
   openScreen,
   addFamilyMember, recordVitals, bookVisit, orderTests, writePrescription, addCharge, issueCertificate, addToQueue, registerPatient,
 ];

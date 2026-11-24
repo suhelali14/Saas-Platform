@@ -6,6 +6,7 @@ import { ask, runConfirmed, type Answered } from "../lib/assistant/ask.js";
 import type { Call, RunContext } from "../lib/assistant/actions.js";
 import { pickerAvailable } from "../lib/assistant/pick.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
+import { count, listeningIsCapped } from "../lib/assistant/meter.js";
 
 /**
  * The assistant that is asked for things.
@@ -86,6 +87,12 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     // clinic's server already keeps. No words of the request, and no
     // patient: a count, not a transcript.
     request.log.info({ assistant: { by: answered.by, action: answered.action, kind: answered.reply.kind, tokensIn: answered.usage?.inputTokens ?? 0, tokensOut: answered.usage?.outputTokens ?? 0 } }, "assistant request");
+    void count({
+      modelCalls: answered.usage ? 1 : 0,
+      tokensIn: answered.usage?.inputTokens ?? 0,
+      tokensOut: answered.usage?.outputTokens ?? 0,
+      ruleAnswers: answered.by === "rule" ? 1 : 0,
+    });
   }
 
   app.get("/api/clinic/assistant/status", async (request, reply) => {
@@ -117,6 +124,9 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (audio.length === 0) return reply.status(400).send({ error: "Nothing was heard." });
     if (audio.length > MAX_ASK_BYTES) return reply.status(413).send({ error: "That was too long. Say it in one sentence." });
     const field = (name: string) => (file.fields[name] as { value?: string } | undefined)?.value;
+    if (await listeningIsCapped()) return reply.status(429).send({ error: "The assistant has reached today's limit for listening. Type what you need." });
+    // Recorded at about four kilobytes a second; near enough for a meter.
+    void count({ audioSeconds: Math.max(1, Math.round(audio.length / 4000)) });
 
     let heard: string;
     try {
