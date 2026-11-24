@@ -38,6 +38,7 @@ import { clinicCounterRoutes } from "./routes/clinic-counter.js";
 import { clinicIpdRoutes } from "./routes/clinic-ipd.js";
 import { clinicClaimRoutes } from "./routes/clinic-claims.js";
 import { clinicOtRoutes, clinicRadiologyRoutes, clinicNursingRoutes } from "./routes/clinic-wards.js";
+import { clinicScribeRoutes } from "./routes/clinic-scribe.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -213,6 +214,7 @@ export function buildApp() {
   if (isFeatureEnabled("analytics")) app.register(clinicAnalyticsRoutes);
   if (isFeatureEnabled("expenses")) app.register(clinicExpenseRoutes);
   if (isFeatureEnabled("multilingual")) app.register(clinicTranslationRoutes);
+  if (isFeatureEnabled("scribe")) app.register(clinicScribeRoutes);
   // Hospital modules.
   if (isFeatureEnabled("departments")) app.register(clinicDepartmentRoutes);
   if (isFeatureEnabled("cashcounter")) app.register(clinicCounterRoutes);

@@ -94,6 +94,11 @@ export const MODULES = [
   { key: "schemes", label: "Government schemes desk", from: "ENTERPRISE", legacy: false },
   { key: "radiology", label: "Radiology", from: "ENTERPRISE", legacy: false },
   { key: "nursing", label: "Nursing stations", from: "ENTERPRISE", legacy: false },
+  // Sold as an add-on per doctor: every consultation it hears costs money
+  // to transcribe, so it is switched on for a deal through CLINIC_FEATURES
+  // rather than arriving with a plan. `from` is the top tier only because
+  // every module needs one.
+  { key: "scribe", label: "Clinic assistant", from: "ENTERPRISE", legacy: false },
 ] as const satisfies readonly ModuleSpec[];
 
 export type Feature = (typeof MODULES)[number]["key"];

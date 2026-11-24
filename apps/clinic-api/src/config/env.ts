@@ -102,6 +102,23 @@ const envSchema = z.object({
   // change -- model names churn faster than this codebase will.
   ANTHROPIC_TRANSLATION_MODEL: z.string().default("claude-sonnet-5"),
   GEMINI_TRANSLATION_MODEL: z.string().default("gemini-2.5-flash"),
+  // ── The clinic assistant (the `scribe` module) ──────────────────────
+  //
+  // Optional, like the translation keys above. Without SARVAM_API_KEY the
+  // assistant cannot listen, and still structures notes that are typed or
+  // pasted. Without ANTHROPIC_API_KEY it reads only what its own rules
+  // can (numbers, medicines, tests, follow-up) and says so on the draft.
+  SARVAM_API_KEY: z.string().optional(),
+  // "unknown" lets the speech engine detect the language of each piece,
+  // which is what a consultation that moves between three needs. Set a
+  // code such as "mr-IN" only for a clinic that speaks one.
+  SCRIBE_LANGUAGE: z.string().default("unknown"),
+  // The small model on purpose: see lib/scribe/model.ts.
+  SCRIBE_MODEL: z.string().default("claude-haiku-5-5"),
+  // Cost guard: the longest one consultation may be listened to, in
+  // minutes. A recording left running over lunch should stop on its own.
+  SCRIBE_MAX_MINUTES: z.coerce.number().int().min(1).max(120).default(30),
+
   // Comma-separated origins allowed to call this API in production.
   // Ignored in development, where any origin is accepted so a Vite dev
   // server on any port works.

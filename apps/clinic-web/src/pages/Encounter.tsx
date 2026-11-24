@@ -6,6 +6,7 @@ import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { CaseSheetForm, PrescriptionForm, CertificateForm, LabOrderForm } from '../components/ClinicalForms';
 import { VisitCharges } from '../components/VisitCharges';
+import { ScribePanel } from '../components/ScribePanel';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
 
@@ -197,6 +198,12 @@ export function Encounter() {
       )}
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
+
+      {/* Above the forms it fills in: a doctor who uses it does not open
+          them, and one who does not is one scroll from where they were. */}
+      {canWriteClinical && hasModule('scribe') && (
+        <ScribePanel appointmentId={appointment.id} onSaved={load} />
+      )}
 
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">

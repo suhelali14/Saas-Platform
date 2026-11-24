@@ -78,6 +78,7 @@ export const FEATURES: FeatureSpec[] = [
   { key: "schemes", label: "Government schemes desk", description: "PM-JAY, MJPJAY, CGHS and ECHS: packages, pre-auth, claims.", from: "ENTERPRISE", enforced: true, built: true },
   { key: "radiology", label: "Radiology", description: "Imaging orders and reports.", from: "ENTERPRISE", enforced: true, built: true },
   { key: "nursing", label: "Nursing stations", description: "Ward rounds, vitals charts, medicine given.", from: "ENTERPRISE", enforced: true, built: true },
+  { key: "scribe", label: "Clinic assistant", description: "Listens to the consultation and drafts the case sheet, prescription and tests for the doctor to confirm. An add-on: each consultation has a running cost.", from: "ENTERPRISE", enforced: true, built: true },
 ];
 
 /** In every plan, never a module. Shown on the plan sheet. */

@@ -1538,6 +1538,49 @@ model SpecialtyRevision {
   @@index([patientId])
 }
 
+enum ScribeStatus {
+  OPEN      // being listened to or typed into
+  DRAFTED   // a draft has been built and is waiting for the doctor
+  CONFIRMED // the doctor confirmed it and the records were written
+  DISCARDED
+}
+
+/// One consultation as the assistant heard it: the transcript, the draft
+/// it proposed, and what the doctor actually confirmed.
+///
+/// Audio is never stored -- there is no column for it. The transcript is
+/// kept because the difference between `draft` and `confirmed` is the only
+/// honest measure of how good the assistant is, and every later change to
+/// it is tested against these.
+///
+/// Plain ids rather than relations, deliberately: this is a working record
+/// about a visit, not part of the visit. A patient merged into another, or
+/// an appointment removed, must not cascade into it or be blocked by it.
+model ScribeSession {
+  id            String       @id @default(cuid())
+  appointmentId String
+  patientId     String
+  doctorId      String
+  status        ScribeStatus @default(OPEN)
+  /// When the patient's consent to being recorded was ticked. Null for a
+  /// session that was only ever typed into.
+  consentAt     DateTime?
+  transcript    String       @default("")
+  /// Seconds of audio transcribed. With the model's tokens below, this is
+  /// what the session cost to run.
+  audioSeconds  Int          @default(0)
+  model         String?
+  inputTokens   Int          @default(0)
+  outputTokens  Int          @default(0)
+  draft         Json?
+  confirmed     Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([appointmentId])
+  @@index([doctorId, createdAt])
+}
+
 /// A clinic's changes to the form library: a built-in form switched off or
 /// given extra fields, or a form of the clinic's own (custom = true).
 model ClinicForm {

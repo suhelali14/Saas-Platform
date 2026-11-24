@@ -57,6 +57,7 @@ const RESOURCE_BY_PREFIX: Array<[string, string]> = [
   ["/api/clinic/episodes", "care-episode"],
   ["/api/clinic/relations", "family-link"],
   ["/api/clinic/specialty", "specialty-form"],
+  ["/api/clinic/scribe", "assistant"],
 ];
 
 /**

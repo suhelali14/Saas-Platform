@@ -40,4 +40,5 @@ export const MODULE_INFO: Record<string, ModuleInfo> = {
   schemes: { label: 'Government schemes', from: 'ENTERPRISE', what: 'PM-JAY, MJPJAY, CGHS and ECHS patients, packages and claims.' },
   radiology: { label: 'Radiology', from: 'ENTERPRISE', what: 'X-ray, ultrasound and scan orders and reports.' },
   nursing: { label: 'Nursing stations', from: 'ENTERPRISE', what: 'Ward rounds, vitals charts and medicine given.' },
+  scribe: { label: 'Clinic assistant', from: 'ENTERPRISE', what: 'Listens to the consultation and drafts the note and prescription for the doctor to confirm.' },
 };
