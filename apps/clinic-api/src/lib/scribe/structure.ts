@@ -286,6 +286,10 @@ const NAME_STOP = new Set([
   // Hindi and Marathi as a speech engine writes them in Latin letters.
   "roz", "rozana", "ek", "do", "teen", "likh", "lena", "lijiye", "dena", "ghya", "khane", "sote", "sakali", "ratri",
   "की", "का", "के", "को", "दिन", "दिवस", "बार", "वेळा", "सुबह", "रात", "सकाळी", "रात्री", "रोज", "और", "आणि", "लेना", "घ्या", "दो", "एक",
+  // What is done with a medicine, never its name: "tablet करू" is "let us
+  // give a tablet", and read as a name it put "करू" on a prescription.
+  "करू", "करूया", "करतो", "करते", "देऊ", "देतो", "देते", "द्या", "देणार", "लिहितो", "लिहिते", "घेऊ", "घेणे",
+  "देता", "देती", "दूंगा", "दूंगी", "देंगे", "लिखता", "लिखती", "लो", "लीजिए", "लेनी", "है", "आहे", "पण", "भी", "नको", "नहीं",
 ]);
 
 const STRENGTH = /^\d+(?:\.\d+)?(?:mg|ml|mcg|g|iu)?$/i;
@@ -321,6 +325,26 @@ function nameAfter(rest: string): string {
   return name.join(" ");
 }
 
+/**
+ * The name in front of a form word: "Dolo 650 tablet".
+ *
+ * Indian speech puts the form after the name as often as before it, and
+ * in a sentence that is otherwise Marathi or Hindi the name is the part
+ * said in Latin letters. So: the run of Latin words and numbers that ends
+ * right at the form word, up to three of them.
+ */
+function nameBefore(before: string): string {
+  const tokens = before.trim().split(/[\s,]+/).filter(Boolean);
+  const name: string[] = [];
+  for (let i = tokens.length - 1; i >= 0 && name.length < 3; i -= 1) {
+    const token = tokens[i]!.replace(/[.,;:]+$/, "");
+    if (!/^[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(token) || NAME_STOP.has(token.toLowerCase())) break;
+    name.unshift(token);
+  }
+  // A lone number is a dose or a count, not a medicine.
+  return name.some((t) => /[A-Za-z]{3,}/.test(t)) ? name.join(" ") : "";
+}
+
 export function readMedicines(text: string): LocalMedicine[] {
   const out: LocalMedicine[] = [];
   for (const sentence of sentences(text)) {
@@ -331,9 +355,16 @@ export function readMedicines(text: string): LocalMedicine[] {
 
     starts.forEach((start, i) => {
       // One medicine's words run until the next medicine is named.
-      const clause = sentence.slice(start.at, starts[i + 1]?.at ?? sentence.length).trim();
-      const spoken = nameAfter(normaliseNumbers(sentence.slice(start.end, starts[i + 1]?.at ?? sentence.length)));
-      if (spoken.length < 3) return;
+      const after = nameAfter(normaliseNumbers(sentence.slice(start.end, starts[i + 1]?.at ?? sentence.length)));
+      const lead = sentence.slice(i === 0 ? 0 : starts[i - 1]!.end, start.at);
+      const before = nameBefore(lead);
+      // What follows the form word is the name only when it is a name:
+      // Latin letters, as a medicine is said. Otherwise the name came first.
+      const afterIsName = /^[A-Za-z]/.test(after);
+      const spoken = afterIsName ? after : before || after;
+      if (spoken.length < 3 || (!afterIsName && !before && !/[A-Za-z]/.test(spoken))) return;
+      const from = !afterIsName && before ? start.at - (lead.length - lead.lastIndexOf(before.split(" ")[0]!)) : start.at;
+      const clause = sentence.slice(Math.max(0, from), starts[i + 1]?.at ?? sentence.length).trim();
       const schedule = readSchedule(clause);
       out.push({
         spoken,

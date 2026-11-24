@@ -180,6 +180,25 @@ function timesPerDay(dosage: string): number | null {
   return slots.filter((s) => s !== "0").length;
 }
 
+/**
+ * The salts in a medicine: "Paracetamol (650mg) + Caffeine (30mg)".
+ *
+ * A medicine a doctor added by hand has no composition on file, and is
+ * usually named for its salt ("Paracetamol 650mg Tablet"). For those the
+ * first word of the name stands in -- only for those, because the first
+ * word of a brand ("Pan 40", "Pan D") is not a salt and two brands
+ * sharing one are not the same medicine.
+ */
+function salts(medicine: { composition: string | null; drugName: string }): string[] {
+  const listed = (medicine.composition ?? "")
+    .split(/\+|,/)
+    .map((part) => part.replace(/\(.*?\)/g, "").trim().toLowerCase())
+    .filter((s) => s.length >= 4);
+  if (listed.length > 0) return listed;
+  const named = nameKey(medicine.drugName);
+  return named.length >= 6 ? [named] : [];
+}
+
 export function checkDraft(input: { medicines: DraftMedicine[]; transcript: string; allergies: string | null }): Flag[] {
   const flags: Flag[] = [];
   const seen = new Map<string, number>();
@@ -225,6 +244,17 @@ export function checkDraft(input: { medicines: DraftMedicine[]; transcript: stri
     if (key) {
       if (seen.has(key)) flags.push({ level: "warning", kind: "duplicate", medicine: i, message: `${label} appears twice.` });
       else seen.set(key, i);
+    }
+
+    // Two brands of one salt. "Paracetamol and Dolo" is paracetamol
+    // twice, and nothing about the two names says so.
+    for (const salt of salts(m)) {
+      const other = input.medicines.findIndex((o, x) => x < i && (o.drugId ?? o.drugName) !== (m.drugId ?? m.drugName) && salts(o).includes(salt));
+      if (other >= 0) {
+        const name = salt.charAt(0).toUpperCase() + salt.slice(1);
+        flags.push({ level: "warning", kind: "duplicate", medicine: i, message: `${label} and ${input.medicines[other]!.drugName || input.medicines[other]!.spoken} both contain ${name}. Check both are meant.` });
+        break;
+      }
     }
   });
 

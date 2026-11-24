@@ -47,8 +47,18 @@ const PIECE_MAX_MS = 18_000;
 const PAUSE_SAMPLES = 4;
 /** A piece is sent only if speech was heard for at least this share of it. */
 const SPEECH_SHARE = 0.06;
-/** Loudness above which a moment counts as somebody speaking. */
-const SPEECH_LEVEL = 0.02;
+/**
+ * Loudness above which a moment counts as somebody speaking.
+ *
+ * Not a fixed number: a patient across a desk from a tablet is far
+ * quieter than a doctor leaning over it, and a fixed bar set for the
+ * doctor's voice called the patient's half of the conversation silence
+ * and never sent it. The bar is set from the room instead -- a multiple
+ * of the quietest level heard so far -- with a floor so that a silent
+ * room does not make its own hum count as speech.
+ */
+const SPEECH_FLOOR = 0.008;
+const SPEECH_OVER_ROOM = 2.5;
 
 const FREQUENCIES = ['OD', 'BD', 'TDS', 'QID', 'SOS', 'STAT'];
 
@@ -212,6 +222,10 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
   const levelTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const heard = useRef({ speech: 0, total: 0, quiet: 0 });
+  /** The quietest the room has been: what silence sounds like here. */
+  const room = useRef(1);
+  /** Seconds of the visit that had speech in them and were sent. */
+  const [sentSeconds, setSentSeconds] = useState(0);
   const pieceStartedAt = useRef(0);
   /** Ends the piece being recorded now and starts the next one. */
   const cutHere = useRef<(() => void) | null>(null);
@@ -273,7 +287,10 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
       const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       // Nobody spoke: not sent, not paid for.
       if (total > 0 && speech / total < SPEECH_SHARE) return;
-      if (parts.length > 0) send(new Blob(parts, { type: rec.mimeType }), seconds);
+      if (parts.length > 0) {
+        setSentSeconds((s) => s + seconds);
+        send(new Blob(parts, { type: rec.mimeType }), seconds);
+      }
     };
     rec.start();
     recorder.current = rec;
@@ -324,9 +341,12 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
         analyser.getByteTimeDomainData(samples);
         let sum = 0;
         for (const s of samples) sum += ((s - 128) / 128) ** 2;
+        const level = Math.sqrt(sum / samples.length);
+        // Drifts up slowly, so a room that gets noisier is learned too.
+        room.current = Math.min(level > 0 ? level : room.current, room.current * 1.002);
         const h = heard.current;
         h.total += 1;
-        if (Math.sqrt(sum / samples.length) > SPEECH_LEVEL) { h.speech += 1; h.quiet = 0; } else h.quiet += 1;
+        if (level > Math.max(SPEECH_FLOOR, room.current * SPEECH_OVER_ROOM)) { h.speech += 1; h.quiet = 0; } else h.quiet += 1;
         // Cut at the pause after something was said, so what was just
         // said is sent now rather than when a timer runs out.
         if (h.quiet === PAUSE_SAMPLES && h.speech >= 5 && Date.now() - pieceStartedAt.current >= PIECE_MIN_MS) cutHere.current?.();
@@ -338,6 +358,8 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
       wakeLock.current = (await nav.wakeLock?.request('screen').catch(() => null)) ?? null;
 
       setElapsed(0);
+      setSentSeconds(0);
+      room.current = 1;
       setTranscript('');
       setLive(null);
       liveRef.current = null;
@@ -614,7 +636,15 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
           {phase === 'listening' && <Button variant="danger" icon={<Square size={13} />} onClick={finish}>Stop and check the note</Button>}
         </div>
         {/* What it is doing this moment, in words. */}
-        {phase === 'listening' && <p className="mt-1 text-[13px] text-muted-foreground">{doing}</p>}
+        {/* How much of the visit it has actually heard. If two people have
+            been talking for five minutes and this says thirty seconds, the
+            microphone is too far away -- and the doctor can see that now
+            rather than discover it in a thin note at the end. */}
+        {phase === 'listening' && (
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {doing} · speech heard {clock(sentSeconds)}
+          </p>
+        )}
         {error && <div className="mt-3 px-3 py-2 rounded-lg tone-warning text-sm">{error}</div>}
         <LiveNote note={live} />
         {transcript && (

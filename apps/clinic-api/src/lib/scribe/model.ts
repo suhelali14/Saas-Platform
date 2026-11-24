@@ -64,10 +64,10 @@ What to write. Write the note in English, in the short clinical style an Indian 
 
 - chiefComplaint: what the patient came in for, with how long.
 - hopi: the history the patient gave and what the doctor found on asking or examining. Medicines the patient is already taking belong here.
-- diagnosis: only a diagnosis the doctor stated. If the doctor did not state one, leave it empty. Do not infer one from the symptoms.
+- diagnosis: what the doctor said it is. If the doctor only voiced a suspicion ("I think this may be jaundice"), write it the way a doctor writes a suspicion, with a question mark: "? Jaundice". If the doctor said neither, leave it empty. Do not infer one from the symptoms yourself.
 - advice: what the doctor told the patient to do other than take medicines: rest, diet, warning signs, when to return.
 - vitals: only numbers that were said aloud.
-- medicines: only what the doctor prescribes in THIS consultation. For each one:
+- medicines: only what the doctor prescribes in THIS consultation, as it stands at the END of the conversation. A doctor thinks aloud: a medicine named and then withdrawn ("no, no medicine for now", "remove that") is not prescribed, and one decided on later is. For each one:
   - spoken: the name as said, with its strength if said. If the text has a near-miss of one of the doctor's usual medicines listed below, use the usual medicine's name.
   - dosage: the morning-afternoon-night pattern, like "1-0-1" or "1/2-0-1/2". For liquids or anything else, the amount as said, like "5 ml". Empty if not said.
   - frequency: OD, BD, TDS, QID, SOS or STAT. Empty if not said.

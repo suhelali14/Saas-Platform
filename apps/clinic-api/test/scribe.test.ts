@@ -111,6 +111,17 @@ test("Hindi written in Latin letters, as a speech engine writes it, is read too"
   assert.equal(readFollowUp("Paanch din baad phir dikhaiye").days, 5);
 });
 
+test("a medicine named before its form word, in a Marathi sentence, is read by its name", () => {
+  const meds = readMedicines("ताप आहे. plus आपण थोडंसं Dolo 650 tablet करू and मला थोडंसं कावीळ पण वाटतं");
+  assert.equal(meds.length, 1);
+  // Not "करू", which is "let us give" and was once read as the name.
+  assert.equal(meds[0]!.spoken, "Dolo 650");
+});
+
+test("a form word with no medicine name near it is not a medicine", () => {
+  assert.deepEqual(readMedicines("मी medicine हटवतो. गोळी नको आता."), []);
+});
+
 test("tests are matched to the clinic's own list and never added to it", () => {
   assert.deepEqual(readLabTests("do a CBC and an ECG", LABS).sort(), ["Complete Blood Count (CBC)", "ECG"]);
   assert.deepEqual(readLabTests("get an MRI brain", LABS), []);
@@ -173,6 +184,22 @@ test("an allergy recorded as a family is flagged for a member of it", () => {
 
   // "drugs" on the allergy line is not a substance: paracetamol is not flagged.
   assert.ok(!checkDraft({ medicines: [med({})], transcript: "Tab Dolo 650 twice a day for five days", allergies: "Sulfa drugs" }).some((f) => f.kind === "allergy"));
+});
+
+test("two brands of the same salt are pointed out", () => {
+  const para = med({ drugId: "d-para", drugName: "Paracetamol Tablet", composition: "Paracetamol (500mg)", spoken: "paracetamol", source: "1 Paracetamol and 1 Dolo" });
+  const dolo = med({ source: "1 Paracetamol and 1 Dolo" });
+  const flags = checkDraft({ medicines: [para, dolo], transcript: "1 Paracetamol and 1 Dolo", allergies: null });
+  assert.ok(flags.some((f) => f.kind === "duplicate" && f.medicine === 1 && /both contain Paracetamol/.test(f.message)));
+
+  // A medicine the doctor added by hand has no composition; its name says what it is.
+  const byHand = med({ drugId: "d-hand", drugName: "Paracetamol 650mg Tablet", composition: null, spoken: "paracetamol", source: "1 Paracetamol and 1 Dolo" });
+  assert.ok(checkDraft({ medicines: [byHand, dolo], transcript: "1 Paracetamol and 1 Dolo", allergies: null }).some((f) => /both contain Paracetamol/.test(f.message)));
+
+  // Two brands that share a first word are not the same salt.
+  const pan40 = med({ drugId: "p1", drugName: "Pan 40 Tablet", composition: "Pantoprazole (40mg)", spoken: "pan 40", source: "Tab Pan 40 and Tab Pan D" });
+  const panD = med({ drugId: "p2", drugName: "Pan D Capsule", composition: "Domperidone (30mg) + Pantoprazole (40mg)", spoken: "pan d", source: "Tab Pan 40 and Tab Pan D" });
+  assert.ok(checkDraft({ medicines: [pan40, panD], transcript: "Tab Pan 40 and Tab Pan D", allergies: null }).some((f) => /both contain Pantoprazole/.test(f.message)));
 });
 
 test("missing dose, unmatched name and a repeat are each said plainly", () => {
