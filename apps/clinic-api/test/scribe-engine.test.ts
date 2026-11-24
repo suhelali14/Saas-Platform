@@ -91,6 +91,35 @@ test("a dose that was not heard is the doctor's usual, and says so", async () =>
   assert.ok(!draft.flags.some((f) => f.kind === "missing"));
 });
 
+test("a field the model left empty is read from the model's own quote", async () => {
+  const { draft } = await buildDraft({
+    transcript: "Teen din se bukhar hai doctor. Tab Pan 40 likh raha hoon, din mein teen baar, khane ke baad, teen din ke liye.",
+    patient, host: host(),
+    reader: reader({ medicines: [{ spoken: "Tab Pan 40", dosage: "", frequency: "TDS", duration: "", instructions: "", quote: "Tab Pan 40 likh raha hoon, din mein teen baar, khane ke baad, teen din ke liye" }] }),
+  });
+  const med = draft.medicines[0]!;
+  // Looked up without its form word, so it matches by name.
+  assert.equal(med.drugId, "d-pan");
+  assert.equal(med.dosage, "1-1-1");
+  assert.equal(med.frequency, "TDS");
+  assert.equal(med.duration, "3 days");
+  assert.ok(!draft.flags.some((f) => f.kind === "missing"));
+});
+
+test("when the model and the rules disagree on a medicine, the draft says so", async () => {
+  const { draft } = await buildDraft({
+    transcript: "Teen din se bukhar hai doctor. Tab Pan 40 twice a day for 5 days.",
+    patient, host: host(),
+    reader: reader({ medicines: [{ spoken: "Pan 40", dosage: "", frequency: "TDS", duration: "5 days", instructions: "", quote: "Tab Pan 40 twice a day for 5 days" }] }),
+  });
+  // The model said three times a day; the rules read "twice a day" in the
+  // same sentence. Both are shown, and the disagreement is flagged.
+  assert.equal(draft.medicines.length, 1);
+  assert.equal(draft.medicines[0]!.frequency, "TDS");
+  assert.equal(draft.medicines[0]!.dosage, "1-0-1");
+  assert.ok(draft.flags.some((f) => f.kind === "conflict" && f.medicine === 0));
+});
+
 test("a dose that WAS heard is never replaced by the usual one", async () => {
   const { draft } = await buildDraft({
     transcript: "Complaint fever. Diagnosis viral fever. Tab Dolo 650 twice a day for 5 days.",

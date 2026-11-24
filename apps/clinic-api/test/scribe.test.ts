@@ -102,6 +102,15 @@ test("a follow-up is read, and a course of tablets is not one", () => {
   assert.equal(readFollowUp("Tab Dolo 650 for 5 days and review").days, null);
 });
 
+test("Hindi written in Latin letters, as a speech engine writes it, is read too", () => {
+  const [med] = readMedicines("Tab Azithromycin 500 roz ek baar, teen din");
+  // "roz" is "daily": the start of the instructions, not part of the name.
+  assert.equal(med!.spoken, "Azithromycin 500");
+  assert.equal(med!.frequency, "OD");
+  assert.equal(med!.duration, "3 days");
+  assert.equal(readFollowUp("Paanch din baad phir dikhaiye").days, 5);
+});
+
 test("tests are matched to the clinic's own list and never added to it", () => {
   assert.deepEqual(readLabTests("do a CBC and an ECG", LABS).sort(), ["Complete Blood Count (CBC)", "ECG"]);
   assert.deepEqual(readLabTests("get an MRI brain", LABS), []);

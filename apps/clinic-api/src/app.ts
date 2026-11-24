@@ -63,10 +63,15 @@ export function buildApp() {
       });
     }
 
+    // The SOCKET, not the request stream. A request stream is also
+    // "destroyed" once its body has been read to the end, which is every
+    // upload: so any error thrown after reading a file was taken for a
+    // client that had left, nothing was sent back, and the browser waited
+    // on a request that would never answer.
     const aborted =
       error.code === "ERR_STREAM_PREMATURE_CLOSE" ||
       error.message === "Premature close" ||
-      request.raw.destroyed;
+      request.socket.destroyed;
 
     if (aborted) {
       request.log.debug({ url: request.url }, "client aborted the request");

@@ -43,7 +43,7 @@ export interface DraftMedicine {
 
 export interface Flag {
   level: "danger" | "warning" | "info";
-  kind: "allergy" | "missing" | "unmatched" | "duplicate" | "unverified" | "engine";
+  kind: "allergy" | "missing" | "unmatched" | "duplicate" | "unverified" | "conflict" | "engine";
   message: string;
   /** Index into the draft's medicines, when the flag is about one. */
   medicine?: number;
@@ -142,6 +142,15 @@ function allergyHit(allergies: string, medicine: DraftMedicine): string | null {
   return null;
 }
 
+const PER_DAY: Record<string, number> = { OD: 1, BD: 2, TDS: 3, QID: 4 };
+
+/** How many times a day a "1-0-1" pattern says, or null if it is not one. */
+function timesPerDay(dosage: string): number | null {
+  const slots = dosage.split("-").map((s) => s.trim());
+  if (slots.length < 2 || slots.length > 4 || !slots.every((s) => /^(?:\d{1,2}(?:\.\d)?|\d\/\d)$/.test(s))) return null;
+  return slots.filter((s) => s !== "0").length;
+}
+
 export function checkDraft(input: { medicines: DraftMedicine[]; transcript: string; allergies: string | null }): Flag[] {
   const flags: Flag[] = [];
   const seen = new Map<string, number>();
@@ -165,6 +174,13 @@ export function checkDraft(input: { medicines: DraftMedicine[]; transcript: stri
     const missing = [!m.dosage && "dose", !m.frequency && "frequency", !m.duration && "duration"].filter(Boolean);
     if (missing.length > 0) {
       flags.push({ level: "warning", kind: "missing", medicine: i, message: `${label}: the ${missing.join(" and ")} ${missing.length === 1 ? "was" : "were"} not heard.` });
+    }
+
+    // "1-0-1" beside "TDS": two readings of the same sentence that do not
+    // agree. One of them is wrong and only the doctor knows which.
+    const perDay = timesPerDay(m.dosage);
+    if (perDay !== null && PER_DAY[m.frequency] !== undefined && PER_DAY[m.frequency] !== perDay) {
+      flags.push({ level: "warning", kind: "conflict", medicine: i, message: `${label}: the dose ${m.dosage} and the frequency ${m.frequency} do not agree. Check which was meant.` });
     }
 
     if (!quoteIsInTranscript(m.source, input.transcript)) {

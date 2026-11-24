@@ -213,17 +213,41 @@ async function resolve(medicine: LocalMedicine, habits: Habit[], host: Assistant
   return base;
 }
 
+/** "Tab Azithromycin 500" is looked up as "Azithromycin 500": no name in
+ *  the catalogue starts with the word for its own form. */
+function withoutForm(spoken: string): string {
+  return spoken.replace(/^\s*(?:tab(?:let)?s?|cap(?:sule)?s?|syp|syrup|inj(?:ection)?)\b\.?\s*/i, "").trim() || spoken.trim();
+}
+
+/**
+ * The model's medicines, with the rules run over each one's own quote.
+ *
+ * The model is asked to copy the words a medicine was prescribed in, and
+ * those words are exactly what the rules read best. So a field the model
+ * left empty is read from its quote: it wrote "TDS" for "din mein teen
+ * baar" and no pattern, and the rules know that is 1-1-1. Nothing is
+ * taken from anywhere but the sentence the model itself pointed at.
+ */
 function fromModel(note: ModelNote): LocalMedicine[] {
   return note.medicines
     .filter((m) => m.spoken.trim().length >= 2)
-    .map((m) => ({
-      spoken: m.spoken.trim(),
-      dosage: m.dosage.trim(),
-      frequency: (FREQUENCIES.has(m.frequency) ? m.frequency : "") as Frequency | "",
-      duration: readDuration(m.duration) || m.duration.trim(),
-      instructions: m.instructions.trim(),
-      source: m.quote.trim(),
-    }));
+    .map((m) => {
+      const quote = m.quote.trim();
+      const said = readSchedule(quote);
+      const frequency = (FREQUENCIES.has(m.frequency) ? m.frequency : "") as Frequency | "";
+      // The rules' pattern is used only when it agrees with the model's
+      // frequency, or the model gave none: two readers disagreeing is a
+      // reason to leave the field for the doctor.
+      const agrees = !frequency || !said.frequency || said.frequency === frequency;
+      return {
+        spoken: withoutForm(m.spoken),
+        dosage: m.dosage.trim() || (agrees ? said.dosage : ""),
+        frequency: frequency || said.frequency,
+        duration: readDuration(m.duration) || m.duration.trim() || readDuration(quote),
+        instructions: m.instructions.trim() || readInstructions(quote),
+        source: quote,
+      };
+    });
 }
 
 export async function buildDraft(input: {

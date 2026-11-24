@@ -184,8 +184,8 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     // one after another, but a retry can overlap the next piece.
     const updated = await prisma.$queryRaw<{ transcript: string }[]>`
       UPDATE "ScribeSession"
-      SET transcript = left(CASE WHEN transcript = '' THEN ${text} ELSE transcript || E'\n' || ${text} END, ${MAX_TRANSCRIPT_CHARS}),
-          "audioSeconds" = "audioSeconds" + ${seconds},
+      SET transcript = left(CASE WHEN transcript = '' THEN ${text}::text ELSE transcript || E'\n' || ${text}::text END, ${MAX_TRANSCRIPT_CHARS}::int),
+          "audioSeconds" = "audioSeconds" + ${seconds}::int,
           "updatedAt" = now()
       WHERE id = ${id}
       RETURNING transcript

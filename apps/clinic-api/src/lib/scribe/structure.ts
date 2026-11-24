@@ -207,7 +207,7 @@ const SCHEDULES: { pattern: RegExp; frequency: Frequency; dosage: string }[] = [
   { pattern: /\b(?:stat|immediately|right now)\b|अभी तुरंत|लगेच/iu, frequency: "STAT", dosage: "" },
   { pattern: /\b(?:hs|at night|at bedtime|bedtime|night only|raat ko|ratri)\b|रात को|रात में|रात्री|झोपताना|सोते समय/iu, frequency: "OD", dosage: "0-0-1" },
   { pattern: /\b(?:morning only|in the morning|every morning|subah)\b|सुबह|सकाळी/iu, frequency: "OD", dosage: "1-0-0" },
-  { pattern: /\b(?:od|o\.d|once|1 time|1 baar|1 bar|daily)\b|1 बार|एकदा|1 वेळा|रोज/iu, frequency: "OD", dosage: "1-0-0" },
+  { pattern: /\b(?:od|o\.d|once|1 time|1 baar|1 bar|daily|roz|rozana)\b|1 बार|एकदा|1 वेळा|रोज/iu, frequency: "OD", dosage: "1-0-0" },
 ];
 
 const SLOT_COUNT_TO_FREQUENCY: Record<number, Frequency> = { 1: "OD", 2: "BD", 3: "TDS", 4: "QID" };
@@ -283,6 +283,8 @@ const NAME_STOP = new Set([
   "for", "x", "into", "to", "twice", "thrice", "once", "daily", "after", "before", "at", "in", "and", "with",
   "bd", "bid", "od", "tds", "tid", "qid", "sos", "stat", "hs", "if", "when", "as", "morning", "night", "every",
   "times", "time", "baar", "bar", "din", "days", "day", "subah", "raat", "then", "also", "is", "the", "take", "give",
+  // Hindi and Marathi as a speech engine writes them in Latin letters.
+  "roz", "rozana", "ek", "do", "teen", "likh", "lena", "lijiye", "dena", "ghya", "khane", "sote", "sakali", "ratri",
   "की", "का", "के", "को", "दिन", "दिवस", "बार", "वेळा", "सुबह", "रात", "सकाळी", "रात्री", "रोज", "और", "आणि", "लेना", "घ्या", "दो", "एक",
 ]);
 
@@ -348,7 +350,7 @@ export function readMedicines(text: string): LocalMedicine[] {
 
 // ── Follow-up ─────────────────────────────────────────────────────────
 
-const FOLLOW_UP = /follow[- ]?up|review|come back|revisit|next visit|फॉलो ?अप|वापस आ|फिर से आ|फिर आ|दोबारा आ|परत या|पुन्हा या|दिखाना|दिखाइए|दाखवा|दाखवायला/iu;
+const FOLLOW_UP = /follow[- ]?up|review|come back|revisit|next visit|\b(?:phir|fir|dobara|wapas|vapas|parat|punha)\b.{0,12}\b(?:aa|aana|aaiye|aao|dikha|dikhana|dikhaiye|ya|dakhva)|\b(?:dikhaiye|dikhana|dakhva)\b|फॉलो ?अप|वापस आ|फिर से आ|फिर आ|दोबारा आ|परत या|पुन्हा या|दिखाना|दिखाइए|दाखवा|दाखवायला/iu;
 
 export function readFollowUp(text: string): { days: number | null; source: string } {
   for (const sentence of sentences(text)) {

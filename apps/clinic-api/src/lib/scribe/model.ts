@@ -131,6 +131,11 @@ export function createReader(): ModelReader | null {
       } catch (error) {
         if (error instanceof Anthropic.AuthenticationError) throw new ModelUnavailable("the API key was rejected");
         if (error instanceof Anthropic.RateLimitError) throw new ModelUnavailable("the provider is rate-limiting this key");
+        // Arrives as a plain 400, which on its own reads as a fault in the
+        // request and sends whoever is looking at it to the wrong place.
+        if (error instanceof Anthropic.APIError && /credit balance/i.test(error.message)) {
+          throw new ModelUnavailable("the model provider's account has no credit left");
+        }
         if (error instanceof Anthropic.APIError) throw new ModelUnavailable(`the provider returned ${error.status ?? "an error"}`);
         throw new ModelUnavailable("the provider could not be reached");
       }
