@@ -64,8 +64,36 @@ grep -vE '^(CLINIC_PLAN|CLINIC_FEATURES|CLINIC_READ_ONLY|CLINIC_MAX_USERS)=' "$E
   [ -z "$MAX_USERS" ] || printf 'CLINIC_MAX_USERS=%s\n' "$MAX_USERS"
 } >> "$TMP"
 
+# ── The assistant's keys ──────────────────────────────────────────────
+#
+# The assistant ("scribe") needs a speech key and a language-model key in
+# the clinic's own env file, or it is switched on and can do nothing. So
+# that switching it on from the console is the whole job, a key the
+# clinic does not have yet is copied from the provider's own env file.
+#
+# Only ever added, never replaced or removed: a clinic given its own key
+# by hand keeps it, and a clinic whose module is switched off keeps its
+# key and simply stops using it. The VALUE is never printed -- this
+# script's output goes to the console's job log.
+KEYS_ADDED=""
+if printf ',%s,' "$FEATURES" | grep -q ',scribe,'; then
+  PROVIDER_ENV="$ENV_DIR/provider.env"
+  for name in SARVAM_API_KEY ANTHROPIC_API_KEY; do
+    if grep -qE "^${name}=." "$ENV_FILE"; then continue; fi
+    line=""
+    [ -f "$PROVIDER_ENV" ] && line="$(grep -E "^${name}=." "$PROVIDER_ENV" | tail -n 1 || true)"
+    if [ -z "$line" ]; then
+      info "note: $name is not set for $SLUG and not in provider.env -- the assistant will work without it only in part"
+      continue
+    fi
+    printf '%s\n' "$line" >> "$TMP"
+    KEYS_ADDED="$KEYS_ADDED $name"
+    info "$name copied from provider.env"
+  done
+fi
+
 after="$(grep -E '^(CLINIC_PLAN|CLINIC_FEATURES|CLINIC_READ_ONLY|CLINIC_MAX_USERS)=' "$TMP" | sort | tr '\n' ' ')"
-if [ "$before" = "$after" ]; then
+if [ "$before" = "$after" ] && [ -z "$KEYS_ADDED" ]; then
   info "unchanged -- not restarting the clinic"
   printf 'RESULT_PLAN=%s\n' "$PLAN"
   exit 0

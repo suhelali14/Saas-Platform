@@ -139,14 +139,22 @@ function BillingRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
-
-/** The audit log reveals which staff member looked at which patient, so it
- * is doctor/admin only -- the same gate the API enforces. This only hides
- * the screen; the server refuses the data regardless. */
+/**
+ * The audit log reveals which staff member looked at which patient, and
+ * the website is the clinic's public face: both are for whoever
+ * administers the clinic. This only hides the screen; the server refuses
+ * the data regardless.
+ *
+ * On the admin FLAG, as the API and the menu are -- not on the role. It
+ * used to check for DOCTOR or ADMIN, which disagreed with both in both
+ * directions: a practice manager made admin (a receptionist by role) was
+ * shown "Website" and "Audit log" in the menu and bounced to the queue on
+ * clicking either, while every doctor who was not an admin could open
+ * both screens and be met by a refusal from the server.
+ */
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useClinicAuth();
-  if (!user || !ADMIN_ROLES.has(user.role)) return <Navigate to="/queue" replace />;
+  const { user, isAdmin } = useClinicAuth();
+  if (!user || !isAdmin) return <Navigate to="/queue" replace />;
   return <>{children}</>;
 }
 
