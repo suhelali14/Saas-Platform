@@ -45,11 +45,23 @@ Optional, with their defaults:
 | `SCRIBE_LIVE_SECONDS` | `40` | While listening, seconds of new speech between model passes. `0` uses the model only at the end. |
 | `ASSISTANT_DAILY_AUDIO_MINUTES` | `600` | Clinic-wide ceiling on listening per day |
 | `ASSISTANT_DAILY_MODEL_CALLS` | `3000` | Clinic-wide ceiling on model requests per day |
+| `ASSISTANT_USER_DAILY_AUDIO_MINUTES` | `300` | One person's ceiling on listening per day |
+| `ASSISTANT_USER_DAILY_MODEL_CALLS` | `800` | One person's ceiling on model requests per day |
+| `SCRIBE_PROPOSE_ACTIONS` | `true` | At the end of a consultation, also offer the forms, family members and certificates it called for (section 3). `false` turns that off. |
 
 On the server these go in `/srv/clinic/env/<slug>.env`, with no quotes
 around the values, followed by a restart of that clinic's container.
 `CLINIC_FEATURES` is rewritten by the console when a plan is applied, so
 switch the module on from the console rather than by hand.
+
+**The keys are copied for you.** Put `SARVAM_API_KEY` and
+`ANTHROPIC_API_KEY` once in the console's own `provider.env`. When a plan
+or feature list that includes `scribe` is applied to a clinic,
+`deploy/set-plan.sh` copies both into that clinic's env file if they are
+not already there. A key already in the clinic's file is left alone, so a
+clinic can have its own. This has been tested by
+`scripts/test-set-plan-keys.sh` against a made-up env folder, not yet on
+the real server.
 
 **The migration `20261125090000_scribe_sessions` adds one table,
 `ScribeSession`.** It is applied by the normal deploy.
@@ -83,6 +95,11 @@ switch the module on from the console rather than by hand.
 - **A change calls the app's own route**, from inside the server, with
   the asker's own sign-in. The role check, the validation and the audit
   entry are the ones the screen's own Save button gets.
+- **A confirm card is sealed.** The server signs the action, its
+  parameters, the patient, the visit and the person it was drawn up for
+  (`lib/assistant/seal.ts`). Confirm sends the card back and the server
+  refuses it if anything differs, so a card cannot be altered in the
+  browser or carried to another patient by opening a different screen.
 
 ### Adding something the assistant can do
 
@@ -142,6 +159,22 @@ The recorder lives in the portal's shell (`contexts/ScribeContext.tsx`),
 so the doctor can open any other screen while it listens. Reloading or
 closing the tab ends it; the browser warns first.
 
+### What else the consultation called for
+
+A consultation is more than a note. When the doctor presses Stop, the
+conversation is read once more (`lib/assistant/propose.ts`) for three
+things: one of the clinic's own forms that fits this patient, a family
+member the doctor said to add, a certificate the doctor agreed to give.
+Each appears under the note as its own sealed card, "Also from this
+consultation", and is saved only when the doctor confirms it. It runs
+alongside the final reading of the note, so it adds nothing to the wait.
+
+It is one more model call, and it is skipped when it could find nothing:
+no form fits the patient and nobody mentioned a relative or a
+certificate. An ordinary fever visit at a general practice makes no such
+call. A relative is offered only with a real name; one already on the
+patient's file is not offered again.
+
 The engine in `lib/scribe/engine.ts` imports no database and no web
 framework. It is given a host (`clinic-host.ts`) and a reader
 (`model.ts`), so it can be run behind a different product by writing a
@@ -174,7 +207,10 @@ What keeps it down:
 - Speaker labels are not used; they cost about 20% more on the published rate.
 - Rules answer what they can before any model is called.
 - The fixed list of actions is cached by the model provider.
-- Daily ceilings stop a fault from running on.
+- The extra reading at the end of a consultation is made only when there
+  is something it could find, and costs about the same as one request.
+- Daily ceilings, for the clinic and for each person, stop a fault from
+  running on. At the ceiling the note is still made, by rule alone.
 
 An admin can ask the assistant "how much has the assistant cost" for
 the count and the estimate. The providers' invoices are the exact
@@ -245,5 +281,11 @@ database.
      limits become per client address rather than shared by everyone,
      and the audit log records real addresses.
    - `app.ts` no longer swallows an error that follows a file upload.
+   - `App.tsx` in the portal: admin-only screens now check the account's
+     admin flag rather than its role name. Sign in as the live clinic's
+     admin and as a doctor and open Settings to confirm both still
+     behave as before.
+   - `lib/api.ts` in the portal: an error from the server now also
+     carries its status and body. Existing screens read only its message.
 3. Rotate the two API keys that were pasted into a chat during testing.
 4. Decide the price. Section 4 is the cost floor.

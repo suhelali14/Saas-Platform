@@ -67,6 +67,24 @@ export interface Draft {
   medicines: DraftMedicine[]; labTests: string[]; followUpInDays: number | null;
   flags: Flag[]; leftover: string[]; engine: { model: string | null; reason: string };
 }
+/**
+ * Something else the consultation called for, besides the note: one of
+ * the clinic's own forms, a family member to add, a certificate. Drawn up
+ * by the server as a sealed card; made only when the doctor confirms it.
+ */
+export interface AlsoCard {
+  action: string;
+  params: Record<string, unknown>;
+  title: string;
+  lines: { label?: string; text: string; tone?: 'danger' | 'warning' | 'muted' }[];
+  patientId: string | null;
+  appointmentId: string | null;
+  seal: string;
+  /** What became of it, once the doctor has dealt with it. */
+  state: 'open' | 'done' | 'dismissed';
+  said?: string;
+}
+
 export interface ScribeStatus { canListen: boolean; canSummarise: boolean; maxMinutes: number }
 export type ScribePhase = 'idle' | 'listening' | 'finishing' | 'review';
 
@@ -103,6 +121,9 @@ interface ScribeValue {
   confirm: () => Promise<boolean>;
   /** The medicine that stopped a save, so the screen can point at it. */
   incomplete: number | null;
+  also: AlsoCard[];
+  confirmAlso: (index: number) => Promise<void>;
+  dismissAlso: (index: number) => void;
 }
 
 const ScribeContext = createContext<ScribeValue | null>(null);
@@ -148,6 +169,7 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
   const [note, setNote] = useState<Draft | null>(null);
   const [followUpDate, setFollowUpDate] = useState('');
   const [incomplete, setIncomplete] = useState<number | null>(null);
+  const [also, setAlso] = useState<AlsoCard[]>([]);
 
   // Everything the recorder touches lives in refs: it runs on timers and
   // media callbacks that must see the current value, not the one from the
@@ -215,6 +237,7 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
     setTranscript('');
     setFollowUpDate('');
     setIncomplete(null);
+    setAlso([]);
     setPhase('idle');
   };
 
@@ -302,8 +325,9 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
   const buildDraft = async () => {
     const id = sessionId.current;
     if (!id) return;
-    const res = await apiFetch<{ draft: Draft; transcript: string }>(`/scribe/sessions/${id}/draft`, { method: 'POST', data: {} });
+    const res = await apiFetch<{ draft: Draft; transcript: string; also?: Omit<AlsoCard, 'state'>[] }>(`/scribe/sessions/${id}/draft`, { method: 'POST', data: {} });
     setNote(res.draft);
+    setAlso((res.also ?? []).map((card) => ({ ...card, state: 'open' as const })));
     setTranscript(res.transcript);
     setFollowUpDate(res.draft.followUpInDays ? shiftDateInput(todayInput(), res.draft.followUpInDays) : '');
     setIncomplete(null);
@@ -483,6 +507,26 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setCard = (index: number, changes: Partial<AlsoCard>) => setAlso((cards) => cards.map((c, i) => (i === index ? { ...c, ...changes } : c)));
+
+  /** Carries out one of the "also" cards, exactly as it was drawn up. */
+  const confirmAlso = async (index: number) => {
+    const card = also[index];
+    if (!card || card.state !== 'open') return;
+    try {
+      const res = await apiFetch<{ reply: { kind: string; say?: string } }>('/assistant/run', {
+        method: 'POST',
+        data: { action: card.action, params: card.params, patientId: card.patientId, appointmentId: card.appointmentId, seal: card.seal },
+      });
+      if (res.reply.kind === 'done') setCard(index, { state: 'done', said: res.reply.say });
+      // Refused: left open, with the reason, so it can be seen and dismissed.
+      else setCard(index, { said: res.reply.say ?? 'That could not be done.' });
+    } catch (e) {
+      setCard(index, { said: e instanceof ApiError ? e.message : 'That could not be done just now.' });
+    }
+  };
+  const dismissAlso = (index: number) => setCard(index, { state: 'dismissed' });
+
   const patchNote = (changes: Partial<Draft>) => setNote((n) => (n ? { ...n, ...changes } : n));
 
   /**
@@ -519,7 +563,7 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       value={{
         status, phase, appointmentId, patientName, elapsed, sentSeconds, transcript, live, doing, error,
         note, followUpDate, setFollowUpDate, patchNote, patchMedicine, removeMedicine,
-        start, finish, makeFromTyped, discard, confirm, incomplete,
+        start, finish, makeFromTyped, discard, confirm, incomplete, also, confirmAlso, dismissAlso,
       }}
     >
       {children}

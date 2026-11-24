@@ -1,26 +1,26 @@
 {
-  "ranAt": "2026-11-24T21:23:17.378Z",
+  "ranAt": "2026-11-24T21:34:16.551Z",
   "steps": [
     {
       "name": "tapped a suggestion"
     },
     {
       "name": "asked: who is next",
-      "ms": 371,
+      "ms": 372,
       "by": "rule",
       "kind": "answer",
-      "title": "13 booked today"
+      "title": "17 booked today"
     },
     {
       "name": "asked: what needs my attention",
-      "ms": 383,
+      "ms": 379,
       "by": "rule",
       "kind": "answer",
       "title": "Waiting to be dealt with"
     },
     {
       "name": "asked: open billing",
-      "ms": 380,
+      "ms": 384,
       "by": "rule",
       "kind": "go",
       "title": "Opening Billing."
@@ -31,40 +31,52 @@
     },
     {
       "name": "asked: give me a summary",
-      "ms": 385,
+      "ms": 380,
       "by": "rule",
       "kind": "answer",
       "title": "Ramesh Joshi, in brief"
     },
     {
       "name": "asked: what happened on the visit of 9 November",
-      "ms": 385,
+      "ms": 375,
       "by": "rule",
       "kind": "answer",
       "title": "Ramesh Joshi, 09 Nov 2026"
     },
     {
       "name": "asked: prescribe amoxicillin 500 three times a day for five days after food",
-      "ms": 1296,
+      "ms": 1274,
       "by": "model",
       "kind": "confirm",
       "title": "Write this prescription for Ramesh Joshi?"
     },
     {
-      "name": "asked: add his brother Suresh to the family, he is 60 and had a heart attack last year",
-      "ms": 1364,
+      "name": "asked: book him again after ten days",
+      "ms": 1308,
       "by": "model",
       "kind": "confirm",
-      "title": "Add Suresh to Ramesh Joshi's family?"
+      "title": "Book Ramesh Joshi for Saturday, 5 December 2026?"
+    },
+    {
+      "name": "a card when the doctor moves to another screen",
+      "shownOnTheVisit": true,
+      "stillShowingAfterLeaving": false
+    },
+    {
+      "name": "asked: add his brother Mahesh to the family, he is 55 and had a heart attack last year",
+      "ms": 1291,
+      "by": "model",
+      "kind": "confirm",
+      "title": "Add Mahesh to Ramesh Joshi's family?"
     },
     {
       "name": "confirmed",
       "kind": "done",
-      "say": "Suresh is now on the family list."
+      "say": "Mahesh is now on the family list."
     },
     {
       "name": "spoken request",
-      "msFromLettingGo": 737,
+      "msFromLettingGo": 682,
       "heard": "Show his last prescription.",
       "by": "rule",
       "kind": "answer",
@@ -72,7 +84,7 @@
     },
     {
       "name": "asked: show his last prescription",
-      "ms": 380,
+      "ms": 381,
       "by": "rule",
       "kind": "answer",
       "title": "Ramesh Joshi's last prescription, today"

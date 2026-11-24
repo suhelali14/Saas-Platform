@@ -60,7 +60,12 @@ export type Reply =
   /** Take them to a screen. */
   | { kind: "go"; to: string; say: string }
   /** A change, described, waiting for a yes. */
-  | { kind: "confirm"; action: string; params: Record<string, unknown>; title: string; lines: Line[] }
+  | {
+      kind: "confirm"; action: string; params: Record<string, unknown>; title: string; lines: Line[];
+      /** Set when the card is sent out: who it is for, and the server's
+       *  seal on exactly that (seal.ts). */
+      patientId?: string | null; appointmentId?: string | null; seal?: string;
+    }
   /** A change that was confirmed and has been made. */
   | { kind: "done"; say: string; to?: string }
   /** It cannot, or did not understand; says so plainly. */

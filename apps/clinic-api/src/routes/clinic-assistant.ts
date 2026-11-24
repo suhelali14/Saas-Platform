@@ -1,13 +1,12 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth } from "../plugins/auth.js";
 import { ask, runConfirmed, type Answered } from "../lib/assistant/ask.js";
-import type { Call, RunContext } from "../lib/assistant/actions.js";
+import { contextFor, sealed } from "../lib/assistant/context.js";
 import { pickerAvailable } from "../lib/assistant/pick.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
 import { count, listeningIsCapped } from "../lib/assistant/meter.js";
-import { INTERNAL_CALL_HEADER, INTERNAL_CALL_TOKEN, seal, sealIsValid } from "../lib/assistant/seal.js";
+import { sealIsValid } from "../lib/assistant/seal.js";
 
 /**
  * The assistant that is asked for things.
@@ -47,48 +46,6 @@ const runSchema = z.object({
 });
 
 export async function clinicAssistantRoutes(app: FastifyInstance) {
-  /** The app's own routes, called as the person who is asking. */
-  function callAs(request: FastifyRequest): Call {
-    return async (method, url, payload) => {
-      const res = await app.inject({
-        method,
-        url,
-        headers: {
-          authorization: request.headers.authorization ?? "",
-          [INTERNAL_CALL_HEADER]: INTERNAL_CALL_TOKEN,
-          ...(payload === undefined ? {} : { "content-type": "application/json" }),
-        },
-        ...(payload === undefined ? {} : { payload: JSON.stringify(payload) }),
-      });
-      let body: unknown = null;
-      try { body = res.json(); } catch { /* not JSON: a PDF, or nothing */ }
-      return { status: res.statusCode, body };
-    };
-  }
-
-  /** Who is asking, and what is on their screen. */
-  async function contextFor(request: FastifyRequest, on: { patientId?: string; appointmentId?: string }): Promise<RunContext> {
-    let patientId: string | null = null;
-    let appointmentId: string | null = null;
-    // What the browser says is on screen is looked up, not taken on
-    // trust: an id that names nothing is simply no patient.
-    if (on.appointmentId) {
-      const visit = await prisma.appointment.findUnique({ where: { id: on.appointmentId }, select: { id: true, patientId: true } });
-      if (visit) { appointmentId = visit.id; patientId = visit.patientId; }
-    } else if (on.patientId) {
-      const patient = await prisma.patient.findUnique({ where: { id: on.patientId }, select: { id: true } });
-      if (patient) patientId = patient.id;
-    }
-    if (patientId) request.auditPatientId = patientId;
-    return {
-      asker: { userId: request.clinicUserId!, role: request.clinicUserRole!, isAdmin: request.clinicUserIsAdmin === true, name: request.clinicUserName ?? "" },
-      patientId,
-      appointmentId,
-      today: new Date(),
-      call: callAs(request),
-    };
-  }
-
   function record(request: FastifyRequest, answered: Answered) {
     // What it cost and what did the work, per request, in the log the
     // clinic's server already keeps. No words of the request, and no
@@ -100,16 +57,6 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       tokensOut: answered.usage?.outputTokens ?? 0,
       ruleAnswers: answered.by === "rule" ? 1 : 0,
     }, request.clinicUserId);
-  }
-
-  /**
-   * A change is sent back sealed to the patient it was drawn up for, and
-   * the person it was drawn up for (lib/assistant/seal.ts).
-   */
-  function sealed(reply: Answered["reply"], context: RunContext) {
-    if (reply.kind !== "confirm") return reply;
-    const card = { action: reply.action, params: reply.params, patientId: context.patientId, appointmentId: context.appointmentId, userId: context.asker.userId };
-    return { ...reply, patientId: context.patientId, appointmentId: context.appointmentId, seal: seal(card) };
   }
 
   app.get("/api/clinic/assistant/status", async (request, reply) => {
@@ -125,7 +72,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (!auth) return;
     const parsed = askSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "Say or type what you need." });
-    const context = await contextFor(request, parsed.data);
+    const context = await contextFor(app, request, parsed.data);
     const answered = await ask(parsed.data.text, context, parsed.data.pending);
     record(request, answered);
     return { reply: sealed(answered.reply, context), by: answered.by };
@@ -158,7 +105,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     }
     const pendingRequest = field("pendingRequest");
     const pendingQuestion = field("pendingQuestion");
-    const context = await contextFor(request, { patientId: field("patientId"), appointmentId: field("appointmentId") });
+    const context = await contextFor(app, request, { patientId: field("patientId"), appointmentId: field("appointmentId") });
     const answered = await ask(
       heard,
       context,
@@ -188,7 +135,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     }
     // The patient and visit come from the card. A visit names its
     // patient, so only the visit is passed on when there is one.
-    const context = await contextFor(request, card.appointmentId ? { appointmentId: card.appointmentId } : { patientId: card.patientId ?? undefined });
+    const context = await contextFor(app, request, card.appointmentId ? { appointmentId: card.appointmentId } : { patientId: card.patientId ?? undefined });
     if (context.patientId !== card.patientId || context.appointmentId !== card.appointmentId) {
       return { reply: { kind: "sorry", say: "That patient's record is no longer where it was. Ask me again." }, by: "none" };
     }

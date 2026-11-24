@@ -6,7 +6,10 @@ import { requireClinicalWriteAuth } from "../plugins/auth.js";
 import { env } from "../config/env.js";
 import { isFeatureEnabled } from "../config/features.js";
 import { buildDraft, carryOver } from "../lib/scribe/engine.js";
-import type { Draft } from "../lib/scribe/checks.js";
+import { removeIdentifiers, type Draft } from "../lib/scribe/checks.js";
+import { contextFor, sealed } from "../lib/assistant/context.js";
+import { proposeFromConsultation, proposingAvailable } from "../lib/assistant/propose.js";
+import type { Reply } from "../lib/assistant/registry.js";
 import { clinicHost, doctorHabits } from "../lib/scribe/clinic-host.js";
 import { createReader, modelAvailable } from "../lib/scribe/model.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
@@ -323,13 +326,32 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
 
+    const who = { ...patient, otherNames: [request.clinicUserName], relativeNames: await relativeNames(session.patientId) };
+    const capped = await modelIsCapped(auth.clinicUserId);
+
+    // What else the consultation called for -- a form of the clinic's
+    // own, a family member, a certificate -- read at the same time as the
+    // note, so it adds nothing to the wait. Each comes back as a card for
+    // the doctor to confirm. If it fails, the note is still the note.
+    const proposing = proposingAvailable() && !capped
+      ? contextFor(app, request, { appointmentId: session.appointmentId })
+          .then((context) => proposeFromConsultation(removeIdentifiers(session.transcript, who), context).then((p) => ({ ...p, context })))
+          .catch((error) => {
+            request.log.warn({ err: error instanceof Error ? error.message : String(error) }, "nothing further could be proposed from this consultation");
+            return null;
+          })
+      : Promise.resolve(null);
+
     const built = await buildDraft({
       transcript: session.transcript,
-      patient: { ...patient, otherNames: [request.clinicUserName], relativeNames: await relativeNames(session.patientId) },
+      patient: who,
       host: clinicHost(auth.clinicUserId),
       // At the ceiling the note is still made, by rule alone.
-      reader: (await modelIsCapped(auth.clinicUserId)) ? null : createReader(),
+      reader: capped ? null : createReader(),
     });
+    const proposed = await proposing;
+    if (proposed?.usage) void count({ modelCalls: 1, tokensIn: proposed.usage.inputTokens, tokensOut: proposed.usage.outputTokens }, auth.clinicUserId);
+    const also: Reply[] = proposed ? proposed.cards.map((card) => sealed(card, proposed.context)) : [];
     const usage = built.usage;
     if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens }, auth.clinicUserId);
     // The final pass reads the whole consultation and stands on its own.
@@ -351,7 +373,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
         outputTokens: { increment: usage?.outputTokens ?? 0 },
       },
     });
-    return { draft, transcript: session.transcript };
+    return { draft, transcript: session.transcript, also };
   });
 
   /**

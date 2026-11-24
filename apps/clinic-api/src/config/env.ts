@@ -122,6 +122,15 @@ const envSchema = z.object({
   // Lower is livelier and costs more; 0 uses the model only at the end.
   SCRIBE_LIVE_SECONDS: z.coerce.number().int().min(0).max(600).default(40),
 
+  // When a consultation ends, also offer what else it called for: the
+  // clinic's own forms, a family member to add, a certificate
+  // (lib/assistant/propose.ts). One more model call, made only when the
+  // consultation could contain one of those. "false" turns it off.
+  SCRIBE_PROPOSE_ACTIONS: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+
   // Cost guards for the whole clinic, per day (lib/assistant/meter.ts).
   // Set well above a busy day's real use, so they are never met in
   // ordinary work and stop only a fault: a microphone left recording, a

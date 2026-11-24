@@ -206,6 +206,48 @@ stated. The card showed it before anything was saved, and the model is
 now told that a remark about a subject is not a finding on it; this has
 not been re-measured.
 
+## 7. What else a consultation called for
+
+Added last. When the doctor stops, the conversation is also read for the
+clinic's own forms, a family member to add and a certificate to give.
+Three consultations were run through it as text:
+
+| Consultation | Cards offered |
+|---|---|
+| The owner's own antenatal conversation, as it was transcribed | One: the clinic's antenatal form, with weight 85 kg, BP 130/80, complaint and next visit 25 December. Confirmed, and saved. |
+| An ordinary fever visit | None, and no model call was made for it |
+| A diabetes review in which the doctor agrees to two days' sick leave and mentions a brother already on the file | Two: the diabetes review form and the sick-leave certificate. No card for the brother. |
+
+The card under the note:
+
+![Also from this consultation](14-also-from-this-consultation.png)
+
+After Confirm on it:
+
+![Form saved from the consultation](15-form-saved-from-the-consultation.png)
+
+Two faults found here and fixed: "come back in a month" was worked out a
+day short before 5:30 in the morning, because the date was taken in UTC;
+and a relative whose name had been removed from the text was offered as
+"brother, name not given".
+
+Not shown: any of this from live speech. All three were typed text.
+
+## 8. An independent review of the code
+
+A second reviewer read the branch for faults. Fixed as a result:
+
+| Fault | Fix |
+|---|---|
+| A confirm card could be saved against a different patient if the screen changed before Confirm | Cards are signed by the server and refused if anything differs |
+| Letting go of the microphone quickly could leave it recording | Fixed |
+| Notes made while listening did not count toward the model ceiling | They do now, per clinic and per person |
+| Confirm or Discard pressed twice could both succeed | The second is refused |
+| A failed or doubled start left the microphone open | Fixed |
+| The length of a piece of audio was taken on the browser's word | The server works it out from the size as well |
+| A medicine the doctor withdrew aloud could come back in the note | Fixed |
+| A pattern for email addresses could be made to run very slowly | Bounded |
+
 ## What it cost
 
 | | |

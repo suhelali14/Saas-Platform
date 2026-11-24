@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mic, Square, NotebookPen, AlertTriangle, X, Plus, Trash2 } from 'lucide-react';
+import { Mic, Square, NotebookPen, AlertTriangle, X, Plus, Trash2, Check } from 'lucide-react';
 import { Button } from './Button';
 import { Pick } from './Field';
 import { DoseInput } from './DoseInput';
@@ -275,6 +275,40 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* What else the consultation called for. Separate from the note
+            on purpose: each is its own record, saved by its own Confirm,
+            and none of them waits on the note or is held up by it. */}
+        {s.also.some((c) => c.state !== 'dismissed') && (
+          <div>
+            <h4 className="text-[13px] font-semibold">Also from this consultation</h4>
+            <p className="text-[12px] text-muted-foreground mb-2">Each of these is saved on its own, when you confirm it.</p>
+            <div className="flex flex-col gap-2">
+              {s.also.map((card, i) => card.state === 'dismissed' ? null : (
+                <div key={i} className="rounded-lg border border-border/15 bg-background/60 p-3">
+                  <div className="text-[14px] font-semibold">{card.title}</div>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {card.lines.map((line, x) => (
+                      <li key={x} className={`flex gap-3 text-[13px] ${line.tone === 'danger' ? 'text-ink-danger font-semibold' : line.tone === 'warning' ? 'text-ink-warning' : line.tone === 'muted' ? 'text-muted-foreground' : ''}`}>
+                        {line.label && <span className="w-28 shrink-0 text-[12px] font-medium text-muted-foreground pt-px">{line.label}</span>}
+                        <span className="min-w-0 flex-1">{line.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {card.state === 'done' ? (
+                    <p className="mt-2 flex items-center gap-1.5 text-[13px] font-semibold text-ink-success"><Check size={14} aria-hidden="true" /> {card.said ?? 'Saved.'}</p>
+                  ) : (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button variant="secondary" size="sm" icon={<Check size={13} />} busyLabel="Saving…" onClick={() => s.confirmAlso(i)}>Confirm</Button>
+                      <Button variant="ghost" size="sm" onClick={() => s.dismissAlso(i)}>Not needed</Button>
+                      {card.said && <span className="text-[12px] text-ink-warning" role="alert">{card.said}</span>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
