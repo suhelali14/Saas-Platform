@@ -164,7 +164,7 @@ function habitMentions(transcript: string, habits: Habit[], already: LocalMedici
   return found;
 }
 
-async function resolve(medicine: LocalMedicine, habits: Habit[], host: AssistantHost): Promise<DraftMedicine> {
+export async function resolveMedicine(medicine: LocalMedicine, habits: Habit[], host: AssistantHost): Promise<DraftMedicine> {
   const base: DraftMedicine = {
     spoken: medicine.spoken,
     drugId: null,
@@ -352,7 +352,7 @@ export async function buildDraft(input: {
   // ── Medicines: one list from every reader ──────────────────────────
   let medicines = mergeMedicines(note ? fromModel(note) : [], rules.medicines);
   medicines = [...medicines, ...habitMentions(transcript, habits, medicines)];
-  const resolved = await Promise.all(medicines.map((m) => resolve(m, habits, input.host)));
+  const resolved = await Promise.all(medicines.map((m) => resolveMedicine(m, habits, input.host)));
 
   // ── Everything else ────────────────────────────────────────────────
   // A number read by rule was matched exactly; the model's is used only

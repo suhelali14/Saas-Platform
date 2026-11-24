@@ -15,7 +15,7 @@ import { SetupPrompt } from './SetupPrompt';
 import { QuickSwitcher } from './QuickSwitcher';
 import { SkeletonPage } from './Skeleton';
 import { ScribeProvider } from '../contexts/ScribeContext';
-import { ScribeDock } from './ScribeDock';
+import { AssistantBar } from './AssistantBar';
 
 /** How a role reads in the sidebar: a word, not a code. */
 const ROLE_WORDS: Record<string, string> = {
@@ -258,7 +258,10 @@ export function Layout() {
 
       {/* min-w-0 stops a wide table inside from stretching the flex row and
           pushing the sidebar off screen. */}
-      <main id="main" data-readonly={entitlement.readOnly ? '' : undefined} className="flex-1 min-w-0">
+      {/* Room at the foot of every screen for the assistant's bar, so the
+          last row of a table or the Save button of a form is never
+          underneath it. */}
+      <main id="main" data-readonly={entitlement.readOnly ? '' : undefined} className={`flex-1 min-w-0 ${hasModule('scribe') ? 'pb-24' : ''}`}>
         <AccountBanner readOnly={entitlement.readOnly} demo={entitlement.demo} contact={entitlement.upgradeContact} />
         {/* Above every portal screen, because the person who can fill in
             the clinic's website did not come here to look at it. */}
@@ -283,7 +286,7 @@ export function Layout() {
       {/* Overlays everything, so it is mounted on the shell rather than
           inside a page. Ctrl+K from any screen. */}
       <QuickSwitcher />
-      <ScribeDock />
+      <AssistantBar />
     </div>
     </ScribeProvider>
   );

@@ -4,18 +4,19 @@ import { clock, useScribe } from '../contexts/ScribeContext';
 import { Button } from './Button';
 
 /**
- * The assistant, wherever the doctor has gone.
+ * The consultation being listened to, shown wherever the doctor has gone.
  *
- * While a consultation is being listened to, the doctor is free to open
- * the patient's history, an old report, anything -- and this bar follows
+ * While a visit is being listened to, the doctor is free to open the
+ * patient's history, an old report, anything -- and this row follows
  * them, the way a call in progress follows you out of the phone app. It
  * says who is being listened to, for how long and what is being written,
  * and it is one tap back to the note.
  *
- * It is not shown on the visit's own page, where the full note is already
+ * It is a row of the assistant's bar (components/AssistantBar.tsx), and
+ * is not shown on the visit's own page, where the full note is already
  * on screen and a second copy of it would only be in the way.
  */
-export function ScribeDock() {
+export function ScribeStatusRow() {
   const s = useScribe();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -30,12 +31,7 @@ export function ScribeDock() {
   };
 
   return (
-    <div
-      role="status"
-      aria-label="The assistant is working"
-      className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-xl items-center gap-3 rounded-2xl border border-border/20 bg-background px-4 py-3 shadow-overlay md:left-[calc(15rem+0.75rem)]"
-      style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
-    >
+    <div role="status" aria-label="The assistant is listening to a visit" className="flex items-center gap-3 border-b border-border/15 px-4 py-2.5">
       {s.phase === 'listening' && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-ink-danger animate-pulse" aria-hidden="true" />}
       <button type="button" onClick={() => navigate(home)} className="min-w-0 flex-1 text-left">
         <span className="block truncate text-[14px] font-semibold">
