@@ -10,7 +10,7 @@
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { buildDraft, type AssistantHost, type Habit, type ModelNote, type ModelReader } from "../src/lib/scribe/engine.js";
+import { buildDraft, carryOver, type AssistantHost, type Habit, type ModelNote, type ModelReader } from "../src/lib/scribe/engine.js";
 
 const HABITS: Habit[] = [
   { drugId: "d-dolo", drugName: "Dolo 650 Tablet", composition: "Paracetamol (650mg)", dosage: "1-1-1", frequency: "TDS", duration: "3 days", count: 40 },
@@ -60,6 +60,37 @@ test("a dictated note that names its sections never reaches the model", async ()
   assert.equal(draft.diagnosis, "Viral fever");
   assert.equal(draft.medicines[0]!.drugId, "d-dolo");
   assert.equal(draft.followUpInDays, 5);
+});
+
+test("while listening, what the model wrote a moment ago is not wiped by a rules-only pass", async () => {
+  const first = "Teen din se bukhar hai doctor, khansi bhi hai. Theek hai Dolo 650 lijiye.";
+  const withModel = await buildDraft({
+    transcript: first, patient, host: host(),
+    reader: reader({ chiefComplaint: "Fever x 3 days, cough", medicines: [{ spoken: "Dolo 650", dosage: "", frequency: "", duration: "", instructions: "", quote: "Theek hai Dolo 650 lijiye" }] }),
+  });
+  // Ten seconds later more was said, and this pass is by rule alone.
+  const longer = first + " BP 130 by 80. Tab Pan 40 once daily before food for 2 weeks.";
+  const byRule = await buildDraft({ transcript: longer, patient, host: host(), reader: null, quiet: true });
+  assert.equal(byRule.draft.chiefComplaint, "");
+  assert.ok(!byRule.draft.flags.some((f) => f.kind === "engine"));
+
+  const live = carryOver(withModel.draft, byRule.draft, { transcript: longer, allergies: null });
+  assert.equal(live.chiefComplaint, "Fever x 3 days, cough");
+  assert.equal(live.vitals.bp, "130/80");
+  assert.deepEqual(live.medicines.map((m) => m.drugId).sort(), ["d-dolo", "d-pan"]);
+  assert.equal(live.engine.model, "test-model");
+});
+
+test("a dictated note with something the rules could not place does reach the model", async () => {
+  const calls: { transcript: string }[] = [];
+  const { draft } = await buildDraft({
+    // The first word was clipped by the microphone, so no "complaint" label.
+    transcript: "Fever and dry cough for three days. Diagnosis viral fever. Tab Dolo 650 thrice a day for 3 days.",
+    patient, host: host(), reader: reader({ chiefComplaint: "Fever and dry cough x 3 days", diagnosis: "Viral fever" }, calls),
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(draft.chiefComplaint, "Fever and dry cough x 3 days");
+  assert.equal(draft.medicines[0]!.dosage, "1-1-1");
 });
 
 test("a conversation goes to the model with the patient's name and phone removed", async () => {

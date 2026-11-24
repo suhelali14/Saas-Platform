@@ -115,6 +115,13 @@ const envSchema = z.object({
   SCRIBE_LANGUAGE: z.string().default("unknown"),
   // The small model on purpose: see lib/scribe/model.ts.
   SCRIBE_MODEL: z.string().default("claude-haiku-5-5"),
+  // While listening, the note on screen is rebuilt by rule after every
+  // piece of speech, which is free. This is how many seconds of new
+  // speech pass between the rebuilds that also use the language model,
+  // which is what writes the complaint and history as the doctor talks.
+  // Lower is livelier and costs more; 0 uses the model only at the end.
+  SCRIBE_LIVE_SECONDS: z.coerce.number().int().min(0).max(600).default(40),
+
   // Cost guard: the longest one consultation may be listened to, in
   // minutes. A recording left running over lunch should stop on its own.
   SCRIBE_MAX_MINUTES: z.coerce.number().int().min(1).max(120).default(30),

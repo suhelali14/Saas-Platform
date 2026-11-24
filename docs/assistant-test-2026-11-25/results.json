@@ -1,0 +1,138 @@
+{
+  "ranAt": "2026-11-24T20:30:53.922Z",
+  "steps": [
+    {
+      "name": "listening: pieces as they were heard",
+      "pieces": [
+        {
+          "atSecond": 6,
+          "status": 200,
+          "heard": "Complaint fever and dry cough for 3 days. Diagnosis viral fever.",
+          "medicinesSoFar": 0,
+          "model": null
+        },
+        {
+          "atSecond": 15,
+          "status": 200,
+          "heard": "BP 130 by 80. Tablet Dolo 650, twice a day, for five days, after food.",
+          "medicinesSoFar": 1,
+          "model": null
+        },
+        {
+          "atSecond": 21,
+          "status": 200,
+          "heard": "Capsule PAN 40, once daily, before food, for 2 weeks.",
+          "medicinesSoFar": 2,
+          "model": null
+        },
+        {
+          "atSecond": 29,
+          "status": 200,
+          "heard": "Do a CBC review after one week.",
+          "medicinesSoFar": 2,
+          "model": null
+        }
+      ]
+    },
+    {
+      "name": "listening: draft shown",
+      "msFromStopToDraft": 441,
+      "engine": {
+        "rules": true,
+        "model": null,
+        "reason": "The note named its own sections, so no model was used."
+      },
+      "medicines": [
+        "Dolo 650 Tablet | 1-0-1 | BD | 5 days | After food",
+        "PAN 40 Tablet | 1-0-0 | OD | 2 weeks | Before food"
+      ],
+      "vitals": {
+        "bp": "130/80"
+      },
+      "labTests": [
+        "Complete Blood Count (CBC)"
+      ],
+      "followUpInDays": 7,
+      "complaint": "Fever and dry cough for 3 days",
+      "diagnosis": "Viral fever",
+      "flags": [],
+      "transcript": "Complaint fever and dry cough for 3 days. Diagnosis viral fever.\nBP 130 by 80. Tablet Dolo 650, twice a day, for five days, after food.\nCapsule PAN 40, once daily, before food, for 2 weeks.\nDo a CBC review after one week."
+    },
+    {
+      "name": "listening: confirmed",
+      "status": 201,
+      "body": {
+        "caseSheetId": "cmwv5gz9d0029wm20tj1czywc",
+        "prescriptionId": "cmwv5gz9g002bwm2044pw4rhs",
+        "labOrderId": "cmwv5gz9m002gwm20wcn3lblk",
+        "labTestsSkipped": false
+      }
+    },
+    {
+      "name": "conversation: draft shown",
+      "ms": 6666,
+      "engine": {
+        "rules": true,
+        "model": "claude-haiku-5-5",
+        "reason": "A conversation, read by the language model and checked by rule."
+      },
+      "complaint": "Sore throat x 4 days with fever",
+      "history": "Sore throat x 4 days, fever, painful swallowing. Mild cough. No ear pain. On examination: tonsils swollen and red.",
+      "diagnosis": "Acute tonsillitis",
+      "advice": "Warm water gargles. Avoid cold drinks. Return after 5 days.",
+      "vitals": {
+        "bp": "126/82",
+        "temp": "101",
+        "pulse": "96"
+      },
+      "medicines": [
+        "DavaIndia Amoxycillin 500mg Capsule [catalogue] | 1-1-1 | TDS | 5 days | After food",
+        "Dolo 650 Tablet [habit] | 1-1-1 | TDS | 3 days | "
+      ],
+      "labTests": [
+        "Complete Blood Count (CBC)"
+      ],
+      "followUpInDays": 5,
+      "flags": [
+        "danger: DavaIndia Amoxycillin 500mg Capsule: this patient's file lists an allergy to Penicillin, and this medicine may be related to it.",
+        "warning: \"Amoxicillin 500\" was matched to DavaIndia Amoxycillin 500mg Capsule by a close spelling. Check it is the one you meant."
+      ],
+      "leftover": [
+        "Known penicillin allergy on file; amoxicillin prescribed, please verify"
+      ]
+    },
+    {
+      "name": "conversation: discarded, nothing saved"
+    },
+    {
+      "name": "phone dictation: draft shown",
+      "ms": 150,
+      "engine": {
+        "rules": true,
+        "model": null,
+        "reason": "The note named its own sections, so no model was used."
+      },
+      "complaint": "Loose motions and vomiting since yesterday",
+      "diagnosis": "Acute gastroenteritis",
+      "vitals": {
+        "temp": "99",
+        "weight": "18"
+      },
+      "medicines": [
+        "Ondem Syrup [catalogue] | 1-0-1 | BD | 2 days",
+        "T-Zinc Syrup [catalogue] | 1-0-0 | OD | 14 days"
+      ],
+      "followUpInDays": 3,
+      "flags": [
+        "\"Zinc 20\" was matched to T-Zinc Syrup by a close spelling. Check it is the one you meant."
+      ]
+    },
+    {
+      "name": "phone: horizontal overflow in pixels",
+      "overflow": 0
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

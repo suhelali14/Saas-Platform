@@ -5,7 +5,8 @@ import { prisma } from "../lib/prisma.js";
 import { requireClinicalWriteAuth } from "../plugins/auth.js";
 import { env } from "../config/env.js";
 import { isFeatureEnabled } from "../config/features.js";
-import { buildDraft } from "../lib/scribe/engine.js";
+import { buildDraft, carryOver } from "../lib/scribe/engine.js";
+import type { Draft } from "../lib/scribe/checks.js";
 import { clinicHost, doctorHabits } from "../lib/scribe/clinic-host.js";
 import { createReader, modelAvailable } from "../lib/scribe/model.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
@@ -172,8 +173,8 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     const seconds = Math.min(30, Math.max(1, Math.round(Number((file.fields.seconds as { value?: string } | undefined)?.value ?? 25))));
 
     let text: string;
+    const habits = await doctorHabits(auth.clinicUserId);
     try {
-      const habits = await doctorHabits(auth.clinicUserId);
       text = await transcribe(audio, file.mimetype, habits.map((h) => h.drugName));
     } catch (error) {
       if (error instanceof SpeechUnavailable) return reply.status(error.status).send({ error: error.message, retry: error.status === 429 || error.status === 503 });
@@ -190,7 +191,55 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       WHERE id = ${id}
       RETURNING transcript
     `;
-    return { text, transcript: updated[0]?.transcript ?? "" };
+    const transcript = updated[0]?.transcript ?? "";
+
+    /*
+     * The note so far, sent back with every piece.
+     *
+     * This is what lets the screen fill in while the doctor is still
+     * talking, the way a person taking notes writes as they listen. Each
+     * piece is read by rule, which is free and takes milliseconds; every
+     * SCRIBE_LIVE_SECONDS of new speech the language model reads it too,
+     * so the complaint and history appear mid-consultation rather than
+     * all at once at the end.
+     *
+     * A failure here never fails the piece: the audio was heard and its
+     * words are saved, and the note is rebuilt on the next one.
+     */
+    let live: Draft | null = null;
+    try {
+      const patient = await prisma.patient.findUnique({
+        where: { id: session.patientId },
+        select: { name: true, phone: true, age: true, gender: true, allergies: true, chronicConditions: true },
+      });
+      if (patient && transcript.trim().length >= 10) {
+        const previous = (session.draft as unknown as (Draft & { modelAtSeconds?: number }) | null) ?? null;
+        const heardSeconds = session.audioSeconds + seconds;
+        const sinceModel = heardSeconds - (previous?.modelAtSeconds ?? 0);
+        const useModel = env.SCRIBE_LIVE_SECONDS > 0 && sinceModel >= env.SCRIBE_LIVE_SECONDS;
+        const { draft, usage } = await buildDraft({
+          transcript,
+          patient,
+          host: clinicHost(auth.clinicUserId, habits),
+          reader: useModel ? createReader() : null,
+          quiet: true,
+        });
+        live = carryOver(previous, draft, { transcript, allergies: patient.allergies });
+        await prisma.scribeSession.update({
+          where: { id },
+          data: {
+            draft: { ...live, modelAtSeconds: usage ? heardSeconds : (previous?.modelAtSeconds ?? 0) } as unknown as Prisma.InputJsonValue,
+            model: usage?.model ?? session.model,
+            inputTokens: { increment: usage?.inputTokens ?? 0 },
+            outputTokens: { increment: usage?.outputTokens ?? 0 },
+          },
+        });
+      }
+    } catch (error) {
+      request.log.warn({ err: error instanceof Error ? error.message : String(error) }, "the live note could not be rebuilt for this piece");
+    }
+
+    return { text, transcript, live };
   });
 
   /** Replaces the transcript: text typed, pasted, or corrected by hand. */
@@ -231,12 +280,20 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
 
-    const { draft, usage } = await buildDraft({
+    const built = await buildDraft({
       transcript: session.transcript,
       patient,
       host: clinicHost(auth.clinicUserId),
       reader: createReader(),
     });
+    const usage = built.usage;
+    // The final pass reads the whole consultation and stands on its own.
+    // Only when the model did not answer is what it wrote earlier, while
+    // listening, kept -- rather than handing back a note with the history
+    // it had a minute ago now missing.
+    const draft = usage || built.draft.engine.model === null && built.draft.flags.every((f) => f.kind !== "engine")
+      ? built.draft
+      : carryOver((session.draft as unknown as Draft | null) ?? null, built.draft, { transcript: session.transcript, allergies: patient.allergies });
 
     await prisma.scribeSession.update({
       where: { id },

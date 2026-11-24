@@ -26,15 +26,25 @@ import { shiftDateInput, todayInput } from '../lib/date';
  *
  * ── How the audio travels ────────────────────────────────────────────
  *
- * In pieces of twenty-five seconds, each a complete recording of its own,
- * sent as it ends. The speech service answers a piece under thirty
- * seconds at once, so the transcript grows while the doctor is still
- * talking and there is no long wait at the end. A piece in which nobody
- * spoke -- the doctor examining, writing, the patient leaving -- is never
- * sent: it would cost money to be told it was silent.
+ * In short pieces, each a complete recording of its own, sent as it ends
+ * -- and it ends at a pause. Somebody finishes a sentence and draws
+ * breath; that is where the piece is cut, so no word is split in two and
+ * what was just said is on its way within a second of being said. The
+ * note on screen is rebuilt from every piece, which is what makes it fill
+ * in while the doctor is still talking rather than all at once at the end.
+ *
+ * A piece in which nobody spoke -- the doctor examining, writing, the
+ * patient leaving -- is never sent: it would cost money to be told it was
+ * silent.
  */
 
-const PIECE_MS = 25_000;
+/** A piece is not cut before this, so a short "haan" is not sent alone. */
+const PIECE_MIN_MS = 5_000;
+/** ...and never runs past this, pause or no pause. The speech service
+ *  answers at once only for under thirty seconds. */
+const PIECE_MAX_MS = 18_000;
+/** How long nobody speaks before it counts as a pause: four samples, 0.8s. */
+const PAUSE_SAMPLES = 4;
 /** A piece is sent only if speech was heard for at least this share of it. */
 const SPEECH_SHARE = 0.06;
 /** Loudness above which a moment counts as somebody speaking. */
@@ -60,6 +70,107 @@ interface Session { id: string; transcript: string; status: string; consentAt: s
 
 type Phase = 'idle' | 'listening' | 'finishing' | 'review';
 
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Text that is written out, the way a person writes it.
+ *
+ * When more is added to what is already there, only the new part is
+ * written; when it changes outright, it is written again from the start.
+ * Someone who has asked their device for less motion gets the text at
+ * once.
+ */
+function Written({ text, onWriting }: { text: string; onWriting?: (writing: boolean) => void }) {
+  const [shown, setShown] = useState(REDUCED_MOTION ? text : '');
+  const shownRef = useRef(shown);
+  useEffect(() => {
+    if (REDUCED_MOTION || shownRef.current === text) { shownRef.current = text; setShown(text); return; }
+    let at = text.startsWith(shownRef.current) ? shownRef.current.length : 0;
+    onWriting?.(true);
+    const timer = setInterval(() => {
+      at = Math.min(text.length, at + 2);
+      shownRef.current = text.slice(0, at);
+      setShown(shownRef.current);
+      if (at >= text.length) { clearInterval(timer); onWriting?.(false); }
+    }, 22);
+    return () => { clearInterval(timer); onWriting?.(false); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+  const writing = shown.length < text.length;
+  return <>{shown}{writing && <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-foreground/70" aria-hidden="true" />}</>;
+}
+
+/** What changed between two versions of the note, in a few words. */
+function whatChanged(before: Draft | null, after: Draft): string {
+  const added = after.medicines.find((m) => !before?.medicines.some((b) => b.drugName === m.drugName));
+  if (added) return `Writing the prescription: ${added.drugName}`;
+  if (after.diagnosis && after.diagnosis !== before?.diagnosis) return 'Noting the diagnosis';
+  for (const [key, label] of [['bp', 'blood pressure'], ['temp', 'temperature'], ['spo2', 'oxygen level'], ['pulse', 'pulse'], ['weight', 'weight']] as const) {
+    if (after.vitals[key] && after.vitals[key] !== before?.vitals[key]) return `Noting the ${label}`;
+  }
+  const test = after.labTests.find((t) => !before?.labTests.includes(t));
+  if (test) return `Adding a test: ${test}`;
+  if (after.followUpInDays && after.followUpInDays !== before?.followUpInDays) return 'Noting when to come back';
+  if (after.chiefComplaint !== (before?.chiefComplaint ?? '') || after.hopi !== (before?.hopi ?? '')) return 'Writing the history';
+  if (after.notes !== (before?.notes ?? '')) return 'Writing the advice';
+  return 'Listening';
+}
+
+/**
+ * The note as it is being written, during the consultation.
+ *
+ * Read-only on purpose: it is still changing under the doctor's eyes, and
+ * a field that rewrites itself while someone is typing in it is worse
+ * than one they cannot touch for a minute. It becomes theirs to edit the
+ * moment they stop the listening.
+ */
+function LiveNote({ note }: { note: Draft | null }) {
+  const row = (label: string, value: string) => (
+    <div className="grid grid-cols-[88px_1fr] gap-3 py-2 border-b border-border/10 last:border-0 sm:grid-cols-[110px_1fr]">
+      <dt className="text-[12px] font-medium text-muted-foreground pt-0.5">{label}</dt>
+      <dd className="text-[14px] leading-relaxed min-h-[1.4em]">
+        {value ? <Written text={value} /> : <span className="text-muted-foreground/50">Not heard yet</span>}
+      </dd>
+    </div>
+  );
+  const vitals = note
+    ? ([['BP', note.vitals.bp], ['Temp', note.vitals.temp], ['SpO2', note.vitals.spo2], ['Pulse', note.vitals.pulse], ['Weight', note.vitals.weight]] as const)
+        .filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join('   ')
+    : '';
+  return (
+    <dl className="mt-3 rounded-lg bg-background/70 border border-border/15 px-3 sm:px-4">
+      {row('Complaint', note?.chiefComplaint ?? '')}
+      {row('History', note?.hopi ?? '')}
+      {row('Vitals', vitals)}
+      {row('Diagnosis', note?.diagnosis ?? '')}
+      <div className="grid grid-cols-[88px_1fr] gap-3 py-2 border-b border-border/10 sm:grid-cols-[110px_1fr]">
+        <dt className="text-[12px] font-medium text-muted-foreground pt-0.5">Medicines</dt>
+        <dd className="text-[14px] leading-relaxed min-h-[1.4em]">
+          {note && note.medicines.length > 0 ? (
+            <ol className="flex flex-col gap-1.5">
+              {note.medicines.map((m, i) => {
+                const danger = note.flags.find((f) => f.medicine === i && f.level === 'danger');
+                return (
+                  <li key={m.drugName + i}>
+                    <span className="font-semibold"><Written text={m.drugName} /></span>
+                    <span className="text-foreground/75">
+                      <Written text={[m.dosage, m.frequency, m.duration, m.instructions].filter(Boolean).map((p) => `  ·  ${p}`).join('')} />
+                    </span>
+                    {danger && <span className="mt-0.5 flex items-start gap-1.5 text-[13px] font-semibold text-ink-danger"><AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />{danger.message}</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : <span className="text-muted-foreground/50">Not heard yet</span>}
+        </dd>
+      </div>
+      {row('Tests', note?.labTests.join(', ') ?? '')}
+      {row('Advice', note?.notes ?? '')}
+      {row('Come back', note?.followUpInDays ? `In ${note.followUpInDays} day${note.followUpInDays === 1 ? '' : 's'}` : '')}
+    </dl>
+  );
+}
+
 function pickMimeType(): string {
   if (typeof MediaRecorder === 'undefined') return '';
   for (const type of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']) {
@@ -84,6 +195,10 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
   const [note, setNote] = useState<Draft | null>(null);
   const [followUpDate, setFollowUpDate] = useState('');
   const [showHeard, setShowHeard] = useState(false);
+  // The note as it stands while still listening, and what was last done to it.
+  const [live, setLive] = useState<Draft | null>(null);
+  const [doing, setDoing] = useState('Listening');
+  const liveRef = useRef<Draft | null>(null);
 
   // Everything the recorder touches lives in refs: it runs on timers and
   // media callbacks that must see the current value, not the one from the
@@ -96,7 +211,10 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
   const pieceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const levelTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const heard = useRef({ speech: 0, total: 0 });
+  const heard = useRef({ speech: 0, total: 0, quiet: 0 });
+  const pieceStartedAt = useRef(0);
+  /** Ends the piece being recorded now and starts the next one. */
+  const cutHere = useRef<(() => void) | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
 
@@ -125,8 +243,13 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
       // far more often than the speech service is really down.
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-          const res = await apiUpload<{ transcript: string }>(`/scribe/sessions/${id}/audio`, file, { seconds: String(seconds) });
+          const res = await apiUpload<{ transcript: string; live: Draft | null }>(`/scribe/sessions/${id}/audio`, file, { seconds: String(seconds) });
           setTranscript(res.transcript);
+          if (res.live) {
+            setDoing(whatChanged(liveRef.current, res.live));
+            liveRef.current = res.live;
+            setLive(res.live);
+          }
           return;
         } catch (e) {
           if (attempt === 2) setError(e instanceof ApiError ? e.message : 'A part of the conversation could not be sent.');
@@ -142,7 +265,8 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
     const rec = new MediaRecorder(stream.current, mimeType ? { mimeType, audioBitsPerSecond: 32_000 } : undefined);
     const parts: Blob[] = [];
     const startedAt = Date.now();
-    heard.current = { speech: 0, total: 0 };
+    pieceStartedAt.current = startedAt;
+    heard.current = { speech: 0, total: 0, quiet: 0 };
     rec.ondataavailable = (e) => { if (e.data.size > 0) parts.push(e.data); };
     rec.onstop = () => {
       const { speech, total } = heard.current;
@@ -156,14 +280,18 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
     // A new recorder for each piece, rather than one recorder emitting
     // slices: only the first slice of a recording carries the header a
     // player needs, so later slices are not files anyone can transcribe.
-    pieceTimer.current = setTimeout(() => {
+    const next = () => {
+      if (pieceTimer.current) clearTimeout(pieceTimer.current);
       if (rec.state !== 'inactive') rec.stop();
       startPiece();
-    }, PIECE_MS);
+    };
+    cutHere.current = next;
+    pieceTimer.current = setTimeout(next, PIECE_MAX_MS);
   };
 
   const stopCapture = () => {
     listening.current = false;
+    cutHere.current = null;
     if (pieceTimer.current) clearTimeout(pieceTimer.current);
     if (levelTimer.current) clearInterval(levelTimer.current);
     if (tickTimer.current) clearInterval(tickTimer.current);
@@ -196,8 +324,12 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
         analyser.getByteTimeDomainData(samples);
         let sum = 0;
         for (const s of samples) sum += ((s - 128) / 128) ** 2;
-        heard.current.total += 1;
-        if (Math.sqrt(sum / samples.length) > SPEECH_LEVEL) heard.current.speech += 1;
+        const h = heard.current;
+        h.total += 1;
+        if (Math.sqrt(sum / samples.length) > SPEECH_LEVEL) { h.speech += 1; h.quiet = 0; } else h.quiet += 1;
+        // Cut at the pause after something was said, so what was just
+        // said is sent now rather than when a timer runs out.
+        if (h.quiet === PAUSE_SAMPLES && h.speech >= 5 && Date.now() - pieceStartedAt.current >= PIECE_MIN_MS) cutHere.current?.();
       }, 200);
 
       // A phone that locks its screen stops recording, mid consultation
@@ -207,6 +339,9 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
 
       setElapsed(0);
       setTranscript('');
+      setLive(null);
+      liveRef.current = null;
+      setDoing('Listening');
       const limit = (status?.maxMinutes ?? 30) * 60;
       tickTimer.current = setInterval(() => {
         setElapsed((s) => {
@@ -271,6 +406,8 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
     if (id) await apiFetch(`/scribe/sessions/${id}/discard`, { method: 'POST', data: {} }).catch(() => {});
     sessionId.current = null;
     setNote(null);
+    setLive(null);
+    liveRef.current = null;
     setTranscript('');
     setTyped('');
     setTyping(false);
@@ -347,9 +484,15 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
           <textarea rows={3} value={note.hopi} onChange={(e) => patch({ hopi: e.target.value })} className={`${input} text-foreground`} />
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+          {/* Labelled above, not by placeholder: a placeholder vanishes the
+              moment a value is filled in, and a draft arrives filled in --
+              so "99" and "18" sat side by side with nothing saying which
+              was the temperature and which the weight. */}
           {(['bp', 'temp', 'spo2', 'weight', 'pulse'] as const).map((key) => (
-            <input key={key} aria-label={key} placeholder={{ bp: 'BP', temp: 'Temp', spo2: 'SpO2', weight: 'Weight', pulse: 'Pulse' }[key]}
-              value={note.vitals[key] ?? ''} onChange={(e) => patch({ vitals: { ...note.vitals, [key]: e.target.value } })} className={small} />
+            <label key={key} className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              {{ bp: 'BP', temp: 'Temp', spo2: 'SpO2', weight: 'Weight (kg)', pulse: 'Pulse' }[key]}
+              <input value={note.vitals[key] ?? ''} onChange={(e) => patch({ vitals: { ...note.vitals, [key]: e.target.value } })} className={`${small} text-foreground`} />
+            </label>
           ))}
         </div>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Diagnosis
@@ -466,12 +609,21 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
           <div className="flex items-center gap-2.5 text-[15px] font-semibold">
             {phase === 'listening'
               ? <><span className="h-2.5 w-2.5 rounded-full bg-ink-danger animate-pulse" aria-hidden="true" /> Listening · {clock(elapsed)}</>
-              : 'Writing the note…'}
+              : 'Reading it through once more…'}
           </div>
-          {phase === 'listening' && <Button variant="danger" icon={<Square size={13} />} onClick={finish}>Stop and make the note</Button>}
+          {phase === 'listening' && <Button variant="danger" icon={<Square size={13} />} onClick={finish}>Stop and check the note</Button>}
         </div>
+        {/* What it is doing this moment, in words. */}
+        {phase === 'listening' && <p className="mt-1 text-[13px] text-muted-foreground">{doing}</p>}
         {error && <div className="mt-3 px-3 py-2 rounded-lg tone-warning text-sm">{error}</div>}
-        {transcript && <p className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap text-[13px] text-foreground/75">{transcript}</p>}
+        <LiveNote note={live} />
+        {transcript && (
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            <span className="font-medium">Just heard: </span>
+            {/* The end of it: the newest words are the ones worth showing. */}
+            {transcript.length > 220 ? `…${transcript.slice(-220)}` : transcript}
+          </p>
+        )}
       </section>
     );
   }

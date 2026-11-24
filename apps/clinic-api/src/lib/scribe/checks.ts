@@ -130,14 +130,43 @@ export function quoteIsInTranscript(quote: string, transcript: string): boolean 
  * as a salt ("penicillin", "sulfa") and a prescription as a brand, so a
  * check on the name alone would pass almost everything it exists to stop.
  */
-function allergyHit(allergies: string, medicine: DraftMedicine): string | null {
+/**
+ * Allergies are recorded as a family far more often than as a salt:
+ * "penicillin", "sulfa drugs", "NSAIDs". A patient whose file says
+ * penicillin must be flagged for amoxycillin, which does not contain the
+ * word. Each family is the word on the file against what marks its
+ * members in a composition.
+ *
+ * Short and deliberately conservative: the families a general practice
+ * meets, where membership is not in dispute. It widens a warning; it
+ * never clears one. A match here is worded as "may be related".
+ */
+const ALLERGY_FAMILIES: { onFile: RegExp; member: RegExp }[] = [
+  { onFile: /penicillin/, member: /cillin|amoxyclav|co-amoxiclav/ },
+  { onFile: /sul(?:f|ph)a/, member: /sul(?:f|ph)a|cotrimoxazole|co-trimoxazole/ },
+  { onFile: /nsaid|pain ?killer|aspirin|brufen/, member: /ibuprofen|diclofenac|aceclofenac|naproxen|ketorolac|piroxicam|mefenamic|nimesulide|aspirin|etoricoxib|indomethacin/ },
+  { onFile: /cephalosporin/, member: /\bcef|\bceph/ },
+  { onFile: /quinolone|floxacin/, member: /floxacin/ },
+];
+
+/** Words on an allergy line that name no substance. */
+const ALLERGY_FILLER = new Set(["drug", "drugs", "group", "class", "allergy", "allergic", "tablet", "tablets", "medicine", "medicines", "injection", "based"]);
+
+function allergyHit(allergies: string, medicine: DraftMedicine): { allergen: string; related: boolean } | null {
   const haystack = `${medicine.drugName} ${medicine.composition ?? ""} ${medicine.spoken}`.toLowerCase();
   for (const allergen of allergies.split(/[,;/\n]+/)) {
     const term = allergen.trim().toLowerCase();
     if (term.length < 4) continue;
-    // "Penicillins" on file, "Penicillin" in a composition.
-    const stem = term.replace(/s$/, "");
-    if (haystack.includes(stem)) return allergen.trim();
+    // Each substance word on the line, so "sulfa drugs" is checked as
+    // "sulfa". "Penicillins" on file, "Penicillin" in a composition.
+    for (const word of term.split(/\s+/)) {
+      const stem = word.replace(/[^a-z0-9-]/g, "").replace(/s$/, "");
+      if (stem.length < 4 || ALLERGY_FILLER.has(stem) || ALLERGY_FILLER.has(word)) continue;
+      if (haystack.includes(stem)) return { allergen: allergen.trim(), related: false };
+    }
+    for (const family of ALLERGY_FAMILIES) {
+      if (family.onFile.test(term) && family.member.test(haystack)) return { allergen: allergen.trim(), related: true };
+    }
   }
   return null;
 }
@@ -159,9 +188,14 @@ export function checkDraft(input: { medicines: DraftMedicine[]; transcript: stri
     const label = m.drugName || m.spoken;
 
     if (input.allergies) {
-      const allergen = allergyHit(input.allergies, m);
-      if (allergen) {
-        flags.push({ level: "danger", kind: "allergy", medicine: i, message: `${label}: this patient's file lists an allergy to ${allergen}.` });
+      const hit = allergyHit(input.allergies, m);
+      if (hit) {
+        flags.push({
+          level: "danger", kind: "allergy", medicine: i,
+          message: hit.related
+            ? `${label}: this patient's file lists an allergy to ${hit.allergen}, and this medicine may be related to it.`
+            : `${label}: this patient's file lists an allergy to ${hit.allergen}.`,
+        });
       }
     }
 

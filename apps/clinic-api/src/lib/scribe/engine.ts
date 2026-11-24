@@ -250,11 +250,55 @@ function fromModel(note: ModelNote): LocalMedicine[] {
     });
 }
 
+/**
+ * A note that keeps what it already had.
+ *
+ * While a consultation is being listened to, the note is rebuilt after
+ * every few seconds of speech. Most of those rebuilds are by rule alone,
+ * because a model call on every breath would cost more than the note is
+ * worth -- and a rules-only rebuild knows nothing of the complaint the
+ * model wrote a moment ago. Without this, the screen would show a history
+ * being written and then wiped.
+ *
+ * So what an earlier pass wrote stays until a later pass writes something
+ * in its place. Numbers and medicines read from the newest transcript
+ * win; anything only the earlier pass had is kept.
+ */
+export function carryOver(previous: Draft | null, next: Draft, context: { transcript: string; allergies: string | null }): Draft {
+  if (!previous) return next;
+  const have = new Set(next.medicines.map((m) => m.drugId ?? nameKey(m.drugName)));
+  const medicines = [
+    ...next.medicines,
+    ...previous.medicines.filter((m) => !have.has(m.drugId ?? nameKey(m.drugName))),
+  ];
+  return {
+    ...next,
+    chiefComplaint: next.chiefComplaint || previous.chiefComplaint,
+    hopi: next.hopi || previous.hopi,
+    diagnosis: next.diagnosis || previous.diagnosis,
+    notes: next.notes || previous.notes,
+    vitals: { ...previous.vitals, ...next.vitals },
+    medicines,
+    labTests: [...new Set([...previous.labTests, ...next.labTests])],
+    followUpInDays: next.followUpInDays ?? previous.followUpInDays,
+    // Checked again over the joined list: a flag points at a medicine by
+    // its position, and the positions have just changed.
+    flags: [
+      ...next.flags.filter((f) => f.kind === "engine"),
+      ...checkDraft({ medicines, transcript: context.transcript, allergies: context.allergies }),
+    ],
+    engine: { ...next.engine, model: next.engine.model ?? previous.engine.model },
+  };
+}
+
 export async function buildDraft(input: {
   transcript: string;
   patient: PatientContext;
   host: AssistantHost;
   reader: ModelReader | null;
+  /** A pass made while still listening: by rule alone is expected, so
+   *  the draft does not apologise for having no model. */
+  quiet?: boolean;
 }): Promise<DraftResult> {
   const transcript = input.transcript.trim();
   const [labCatalogue, habits] = await Promise.all([input.host.labCatalogue(), input.host.habits()]);
@@ -263,13 +307,20 @@ export async function buildDraft(input: {
   const flags: Flag[] = [];
 
   // ── Is a model needed at all? ──────────────────────────────────────
-  const rulesAreEnough = rules.hasSections && rules.coverage >= RULES_ARE_ENOUGH;
+  // Enough only when nothing was left over. A dictated note whose first
+  // word was clipped ("...fever and dry cough for three days. Diagnosis
+  // viral fever") names a section and covers most of the text, and still
+  // has a complaint the rules could not place -- which is what the model
+  // is for.
+  const rulesAreEnough = rules.hasSections && rules.coverage >= RULES_ARE_ENOUGH && rules.leftover.length === 0;
   let note: ModelNote | null = null;
   let usage: ModelUsage | null = null;
   let reason: string;
 
   if (rulesAreEnough) {
     reason = "The note named its own sections, so no model was used.";
+  } else if (!input.reader && input.quiet) {
+    reason = "Still listening.";
   } else if (!input.reader) {
     reason = "No language model is set up, so only what could be read by rule is filled in.";
     flags.push({ level: "info", kind: "engine", message: "The complaint and history were not summarised: the assistant's language model is not set up on this deployment. Type them in, or dictate them starting with the words \"complaint\" and \"diagnosis\"." });

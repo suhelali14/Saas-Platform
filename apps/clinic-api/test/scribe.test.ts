@@ -163,6 +163,18 @@ test("a medicine the patient is allergic to is flagged, by brand or by salt", ()
   assert.ok(!none.some((f) => f.kind === "allergy"));
 });
 
+test("an allergy recorded as a family is flagged for a member of it", () => {
+  const amoxy = med({ drugName: "Mox 500 Capsule", composition: "Amoxycillin (500mg)", spoken: "mox 500", source: "Cap Mox 500 thrice a day" });
+  const flags = checkDraft({ medicines: [amoxy], transcript: "Cap Mox 500 thrice a day", allergies: "Penicillin" });
+  assert.ok(flags.some((f) => f.kind === "allergy" && /may be related/.test(f.message)));
+
+  const septran = med({ drugName: "Septran DS Tablet", composition: "Sulfamethoxazole (800mg) + Trimethoprim (160mg)", spoken: "septran", source: "Tab Septran twice a day" });
+  assert.ok(checkDraft({ medicines: [septran], transcript: "Tab Septran twice a day", allergies: "Sulfa drugs" }).some((f) => f.kind === "allergy"));
+
+  // "drugs" on the allergy line is not a substance: paracetamol is not flagged.
+  assert.ok(!checkDraft({ medicines: [med({})], transcript: "Tab Dolo 650 twice a day for five days", allergies: "Sulfa drugs" }).some((f) => f.kind === "allergy"));
+});
+
 test("missing dose, unmatched name and a repeat are each said plainly", () => {
   const transcript = "Tab Dolo 650 twice a day for five days";
   const flags = checkDraft({
