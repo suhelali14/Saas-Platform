@@ -13,6 +13,11 @@
  *   weekend, a script calling the assistant in a loop -- stops at a known
  *   amount instead of running until somebody notices.
  *
+ * There are two ceilings on each paid thing: one for the whole clinic and
+ * a lower one for each person. Without the second, one login caught in a
+ * loop -- or one person leaning on the microphone -- would use up the
+ * clinic's day and switch the assistant off for the doctor mid-surgery.
+ *
  * Counters are kept in the clinic's own Redis, one small key per day,
  * for forty-five days. They hold numbers only: no words, no patient.
  *
@@ -26,6 +31,7 @@ import { redis } from "../sessions.js";
 export type Counter = "audioSeconds" | "modelCalls" | "tokensIn" | "tokensOut" | "ruleAnswers";
 
 const KEEP_SECONDS = 45 * 24 * 60 * 60;
+const COUNTERS: Counter[] = ["audioSeconds", "modelCalls", "tokensIn", "tokensOut", "ruleAnswers"];
 
 function dayKey(date = new Date()): string {
   // The clinic's day, not the server's: a ceiling should reset at
@@ -34,14 +40,19 @@ function dayKey(date = new Date()): string {
 }
 
 const key = (counter: Counter, day: string) => `meter:${day}:${counter}`;
+const userKey = (counter: Counter, day: string, userId: string) => `meter:${day}:user:${userId}:${counter}`;
 
-export async function count(amounts: Partial<Record<Counter, number>>): Promise<void> {
+export async function count(amounts: Partial<Record<Counter, number>>, userId?: string | null): Promise<void> {
   try {
     const day = dayKey();
     const multi = redis().multi();
     for (const [counter, amount] of Object.entries(amounts) as [Counter, number][]) {
       if (!amount || amount <= 0) continue;
       multi.incrby(key(counter, day), Math.round(amount)).expire(key(counter, day), KEEP_SECONDS);
+      // Per person only for the two things that have a per-person ceiling.
+      if (userId && (counter === "audioSeconds" || counter === "modelCalls")) {
+        multi.incrby(userKey(counter, day, userId), Math.round(amount)).expire(userKey(counter, day, userId), 2 * 24 * 60 * 60);
+      }
     }
     await multi.exec();
   } catch {
@@ -50,27 +61,28 @@ export async function count(amounts: Partial<Record<Counter, number>>): Promise<
 }
 
 async function usedOn(day: string): Promise<Record<Counter, number>> {
-  const counters: Counter[] = ["audioSeconds", "modelCalls", "tokensIn", "tokensOut", "ruleAnswers"];
-  const values = await redis().mget(...counters.map((c) => key(c, day)));
-  return Object.fromEntries(counters.map((c, i) => [c, Number(values[i] ?? 0)])) as Record<Counter, number>;
+  const values = await redis().mget(...COUNTERS.map((c) => key(c, day)));
+  return Object.fromEntries(COUNTERS.map((c, i) => [c, Number(values[i] ?? 0)])) as Record<Counter, number>;
 }
 
-/** Whether today's ceiling on listening has been reached. */
-export async function listeningIsCapped(): Promise<boolean> {
+async function capped(counter: "audioSeconds" | "modelCalls", clinicCeiling: number, userCeiling: number, userId?: string | null): Promise<boolean> {
   try {
-    return (await usedOn(dayKey())).audioSeconds >= env.ASSISTANT_DAILY_AUDIO_MINUTES * 60;
+    const day = dayKey();
+    const [clinic, user] = await redis().mget(key(counter, day), userId ? userKey(counter, day, userId) : key(counter, "never"));
+    return Number(clinic ?? 0) >= clinicCeiling || Number(user ?? 0) >= userCeiling;
   } catch {
     return false;
   }
 }
 
-/** Whether today's ceiling on model requests has been reached. */
-export async function modelIsCapped(): Promise<boolean> {
-  try {
-    return (await usedOn(dayKey())).modelCalls >= env.ASSISTANT_DAILY_MODEL_CALLS;
-  } catch {
-    return false;
-  }
+/** Whether today's ceiling on listening has been reached, for the clinic or for this person. */
+export function listeningIsCapped(userId?: string | null): Promise<boolean> {
+  return capped("audioSeconds", env.ASSISTANT_DAILY_AUDIO_MINUTES * 60, env.ASSISTANT_USER_DAILY_AUDIO_MINUTES * 60, userId);
+}
+
+/** Whether today's ceiling on model requests has been reached, for the clinic or for this person. */
+export function modelIsCapped(userId?: string | null): Promise<boolean> {
+  return capped("modelCalls", env.ASSISTANT_DAILY_MODEL_CALLS, env.ASSISTANT_USER_DAILY_MODEL_CALLS, userId);
 }
 
 /**
@@ -105,7 +117,7 @@ export async function usage(): Promise<Usage | null> {
     const days = Array.from({ length: 30 }, (_, i) => dayKey(new Date(Date.now() - i * 86_400_000)));
     const each = await Promise.all(days.map(usedOn));
     const month = each.reduce((sum, d) => {
-      for (const k of Object.keys(sum) as Counter[]) sum[k] += d[k];
+      for (const k of COUNTERS) sum[k] += d[k];
       return sum;
     }, { audioSeconds: 0, modelCalls: 0, tokensIn: 0, tokensOut: 0, ruleAnswers: 0 });
     return { today: each[0]!, month, ceilings: { audioMinutes: env.ASSISTANT_DAILY_AUDIO_MINUTES, modelCalls: env.ASSISTANT_DAILY_MODEL_CALLS } };

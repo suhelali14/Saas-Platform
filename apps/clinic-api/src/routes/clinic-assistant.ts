@@ -7,6 +7,7 @@ import type { Call, RunContext } from "../lib/assistant/actions.js";
 import { pickerAvailable } from "../lib/assistant/pick.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
 import { count, listeningIsCapped } from "../lib/assistant/meter.js";
+import { INTERNAL_CALL_HEADER, INTERNAL_CALL_TOKEN, seal, sealIsValid } from "../lib/assistant/seal.js";
 
 /**
  * The assistant that is asked for things.
@@ -25,7 +26,7 @@ import { count, listeningIsCapped } from "../lib/assistant/meter.js";
  */
 
 /** One spoken request: a sentence, not a consultation. */
-const MAX_ASK_BYTES = 1024 * 1024;
+const MAX_ASK_BYTES = 256 * 1024;
 const AUDIO_TYPES = /^audio\/(webm|ogg|mp4|wav|mpeg|x-m4a|aac)/;
 
 const askSchema = z.object({
@@ -39,8 +40,10 @@ const askSchema = z.object({
 const runSchema = z.object({
   action: z.string().min(1).max(80),
   params: z.record(z.unknown()).default({}),
-  patientId: z.string().max(60).optional(),
-  appointmentId: z.string().max(60).optional(),
+  /** From the card itself, not from whatever is on screen now. */
+  patientId: z.string().max(60).nullable().optional(),
+  appointmentId: z.string().max(60).nullable().optional(),
+  seal: z.string().max(200),
 });
 
 export async function clinicAssistantRoutes(app: FastifyInstance) {
@@ -50,7 +53,11 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       const res = await app.inject({
         method,
         url,
-        headers: { authorization: request.headers.authorization ?? "", ...(payload === undefined ? {} : { "content-type": "application/json" }) },
+        headers: {
+          authorization: request.headers.authorization ?? "",
+          [INTERNAL_CALL_HEADER]: INTERNAL_CALL_TOKEN,
+          ...(payload === undefined ? {} : { "content-type": "application/json" }),
+        },
         ...(payload === undefined ? {} : { payload: JSON.stringify(payload) }),
       });
       let body: unknown = null;
@@ -92,7 +99,17 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       tokensIn: answered.usage?.inputTokens ?? 0,
       tokensOut: answered.usage?.outputTokens ?? 0,
       ruleAnswers: answered.by === "rule" ? 1 : 0,
-    });
+    }, request.clinicUserId);
+  }
+
+  /**
+   * A change is sent back sealed to the patient it was drawn up for, and
+   * the person it was drawn up for (lib/assistant/seal.ts).
+   */
+  function sealed(reply: Answered["reply"], context: RunContext) {
+    if (reply.kind !== "confirm") return reply;
+    const card = { action: reply.action, params: reply.params, patientId: context.patientId, appointmentId: context.appointmentId, userId: context.asker.userId };
+    return { ...reply, patientId: context.patientId, appointmentId: context.appointmentId, seal: seal(card) };
   }
 
   app.get("/api/clinic/assistant/status", async (request, reply) => {
@@ -108,9 +125,10 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (!auth) return;
     const parsed = askSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "Say or type what you need." });
-    const answered = await ask(parsed.data.text, await contextFor(request, parsed.data), parsed.data.pending);
+    const context = await contextFor(request, parsed.data);
+    const answered = await ask(parsed.data.text, context, parsed.data.pending);
     record(request, answered);
-    return { reply: answered.reply, by: answered.by };
+    return { reply: sealed(answered.reply, context), by: answered.by };
   });
 
   /** The same, spoken. The audio is transcribed and gone; it is not kept. */
@@ -124,9 +142,9 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (audio.length === 0) return reply.status(400).send({ error: "Nothing was heard." });
     if (audio.length > MAX_ASK_BYTES) return reply.status(413).send({ error: "That was too long. Say it in one sentence." });
     const field = (name: string) => (file.fields[name] as { value?: string } | undefined)?.value;
-    if (await listeningIsCapped()) return reply.status(429).send({ error: "The assistant has reached today's limit for listening. Type what you need." });
+    if (await listeningIsCapped(auth.clinicUserId)) return reply.status(429).send({ error: "The assistant has reached today's limit for listening. Type what you need." });
     // Recorded at about four kilobytes a second; near enough for a meter.
-    void count({ audioSeconds: Math.max(1, Math.round(audio.length / 4000)) });
+    void count({ audioSeconds: Math.max(1, Math.round(audio.length / 4000)) }, auth.clinicUserId);
 
     let heard: string;
     try {
@@ -140,13 +158,14 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     }
     const pendingRequest = field("pendingRequest");
     const pendingQuestion = field("pendingQuestion");
+    const context = await contextFor(request, { patientId: field("patientId"), appointmentId: field("appointmentId") });
     const answered = await ask(
       heard,
-      await contextFor(request, { patientId: field("patientId"), appointmentId: field("appointmentId") }),
+      context,
       pendingRequest && pendingQuestion ? { request: pendingRequest.slice(0, 600), question: pendingQuestion.slice(0, 600) } : undefined,
     );
     record(request, answered);
-    return { reply: answered.reply, by: answered.by, heard };
+    return { reply: sealed(answered.reply, context), by: answered.by, heard };
   });
 
   /** A change the person pressed Confirm on. */
@@ -155,7 +174,25 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (!auth) return;
     const parsed = runSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "That could not be read." });
-    const answered = await runConfirmed(parsed.data.action, parsed.data.params, await contextFor(request, parsed.data));
+    const card = {
+      action: parsed.data.action,
+      params: parsed.data.params,
+      patientId: parsed.data.patientId ?? null,
+      appointmentId: parsed.data.appointmentId ?? null,
+      userId: auth.clinicUserId,
+    };
+    // The card as this server drew it up: this action, these details,
+    // this patient, this person. Anything else is not a card it issued.
+    if (!sealIsValid(card, parsed.data.seal)) {
+      return { reply: { kind: "sorry", say: "That card is out of date. Ask me again and I will draw it up afresh." }, by: "none" };
+    }
+    // The patient and visit come from the card. A visit names its
+    // patient, so only the visit is passed on when there is one.
+    const context = await contextFor(request, card.appointmentId ? { appointmentId: card.appointmentId } : { patientId: card.patientId ?? undefined });
+    if (context.patientId !== card.patientId || context.appointmentId !== card.appointmentId) {
+      return { reply: { kind: "sorry", say: "That patient's record is no longer where it was. Ask me again." }, by: "none" };
+    }
+    const answered = await runConfirmed(parsed.data.action, parsed.data.params, context);
     record(request, answered);
     return { reply: answered.reply, by: answered.by };
   });

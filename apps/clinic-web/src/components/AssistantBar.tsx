@@ -39,7 +39,7 @@ interface Line { label?: string; text: string; to?: string; tone?: 'danger' | 'w
 type Reply =
   | { kind: 'answer'; title: string; lines: Line[]; to?: string; toLabel?: string }
   | { kind: 'go'; to: string; say: string }
-  | { kind: 'confirm'; action: string; params: Record<string, unknown>; title: string; lines: Line[] }
+  | { kind: 'confirm'; action: string; params: Record<string, unknown>; title: string; lines: Line[]; patientId: string | null; appointmentId: string | null; seal: string }
   | { kind: 'done'; say: string; to?: string }
   | { kind: 'sorry'; say: string };
 
@@ -106,6 +106,26 @@ export function AssistantBar() {
   // The recorder's callback outlives the render it was made in.
   const askedRef = useRef<Asked | null>(null);
   askedRef.current = asked;
+  /** The button is down. The microphone takes a moment to open, and by
+   *  then the button may already be up again. */
+  const wantHold = useRef(false);
+
+  // A card says "do this for the patient on screen". Once another screen
+  // is open that is no longer who is on screen, so the card goes: it is
+  // never left showing over a different patient with a Confirm on it.
+  // (The server would refuse it anyway; see lib/assistant/seal.ts.)
+  useEffect(() => {
+    setAsked((current) => (current?.reply.kind === 'confirm' ? null : current));
+  }, [pathname]);
+
+  // Leaving the portal, or the bar being taken down, lets go of the
+  // microphone whatever state it was in.
+  useEffect(() => () => {
+    wantHold.current = false;
+    cancelled.current = true;
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
+  }, []);
 
   const enabled = hasModule('scribe');
 
@@ -155,7 +175,12 @@ export function AssistantBar() {
   const confirm = async (reply: Extract<Reply, { kind: 'confirm' }>) => {
     setBusy(true);
     try {
-      const result = await apiFetch<Asked>('/assistant/run', { method: 'POST', data: { action: reply.action, params: reply.params, ...onScreen(pathname) } });
+      // The patient and visit the card was drawn up for, with its seal --
+      // not whoever is on screen at the moment of the tap.
+      const result = await apiFetch<Asked>('/assistant/run', {
+        method: 'POST',
+        data: { action: reply.action, params: reply.params, patientId: reply.patientId, appointmentId: reply.appointmentId, seal: reply.seal },
+      });
       setAsked(result);
       // What is on screen may have just changed underneath it.
       window.dispatchEvent(new CustomEvent('assistant:changed'));
@@ -168,10 +193,18 @@ export function AssistantBar() {
 
   // ── Hold to talk ─────────────────────────────────────────────────────
   const startHolding = async () => {
-    if (holding || busy) return;
+    if (holding || busy || wantHold.current) return;
+    wantHold.current = true;
     cancelled.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+      // Let go while the microphone was still opening -- a quick tap, or
+      // a finger lifted to answer the browser's permission prompt. With
+      // nobody holding, recording now would run on, unheld, to the limit.
+      if (!wantHold.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       const mimeType = pickMimeType();
       const rec = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32_000 } : undefined);
       const parts: Blob[] = [];
@@ -179,6 +212,7 @@ export function AssistantBar() {
       rec.ondataavailable = (e) => { if (e.data.size > 0) parts.push(e.data); };
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        wantHold.current = false;
         setHolding(false);
         // A tap, not a hold: nothing was said.
         if (cancelled.current || Date.now() - startedAt < 500 || parts.length === 0) return;
@@ -205,11 +239,13 @@ export function AssistantBar() {
       setHolding(true);
       holdTimer.current = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, MAX_HOLD_MS);
     } catch {
+      wantHold.current = false;
       setAsked({ reply: { kind: 'sorry', say: 'This browser was not allowed to use the microphone. Allow it in the address bar, or type what you need.' } });
     }
   };
 
   const stopHolding = (cancel = false) => {
+    wantHold.current = false;
     cancelled.current = cancel;
     if (holdTimer.current) clearTimeout(holdTimer.current);
     if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
@@ -304,6 +340,9 @@ export function AssistantBar() {
               onPointerCancel={() => stopHolding(true)}
               onKeyDown={(e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); void startHolding(); } }}
               onKeyUp={(e) => { if (e.key === ' ' || e.key === 'Enter') stopHolding(); }}
+              // Focus moved away with the key still down: there will be
+              // no key-up here to end it.
+              onBlur={() => { if (wantHold.current) stopHolding(); }}
               aria-label={recordingVisit ? 'The microphone is writing a visit note. Type your request.' : 'Hold to talk to the assistant'}
               title={recordingVisit ? 'The microphone is writing a visit note. Type your request.' : 'Hold and speak, then let go'}
               className={`flex h-11 w-11 shrink-0 touch-none select-none items-center justify-center rounded-xl transition-colors disabled:opacity-40 ${holding ? 'bg-ink-danger text-background' : 'bg-foreground/[0.06] text-foreground hover:bg-foreground/10'}`}

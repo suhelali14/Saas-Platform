@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-24T21:21:38.332Z",
+  "ranAt": "2026-11-24T21:30:01.459Z",
   "rule": 17,
   "model": 12,
   "results": [
@@ -22,11 +22,11 @@
           },
           {
             "label": "Seen",
-            "text": "9"
+            "text": "10"
           },
           {
             "label": "Yet to arrive",
-            "text": "1"
+            "text": "0"
           },
           {
             "label": "Next",
@@ -46,7 +46,7 @@
     {
       "text": "kitne patient baki hain",
       "by": "rule",
-      "ms": 6,
+      "ms": 4,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -62,11 +62,11 @@
           },
           {
             "label": "Seen",
-            "text": "9"
+            "text": "10"
           },
           {
             "label": "Yet to arrive",
-            "text": "1"
+            "text": "0"
           },
           {
             "label": "Next",
@@ -86,7 +86,7 @@
     {
       "text": "open billing",
       "by": "rule",
-      "ms": 5,
+      "ms": 4,
       "kind": "go",
       "reply": {
         "kind": "go",
@@ -97,7 +97,7 @@
     {
       "text": "लॅब उघडा",
       "by": "rule",
-      "ms": 5,
+      "ms": 4,
       "kind": "go",
       "reply": {
         "kind": "go",
@@ -121,12 +121,12 @@
             "tone": "warning"
           },
           {
-            "label": "8",
+            "label": "10",
             "text": "lab orders awaiting results",
             "to": "/labs"
           },
           {
-            "label": "7",
+            "label": "9",
             "text": "prescriptions to dispense",
             "to": "/pharmacy"
           }
@@ -136,7 +136,7 @@
     {
       "text": "follow-ups due today",
       "by": "rule",
-      "ms": 10,
+      "ms": 6,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -152,7 +152,7 @@
     {
       "text": "aaj ka collection kitna hua",
       "by": "rule",
-      "ms": 11,
+      "ms": 14,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -160,7 +160,7 @@
         "lines": [
           {
             "label": "Still owed",
-            "text": "₹3,300",
+            "text": "₹4,200",
             "tone": "warning"
           },
           {
@@ -176,7 +176,7 @@
     {
       "text": "find patient Ramesh Joshi",
       "by": "rule",
-      "ms": 9,
+      "ms": 11,
       "kind": "go",
       "reply": {
         "kind": "go",
@@ -198,7 +198,7 @@
     {
       "text": "which screen shows me who looked at a patient's file",
       "by": "model",
-      "ms": 1034,
+      "ms": 1366,
       "kind": "go",
       "reply": {
         "kind": "go",
@@ -209,7 +209,7 @@
     {
       "text": "give me a summary",
       "by": "rule",
-      "ms": 38,
+      "ms": 40,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -246,7 +246,7 @@
           },
           {
             "label": "Tests awaited",
-            "text": "HbA1c, Lipid Profile, HbA1c, Lipid Profile",
+            "text": "HbA1c, Lipid Profile, HbA1c, Lipid Profile, HbA1c, Lipid Profile",
             "tone": "warning"
           },
           {
@@ -292,7 +292,7 @@
     {
       "text": "lab reports aaye kya",
       "by": "rule",
-      "ms": 10,
+      "ms": 17,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -319,16 +319,18 @@
             "tone": "warning"
           },
           {
+            "label": "25 Nov 2026",
+            "text": "HbA1c: awaited",
+            "tone": "warning"
+          },
+          {
+            "label": "25 Nov 2026",
+            "text": "Lipid Profile: awaited",
+            "tone": "warning"
+          },
+          {
             "label": "25 Sept 2026",
             "text": "HbA1c: 7.6 %  (normal <5.7%)"
-          },
-          {
-            "label": "25 Aug 2026",
-            "text": "Lipid Profile: Total cholesterol 228 mg/dL, LDL 148"
-          },
-          {
-            "label": "25 Aug 2026",
-            "text": "Blood Sugar (Fasting): 142 mg/dL"
           }
         ],
         "to": "/labs",
@@ -338,7 +340,7 @@
     {
       "text": "BP trend",
       "by": "rule",
-      "ms": 12,
+      "ms": 11,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -368,15 +370,15 @@
     {
       "text": "how much does he owe",
       "by": "rule",
-      "ms": 16,
+      "ms": 11,
       "kind": "answer",
       "reply": {
         "kind": "answer",
-        "title": "Ramesh Joshi owes ₹900",
+        "title": "Ramesh Joshi owes ₹1,400",
         "lines": [
           {
             "label": "25 Nov 2026",
-            "text": "₹900 of ₹900 still to pay"
+            "text": "₹1,400 of ₹1,400 still to pay"
           }
         ],
         "to": "/billing",
@@ -386,7 +388,7 @@
     {
       "text": "what happened on the visit of 9 November",
       "by": "rule",
-      "ms": 6,
+      "ms": 9,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -468,7 +470,10 @@
             "text": "They have no file of their own here; only their details are kept on this patient's file.",
             "tone": "muted"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "Ihog0ZY6HxCBsq1cuwiuhks6Cavdf5mAL77u3Qa8H_s"
       },
       "confirmed": {
         "kind": "done",
@@ -479,7 +484,7 @@
     {
       "text": "family members dikhao",
       "by": "rule",
-      "ms": 10,
+      "ms": 6,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -500,6 +505,14 @@
           {
             "label": "Spouse",
             "text": "Sunanda · 58y · Female · has thyroid"
+          },
+          {
+            "label": "Brother or sister",
+            "text": "Suresh · 60y · Male · Heart attack last year (2025)"
+          },
+          {
+            "label": "Spouse",
+            "text": "Sunanda · 58y · Female · has thyroid"
           }
         ],
         "to": "/patients/cmwv4nlg40005wm6gf7mc64bp",
@@ -509,7 +522,7 @@
     {
       "text": "book him again after two weeks for a sugar review",
       "by": "model",
-      "ms": 864,
+      "ms": 943,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -532,7 +545,10 @@
             "text": "They are already booked on that day.",
             "tone": "warning"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "-xhnzDKC1aIWBPdEzhOSbc1gtez7OCdQaGYrBuUn2pw"
       },
       "confirmed": {
         "kind": "done",
@@ -543,7 +559,7 @@
     {
       "text": "BP is 142 by 90 and weight 77",
       "by": "rule",
-      "ms": 4,
+      "ms": 2,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -562,7 +578,10 @@
             "label": "Weight",
             "text": "77"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "VfHibfalJTolSNaNu9BKHs5QqOQ9q65X2K39mCKLEHc"
       },
       "confirmed": {
         "kind": "done",
@@ -572,7 +591,7 @@
     {
       "text": "order HbA1c and a lipid profile and an MRI",
       "by": "model",
-      "ms": 704,
+      "ms": 795,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -595,7 +614,10 @@
             "text": "Not on the clinic's test list, so not ordered: MRI",
             "tone": "warning"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "1vFCgInwVf45zt_xVp2kZTa_LTKFjg_oKJr1l0EJMa8"
       },
       "confirmed": {
         "kind": "done",
@@ -606,7 +628,7 @@
     {
       "text": "add a consultation charge",
       "by": "model",
-      "ms": 1351,
+      "ms": 1408,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
@@ -616,7 +638,7 @@
     {
       "text": "give him sick leave for three days for viral fever",
       "by": "model",
-      "ms": 925,
+      "ms": 900,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -640,7 +662,10 @@
             "text": "It is issued in your name, on the clinic's own certificate wording.",
             "tone": "muted"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "_D4YcZ4sDZwhsw710cuGOOxM9zy6xgUn3Q56yoRAzsc"
       },
       "confirmed": {
         "kind": "done",
@@ -651,7 +676,7 @@
     {
       "text": "fill the diabetes review: fasting sugar 148, post meal 210, he checks his feet daily",
       "by": "model",
-      "ms": 1325,
+      "ms": 1391,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -675,7 +700,10 @@
             "label": "Notes",
             "text": "Checks feet daily at home."
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "G7cPElI9Zgts2sZfhXJghNwD1ulxEGL-2Piu6m7K0g8"
       },
       "confirmed": {
         "kind": "done",
@@ -685,7 +713,7 @@
     {
       "text": "antenatal visit: weight 85 kilo, BP 130 over 80, fetal heart rate 144, no swelling",
       "by": "model",
-      "ms": 1365,
+      "ms": 1250,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -719,7 +747,10 @@
             "label": "Oedema",
             "text": "None"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlge000gwm6gr5gyqgzg",
+        "appointmentId": "cmwv4nlii0055wm6g1j6903qk",
+        "seal": "fOzNI-zBqjdNgpyXP5WmH84RznNlvYAiFnwTA9QpqbM"
       },
       "confirmed": {
         "kind": "done",
@@ -729,27 +760,27 @@
     {
       "text": "delete this patient",
       "by": "model",
-      "ms": 856,
+      "ms": 1317,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "I can't delete patient records from here, and none of the tools I have can do that. If you need a record removed, that has to be done through the clinic's admin side of the software."
+        "say": "I can't delete patient records from here, and no delete option is available on your login. I can look up the patient's details, or open the patients screen."
       }
     },
     {
       "text": "give sick leave",
       "by": "model",
-      "ms": 846,
+      "ms": 906,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "How many days of rest should I put on the sick leave certificate, starting today?"
+        "say": "How many days of sick leave should I issue, starting today?"
       }
     },
     {
       "text": "prescribe amoxicillin 500 three times a day",
       "by": "model",
-      "ms": 785,
+      "ms": 829,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
@@ -759,11 +790,11 @@
     {
       "text": "show her last prescription",
       "by": "model",
-      "ms": 985,
+      "ms": 1182,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "Which patient should I open? No record is open on your screen right now. Tell me the name, phone number or file number."
+        "say": "Which patient should I pull up? No record is open on your screen right now."
       }
     }
   ],
@@ -772,18 +803,18 @@
       "as": "doctor",
       "text": "give him sick leave",
       "by": "model",
-      "ms": 757,
+      "ms": 869,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "How many days of sick leave should I issue, starting today?"
+        "say": "For how many days should I issue the sick leave, starting today?"
       }
     },
     {
       "as": "doctor",
       "text": "three days, for viral fever",
       "by": "model",
-      "ms": 806,
+      "ms": 944,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -791,7 +822,7 @@
         "params": {
           "type": "SICK_LEAVE",
           "days": 3,
-          "reason": "Viral fever"
+          "reason": "viral fever"
         },
         "title": "Issue a sick leave certificate for Ramesh Joshi?",
         "lines": [
@@ -801,20 +832,23 @@
           },
           {
             "label": "For",
-            "text": "Viral fever"
+            "text": "viral fever"
           },
           {
             "text": "It is issued in your name, on the clinic's own certificate wording.",
             "tone": "muted"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "m6eqIw8khwVmGbPUsid7Gb6JBx7qBRAYvmxbwKE0ERI"
       }
     },
     {
       "as": "doctor",
       "text": "which screen shows me who looked at a patient's file",
       "by": "model",
-      "ms": 971,
+      "ms": 905,
       "kind": "go",
       "reply": {
         "kind": "go",
@@ -826,7 +860,7 @@
       "as": "doctor",
       "text": "prescribe amoxicillin 500 three times a day for five days after food",
       "by": "model",
-      "ms": 816,
+      "ms": 800,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -860,14 +894,17 @@
             "text": "\"Amoxicillin 500\" was matched to DavaIndia Amoxycillin 500mg Capsule by a close spelling. Check it is the one you meant.",
             "tone": "warning"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "iMfE51HqwQoShI_vISpJ6R_hHZQ61aFZy1nf-PhlMHQ"
       }
     },
     {
       "as": "doctor",
       "text": "prescribe Dolo 650 twice a day for 3 days after food and Pan 40 once daily before food for 2 weeks",
       "by": "model",
-      "ms": 955,
+      "ms": 893,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -908,7 +945,10 @@
             "text": "Pantoprazole (40mg)",
             "tone": "muted"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "Rt1tMPfQLmx-iD2mUG-lSrPEycF_2wM-j0H8BCs52gQ"
       },
       "confirmed": {
         "kind": "done",
@@ -944,7 +984,10 @@
             "label": "Pulse",
             "text": "96"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "3Olu1kLaN3IIaQvM6AFCe2LpQcHC1oxj6cpq6TQHJmY"
       },
       "confirmed": {
         "kind": "done",
@@ -955,7 +998,7 @@
       "as": "doctor",
       "text": "add a general consultation charge",
       "by": "model",
-      "ms": 757,
+      "ms": 715,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -975,18 +1018,21 @@
             "label": "Amount",
             "text": "₹500"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "9pge7dhDvuXOLYdfmzE_KLc5OPnd2U3kTQ6bzRtVj8A"
       },
       "confirmed": {
         "kind": "done",
-        "say": "General Consultation added. The bill now stands at ₹1,400."
+        "say": "General Consultation added. The bill now stands at ₹1,900."
       }
     },
     {
       "as": "doctor",
       "text": "patients with diabetes who have not come for three months",
       "by": "rule",
-      "ms": 10,
+      "ms": 8,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -1007,7 +1053,7 @@
       "as": "doctor",
       "text": "register a new patient Kiran Deshpande, 34, male, phone 98220 55123",
       "by": "model",
-      "ms": 898,
+      "ms": 1024,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -1036,35 +1082,83 @@
             "label": "Phone",
             "text": "98220 55123"
           }
-        ]
+        ],
+        "patientId": null,
+        "appointmentId": null,
+        "seal": "NJvJkNnptzZej7QmAJthuxfs3RdKrRHu8RKUfjYgSGY"
+      }
+    },
+    {
+      "as": "doctor",
+      "text": "book him again after ten days",
+      "by": "model",
+      "ms": 674,
+      "kind": "confirm",
+      "reply": {
+        "kind": "confirm",
+        "action": "book_visit",
+        "params": {
+          "date": "2026-12-05"
+        },
+        "title": "Book Ramesh Joshi for Saturday, 5 December 2026?",
+        "lines": [
+          {
+            "text": "Booked for 10:00 in the morning. The time can be changed from the queue.",
+            "tone": "muted"
+          }
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "tlX3ct5OVkQf_GERP182Feq7w02MQ991vu1WgaxTHIs"
+      }
+    },
+    {
+      "guard": "card confirmed against a different patient",
+      "reply": {
+        "kind": "sorry",
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
+      }
+    },
+    {
+      "guard": "card with its date changed",
+      "reply": {
+        "kind": "sorry",
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
+      }
+    },
+    {
+      "guard": "made-up seal",
+      "reply": {
+        "kind": "sorry",
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
       }
     },
     {
       "guard": "lookup as change",
       "reply": {
         "kind": "sorry",
-        "say": "That is not something I can do."
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
       }
     },
     {
       "guard": "bad parameters",
       "reply": {
         "kind": "sorry",
-        "say": "I did not catch enough to do that. Say it once more with the details."
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
       }
     },
     {
       "guard": "no such action",
       "reply": {
         "kind": "sorry",
-        "say": "That is not something I can do."
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
       }
     },
     {
       "as": "reception",
       "text": "who is next",
       "by": "rule",
-      "ms": 4,
+      "ms": 3,
       "kind": "answer",
       "reply": {
         "kind": "answer",
@@ -1080,11 +1174,11 @@
           },
           {
             "label": "Seen",
-            "text": "9"
+            "text": "10"
           },
           {
             "label": "Yet to arrive",
-            "text": "1"
+            "text": "0"
           },
           {
             "label": "Next",
@@ -1109,11 +1203,11 @@
       "kind": "answer",
       "reply": {
         "kind": "answer",
-        "title": "Ramesh Joshi owes ₹1,400",
+        "title": "Ramesh Joshi owes ₹1,900",
         "lines": [
           {
             "label": "25 Nov 2026",
-            "text": "₹1,400 of ₹1,400 still to pay"
+            "text": "₹1,900 of ₹1,900 still to pay"
           }
         ],
         "to": "/billing",
@@ -1124,29 +1218,29 @@
       "as": "reception",
       "text": "prescribe Dolo 650 twice a day for 3 days",
       "by": "model",
-      "ms": 1070,
+      "ms": 1012,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "Prescribing isn't available on your login, so I can't add Dolo 650 to this visit."
+        "say": "Prescribing isn't available on your login, so I can't add Dolo 650 to this prescription."
       }
     },
     {
       "as": "reception",
       "text": "give him sick leave for two days",
       "by": "model",
-      "ms": 1863,
+      "ms": 1489,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
-        "say": "I can't issue a sick leave from this login. I can book a follow-up visit for this patient or check his visit details."
+        "say": "I can't issue a sick leave certificate from here. I can book a follow-up visit for this patient or add a charge to the open visit if you need either."
       }
     },
     {
       "as": "reception",
       "text": "open audit log",
       "by": "rule",
-      "ms": 2,
+      "ms": 3,
       "kind": "sorry",
       "reply": {
         "kind": "sorry",
@@ -1157,7 +1251,7 @@
       "as": "reception",
       "text": "BP 128 by 82, weight 76",
       "by": "rule",
-      "ms": 3,
+      "ms": 2,
       "kind": "confirm",
       "reply": {
         "kind": "confirm",
@@ -1176,7 +1270,10 @@
             "label": "Weight",
             "text": "76"
           }
-        ]
+        ],
+        "patientId": "cmwv4nlg40005wm6gf7mc64bp",
+        "appointmentId": "cmwv4nlid004vwm6ge6acc6dk",
+        "seal": "qPBGrlKgvR9sAkxy_HcTUQ3GdCi-pZoWbUBqKTBMAXM"
       },
       "confirmed": {
         "kind": "done",
@@ -1187,7 +1284,7 @@
       "guard": "reception forging a prescription",
       "reply": {
         "kind": "sorry",
-        "say": "That is not available to your login in this clinic."
+        "say": "That card is out of date. Ask me again and I will draw it up afresh."
       }
     },
     {

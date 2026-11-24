@@ -58,7 +58,7 @@ const NOTE_SCHEMA = {
 
 const SYSTEM = `You are the note-taker in a doctor's consulting room in India. You are given the text of one consultation, produced by a speech-to-text engine, and you turn it into the doctor's clinical note.
 
-About the text you receive. It is a conversation between a doctor and a patient, sometimes with a relative, in a mix of Marathi, Hindi and English. The speakers are not labelled; work out who is speaking from what is said. The speech engine makes mistakes, especially with medicine names, so a word may be a near-miss of what was actually said. The patient's name and phone number have been removed.
+About the text you receive. It is a conversation between a doctor and a patient, sometimes with a relative, in a mix of Marathi, Hindi and English. The speakers are not labelled; work out who is speaking from what is said. The speech engine makes mistakes, especially with medicine names, so a word may be a near-miss of what was actually said. The patient's name, phone number and address have been removed where the clinic had them on file; a name may still appear, and if one does, do not put it in the note.
 
 What to write. Write the note in English, in the short clinical style an Indian general practitioner writes by hand: "Fever x 3 days, dry cough, worse at night." Translate what the patient said in Marathi or Hindi into that style.
 
@@ -103,9 +103,15 @@ export function modelAvailable(): boolean {
 }
 
 /** Null when this deployment has no key: the engine then works by rule alone. */
-export function createReader(): ModelReader | null {
+/**
+ * `live` is the reader used while still listening. It gives up quickly
+ * and does not try twice: the next piece of speech is waiting behind it,
+ * and a note that fills in a little later is better than a queue of
+ * audio held up for a minute behind a provider having a slow moment.
+ */
+export function createReader(options: { live?: boolean } = {}): ModelReader | null {
   if (!env.ANTHROPIC_API_KEY) return null;
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 60_000 });
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: options.live ? 0 : 2, timeout: options.live ? 15_000 : 60_000 });
   const model = env.SCRIBE_MODEL;
 
   return {

@@ -22,7 +22,18 @@ export function getApiBaseUrl(): string {
 
 // clinic-api's responses are raw (not enveloped) -- brand-new app, no
 // existing frontend contract to match, same reasoning as apps/admin.
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  /** The HTTP status, when the server answered at all. */
+  status?: number;
+  /** What the server sent with it, for a caller that needs more than the
+   *  sentence: a limit reached, a retry worth making. */
+  body?: unknown;
+  constructor(message: string, status?: number, body?: unknown) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
 
 /**
  * Mutations currently in flight, keyed by method + endpoint + body.
@@ -136,7 +147,7 @@ async function performFetch<T>(endpoint: string, options: ApiOptions): Promise<T
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new ApiError(data?.error?.message || data?.error || `Request failed (${response.status})`);
+    throw new ApiError(data?.error?.message || data?.error || `Request failed (${response.status})`, response.status, data);
   }
   return data as T;
 }
@@ -170,7 +181,7 @@ export async function apiUpload<T = any>(endpoint: string, file: File, fields?: 
     });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
-      throw new ApiError(data?.error || `Upload failed (${response.status})`);
+      throw new ApiError(data?.error || `Upload failed (${response.status})`, response.status, data);
     }
     return response.json() as Promise<T>;
   })().finally(() => inFlight.delete(key));

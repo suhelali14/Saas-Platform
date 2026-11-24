@@ -40,6 +40,7 @@ import { clinicClaimRoutes } from "./routes/clinic-claims.js";
 import { clinicOtRoutes, clinicRadiologyRoutes, clinicNursingRoutes } from "./routes/clinic-wards.js";
 import { clinicScribeRoutes } from "./routes/clinic-scribe.js";
 import { clinicAssistantRoutes } from "./routes/clinic-assistant.js";
+import { INTERNAL_CALL_HEADER, INTERNAL_CALL_TOKEN } from "./lib/assistant/seal.js";
 
 export function buildApp() {
   /*
@@ -55,15 +56,16 @@ export function buildApp() {
    *   - The audit log records the address of each access. It recorded the
    *     proxy's, every time.
    *
-   * Only this machine and its private networks are trusted as proxies,
-   * not every address in the header: nginx appends the address it
-   * actually saw to X-Forwarded-For, and reading back from that end past
-   * our own proxy stops at the first address that is not ours -- the one
-   * entry a client cannot write for itself. The container's port is
+   * Exactly ONE hop is trusted -- the nginx in front of this server --
+   * and no more: nginx appends the address it actually saw to
+   * X-Forwarded-For, and that last entry is the only one a client cannot
+   * write for itself. Trusting by address range instead would let a
+   * client on a private network (a clinic's LAN, a VPN) put any address
+   * it liked in the header and be believed. The container's port is
    * bound to 127.0.0.1 (deploy/render-compose.sh), so nothing but that
-   * nginx can reach this server to claim otherwise.
+   * nginx can reach this server at all.
    */
-  const app = Fastify({ logger: true, trustProxy: env.NODE_ENV === "production" ? ["loopback", "uniquelocal"] : false });
+  const app = Fastify({ logger: true, trustProxy: env.NODE_ENV === "production" ? (_address: string, hop: number) => hop < 1 : false });
 
   /**
    * A client that navigates away, or aborts a request it no longer needs,
@@ -164,7 +166,9 @@ export function buildApp() {
     timeWindow: "1 minute",
     // Health checks are polled by the provider console on a timer and
     // must never be throttled into looking like an outage.
-    allowList: (request) => request.url === "/health",
+    // And a call this server makes of itself (the assistant carrying out
+    // a change through the app's own route) was counted when it came in.
+    allowList: (request) => request.url === "/health" || request.headers[INTERNAL_CALL_HEADER] === INTERNAL_CALL_TOKEN,
     // Must be a real Error carrying statusCode. fastify-rate-limit throws
     // whatever this returns, and a plain object arrives at the error
     // handler with no status and no message -- which is how a throttled

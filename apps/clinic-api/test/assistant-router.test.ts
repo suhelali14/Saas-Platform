@@ -41,6 +41,13 @@ test("questions about the patient on screen are answered about them", () => {
   assert.equal(route("show past visits", onPatient)?.action, "visit_history");
 });
 
+test("'history' in a request means the thing it is the history of", () => {
+  // Each contains the word a patient summary is asked for by.
+  assert.equal(route("BP history", onPatient)?.action, "vitals_trend");
+  assert.equal(route("visit history", onPatient)?.action, "visit_history");
+  assert.equal(route("history", onPatient)?.action, "patient_brief");
+});
+
 test("the same questions with nobody on screen go to the model, which can ask who", () => {
   assert.equal(route("show her last prescription", noPatient), null);
   assert.equal(route("any allergies?", noPatient), null);
@@ -91,6 +98,8 @@ test("vitals said as numbers on an open visit are recorded by rule", () => {
   assert.deepEqual(route("temperature 100.4, pulse 96, SpO2 98", onVisit), { action: "record_vitals", params: { temp: "100.4", pulse: "96", spo2: "98" } });
   // A question about vitals is not a recording of them.
   assert.equal(route("show BP trend", onVisit)?.action, "vitals_trend");
+  // Every number is a vital here, and it is still asking for a test too.
+  assert.equal(route("order a CBC, weight 70", onVisit), null);
   // A number that is not a vital means the remark says more than vitals.
   assert.equal(route("BP 142 by 90, give Amlodipine 5 for 30 days", onVisit), null);
   // With no visit open there is nowhere to record them.

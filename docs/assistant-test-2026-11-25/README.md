@@ -137,6 +137,75 @@ No part of the page scrolls sideways.
 | Only the patient's name and phone were removed before the language model read the text | Fixed: address, email, file number, emergency contact and the doctor's name are removed too |
 | A medicine said by its salt ("Amoxicillin 500", "Zinc 20") is matched to one arbitrary brand | Open. It is flagged as a close match and other brands are offered, but the first pick is not meaningful. |
 
+## 6. Asking it for things
+
+Added after the first run: a line at the foot of every screen. Typed or
+spoken requests, in English, Hindi and Marathi. Screenshots are in
+[ask/](ask/), the browser run in [ask/results.json](ask/results.json),
+and all 44 requests with their replies in
+[ask/requests.json](ask/requests.json).
+
+| Asked | What worked it out | Time | Result |
+|---|---|---|---|
+| "who is next" | rule | 4 ms on the server | Counts, and the next two patients with their tokens |
+| "kitne patient baki hain" | rule | 5 ms | The same, asked in Hindi |
+| "लॅब उघडा" | rule | 5 ms | Lab orders opened |
+| "give me a summary" | rule | 38 ms | Allergies, long-term conditions, last medicines, three visits, overdue follow-up |
+| "what happened on the visit of 9 November" | rule | 5 ms | That day's complaint, diagnosis, vitals and medicines |
+| "BP is 142 by 90 and weight 77" | rule | 10 ms | A card to record them; recorded on Confirm |
+| "add his wife Sunanda to the family, she is 58 and has thyroid" | model | 1.0 s | A card; added on Confirm |
+| "book him again after two weeks for a sugar review" | model | 0.9 s | A card for 9 December; booked on Confirm |
+| "order HbA1c and a lipid profile and an MRI" | model | 0.7 s | The two tests on the clinic's list ordered; MRI named as not on it |
+| "give him sick leave" then "three days, for viral fever" | model, twice | 1.2 s and 0.9 s | It asked for how many days, then made the card |
+| "prescribe amoxicillin 500 three times a day for five days" on a penicillin-allergic patient | model | 0.8 s | A card carrying a red allergy warning |
+| "antenatal visit: weight 85 kilo, BP 130 over 80, fetal heart rate 144, no swelling" | model | 1.2 s | The clinic's antenatal form filled in; saved on Confirm |
+| Spoken, holding the microphone: "Show his last prescription" | rule | 0.7 s from letting go | Heard correctly and answered |
+
+Of 44 requests, 23 were answered by rule at no cost.
+
+The bar on the queue, with things to ask:
+
+![Things to ask](ask/01b-things-to-ask.png)
+
+A patient in brief:
+
+![Patient in brief](ask/05-patient-in-brief.png)
+
+Prescribing against an allergy:
+
+![Prescribing against an allergy](ask/07-prescribing-against-an-allergy.png)
+
+A change waits for Confirm:
+
+![A change waits for confirm](ask/08-a-change-waits-for-confirm.png)
+
+A spoken request, answered:
+
+![A spoken request answered](ask/11-a-spoken-request-answered.png)
+
+On a phone:
+
+![On a phone](ask/12-on-a-phone.png)
+
+### What it refused, correctly
+
+| Tried | Result |
+|---|---|
+| Reception asking it to prescribe | Refused: not on reception's list |
+| Reception sending a prescription straight to the run endpoint, skipping the card | Refused: "not available to your login" |
+| Reception asking for the audit log | Refused: for the clinic's admin |
+| Running a lookup as if it were a change; running a change with a malformed date; running an action that does not exist | All three refused |
+| Asking with no sign-in | 401 |
+| "delete this patient" | It said it cannot |
+
+### One thing it got wrong
+
+Asked to fill the diabetes review with "he checks his feet daily", the
+model set the form's Feet field to "Normal". That is a finding nobody
+stated. The card showed it before anything was saved, and the model is
+now told that a remark about a subject is not a finding on it; this has
+not been re-measured.
+
 ## What it cost
 
 | | |

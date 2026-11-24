@@ -370,7 +370,9 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
             className="w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary"
           />
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" icon={<NotebookPen size={14} />} disabled={typed.trim().length < 10} onClick={async () => { await s.makeFromTyped(appointmentId, patientName, typed); setTyped(''); setTyping(false); }}>Make the note</Button>
+            <Button variant="primary" icon={<NotebookPen size={14} />} disabled={typed.trim().length < 10} // Cleared only once the note exists: if it could not be made,
+              // what was typed is the only copy of it.
+              onClick={async () => { if (await s.makeFromTyped(appointmentId, patientName, typed)) { setTyped(''); setTyping(false); } }}>Make the note</Button>
             {s.status.canListen && <button type="button" onClick={() => setTyping(false)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Listen instead</button>}
           </div>
         </div>

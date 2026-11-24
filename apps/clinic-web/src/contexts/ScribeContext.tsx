@@ -96,7 +96,8 @@ interface ScribeValue {
   removeMedicine: (index: number) => void;
   start: (appointmentId: string, patientName: string) => Promise<void>;
   finish: () => Promise<void>;
-  makeFromTyped: (appointmentId: string, patientName: string, text: string) => Promise<void>;
+  /** True when the note was made. On false, what was typed is still wanted. */
+  makeFromTyped: (appointmentId: string, patientName: string, text: string) => Promise<boolean>;
   discard: () => Promise<void>;
   /** True when the visit's records were written. */
   confirm: () => Promise<boolean>;
@@ -169,6 +170,8 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
   const queue = useRef<Promise<void>>(Promise.resolve());
   const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
   const finishRef = useRef<() => Promise<void>>(async () => {});
+  /** True from the tap on Start until listening has begun or failed. */
+  const starting = useRef(false);
 
   useEffect(() => {
     if (!enabled) { setStatus(null); return; }
@@ -241,8 +244,23 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
           }
           return;
         } catch (e) {
-          if (attempt === 2) setError(e instanceof ApiError ? e.message : 'A part of the conversation could not be sent.');
-          else await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          const status = e instanceof ApiError ? e.status : undefined;
+          // A ceiling was reached: the visit's time, or the day's. Going
+          // on would look like listening while nothing was being heard,
+          // so it stops here and makes the note from what it has.
+          if (status === 409 && (e as ApiError).body && (e as { body: { limit?: boolean } }).body.limit) {
+            setError((e as ApiError).message);
+            void finishRef.current();
+            return;
+          }
+          // The server understood and refused. Asking again changes
+          // nothing; only a busy or unreachable server is worth a retry.
+          const worthRetrying = status === undefined || status === 429 || status >= 500;
+          if (attempt === 2 || !worthRetrying) {
+            if (status !== 409) setError(e instanceof ApiError ? e.message : 'A part of the conversation could not be sent.');
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
         }
       }
     });
@@ -303,19 +321,38 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       await queue.current;
       await buildDraft();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'The note could not be made.');
-      reset();
+      const why = e instanceof ApiError ? e.message : 'The server could not be reached.';
+      // The last read-through failed. That must not cost the doctor the
+      // consultation: everything heard is already written down, and the
+      // note as it stood while listening is still here. They are handed
+      // that to check, and told plainly that the final pass did not run.
+      if (liveRef.current) {
+        setNote(liveRef.current);
+        setFollowUpDate(liveRef.current.followUpInDays ? shiftDateInput(todayInput(), liveRef.current.followUpInDays) : '');
+        setIncomplete(null);
+        setPhase('review');
+        setError(`The final read-through could not be done (${why}) This is the note as it stood while listening. Check it with extra care before saving.`);
+      } else {
+        setError(why);
+        reset();
+      }
     }
   };
   finishRef.current = finish;
 
   const start = async (forAppointment: string, forPatient: string) => {
-    if (phase !== 'idle') return;
+    // `phase` stays idle until the microphone and the session are both
+    // ready, which takes a moment -- long enough for a second tap to
+    // start a second microphone that nothing would ever stop.
+    if (phase !== 'idle' || starting.current) return;
+    starting.current = true;
     setError(null);
     try {
       const media = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
-      await openSession(forAppointment, true);
+      // Held from this line on, so that whatever fails next -- the
+      // session, the network -- stopCapture() has a microphone to release.
       stream.current = media;
+      await openSession(forAppointment, true);
       listening.current = true;
       setAppointmentId(forAppointment);
       setPatientName(forPatient);
@@ -365,7 +402,9 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
 
       setPhase('listening');
       startPiece();
+      starting.current = false;
     } catch (e) {
+      starting.current = false;
       stopCapture();
       reset();
       setError(
@@ -376,8 +415,8 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const makeFromTyped = async (forAppointment: string, forPatient: string, text: string) => {
-    if (phase !== 'idle') return;
+  const makeFromTyped = async (forAppointment: string, forPatient: string, text: string): Promise<boolean> => {
+    if (phase !== 'idle') return false;
     setError(null);
     try {
       await openSession(forAppointment, false);
@@ -386,14 +425,20 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       await apiFetch(`/scribe/sessions/${sessionId.current}/transcript`, { method: 'PUT', data: { transcript: text } });
       setPhase('finishing');
       await buildDraft();
+      return true;
     } catch (e) {
       reset();
       setError(e instanceof ApiError ? e.message : 'The note could not be made.');
+      return false;
     }
   };
 
   const discard = async () => {
     const id = sessionId.current;
+    // Forgotten first: stopping the recorder hands back its last piece,
+    // and with the session still known that piece would be sent after
+    // the doctor had chosen to throw the conversation away.
+    sessionId.current = null;
     stopCapture();
     if (id) await apiFetch(`/scribe/sessions/${id}/discard`, { method: 'POST', data: {} }).catch(() => {});
     setError(null);

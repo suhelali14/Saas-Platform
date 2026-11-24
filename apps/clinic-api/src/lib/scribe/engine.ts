@@ -267,10 +267,14 @@ function fromModel(note: ModelNote): LocalMedicine[] {
 export function carryOver(previous: Draft | null, next: Draft, context: { transcript: string; allergies: string | null }): Draft {
   if (!previous) return next;
   const have = new Set(next.medicines.map((m) => m.drugId ?? nameKey(m.drugName)));
-  const medicines = [
-    ...next.medicines,
-    ...previous.medicines.filter((m) => !have.has(m.drugId ?? nameKey(m.drugName))),
-  ];
+  // A pass the model made has read the whole conversation, including the
+  // doctor changing their mind: a medicine it no longer lists was
+  // withdrawn, and bringing it back from the earlier note would put a
+  // cancelled medicine on a prescription. Only a pass made by rule alone,
+  // which cannot have known, keeps what the earlier one found.
+  const medicines = next.engine.model
+    ? next.medicines
+    : [...next.medicines, ...previous.medicines.filter((m) => !have.has(m.drugId ?? nameKey(m.drugName)))];
   return {
     ...next,
     chiefComplaint: next.chiefComplaint || previous.chiefComplaint,

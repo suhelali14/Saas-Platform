@@ -272,6 +272,8 @@ export interface Identifiers {
   emergencyContactPhone?: string | null;
   /** Other people in the room by name: the doctor, most often. */
   otherNames?: (string | null | undefined)[];
+  /** Family members linked on the patient's file. */
+  relativeNames?: (string | null | undefined)[];
 }
 
 /** Words in an address that are not a place, and may well be said about
@@ -311,6 +313,7 @@ export function removeIdentifiers(transcript: string, patient: Identifiers): str
   const names: [string, string][] = [
     [patient.name, "the patient"],
     [patient.emergencyContactName ?? "", "a relative"],
+    ...(patient.relativeNames ?? []).map((n): [string, string] => [n ?? "", "a relative"]),
     ...(patient.otherNames ?? []).map((n): [string, string] => [(n ?? "").replace(/^\s*dr\.?\s+/i, ""), "the doctor"]),
   ];
   for (const [name, as] of names) {
@@ -327,7 +330,9 @@ export function removeIdentifiers(transcript: string, patient: Identifiers): str
 
   if (patient.uhid) out = out.split(patient.uhid).join("[file number]");
   if (patient.email) out = out.split(patient.email).join("[email]");
-  out = out.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]");
+  // Bounded on every side. Unbounded, this pattern took seconds on a long
+  // run of text with no spaces, on the one thread that serves the clinic.
+  out = out.replace(/[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,4}/g, "[email]");
 
   // Any run of ten or more digits, however it is spaced, is a phone
   // number or an identity number. Neither belongs in the prompt.

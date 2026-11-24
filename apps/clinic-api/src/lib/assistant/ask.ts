@@ -75,7 +75,7 @@ export async function ask(text: string, context: RunContext, pending?: { request
   }
 
   if (!pickerAvailable()) return { reply: sorry(HELP), by: "none", action: null, usage: null };
-  if (await modelIsCapped()) {
+  if (await modelIsCapped(context.asker.userId)) {
     return { reply: sorry("The assistant has reached today's limit for requests it has to think about. The everyday ones still work: “who is next”, “show her last prescription”, “open billing”."), by: "none", action: null, usage: null };
   }
 

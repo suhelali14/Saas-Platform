@@ -129,6 +129,10 @@ const envSchema = z.object({
   // that needed a model.
   ASSISTANT_DAILY_AUDIO_MINUTES: z.coerce.number().int().min(1).max(100_000).default(600),
   ASSISTANT_DAILY_MODEL_CALLS: z.coerce.number().int().min(1).max(1_000_000).default(3000),
+  // The same, for one person: so that one login caught in a loop cannot
+  // use up the clinic's day and switch the assistant off for everybody.
+  ASSISTANT_USER_DAILY_AUDIO_MINUTES: z.coerce.number().int().min(1).max(100_000).default(300),
+  ASSISTANT_USER_DAILY_MODEL_CALLS: z.coerce.number().int().min(1).max(1_000_000).default(800),
 
   // Cost guard: the longest one consultation may be listened to, in
   // minutes. A recording left running over lunch should stop on its own.

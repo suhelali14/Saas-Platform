@@ -10,7 +10,7 @@ import type { Draft } from "../lib/scribe/checks.js";
 import { clinicHost, doctorHabits } from "../lib/scribe/clinic-host.js";
 import { createReader, modelAvailable } from "../lib/scribe/model.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
-import { count, listeningIsCapped } from "../lib/assistant/meter.js";
+import { count, listeningIsCapped, modelIsCapped } from "../lib/assistant/meter.js";
 
 /**
  * The clinic assistant.
@@ -85,6 +85,13 @@ const confirmSchema = z.object({
     .default([]),
   labTests: z.array(z.string().min(1).max(200)).max(30).default([]),
 });
+
+/** The family members on a patient's file, so their names can be taken
+ *  out of what a model reads along with the patient's own. */
+async function relativeNames(patientId: string): Promise<string[]> {
+  const relations = await prisma.patientRelation.findMany({ where: { patientId }, select: { name: true }, take: 30 });
+  return relations.map((r) => r.name);
+}
 
 export async function clinicScribeRoutes(app: FastifyInstance) {
   /** The caller's own open session, or a refusal already sent. */
@@ -174,7 +181,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: `Listening stops after ${env.SCRIBE_MAX_MINUTES} minutes for one visit. Make the note from what has been heard.`, limit: true });
     }
 
-    if (await listeningIsCapped()) {
+    if (await listeningIsCapped(auth.clinicUserId)) {
       return reply.status(409).send({ error: "The assistant has reached today's limit for listening in this clinic. Make the note from what has been heard, or type the rest.", limit: true });
     }
 
@@ -187,7 +194,12 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
 
     // Sent by the browser, which timed the piece. Capped at the
     // provider's own limit so a wrong value cannot run the meter.
-    const seconds = Math.min(30, Math.max(1, Math.round(Number((file.fields.seconds as { value?: string } | undefined)?.value ?? 25))));
+    // The larger of what the browser timed and what the size of the piece
+    // implies (about four kilobytes a second): a browser that said "one
+    // second" for a thirty-second piece would otherwise run the meter at
+    // a thirtieth of the truth.
+    const claimed = Math.round(Number((file.fields.seconds as { value?: string } | undefined)?.value ?? 25));
+    const seconds = Math.min(30, Math.max(1, claimed || 1, Math.round(audio.length / 4000)));
 
     let text: string;
     const habits = await doctorHabits(auth.clinicUserId);
@@ -205,11 +217,15 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       SET transcript = left(CASE WHEN transcript = '' THEN ${text}::text ELSE transcript || E'\n' || ${text}::text END, ${MAX_TRANSCRIPT_CHARS}::int),
           "audioSeconds" = "audioSeconds" + ${seconds}::int,
           "updatedAt" = now()
-      WHERE id = ${id}
+      WHERE id = ${id} AND status IN ('OPEN', 'DRAFTED')
       RETURNING transcript
     `;
-    const transcript = updated[0]?.transcript ?? "";
-    void count({ audioSeconds: seconds });
+    void count({ audioSeconds: seconds }, auth.clinicUserId);
+    // Discarded or confirmed while this piece was being transcribed. Its
+    // words must not be written back onto a note that is finished -- and
+    // above all not onto one the doctor chose to throw away.
+    if (updated.length === 0) return reply.status(409).send({ error: "This note has already been finished." });
+    const transcript = updated[0]!.transcript;
 
     /*
      * The note so far, sent back with every piece.
@@ -234,20 +250,25 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
         const previous = (session.draft as unknown as (Draft & { modelAtSeconds?: number }) | null) ?? null;
         const heardSeconds = session.audioSeconds + seconds;
         const sinceModel = heardSeconds - (previous?.modelAtSeconds ?? 0);
-        const useModel = env.SCRIBE_LIVE_SECONDS > 0 && sinceModel >= env.SCRIBE_LIVE_SECONDS;
+        const due = env.SCRIBE_LIVE_SECONDS > 0 && sinceModel >= env.SCRIBE_LIVE_SECONDS;
+        const reader = due && !(await modelIsCapped(auth.clinicUserId)) ? createReader({ live: true }) : null;
         const { draft, usage } = await buildDraft({
           transcript,
-          patient: { ...patient, otherNames: [request.clinicUserName] },
+          patient: { ...patient, otherNames: [request.clinicUserName], relativeNames: await relativeNames(session.patientId) },
           host: clinicHost(auth.clinicUserId, habits),
-          reader: useModel ? createReader() : null,
+          reader,
           quiet: true,
         });
-        if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens });
+        if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens }, auth.clinicUserId);
         live = carryOver(previous, draft, { transcript, allergies: patient.allergies });
-        await prisma.scribeSession.update({
-          where: { id },
+        // Only while the note is still open: see the UPDATE above.
+        await prisma.scribeSession.updateMany({
+          where: { id, status: { in: ["OPEN", "DRAFTED"] } },
           data: {
-            draft: { ...live, modelAtSeconds: usage ? heardSeconds : (previous?.modelAtSeconds ?? 0) } as unknown as Prisma.InputJsonValue,
+            // The clock is moved on whenever the model was TRIED, not only
+            // when it answered. Otherwise one failure means it is tried
+            // again on every piece that follows, each one waiting on it.
+            draft: { ...live, modelAtSeconds: reader ? heardSeconds : (previous?.modelAtSeconds ?? 0) } as unknown as Prisma.InputJsonValue,
             model: usage?.model ?? session.model,
             inputTokens: { increment: usage?.inputTokens ?? 0 },
             outputTokens: { increment: usage?.outputTokens ?? 0 },
@@ -282,7 +303,10 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
    * is corrected -- and each time replaces the last draft. Nothing here
    * touches the patient's record.
    */
-  app.post("/api/clinic/scribe/sessions/:id/draft", async (request, reply) => {
+  // Each call may be a full reading of the consultation by a model, so
+  // it is limited more tightly than anything else here. Twenty a minute
+  // is several doctors finishing visits in the same minute.
+  app.post("/api/clinic/scribe/sessions/:id/draft", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
     const auth = requireClinicalWriteAuth(request, reply);
     if (!auth) return;
     const { id } = request.params as { id: string };
@@ -301,12 +325,13 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
 
     const built = await buildDraft({
       transcript: session.transcript,
-      patient: { ...patient, otherNames: [request.clinicUserName] },
+      patient: { ...patient, otherNames: [request.clinicUserName], relativeNames: await relativeNames(session.patientId) },
       host: clinicHost(auth.clinicUserId),
-      reader: createReader(),
+      // At the ceiling the note is still made, by rule alone.
+      reader: (await modelIsCapped(auth.clinicUserId)) ? null : createReader(),
     });
     const usage = built.usage;
-    if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens });
+    if (usage) void count({ modelCalls: 1, tokensIn: usage.inputTokens, tokensOut: usage.outputTokens }, auth.clinicUserId);
     // The final pass reads the whole consultation and stands on its own.
     // Only when the model did not answer is what it wrote earlier, while
     // listening, kept -- rather than handing back a note with the history
@@ -358,6 +383,16 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     const labsOn = isFeatureEnabled("labs");
 
     const result = await prisma.$transaction(async (tx) => {
+      // Claimed first, and only if it is still open. Two confirms of one
+      // note -- a double tap, a retry after a slow reply -- used to both
+      // pass the check above and both write a case sheet and a
+      // prescription. Now the second finds nothing to claim.
+      const claimed = await tx.scribeSession.updateMany({
+        where: { id, status: { in: ["OPEN", "DRAFTED"] } },
+        data: { status: "CONFIRMED", confirmed: note as unknown as Prisma.InputJsonValue },
+      });
+      if (claimed.count !== 1) throw Object.assign(new Error("This note has already been saved."), { statusCode: 409 });
+
       const caseSheet = hasCaseSheet
         ? await tx.caseSheet.create({
             data: {
@@ -414,11 +449,6 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
         await tx.appointment.updateMany({ where: { id: session.appointmentId }, data: { status: "COMPLETED" } });
         await tx.appointment.updateMany({ where: { id: session.appointmentId, completedAt: null }, data: { completedAt: new Date() } });
       }
-
-      await tx.scribeSession.update({
-        where: { id },
-        data: { status: "CONFIRMED", confirmed: note as unknown as Prisma.InputJsonValue },
-      });
 
       return { caseSheetId: caseSheet?.id ?? null, prescriptionId: prescription?.id ?? null, labOrderId: labOrder?.id ?? null };
     });

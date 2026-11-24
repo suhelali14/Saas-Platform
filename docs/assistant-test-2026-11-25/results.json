@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-24T20:54:50.958Z",
+  "ranAt": "2026-11-24T21:32:49.066Z",
   "steps": [
     {
       "name": "listening: still going on another screen",
@@ -41,7 +41,7 @@
     },
     {
       "name": "listening: draft shown",
-      "msFromStopToDraft": 6695,
+      "msFromStopToDraft": 2497,
       "engine": {
         "rules": true,
         "model": "claude-haiku-5-5",
@@ -67,24 +67,24 @@
       "name": "listening: confirmed",
       "status": 201,
       "body": {
-        "caseSheetId": "cmwv6bw50007nwmgc2m3dez35",
-        "prescriptionId": "cmwv6bw52007pwmgcuc1vno4y",
-        "labOrderId": "cmwv6bw53007uwmgclc2i61nv",
+        "caseSheetId": "cmwv7on5g008kwmwod68yeznu",
+        "prescriptionId": "cmwv7on5h008mwmwocp5nxdhx",
+        "labOrderId": "cmwv7on5j008rwmwo4rjiz8hu",
         "labTestsSkipped": false
       }
     },
     {
       "name": "conversation: draft shown",
-      "ms": 7492,
+      "ms": 5227,
       "engine": {
         "rules": true,
         "model": "claude-haiku-5-5",
         "reason": "A conversation, read by the language model and checked by rule."
       },
       "complaint": "Sore throat x 4 days with fever",
-      "history": "Sore throat x 4 days, fever, painful swallowing. Mild cough. No ear pain. On examination: tonsils swollen and red.",
+      "history": "Sore throat x 4 days, fever, pain on swallowing, mild cough. No ear pain. On examination: tonsils swollen and red.",
       "diagnosis": "Acute tonsillitis",
-      "advice": "Warm water gargles. Avoid cold drinks.",
+      "advice": "Warm saline gargles. Avoid cold drinks. Return after 5 days.",
       "vitals": {
         "bp": "126/82",
         "temp": "101",
@@ -103,7 +103,7 @@
         "warning: \"Amoxicillin 500\" was matched to DavaIndia Amoxycillin 500mg Capsule by a close spelling. Check it is the one you meant."
       ],
       "leftover": [
-        "Known penicillin allergy on file, but Cap Amoxicillin (a penicillin) was prescribed. Please verify before the patient takes it."
+        "ALERT: Known penicillin allergy on file; Amoxicillin prescribed in this consultation - doctor to review"
       ]
     },
     {
@@ -111,7 +111,7 @@
     },
     {
       "name": "phone dictation: draft shown",
-      "ms": 147,
+      "ms": 117,
       "engine": {
         "rules": true,
         "model": null,

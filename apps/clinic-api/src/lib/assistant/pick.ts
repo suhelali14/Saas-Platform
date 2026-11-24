@@ -9,6 +9,12 @@
  * It does not run anything and is given no records. What it returns is
  * checked against the action's own schema before anything happens, and a
  * change is shown to the person as a card first (lib/assistant/registry.ts).
+ *
+ * What it IS given is the request, word for word. A request that names
+ * somebody -- "add her husband Rajesh", "register Kiran Deshpande,
+ * 98220..." -- reaches the model with that name and number in it,
+ * because they are the request. The everyday ones that name a patient
+ * ("find patient Ramesh Joshi") are read by rule and reach no model.
  */
 
 import Anthropic from "@anthropic-ai/sdk";

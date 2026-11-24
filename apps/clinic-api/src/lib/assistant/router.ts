@@ -26,7 +26,7 @@
  * real sentences.
  */
 
-import { readVitals } from "../scribe/structure.js";
+import { normaliseNumbers, readVitals } from "../scribe/structure.js";
 
 export interface Intent {
   /** The name of an action in the registry. */
@@ -125,12 +125,14 @@ const THIS_PATIENT = /\b(?:this patient|the patient|him|her|his|their|them|iska|
 const ABOUT_PATIENT: { said: RegExp; action: string }[] = [
   { said: /\b(?:last|previous|pichli|pichla|purani|magchi|maghchi|aadhichi)\b.{0,24}\b(?:prescription|medicines?|dawai|dava|aushadh|rx)\b|\b(?:what (?:is|was) (?:she|he|they) (?:on|taking))\b|पिछली दवा|पिछला प्रिस्क्रिप्शन|मागची औषध|मागील औषध|आधीची औषध/i, action: "last_prescription" },
   { said: /\b(?:lab|blood|test|report)s?\b.{0,16}\b(?:results?|reports?|came|aaya|aale)\b|\b(?:reports?|results?)\b.{0,10}\b(?:lab|test|blood)\b|\b(?:lab reports?|test results?|blood reports?)\b|रिपोर्ट|तपासणी निकाल|जांच रिपोर्ट/i, action: "lab_results" },
-  { said: /\b(?:allerg\w+)\b|एलर्जी|ॲलर्जी|अलर्जी/i, action: "patient_brief" },
-  { said: /\b(?:summary|brief|history|background|overview of (?:this|the) patient|tell me about)\b|इतिहास|हिस्ट्री|माहिती/i, action: "patient_brief" },
   { said: /\b(?:bp|blood pressure|weight|sugar|vitals?)\b.{0,16}\b(?:trend|history|over time|graph|last few|previous|pichle|magche)\b|\b(?:trend|history) of (?:bp|weight|vitals?)\b/i, action: "vitals_trend" },
   { said: /\b(?:pending|outstanding|due|baki|baaki|udhari)\b.{0,14}\b(?:bill|amount|payment|balance|paise|rakkam)\b|\b(?:how much (?:does|do) (?:she|he|they) owe)\b|\bbalance\b|बाकी|उधारी/i, action: "patient_dues" },
   { said: /\b(?:family|relatives?|husband|wife|mother|father|son|daughter|children)\b.{0,16}\b(?:records?|members?|linked|list|kaun|kon)\b|\bfamily\b|कुटुंब|परिवार/i, action: "family_members" },
   { said: /\b(?:past|previous|old|earlier|all|pichle|purane|magche|junya)\b.{0,12}\b(?:visits?|consultations?|bhet|bheti)\b|\bvisit history\b|\blast visit\b|पिछली विज़िट|मागील भेट|मागची भेट/i, action: "visit_history" },
+  // Last, on purpose: "BP history" and "visit history" each contain
+  // "history", and must reach their own rule before this one.
+  { said: /\b(?:allerg\w+)\b|एलर्जी|ॲलर्जी|अलर्जी/i, action: "patient_brief" },
+  { said: /\b(?:summary|brief|history|background|overview of (?:this|the) patient|tell me about)\b|इतिहास|हिस्ट्री|माहिती/i, action: "patient_brief" },
 ];
 
 /** Questions about the clinic's day, not about one patient. */
@@ -187,13 +189,18 @@ export function route(input: string, context: RouteContext): Intent | null {
   // Only a short remark that is nothing but vitals: a sentence with more
   // in it is saying something else as well, and goes to the model.
   if (context.hasVisit && text.split(" ").length <= 14 && !/\b(?:trend|history|last|previous|graph|show|what|kya|kiti|kitna)\b/i.test(text)) {
-    const { vitals } = readVitals(text);
+    const { vitals, sources } = readVitals(text);
     const said = Object.keys(vitals).length;
     // The 2 in "SpO2" is a letter of its name, not a reading.
     const numbers = (text.replace(/sp ?o ?2/gi, "spo").match(/\d+(?:\.\d+)?/g) ?? []).length;
     // Every number in the remark was read as a vital: nothing is left over.
     const read = (vitals.bp ? 2 : 0) + (said - (vitals.bp ? 1 : 0));
-    if (said > 0 && numbers === read) return { action: "record_vitals", params: { ...vitals } };
+    // ...and nothing else was said. "Order a CBC, weight 70" has one
+    // number and it is a vital, but it is asking for a test as well.
+    let rest = normaliseNumbers(text);
+    for (const source of Object.values(sources)) rest = rest.replace(source, " ");
+    const more = rest.replace(/\b(?:is|are|and|the|his|her|their|its|patient|kg|kilo|kilos|degrees?|percent|hai|ahe|aahe|aur|ani)\b|[^\p{L}]|आहे|है|और|आणि/giu, "");
+    if (said > 0 && numbers === read && more.length === 0) return { action: "record_vitals", params: { ...vitals } };
   }
 
   // A request to CHANGE something is never answered by a rule that reads.

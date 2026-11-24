@@ -53,8 +53,11 @@ function day(d: Date | string | null | undefined): string {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/** Whole calendar days, not elapsed hours: something written at eight
+ *  this morning is "today" at eight tonight, not "yesterday". */
 function daysBetween(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
+  const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((start(to) - start(from)) / 86_400_000);
 }
 
 function ago(d: Date, today: Date): string {
@@ -317,6 +320,7 @@ const vitalsTrend: Action = {
     const patient = await patientOnScreen(context);
     if (!patient) return NO_PATIENT;
     const res = await context.call("GET", `/api/clinic/patients/${patient.id}/vitals-trend`);
+    if (res.status !== 200) return refusal(res, "The vitals could not be read just now.");
     const points = ((res.body?.data ?? []) as { date: string; bp: { systolic: number; diastolic: number } | null; weight: number | null; pulse: number | null; spo2: number | null; temp: number | null }[]).slice(-6).reverse();
     if (points.length === 0) return sorry(`No vitals have been recorded for ${patient.name} yet.`);
     return {
@@ -434,6 +438,9 @@ const needsAttention: Action = {
   allowed: anyone,
   async run(context: RunContext) {
     const res = await context.call("GET", "/api/clinic/dashboard");
+    // Said as a failure. "Nothing is waiting on you" must mean that it
+    // was looked up and nothing was, never that the look-up did not work.
+    if (res.status !== 200) return refusal(res, "What is waiting could not be read just now.");
     const attention = (res.body?.attention ?? []) as { label: string; count: number; href: string; severity: string }[];
     if (attention.length === 0) return { kind: "answer", title: "Nothing is waiting on you", lines: [{ text: "No follow-ups due, no results awaited, nothing unbilled.", tone: "muted" }] };
     return { kind: "answer", title: "Waiting to be dealt with", lines: attention.map((a) => ({ label: String(a.count), text: a.label, to: a.href, tone: a.severity === "warn" ? "warning" : undefined })) };
@@ -449,6 +456,7 @@ const followupsDue: Action = {
   allowed: anyone,
   async run(context: RunContext) {
     const res = await context.call("GET", "/api/clinic/reminders");
+    if (res.status !== 200) return refusal(res, "The follow-ups could not be read just now.");
     const rows = (res.body?.data ?? []) as { followUpDate: string; diagnosis: string | null; patient: { id: string; name: string; phone: string | null } }[];
     if (rows.length === 0) return { kind: "answer", title: "No follow-ups are due", lines: [{ text: "Nobody is due back in the next week.", tone: "muted" }] };
     return {
@@ -498,6 +506,7 @@ const todaysCollection: Action = {
   allowed: roles("DOCTOR", "ADMIN", "RECEPTIONIST"),
   async run(context: RunContext) {
     const res = await context.call("GET", "/api/clinic/dashboard");
+    if (res.status !== 200) return refusal(res, "The day's takings could not be read just now.");
     const money = res.body?.money as { collectedToday: number; byMode: Record<string, number>; outstanding: number; unbilledVisits: number } | null;
     if (!money) return sorry("The day's takings are not shown to your login.");
     const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
