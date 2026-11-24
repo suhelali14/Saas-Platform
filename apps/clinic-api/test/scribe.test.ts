@@ -234,6 +234,24 @@ test("the model's medicines and the rules' are merged, not doubled", () => {
   assert.equal(merged[1]!.spoken, "Pan 40");
 });
 
+test("everything on file that says who the patient is comes out, and the illness stays", () => {
+  const out = removeIdentifiers(
+    "Dr Asif Momin, main Sunita Patil, Vishrambag Sangli se. File ATC-00042. Email sunita.p@gmail.com. " +
+      "Mere pati Rajesh ka number 98220 41187 hai. Teen din se bukhar hai, hospital mein admit thi.",
+    {
+      name: "Sunita Patil", phone: "9881064422", email: "sunita.p@gmail.com", uhid: "ATC-00042",
+      address: "12, Shivaji Road, Vishrambag, Sangli", emergencyContactName: "Rajesh Patil", emergencyContactPhone: "98220 41187",
+      otherNames: ["Dr. Asif Momin"],
+    },
+  );
+  for (const gone of ["Sunita", "Patil", "Rajesh", "Asif", "Momin", "Vishrambag", "Sangli", "ATC-00042", "gmail", "98220", "41187"]) {
+    assert.ok(!out.includes(gone), `${gone} should be removed: ${out}`);
+  }
+  // What the note is written from is untouched -- including "hospital",
+  // which is a word in many addresses and also in many histories.
+  assert.ok(out.includes("Teen din se bukhar hai, hospital mein admit thi"));
+});
+
 test("the patient's name and phone are taken out before text leaves the clinic", () => {
   const out = removeIdentifiers("Ramesh Patil ji, aapka number 9876543210 hai na? Ramesh, baithiye.", { name: "Ramesh Patil", phone: "98765 43210" });
   assert.ok(!/ramesh/i.test(out));

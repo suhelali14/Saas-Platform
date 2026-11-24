@@ -673,7 +673,12 @@ export function ScribePanel({ appointmentId, onSaved }: { appointmentId: string;
         <div className="mt-3 flex flex-col gap-3">
           <label className="flex items-start gap-2 text-[13px]">
             <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>The patient has agreed to this consultation being recorded to write their notes. The recording itself is not kept.</span>
+            <span>
+              The patient has agreed to this consultation being recorded to write their notes.
+              <span className="block text-muted-foreground mt-0.5">
+                The recording is not kept. Their name, phone number, address and file number are removed before the note is written.
+              </span>
+            </span>
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="primary" icon={<Mic size={14} />} disabled={!consent} onClick={startListening}>Start listening</Button>

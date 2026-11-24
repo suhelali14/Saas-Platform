@@ -35,7 +35,7 @@ import {
 } from "./structure.js";
 import {
   checkDraft, mergeMedicines, nameKey, removeIdentifiers,
-  type Draft, type DraftMedicine, type DrugCandidate, type Flag,
+  type Draft, type DraftMedicine, type DrugCandidate, type Flag, type Identifiers,
 } from "./checks.js";
 
 /** What this doctor usually writes for a medicine. */
@@ -58,9 +58,9 @@ export interface AssistantHost {
   searchMedicine(spoken: string): Promise<{ hits: DrugCandidate[]; approximate: boolean }>;
 }
 
-export interface PatientContext {
-  name: string;
-  phone?: string | null;
+/** Who the patient is (never sent to a model) and what is clinically
+ *  relevant about them (sent, because a note cannot be written without). */
+export interface PatientContext extends Identifiers {
   age?: number | null;
   gender?: string | null;
   allergies?: string | null;

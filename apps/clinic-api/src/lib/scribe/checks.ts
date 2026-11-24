@@ -261,27 +261,79 @@ export function checkDraft(input: { medicines: DraftMedicine[]; transcript: stri
   return flags;
 }
 
+/** Everything on file that says WHO this is, as opposed to what is wrong. */
+export interface Identifiers {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  uhid?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  /** Other people in the room by name: the doctor, most often. */
+  otherNames?: (string | null | undefined)[];
+}
+
+/** Words in an address that are not a place, and may well be said about
+ *  an illness ("admitted to hospital"). Left alone. */
+const ADDRESS_FILLER = new Set([
+  "hospital", "clinic", "road", "street", "lane", "near", "opposite", "behind", "main", "nagar", "colony", "society",
+  "house", "flat", "floor", "building", "apartment", "post", "taluka", "district", "dist", "city", "village", "gaon",
+  "east", "west", "north", "south", "chowk", "peth", "galli", "wadi", "plot", "block", "room", "number", "india",
+]);
+
+function removeWord(text: string, word: string, replacement: string): string {
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "giu"), replacement);
+}
+
 /**
- * The patient's name and phone number, taken out of the transcript before
- * it is sent to a language model.
+ * Who the patient is, taken out of the transcript before it is sent to a
+ * language model.
  *
  * The model needs what was said about the illness, not who it was said
- * to. A greeting by name is the usual way an identifier gets into a
- * consultation, so each word of the name is removed wherever it appears;
- * a phone number is removed whatever spacing it was said or written with.
+ * to. So everything the clinic has on file that identifies a person is
+ * removed wherever it was said aloud: each word of their name, their
+ * phone number, where they live, their file number, their emergency
+ * contact, and the doctor's own name. Then the shapes an identifier
+ * takes whoever it belongs to -- an email address, any long run of
+ * digits -- so a relative's phone number read out in the room goes too.
+ *
+ * ── What this cannot do ──────────────────────────────────────────────
+ *
+ * Remove a name it was never told. A relative greeted by name, or an
+ * employer mentioned in passing, is not on the patient's file and stays
+ * in. It makes the text hard to tie to a person; it does not make it
+ * anonymous, and nothing in the product should say that it does.
  */
-export function removeIdentifiers(transcript: string, patient: { name: string; phone?: string | null }): string {
+export function removeIdentifiers(transcript: string, patient: Identifiers): string {
   let out = transcript;
-  for (const part of patient.name.split(/\s+/)) {
-    const word = part.replace(/[^\p{L}]/gu, "");
-    if (word.length < 3) continue;
-    out = out.replace(new RegExp(`(?<![\\p{L}])${word}(?![\\p{L}])`, "giu"), "the patient");
+
+  const names: [string, string][] = [
+    [patient.name, "the patient"],
+    [patient.emergencyContactName ?? "", "a relative"],
+    ...(patient.otherNames ?? []).map((n): [string, string] => [(n ?? "").replace(/^\s*dr\.?\s+/i, ""), "the doctor"]),
+  ];
+  for (const [name, as] of names) {
+    for (const part of name.split(/\s+/)) {
+      const word = part.replace(/[^\p{L}]/gu, "");
+      if (word.length >= 3) out = removeWord(out, word, as);
+    }
   }
+
+  for (const part of (patient.address ?? "").split(/[\s,./-]+/)) {
+    const word = part.replace(/[^\p{L}]/gu, "");
+    if (word.length >= 4 && !ADDRESS_FILLER.has(word.toLowerCase())) out = removeWord(out, word, "[place]");
+  }
+
+  if (patient.uhid) out = out.split(patient.uhid).join("[file number]");
+  if (patient.email) out = out.split(patient.email).join("[email]");
+  out = out.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]");
+
   // Any run of ten or more digits, however it is spaced, is a phone
   // number or an identity number. Neither belongs in the prompt.
   out = out.replace(/(?:\d[\s-]?){10,}/g, "[number] ");
-  if (patient.phone) {
-    const digits = patient.phone.replace(/\D/g, "");
+  for (const phone of [patient.phone, patient.emergencyContactPhone]) {
+    const digits = (phone ?? "").replace(/\D/g, "");
     if (digits.length >= 6) out = out.split(digits).join("[number]");
   }
   return out;

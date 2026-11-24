@@ -32,6 +32,18 @@ import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/st
  * them. The engine proposes. It does not prescribe.
  */
 
+/**
+ * What the engine is told about a patient. The identifying fields are
+ * here only so they can be REMOVED from the transcript before a model
+ * sees it (lib/scribe/checks.ts, removeIdentifiers); the clinical ones
+ * are what the note is written with.
+ */
+const PATIENT_FOR_ASSISTANT = {
+  name: true, phone: true, email: true, address: true, uhid: true,
+  emergencyContactName: true, emergencyContactPhone: true,
+  age: true, gender: true, allergies: true, chronicConditions: true,
+} as const;
+
 /** A piece of audio is under thirty seconds; this is generous for one. */
 const MAX_PIECE_BYTES = 2 * 1024 * 1024;
 const AUDIO_TYPES = /^audio\/(webm|ogg|mp4|wav|mpeg|x-m4a|aac)/;
@@ -210,7 +222,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     try {
       const patient = await prisma.patient.findUnique({
         where: { id: session.patientId },
-        select: { name: true, phone: true, age: true, gender: true, allergies: true, chronicConditions: true },
+        select: PATIENT_FOR_ASSISTANT,
       });
       if (patient && transcript.trim().length >= 10) {
         const previous = (session.draft as unknown as (Draft & { modelAtSeconds?: number }) | null) ?? null;
@@ -219,7 +231,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
         const useModel = env.SCRIBE_LIVE_SECONDS > 0 && sinceModel >= env.SCRIBE_LIVE_SECONDS;
         const { draft, usage } = await buildDraft({
           transcript,
-          patient,
+          patient: { ...patient, otherNames: [request.clinicUserName] },
           host: clinicHost(auth.clinicUserId, habits),
           reader: useModel ? createReader() : null,
           quiet: true,
@@ -276,13 +288,13 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
     }
     const patient = await prisma.patient.findUnique({
       where: { id: session.patientId },
-      select: { name: true, phone: true, age: true, gender: true, allergies: true, chronicConditions: true },
+      select: PATIENT_FOR_ASSISTANT,
     });
     if (!patient) return reply.status(404).send({ error: "Patient not found" });
 
     const built = await buildDraft({
       transcript: session.transcript,
-      patient,
+      patient: { ...patient, otherNames: [request.clinicUserName] },
       host: clinicHost(auth.clinicUserId),
       reader: createReader(),
     });
