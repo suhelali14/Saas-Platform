@@ -24,6 +24,8 @@ export interface HomeCopy {
     /** On the small standby screen: what pressing it does. */
     alsoShowing: string;
     recorded: string;
+    /** Said under the screen while Growth's film is showing. */
+    demoSalon: string;
     englishOnly: string;
     visionLine: string;
   };
@@ -50,6 +52,7 @@ const en: HomeCopy = {
     switchLabel: 'Which film',
     alsoShowing: 'Also showing',
     recorded: 'Recorded from the product',
+    demoSalon: 'A demo salon: every customer is made up',
     englishOnly: 'Narrated in English',
     visionLine: 'After these two: shops, salons, gyms and food, on the same records. None of it is built yet.',
   },
@@ -105,6 +108,7 @@ const hi: HomeCopy = {
     switchLabel: 'कौन-सी फ़िल्म',
     alsoShowing: 'यह भी देखिए',
     recorded: 'प्रोडक्ट से रिकॉर्ड किया गया',
+    demoSalon: 'एक डेमो सैलून: हर ग्राहक काल्पनिक है',
     englishOnly: 'आवाज़ अंग्रेज़ी में',
     visionLine: 'इन दोनों के बाद: दुकान, सैलून, जिम और खाना-पीना, उन्हीं रिकॉर्ड पर। इनमें से अभी कुछ बना नहीं है।',
   },
@@ -160,6 +164,7 @@ const mr: HomeCopy = {
     switchLabel: 'कोणती फिल्म',
     alsoShowing: 'हेही पाहा',
     recorded: 'प्रॉडक्टमधून रेकॉर्ड केलेलं',
+    demoSalon: 'एक डेमो सलून: प्रत्येक ग्राहक काल्पनिक आहे',
     englishOnly: 'निवेदन इंग्रजीत',
     visionLine: 'या दोघांनंतर: दुकान, सलून, जिम आणि खाद्य, त्याच नोंदींवर. यातलं अजून काहीही बनलेलं नाही.',
   },

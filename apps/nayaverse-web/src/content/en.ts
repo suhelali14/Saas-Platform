@@ -485,7 +485,7 @@ export const en = {
     businessName: 'Business name',
     businessNamePlaceholder: 'As it is on the board outside',
     whatKind: 'What kind',
-    chooseRow: 'Choose a row',
+    chooseRow: 'Choose one',
     city: 'City',
     loginsNeeded: 'People needing a login',
     yourName: 'Your name',

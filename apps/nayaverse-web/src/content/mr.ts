@@ -481,7 +481,7 @@ export const mr: Content = {
     businessName: 'धंद्याचं नाव',
     businessNamePlaceholder: 'बाहेरच्या बोर्डवर जसं आहे तसं',
     whatKind: 'कोणत्या प्रकारचा',
-    chooseRow: 'एक ओळ निवडा',
+    chooseRow: 'एक निवडा',
     city: 'शहर',
     loginsNeeded: 'किती जणांना लॉगिन लागेल',
     yourName: 'तुमचं नाव',

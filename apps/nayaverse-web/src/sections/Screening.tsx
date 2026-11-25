@@ -48,11 +48,11 @@ export function Screening() {
   const films = [
     {
       key: 'clinic', short: p.nav.clinic, words: p.lineup.clinic, status: readiness.LIVE, tone: 'var(--board-live)',
-      film: clinicFilm[locale], length: '3:56', english: false, href: pathFor(locale, 'clinic'),
+      film: clinicFilm[locale], length: '3:56', english: false, href: pathFor(locale, 'clinic'), demo: false,
     },
     {
       key: 'growth', short: p.nav.growth, words: p.lineup.growth, status: p.status.built, tone: 'var(--board-ink)',
-      film: growthFilm, length: '1:17', english: locale !== 'en', href: pathFor(locale, 'growth'),
+      film: growthFilm, length: '1:17', english: locale !== 'en', href: pathFor(locale, 'growth'), demo: true,
     },
   ] as const;
   const now = films[which]!;
@@ -163,6 +163,7 @@ export function Screening() {
             <div className="mt-5 flex flex-wrap items-start justify-between gap-x-8 gap-y-5">
               <p className="t-label flex flex-wrap gap-x-4 gap-y-1 text-[var(--board-ink-soft)]">
                 <span>{words.recorded}</span>
+                {now.demo && <span className="text-[var(--board-ink)]">{words.demoSalon}</span>}
                 <span data-figures>{now.length}</span>
                 <span>{p.film.sound}</span>
                 {now.english && <span>{words.englishOnly}</span>}

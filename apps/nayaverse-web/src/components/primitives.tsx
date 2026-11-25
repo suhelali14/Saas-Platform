@@ -84,7 +84,10 @@ export function Band({ children }: { children: ReactNode }) {
 }
 
 export function BandItem({ children, grow }: { children: ReactNode; grow?: boolean }) {
-  return <span className={cx(grow && 'flex-1')}>{children}</span>;
+  // A growing item is the band's long one. Below `sm` it takes a row of
+  // its own under the short items, or it is squeezed into a column a few
+  // words wide between them.
+  return <span className={cx(grow && 'flex-1 max-sm:order-last max-sm:basis-full')}>{children}</span>;
 }
 
 export function Board({

@@ -481,7 +481,7 @@ export const hi: Content = {
     businessName: 'धंधे का नाम',
     businessNamePlaceholder: 'जैसा बाहर बोर्ड पर लिखा है',
     whatKind: 'किस तरह का',
-    chooseRow: 'एक पंक्ति चुनें',
+    chooseRow: 'एक चुनें',
     city: 'शहर',
     loginsNeeded: 'कितने लोगों को लॉगिन चाहिए',
     yourName: 'आपका नाम',
