@@ -67,6 +67,9 @@ export type Reply =
       /** Set when the card is sent out: who it is for, and the server's
        *  seal on exactly that (seal.ts). */
       patientId?: string | null; appointmentId?: string | null; seal?: string;
+      /** Details the person may type over before confirming: the ones a
+       *  speech engine gets wrong, such as a name or a phone number. */
+      fields?: { key: string; label: string; value: string; number?: boolean }[];
     }
   /** A change that was confirmed and has been made. */
   | { kind: "done"; say: string; to?: string }

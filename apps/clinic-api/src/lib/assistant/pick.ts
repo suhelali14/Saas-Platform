@@ -49,6 +49,10 @@ How to choose:
 - When they want to do something you have no tool for, but the software has a screen where it is done (adding a staff login, changing a fee, editing the website, adding stock), open that screen and tell them in a few words that it is done there. Say you cannot only when no screen does it either.
 - When filling in a form, set a field only when its value was actually said. Something said about a subject is not a finding on it: "he checks his feet daily" does not mean the feet were examined and found normal. Leave that field out.
 - Your list holds only what the person asking is allowed to do. If they ask for something a clinic's software plainly does but your list lacks (a receptionist asking to prescribe), say it is not available to their login. Do not suggest another way for them to do it.
+- You are in a conversation, and the context lists what has been said and done in it so far. Use it. "That", "it", "the same for her", "make it five days" mean what the earlier turns were about.
+- A correction is not a new request. When what they say now corrects or adds to a card that is still waiting (a spelling, a number, one more detail, "no, I said Sayyed"), call the SAME tool again with ALL of its details, corrected, and set replaces_card to that card's number. Never draw up a second card beside the first.
+- When what they say corrects something that is already done (a patient already registered with the name misspelt), change the record that exists, with the tool that changes it, naming the patient by their file number in for_patient. Never register or add a second time.
+- When they spell a name out letter by letter ("S A Y Y E D", "s for sugar, a, y, y, e, d"), join the letters and use exactly that spelling.
 - Speak as a person would to a colleague. Never mention a tool's name, the word "tool", or anything about how you work.
 - Dates: today's date is given in the context. Write every date as YYYY-MM-DD.
 - Write names of people exactly as they were said. Write clinical text in short English, the way an Indian doctor writes a note.
@@ -70,6 +74,21 @@ function withPatient(schema: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
+/**
+ * A change can correct a card that is still waiting. The number travels
+ * beside the action's own parameters, like for_patient, and the card it
+ * names is replaced rather than joined by a second one.
+ */
+export const REPLACES_CARD = "replaces_card";
+function withReplaces(action: Action, schema: Record<string, unknown>): Record<string, unknown> {
+  if (action.kind !== "write") return schema;
+  const properties = (schema.properties ?? {}) as Record<string, unknown>;
+  return {
+    ...schema,
+    properties: { ...properties, [REPLACES_CARD]: { type: "integer", description: "Only when this corrects a card that is still waiting in this conversation: that card's number in the list." } },
+  };
+}
+
 export function pickerAvailable(): boolean {
   return Boolean(env.ANTHROPIC_API_KEY);
 }
@@ -85,6 +104,8 @@ export async function pickAction(input: {
   screen?: string;
   /** Today's queue, with nobody named. */
   queue?: string;
+  /** What has been said and done in this conversation, oldest first. */
+  earlier?: { said: string; did: string }[];
   /** A question this assistant asked a moment ago, which this request answers. */
   pending?: { request: string; question: string };
 }): Promise<Picked> {
@@ -108,7 +129,7 @@ export async function pickAction(input: {
       // many optional parameters one request may carry, and this list is
       // past both; nothing is lost, because what the model returns is
       // validated by the action's own schema before anything happens.
-      input_schema: (a.needsPatient && !a.loose ? withPatient(a.jsonSchema) : a.jsonSchema) as Anthropic.Tool.InputSchema,
+      input_schema: withReplaces(a, a.needsPatient && !a.loose ? withPatient(a.jsonSchema) : a.jsonSchema) as Anthropic.Tool.InputSchema,
     })),
     messages: [
       {
@@ -118,6 +139,9 @@ export async function pickAction(input: {
           `${input.hasPatient ? "A patient's record is open on their screen." : "No patient's record is open on their screen."} ` +
           `${input.hasVisit ? "A visit (consultation) for that patient is open." : ""} ` +
           `${input.screen ? `They are looking at: ${input.screen}. ` : ""}${input.queue ?? ""}\n\n` +
+          (input.earlier && input.earlier.length > 0
+            ? `This conversation so far, oldest first:\n${input.earlier.map((turn, i) => `${i + 1}. They said: ${turn.said || "(typed nothing)"}\n   You: ${turn.did}`).join("\n")}\n\n`
+            : "") +
           (input.pending
             ? `A moment ago they asked:\n${input.pending.request}\n\nYou asked them back:\n${input.pending.question}\n\nTheir answer, which completes that request:\n${input.text}`
             : `The request:\n${input.text}`),

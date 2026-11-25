@@ -14,7 +14,8 @@
  */
 
 import { route, type Intent } from "./router.js";
-import { FOR_PATIENT, pickAction, pickerAvailable } from "./pick.js";
+import { FOR_PATIENT, REPLACES_CARD, pickAction, pickerAvailable } from "./pick.js";
+import { prisma } from "../prisma.js";
 import { actionNamed, actionsFor, patientNamed, queueInBrief, type RunContext } from "./actions.js";
 import { SCREENS } from "./router.js";
 import { formActions } from "./forms.js";
@@ -30,6 +31,9 @@ export interface Answered {
    * for: two things said together need not be about the same person.
    */
   more?: Reply[];
+  /** The earlier turn (1-based, in the list the browser sent) whose
+   *  waiting card this reply corrects and should take the place of. */
+  replaces?: number;
   /** What worked out the request, so its cost is never a guess. */
   by: "rule" | "model" | "none";
   action: string | null;
@@ -93,6 +97,14 @@ async function perform(action: Action, intent: Intent, context: RunContext): Pro
       // one on screen. Who it was taken to mean is the first thing on the
       // card, in full, before anything can be confirmed.
       if (card.kind === "confirm" && namedAs) return { ...card, lines: [{ label: "Patient", text: namedAs }, ...card.lines] };
+      // Every card says who it is for. A card stays on screen while the
+      // doctor goes on talking and moving between patients, and one that
+      // read only "record these vitals on this visit" would be confirmed
+      // over whoever happened to be open by then.
+      if (card.kind === "confirm" && context.patientId && !card.lines.some((l) => l.label === "Patient")) {
+        const who = await prisma.patient.findUnique({ where: { id: context.patientId }, select: { name: true, uhid: true, age: true, gender: true } });
+        if (who) return { ...card, lines: [{ label: "Patient", text: [who.name, who.uhid, who.age != null ? `${who.age}y` : null, who.gender].filter(Boolean).join(" · ") }, ...card.lines] };
+      }
       return card;
     }
     return await action.run(context, checked.params as never);
@@ -101,14 +113,21 @@ async function perform(action: Action, intent: Intent, context: RunContext): Pro
   }
 }
 
-export async function ask(text: string, context: RunContext, pending?: { request: string; question: string }): Promise<Answered> {
+/** Words that answer or correct what came before, and mean nothing alone. */
+const FOLLOWS_ON = /^(?:no|nope|not|nahi|nahin|nako|wrong|galat|chuk|i said|i meant|actually|sorry|spell|spelling|correct|change (?:it|that)|make (?:it|that)|and (?:also|then)|also|same|that|it|woh|wo|use|usko|isko|tyala|tila)\b|^(?:नहीं|नही|नाही|नको|गलत|चुकीचं|वो|उसे|त्याला|तिला)|\b(?:spelling|spelt|spelled|instead of|ki jagah|aivaji)\b|ऐवजी|की जगह/iu;
+
+export async function ask(text: string, context: RunContext, pending?: { request: string; question: string }, earlier: { said: string; did: string }[] = []): Promise<Answered> {
   const request = text.trim().slice(0, 600);
   if (request.length < 1) return { reply: sorry(HELP), by: "none", action: null, usage: null };
 
   // An answer to a question the assistant asked ("three days") means
   // nothing on its own, so no rule is tried on it: it goes to the model
   // together with what it is an answer to.
-  const ruled = pending ? null : route(request, { today: context.today, hasPatient: Boolean(context.patientId), hasVisit: Boolean(context.appointmentId) });
+  // Nor is a rule tried on something that leans on what came before
+  // ("no, Sayyed with two y's", "make it five days"): a rule reads one
+  // sentence, and this one is half a sentence.
+  const leans = earlier.length > 0 && FOLLOWS_ON.test(request);
+  const ruled = pending || leans ? null : route(request, { today: context.today, hasPatient: Boolean(context.patientId), hasVisit: Boolean(context.appointmentId) });
   if (ruled) {
     const action = await resolve(ruled.action, context);
     if (action) return { reply: await perform(action, ruled, context), by: "rule", action: action.name, usage: null };
@@ -132,6 +151,7 @@ export async function ask(text: string, context: RunContext, pending?: { request
       role: context.asker.role,
       screen: screenInWords(context.screen),
       queue: await queueInBrief(context.today).catch(() => undefined),
+      earlier,
       pending,
     });
   } catch {
@@ -150,7 +170,18 @@ export async function ask(text: string, context: RunContext, pending?: { request
     const own: RunContext = { ...context };
     more.push(sealed(await perform(next, intent, own), own));
   }
-  return { reply: await perform(action, picked.intent, context), more, by: "model", action: action.name, usage: picked.usage };
+  const replaces = Number(picked.intent.params?.[REPLACES_CARD]);
+  return {
+    reply: await perform(action, picked.intent, context), more, by: "model", action: action.name, usage: picked.usage,
+    ...(Number.isInteger(replaces) && replaces >= 1 && replaces <= earlier.length ? { replaces } : {}),
+  };
+}
+
+/** A card drawn up again from details the person corrected by hand. */
+export async function previewAgain(name: string, params: Record<string, unknown>, context: RunContext): Promise<Answered> {
+  const action = await resolve(name, context);
+  if (!action || action.kind !== "write") return { reply: sorry("That is not something I can do."), by: "none", action: null, usage: null };
+  return { reply: await perform(action, { action: name, params }, context), by: "none", action: name, usage: null };
 }
 
 /**

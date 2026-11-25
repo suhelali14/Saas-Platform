@@ -1152,6 +1152,12 @@ const registerPatient: Action = {
       action: "register_patient",
       params,
       title: params.checkIn ? `Register ${params.name} and add them to today's queue?` : `Register ${params.name} as a new patient?`,
+      fields: [
+        { key: "name", label: "Name", value: params.name },
+        { key: "age", label: "Age", value: params.age != null ? String(params.age) : "", number: true },
+        { key: "gender", label: "Sex", value: params.gender ?? "" },
+        { key: "phone", label: "Phone", value: params.phone ?? "" },
+      ],
       lines: [
         { label: "Name", text: params.name },
         ...(params.age != null ? [{ label: "Age", text: String(params.age) }] : []),

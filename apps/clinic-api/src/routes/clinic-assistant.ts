@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { requireClinicAuth } from "../plugins/auth.js";
-import { ask, runConfirmed, type Answered } from "../lib/assistant/ask.js";
+import { ask, previewAgain, runConfirmed, type Answered } from "../lib/assistant/ask.js";
 import { contextFor, sealed } from "../lib/assistant/context.js";
 import { pickerAvailable } from "../lib/assistant/pick.js";
 import { speechAvailable, transcribe, SpeechUnavailable } from "../lib/scribe/stt.js";
@@ -38,6 +38,29 @@ const askSchema = z.object({
   card: z.boolean().optional(),
   /** The question the assistant asked last, when this is the answer to it. */
   pending: z.object({ request: z.string().max(600), question: z.string().max(600) }).optional(),
+  /** What has been said and done so far in this conversation. */
+  earlier: z.array(z.object({ said: z.string().max(600), did: z.string().max(900) })).max(8).optional(),
+});
+
+/** The conversation so far, as it arrives with a spoken request. */
+function earlierFrom(field: string | undefined): { said: string; did: string }[] {
+  if (!field) return [];
+  try {
+    const parsed = z.array(z.object({ said: z.string().max(600), did: z.string().max(900) })).max(8).safeParse(JSON.parse(field));
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+}
+
+const reviseSchema = z.object({
+  action: z.string().min(1).max(80),
+  params: z.record(z.unknown()).default({}),
+  patientId: z.string().max(60).nullable().optional(),
+  appointmentId: z.string().max(60).nullable().optional(),
+  seal: z.string().max(200),
+  /** The details the person typed over. */
+  changes: z.record(z.union([z.string().max(600), z.number(), z.boolean(), z.null()])),
 });
 
 const runSchema = z.object({
@@ -97,9 +120,9 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       if (decided) return { decided, by: "rule" };
     }
     const context = await contextFor(app, request, parsed.data);
-    const answered = await ask(parsed.data.text, context, parsed.data.pending);
+    const answered = await ask(parsed.data.text, context, parsed.data.pending, parsed.data.earlier ?? []);
     record(request, answered);
-    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action };
+    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action, replaces: answered.replaces };
   });
 
   /** The same, spoken. The audio is transcribed and gone; it is not kept. */
@@ -138,9 +161,31 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       heard,
       context,
       pendingRequest && pendingQuestion ? { request: pendingRequest.slice(0, 600), question: pendingQuestion.slice(0, 600) } : undefined,
+      earlierFrom(field("earlier")),
     );
     record(request, answered);
-    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action, heard };
+    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action, replaces: answered.replaces, heard };
+  });
+
+  /**
+   * A card, put right by hand before it is confirmed.
+   *
+   * A name heard aloud is often spelt wrong, and typing three letters
+   * over it is quicker than saying it again. The card that comes back is
+   * drawn up afresh from the corrected details, by the same code that
+   * drew up the first, and sealed again: the old seal only proves the
+   * card being corrected was one this server issued to this person.
+   */
+  app.post("/api/clinic/assistant/revise", { config: { rateLimit: { max: 60, timeWindow: "1 minute", keyGenerator: perPerson } } }, async (request, reply) => {
+    const auth = requireClinicAuth(request, reply);
+    if (!auth) return;
+    const parsed = reviseSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: "That could not be read." });
+    const card = { action: parsed.data.action, params: parsed.data.params, patientId: parsed.data.patientId ?? null, appointmentId: parsed.data.appointmentId ?? null, userId: auth.clinicUserId };
+    if (!sealIsValid(card, parsed.data.seal)) return { reply: { kind: "sorry", say: "That card is out of date. Ask me again and I will draw it up afresh." }, by: "none" };
+    const context = await contextFor(app, request, card.appointmentId ? { appointmentId: card.appointmentId } : { patientId: card.patientId ?? undefined });
+    const answered = await previewAgain(parsed.data.action, { ...parsed.data.params, ...parsed.data.changes }, context);
+    return { reply: sealed(answered.reply, context), by: "none" };
   });
 
   /** A change the person pressed Confirm on. */

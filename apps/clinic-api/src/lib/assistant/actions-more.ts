@@ -564,6 +564,7 @@ function withAdded(existing: string | null, more: string): string {
 }
 
 const UPDATE_FIELDS = z.object({
+  name: z.string().trim().min(2).max(200).nullable().optional(),
   phone: z.string().max(30).nullable().optional(),
   age: z.number().int().min(0).max(150).nullable().optional(),
   gender: z.string().max(20).nullable().optional(),
@@ -587,6 +588,7 @@ async function patientChanges(context: ActionContext, params: UpdateFields) {
     data[key] = value;
     lines.push({ label, text: patient[key] ? `${patient[key]} → ${value}` : String(value) });
   };
+  set("Name", "name", params.name);
   set("Phone", "phone", params.phone);
   set("Age", "age", params.age);
   set("Sex", "gender", params.gender);
@@ -602,11 +604,12 @@ async function patientChanges(context: ActionContext, params: UpdateFields) {
 
 const updatePatient: Action = {
   name: "update_patient",
-  summary: "Changes the patient's own details on their file: phone number, age, sex, address, blood group, emergency contact, a note for the front desk; or adds an allergy or a long-term condition (diabetes, hypertension, asthma) to what is already recorded. Use it for 'she is allergic to penicillin', 'his new number is 98…', 'blood group B positive', 'note that he is diabetic'.",
+  summary: "Changes the patient's own details on their file: the spelling of their name, phone number, age, sex, address, blood group, emergency contact, a note for the front desk; or adds an allergy or a long-term condition (diabetes, hypertension, asthma) to what is already recorded. Use it for 'she is allergic to penicillin', 'his new number is 98…', 'blood group B positive', 'note that he is diabetic'.",
   kind: "write",
   needsPatient: true,
   schema: UPDATE_FIELDS,
   jsonSchema: strictObject({
+    name: { ...optionalString, description: "The patient's name, corrected: only when they say the name on file is wrong or misspelt." },
     phone: optionalString, age: optionalNumber, gender: { ...optionalString, description: "Male or Female." }, address: optionalString,
     bloodGroup: { ...optionalString, description: "Such as B+ or O-." },
     addAllergy: { ...optionalString, description: "An allergy to add to those on file." },
