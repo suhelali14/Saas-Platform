@@ -65,7 +65,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 }
 
 /** Was this rendered by a browser that is actually running code? */
-function useHydrated() {
+export function useHydrated() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   return hydrated;

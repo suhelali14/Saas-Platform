@@ -26,7 +26,7 @@ import { Band, BandItem, Heading, Panel, Stamp, cx } from '@/components/primitiv
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
 /** One film in a 16:10 or 16:9 frame: a still with a play plate until it is asked for. */
-function Player({
+export function Player({
   src,
   poster,
   label,
@@ -179,9 +179,9 @@ export function AssistantFilms() {
                     )}
                     style={{ transitionDuration: 'var(--dur)' }}
                   >
-                    <span className={cx('t-row w-7 shrink-0', on ? 'text-[var(--priority)]' : 'text-[var(--ink-faint)]')} data-figures>
-                      {String(i).padStart(2, '0')}
-                    </span>
+                    <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true" fill="currentColor" className={cx('mt-1.5 shrink-0 self-start', on ? 'text-[var(--priority)]' : 'text-[var(--ink-faint)]')}>
+                      <path d="M2.5 1.2 10.5 6l-8 4.8z" />
+                    </svg>
                     <span className="min-w-0 flex-1">
                       <span className="t-board block text-[1.2rem] leading-none">{w.title}</span>
                       <span className={cx('mt-1.5 block text-sm', on ? 'text-[var(--ink-soft)]' : 'text-[var(--ink-faint)]')}>

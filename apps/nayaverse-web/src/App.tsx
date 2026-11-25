@@ -14,7 +14,8 @@ import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, type Locale, type Page } from '@/content/index';
 import { Rail } from '@/sections/Rail';
 import { Hero } from '@/sections/Hero';
-import { Lineup } from '@/sections/Lineup';
+import { Screening } from '@/sections/Screening';
+import { Standing } from '@/sections/Standing';
 import { AssistantFilms, ClinicFilm } from '@/sections/Films';
 import { ClinicGets, ClinicTop, GrowthPage, VisionTop } from '@/sections/ProductPages';
 import { ServiceChart } from '@/sections/ServiceChart';
@@ -80,19 +81,20 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 -- and it is the one block that must be readable the instant
                 the prerendered HTML lands. */}
             <Hero onEnquire={onEnquire} />
-            {/* What can be bought, before anything else: the live product,
-                the built one, and a pointer to what is only planned. The
-                chart of twenty-three trades this page used to open on is
-                the Vision page now. */}
-            <Reveal defer><Lineup /></Reveal>
-            <Reveal defer><ClinicFilm /></Reveal>
+            {/* Who Nayaversse is (the board above), then its two products
+                at work on film, then who stands behind them. The screening
+                is not wrapped in a reveal: it carries the page's one
+                authored movement itself, driven by the scroll. The chart of
+                twenty-three trades this page used to open on is the Vision
+                page now. */}
+            <Screening />
+            <Reveal defer><Standing /></Reveal>
             <Reveal defer><AssistantFilms /></Reveal>
             <Reveal defer><DayCharts clinicOnly /></Reveal>
             {/* Straight after the live clinic chart: the reader who just
                 watched the queue re-rank is the one asking which class is
                 theirs and what a hospital gets. */}
             <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><About /></Reveal>
             <Reveal defer><Conditions /></Reveal>
             <Reveal defer><Enquiry /></Reveal>
           </>

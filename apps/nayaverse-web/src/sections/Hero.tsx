@@ -24,12 +24,14 @@
 import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
 import { productsCopy } from '@/content/products';
+import { homeCopy } from '@/content/home';
 import { Board, Chevron, cx } from '@/components/primitives';
 
 export function Hero({ onEnquire }: { onEnquire: () => void }) {
   const { readiness } = useContent();
   const { locale } = useContentCtx();
-  const { hero, lineup, status } = productsCopy[locale];
+  const { hero: actions, lineup, status } = productsCopy[locale];
+  const hero = { ...actions, ...homeCopy[locale].hero };
 
   const lines = [
     { name: lineup.clinic.name, word: readiness.LIVE, note: hero.clinicNote, href: pathFor(locale, 'clinic'), tone: 'text-[var(--lamp)] border-[var(--lamp)]' },

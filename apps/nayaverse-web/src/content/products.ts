@@ -30,6 +30,9 @@ export const assistantFilms: { key: FilmKey; src: string; poster: string; second
   { key: 'room', src: '/video/assistant-room.mp4', poster: '/video/assistant-room.jpg', seconds: 19 },
 ];
 
+/** Growth's film, narrated in English, recorded on the demo salon. */
+export const growthFilm = { src: '/video/growth.mp4', poster: '/video/growth.jpg' };
+
 /** The clinic film exists in all three languages; each page plays its own. */
 export const clinicFilm: Record<Locale, { src: string; poster: string }> = {
   en: { src: '/video/clinic-en.mp4', poster: '/video/clinic.jpg' },
@@ -245,8 +248,8 @@ const en: ProductsCopy = {
         ],
       },
     ],
-    filmHeading: 'On film',
-    filmNote: 'There is no film of Growth yet. One is being recorded from the product itself, on made-up customers, and will be here when it is done. Until then, a walkthrough shows it running.',
+    filmHeading: 'Growth on film',
+    filmNote: 'Recorded from the product itself, on a demo salon. Every customer in it is made up, and nothing in it was really sent.',
     action: 'Ask about a pilot',
   },
   visionPage: {
@@ -414,7 +417,7 @@ const hi: ProductsCopy = {
       },
     ],
     filmHeading: 'वीडियो में',
-    filmNote: 'Growth की अभी कोई फ़िल्म नहीं है। एक फ़िल्म असली प्रोडक्ट से, काल्पनिक ग्राहकों पर, रिकॉर्ड हो रही है और बनते ही यहाँ होगी। तब तक डेमो में इसे चलते हुए देखा जा सकता है।',
+    filmNote: 'ख़ुद प्रोडक्ट से रिकॉर्ड की गई, एक डेमो सैलून पर। इसमें हर ग्राहक काल्पनिक है, और इसमें कुछ भी असल में भेजा नहीं गया।',
     action: 'पायलट के बारे में पूछें',
   },
   visionPage: {
@@ -582,7 +585,7 @@ const mr: ProductsCopy = {
       },
     ],
     filmHeading: 'व्हिडिओमध्ये',
-    filmNote: 'Growth ची अजून फिल्म नाही. एक फिल्म खऱ्या प्रॉडक्टमधून, काल्पनिक ग्राहकांवर, रेकॉर्ड होत आहे आणि तयार झाल्यावर इथे असेल. तोपर्यंत डेमोमध्ये ते चालताना पाहता येतं.',
+    filmNote: 'स्वतः प्रॉडक्टमधून रेकॉर्ड केलेली, एका डेमो सलूनवर. यातला प्रत्येक ग्राहक काल्पनिक आहे, आणि यात काहीही खरोखर पाठवलेलं नाही.',
     action: 'पायलटबद्दल विचारा',
   },
   visionPage: {

@@ -1,0 +1,231 @@
+{
+ "format": "yt",
+ "W": 1920,
+ "H": 1080,
+ "fps": 30,
+ "voice": "en-IN-NeerjaNeural",
+ "rate": "+6%",
+ "lead": 0.3,
+ "pad": 0.4,
+ "series": "NAYAVERSSE · GROWTH",
+ "rightDark": "THE PROBLEM",
+ "rightCream": "THE REAL PRODUCT · A DEMO SALON",
+ "shots": "modules-growth",
+ "beats": [
+  {
+   "chapter": "THE QUIET LOSS",
+   "ground": "dark",
+   "min": 5,
+   "cap": "Every business has them: *customers* who simply stopped coming.",
+   "visual": {
+    "type": "flap",
+    "rows": [
+     { "text": "90 CUSTOMERS", "size": "l", "y": -150, "at": 0.25 },
+     { "text": "33 STOPPED", "size": "l", "y": 10, "at": "w:4", "color": "#eba63f" },
+     { "text": "NOBODY NOTICED", "size": "s", "y": 190, "at": "w:7" }
+    ]
+   },
+   "sayPro": "[serious] Every business has them: customers who simply stopped coming."
+  },
+  {
+   "chapter": "THE QUIET LOSS",
+   "ground": "dark",
+   "cap": "Nobody calls them. Nobody even knows *who* they are.",
+   "visual": { "type": "tokens", "qAt": "w:6" },
+   "punch": "WHO?",
+   "punchAt": "w:7",
+   "sayPro": "[tired] Nobody calls them. Nobody even knows who they are."
+  },
+  {
+   "chapter": "THE QUIET LOSS",
+   "ground": "dark",
+   "cap": "And an offer blasted to everyone is spam. It gets *ignored.*",
+   "visual": { "type": "sweep" },
+   "punch": "IGNORED.",
+   "punchAt": "w:10",
+   "sayPro": "[frustrated] And an offer blasted to everyone is spam. It gets ignored."
+  },
+  {
+   "chapter": "MEET GROWTH",
+   "ground": "cream",
+   "min": 6,
+   "cap": "This is Nayaversse *Growth.* It brings them back, and shows whether it worked.",
+   "say": "This is Nayaversse Growth. It brings them back, and shows whether it worked.",
+   "visual": {
+    "type": "cards",
+    "logo": true,
+    "cards": [ { "shot": "customers", "label": "YOUR CUSTOMERS" } ]
+   },
+   "sayPro": "[warmly] This is नयावर्स Growth. It brings them back, and shows whether it worked."
+  },
+  {
+   "chapter": "ONLY WHO AGREED",
+   "ground": "cream",
+   "cap": "It starts with *consent.* Nobody is messaged until they have agreed, and that is on record.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "customers",
+      "label": "YOUR CUSTOMERS",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.2, 0.1, 0.75, 0.5] } ],
+      "ring": [
+       { "at": "w:3", "r": [0.205, 0.105, 0.2, 0.03] },
+       { "at": "w:9", "r": [0.615, 0.27, 0.075, 0.33] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[confident] It starts with consent. Nobody is messaged until they have agreed, and that is on record."
+  },
+  {
+   "chapter": "ONLY WHO AGREED",
+   "ground": "cream",
+   "cap": "A QR code at the counter lets a customer *agree* by themselves.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "settings",
+      "label": "THE OPT-IN PAGE",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.3, 0.1, 0.66, 0.42] } ],
+      "ring": [ { "at": "w:2", "r": [0.8, 0.16, 0.135, 0.2] } ]
+     }
+    ]
+   },
+   "sayPro": "A Q R code at the counter lets a customer agree by themselves."
+  },
+  {
+   "chapter": "THE OFFER",
+   "ground": "cream",
+   "cap": "Say how long they have been away. It finds the *thirty* people, and tells you who it left out, and why.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "new-campaign",
+      "label": "A NEW WIN-BACK",
+      "cam": [ { "at": "w:2", "dur": 1.2, "r": [0.2, 0.16, 0.75, 0.5] } ],
+      "ring": [
+       { "at": "w:10", "r": [0.255, 0.275, 0.3, 0.095] },
+       { "at": "w:16", "r": [0.255, 0.385, 0.41, 0.095] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Say how long they have been away. It finds the thirty people, and tells you who it left out, and why."
+  },
+  {
+   "chapter": "THE OFFER",
+   "ground": "cream",
+   "cap": "You type the offer. And only the owner can *approve* it.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "new-campaign",
+      "label": "A NEW WIN-BACK",
+      "cam": [
+       { "at": 0, "dur": 0.01, "r": [0.2, 0.16, 0.75, 0.5] },
+       { "at": 0.1, "dur": 1.1, "r": [0.2, 0.45, 0.75, 0.5] }
+      ],
+      "ring": [ { "at": "w:3", "r": [0.255, 0.63, 0.67, 0.08] } ]
+     }
+    ]
+   },
+   "sayPro": "You type the offer. And only the owner can approve it."
+  },
+  {
+   "chapter": "PROOF, NOT IMPRESSIONS",
+   "ground": "cream",
+   "cap": "Then the proof. Thirteen people booked again after the message, worth ten thousand three hundred *rupees.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "campaign",
+      "label": "OCTOBER WIN-BACK",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.19, 0.08, 0.78, 0.5] } ],
+      "ring": [ { "at": "w:3", "r": [0.205, 0.2, 0.36, 0.09] } ]
+     }
+    ]
+   },
+   "punch": "₹10,300",
+   "punchAt": "w:11",
+   "sayPro": "[pleased] Then the proof. Thirteen people booked again after the message, worth ten thousand three hundred rupees."
+  },
+  {
+   "chapter": "PROOF, NOT IMPRESSIONS",
+   "ground": "cream",
+   "cap": "And a few people are held back and *not* messaged, so you see who would have come anyway.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "campaign",
+      "label": "OCTOBER WIN-BACK",
+      "cam": [ { "at": 0, "dur": 0.01, "r": [0.19, 0.08, 0.78, 0.5] } ],
+      "ring": [
+       { "at": "w:5", "r": [0.58, 0.275, 0.36, 0.045] },
+       { "at": "w:12", "r": [0.205, 0.345, 0.36, 0.09] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "And a few people are held back and not messaged, so you see who would have come anyway."
+  },
+  {
+   "chapter": "PROOF, NOT IMPRESSIONS",
+   "ground": "cream",
+   "cap": "Every message shows whether it was read, and who *booked* again.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "campaign-lower",
+      "label": "EVERYONE ON THE CAMPAIGN",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.2, 0.0, 0.75, 0.5] } ],
+      "ring": [
+       { "at": "w:5", "r": [0.205, 0.235, 0.2, 0.05] },
+       { "at": "w:9", "r": [0.865, 0.235, 0.07, 0.045] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Every message shows whether it was read, and who booked again."
+  },
+  {
+   "chapter": "EVERY MONDAY",
+   "ground": "cream",
+   "cap": "And every Monday, the week arrives on the owner's own *WhatsApp.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "reports",
+      "label": "THE WEEKLY REPORT",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.2, 0.1, 0.75, 0.45] } ],
+      "ring": [ { "at": "w:6", "r": [0.56, 0.245, 0.37, 0.2] } ]
+     }
+    ]
+   },
+   "sayPro": "And every Monday, the week arrives on the owner's own WhatsApp."
+  },
+  {
+   "chapter": "NAYAVERSSE GROWTH",
+   "ground": "cream",
+   "min": 6,
+   "cap": "",
+   "say": "Nayaversse Growth. Built, and looking for its first business. Ask about a pilot at nayaversse dot in.",
+   "visual": { "type": "end", "center": true },
+   "sayPro": "[warmly] नयावर्स Growth. Built, and looking for its first business. [friendly] Ask about a pilot at नयावर्स dot in."
+  }
+ ],
+ "tts": "elevenlabs",
+ "elevenVoice": "OtEfb2LVzIE45wdYe54M",
+ "elevenModel": "eleven_v3",
+ "elevenStability": 0.5
+}

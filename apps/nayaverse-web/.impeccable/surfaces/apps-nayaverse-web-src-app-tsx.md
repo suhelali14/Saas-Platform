@@ -171,3 +171,40 @@ destroy.
 project; today they serve clinic-web.
 
 **FINISH.** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+**Company-led home (2026-11-25, owner's decision).** Shown three replacement
+worlds, the owner kept this one ("older one is good but I need to add on
+that") and asked for the home page to be about Nayaversse, with Clinic and
+Growth as its two products, each on film, and to earn a client's trust. This
+supersedes the STORY and FIRST VIEWPORT blocks above for the home page only;
+THESIS, OWN-WORLD and FORM stand.
+
+- *Story now.* The visitor learns who Nayaversse is (a small company from
+  Sangli), watches its two products work on film, and reads who stands
+  behind them. They act at the enquiry counter.
+- *First viewport now.* The destination board carries the company headline
+  and lede on the left; on the right, behind the rule, three lines: Clinic
+  (Live), Growth (Built), the Vision (Planned), then the walkthrough action.
+  No fare on the first screen: the monthly fare is the general platform's,
+  which nobody can buy yet, and a clinic's price is quoted.
+- *Signature moment.* The screening: a second board directly under the
+  first, holding one lit screen and a two-way indicator (Clinic / Growth).
+  The screen draws up to size and a band of light crosses its glass as the
+  reader arrives, driven by scroll; changing film wipes the picture and
+  turns the product's name over on a split-flap unit. It is the page's one
+  authored movement and stands still under reduced motion and in the
+  prerendered HTML.
+- *Trust, stated as fact.* "Who stands behind it": the clinic that runs on
+  it (named, owner confirmed), the founder with his phone number, and what
+  a buyer can verify. No logo wall, count, testimonial or percentage.
+- *Moved.* The 23-trade service chart, the trade day-charts, route,
+  manifest and monthly fares are the Vision page (`/vision`). The build's
+  status-cell count follows the chart there. `/clinic` and `/growth` are the
+  product pages. Words: `src/content/products.ts`, `src/content/home.ts`.
+- *Statuses the build enforces.* Growth is "Built", never Live; the
+  assistant's films are "In trial".
+- *Films.* Every film is the animated story style, recorded from the
+  product on made-up people (`scripts/demo-video/reel/story-*.json`,
+  `scripts/demo-video/web-films.mjs`).
+
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

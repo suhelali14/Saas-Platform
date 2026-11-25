@@ -13,7 +13,8 @@
 import type { ReactNode } from 'react';
 import { useContent, useContentCtx } from '@/content/use-content';
 import { Departures } from '@/components/Departures';
-import { productsCopy } from '@/content/products';
+import { growthFilm, productsCopy } from '@/content/products';
+import { Player } from '@/sections/Films';
 import { Band, BandItem, Board, Heading, Panel, Stamp } from '@/components/primitives';
 
 function PageBoard({
@@ -126,6 +127,28 @@ export function GrowthPage({ onEnquire }: { onEnquire: () => void }) {
         action={growthPage.action}
         onAction={onEnquire}
       />
+      <section id="film" className="frame void">
+        <Panel>
+          <Band>
+            <BandItem>{film.bandTitle}</BandItem>
+            <BandItem grow>{film.band}</BandItem>
+            <BandItem>
+              <span data-figures>1:17</span>
+            </BandItem>
+          </Band>
+          <div className="grid gap-x-10 gap-y-6 px-4 py-7 sm:px-7 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:items-start">
+            <div>
+              <Heading>{growthPage.filmHeading}</Heading>
+              <p className="t-prose mt-4 text-pretty text-[var(--ink-soft)]">{growthPage.filmNote}</p>
+              <p className="t-label mt-5 text-[var(--ink-faint)]">
+                {film.sound}
+                {locale !== 'en' && <> · {film.englishOnly}</>}
+              </p>
+            </div>
+            <Player src={growthFilm.src} poster={growthFilm.poster} label={growthPage.title} play={film.play} ratio="16 / 9" />
+          </div>
+        </Panel>
+      </section>
       <section className="frame void">
         <Panel>
           <Band>
@@ -138,14 +161,11 @@ export function GrowthPage({ onEnquire }: { onEnquire: () => void }) {
             </BandItem>
           </Band>
           <div className="px-4 py-3 sm:px-7">
-            {growthPage.sections.map((s, i) => (
+            {growthPage.sections.map((s) => (
               <article
                 key={s.heading}
-                className="rule-row grid gap-x-8 gap-y-3 py-7 last:border-b-0 md:grid-cols-[3rem_minmax(0,17rem)_minmax(0,1fr)]"
+                className="rule-row grid gap-x-10 gap-y-3 py-7 last:border-b-0 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]"
               >
-                <span className="t-row text-[var(--ink-faint)]" data-figures>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
                 <h2 className="t-board text-[1.5rem] leading-[1.05] text-[var(--ink)]">{s.heading}</h2>
                 <div>
                   {s.body.map((p, j) => (
@@ -158,11 +178,7 @@ export function GrowthPage({ onEnquire }: { onEnquire: () => void }) {
             ))}
           </div>
           <div className="rule-total flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-4 py-6 sm:px-7">
-            <div className="max-w-[62ch]">
-              <h3 className="t-board text-[1.3rem] leading-none text-[var(--ink)]">{growthPage.filmHeading}</h3>
-              <p className="t-prose mt-2.5 text-sm text-[var(--ink-soft)]">{growthPage.filmNote}</p>
-              <p className="sr-only">{film.band}</p>
-            </div>
+            <p className="t-prose max-w-[62ch] text-sm text-[var(--ink-soft)]">{growthPage.statusNote}</p>
             <button type="button" onClick={onEnquire} className="plate">
               {growthPage.action}
             </button>

@@ -63,6 +63,19 @@ for (const [name, chapter] of Object.entries(PARTS)) {
   console.log(`assistant-${name}.mp4  ${len.toFixed(1)}s  ${mb(to)}`);
 }
 
+// ── Growth (reel/story-growth.json) ───────────────────────────────────
+{
+  const from = path.join(OUT, 'nayaversse-growth.mp4');
+  if (fs.existsSync(from)) {
+    const to = path.join(SITE, 'growth.mp4');
+    ff(['-i', from, '-vf', 'scale=1280:720', ...SMALL, to], 'growth');
+    // The moment the proof is on screen.
+    const proof = JSON.parse(fs.readFileSync(path.join(OUT, '_story-growth/timeline-merged.json'), 'utf8')).beats.find((b) => b.chapter === 'PROOF, NOT IMPRESSIONS');
+    still(from, proof ? proof.t1 - 1.2 : 48, path.join(SITE, 'growth.jpg'));
+    console.log(`growth.mp4  ${mb(to)}`);
+  } else console.log('growth: nayaversse-growth.mp4 is not rendered, left out');
+}
+
 // ── The clinic film, in each language ─────────────────────────────────
 for (const [lang, file] of Object.entries({ en: 'nayaversse-yt.mp4', hi: 'nayaversse-yt-hi.mp4', mr: 'nayaversse-yt-mr.mp4' })) {
   const from = path.join(OUT, file);
