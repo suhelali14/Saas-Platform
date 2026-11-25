@@ -57,6 +57,8 @@ export function Encounter() {
   const [previousVisit, setPreviousVisit] = useState<PreviousVisit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<'none' | 'caseSheet' | 'prescription' | 'certificate' | 'vitals' | 'labs'>('none');
+  // The note, medicines and tests as three forms of their own, for anyone who wants them beside the sheet.
+  const [separate, setSeparate] = useState(false);
 
   const canRecordVitals = user && VITALS_ROLES.has(user.role);
   // Specialty forms for this visit: the open pregnancy, the forms this
@@ -235,17 +237,31 @@ export function Encounter() {
           {/* Above the forms it fills in: a doctor who uses it does not open
               them, and one who does not is one scroll from where they were. */}
           {canWriteClinical && hasModule('scribe') && (
-            <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} onSaved={load} />
+            <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} patientId={appointment.patient.id} onSaved={load} />
           )}
 
           {canWriteClinical && (
             <section className="mb-6">
-              <h2 className="mb-2 text-[13px] font-medium text-muted-foreground">{hasModule('scribe') ? 'Or write it yourself' : 'Write this visit'}</h2>
+              {/* With the visit sheet above, the note, the medicines and the
+                  tests are one page with one Confirm. Their separate forms
+                  stay for a clinic without the sheet, and one step away for
+                  anyone who wants them; a certificate is its own document
+                  either way. */}
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="text-[13px] font-medium text-muted-foreground">{hasModule('scribe') ? 'Also for this visit' : 'Write this visit'}</h2>
+                {hasModule('scribe') && (
+                  <button type="button" onClick={() => setSeparate((v) => !v)} aria-expanded={separate} className="text-[12.5px] text-muted-foreground underline underline-offset-2 hover:text-foreground">
+                    {separate ? 'Hide the separate forms' : 'Note, medicines or tests on their own'}
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {([
-                  ['caseSheet', 'Note', 'Complaint and diagnosis', FileText],
-                  ['prescription', 'Medicines', 'Write a prescription', Pill],
-                  ...(hasModule('labs') ? [['labs', 'Tests', 'Order lab tests', FlaskConical]] : []),
+                  ...(!hasModule('scribe') || separate ? [
+                    ['caseSheet', 'Note', 'Complaint and diagnosis', FileText],
+                    ['prescription', 'Medicines', 'Write a prescription', Pill],
+                    ...(hasModule('labs') ? [['labs', 'Tests', 'Order lab tests', FlaskConical]] : []),
+                  ] : []),
                   ['certificate', 'Certificate', 'Leave, fitness, referral', Award],
                 ] as [typeof panel, string, string, typeof FileText][]).map(([key, label, hint, Icon]) => (
                   <button key={key} type="button" onClick={() => setPanel(panel === key ? 'none' : key)} aria-pressed={panel === key}

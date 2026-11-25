@@ -6,7 +6,9 @@ import { Pick } from './Field';
 import { DoseInput } from './DoseInput';
 import { DatePicker } from './DatePicker';
 import { todayInput } from '../lib/date';
+import { frequencyFromDose, parseDose, shouldDeriveFrequency } from '../lib/dose';
 import { clock, useScribe, type Draft } from '../contexts/ScribeContext';
+import { FrequentDiagnoses, MedicineName, Tests, Usuals, blankMedicine } from './VisitSheetParts';
 
 /**
  * The clinic assistant, on the visit screen.
@@ -32,6 +34,13 @@ import { clock, useScribe, type Draft } from '../contexts/ScribeContext';
  */
 
 const FREQUENCIES = ['OD', 'BD', 'TDS', 'QID', 'SOS', 'STAT'];
+
+/** The date so many days from today, as a date box holds it. */
+function inDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -116,7 +125,7 @@ function LiveNote({ note }: { note: Draft | null }) {
   );
 }
 
-export function ScribePanel({ appointmentId, patientName, onSaved }: { appointmentId: string; patientName: string; onSaved: () => void }) {
+export function ScribePanel({ appointmentId, patientName, patientId = null, onSaved }: { appointmentId: string; patientName: string; patientId?: string | null; onSaved: () => void }) {
   const s = useScribe();
   const [consent, setConsent] = useState(false);
   /** Start was pressed before the patient's agreement was ticked. */
@@ -162,23 +171,27 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
     const input = 'w-full px-3 py-2 rounded-lg bg-foreground/5 border border-border/10 text-sm outline-none focus:border-primary';
     const small = 'px-2 py-2 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none focus:border-primary';
     const save = async () => { if (await s.confirm()) onSaved(); };
+    // A sheet the assistant filled says what it heard; one opened blank has nothing to say about that.
+    const heard = Boolean(s.transcript.trim());
     return (
-      <section className="mb-6 p-4 rounded-xl border border-border/15 bg-foreground/[0.03] flex flex-col gap-4" aria-label="The assistant's draft note">
-        <div>
-          <h3 className="text-[15px] font-semibold flex items-center gap-2"><NotebookPen size={15} /> Draft note</h3>
-          <p className="text-[13px] text-muted-foreground mt-0.5">Read it through and change anything. Nothing is saved until you confirm.</p>
+      <section className="mb-6 p-4 sm:p-5 rounded-xl border border-border/15 bg-card flex flex-col gap-4" aria-label="The visit sheet">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="text-[16px] font-semibold flex items-center gap-2"><NotebookPen size={15} /> {heard ? 'The visit, as it was heard' : 'Visit sheet'}</h3>
+          <p className="text-[13px] text-muted-foreground">{heard ? 'Read it through and change anything.' : 'Write only what this visit needs.'} Nothing is saved until you confirm.</p>
         </div>
 
         {general.map((f, i) => (
           <div key={i} className={`px-3 py-2 rounded-lg text-[13px] ${f.level === 'danger' ? 'tone-danger' : f.level === 'warning' ? 'tone-warning' : 'bg-accent/60'}`}>{f.message}</div>
         ))}
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Complaint
-          <textarea rows={2} value={note.chiefComplaint} onChange={(e) => s.patchNote({ chiefComplaint: e.target.value })} className={`${input} text-foreground`} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">History
-          <textarea rows={3} value={note.hopi} onChange={(e) => s.patchNote({ hopi: e.target.value })} className={`${input} text-foreground`} />
-        </label>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Complaint
+            <textarea rows={2} autoFocus={!heard} placeholder="Fever 3 days, cough" value={note.chiefComplaint} onChange={(e) => s.patchNote({ chiefComplaint: e.target.value })} className={`${input} text-foreground`} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">History and findings
+            <textarea rows={2} value={note.hopi} onChange={(e) => s.patchNote({ hopi: e.target.value })} className={`${input} text-foreground`} />
+          </label>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
           {/* Labelled above, not by placeholder: a placeholder vanishes the
               moment a value is filled in, and a draft arrives filled in --
@@ -191,16 +204,17 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
             </label>
           ))}
         </div>
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Diagnosis
-          <input value={note.diagnosis} onChange={(e) => s.patchNote({ diagnosis: e.target.value })} className={`${input} text-foreground`} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Advice and notes
-          <textarea rows={2} value={note.notes} onChange={(e) => s.patchNote({ notes: e.target.value })} className={`${input} text-foreground`} />
-        </label>
+        <div>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Diagnosis
+            <input value={note.diagnosis} onChange={(e) => s.patchNote({ diagnosis: e.target.value })} className={`${input} text-foreground`} />
+          </label>
+          {!note.diagnosis.trim() && <FrequentDiagnoses onPick={(d) => s.patchNote({ diagnosis: d })} />}
+        </div>
 
         <div>
           <h4 className="text-[13px] font-semibold mb-2">Medicines</h4>
-          {note.medicines.length === 0 && <p className="text-[13px] text-muted-foreground">No medicine was heard.</p>}
+          <Usuals patientId={patientId} onAdd={(lines) => s.patchNote({ medicines: [...note.medicines.filter((m) => m.drugName.trim()), ...lines] })} />
+          {note.medicines.length === 0 && heard && <p className="text-[13px] text-muted-foreground">No medicine was heard.</p>}
           <div className="flex flex-col gap-4">
             {note.medicines.map((m, i) => {
               // What is missing is worked out from the line as it stands
@@ -211,15 +225,19 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
               const blocking = s.incomplete === i;
               return (
                 <div key={i} className={`grid grid-cols-2 sm:grid-cols-12 gap-2 items-start rounded-lg ${blocking ? 'ring-2 ring-ink-danger/60 p-2 -m-2' : ''}`}>
-                  <input
-                    aria-label="Medicine name" value={m.drugName}
-                    // Editing the name by hand breaks the link to the
-                    // catalogue row: stock is decremented against that
-                    // link, so it must only survive an exact pick.
-                    onChange={(e) => s.patchMedicine(i, { drugName: e.target.value, drugId: null, composition: null, match: 'none', approximate: false })}
-                    className={`col-span-2 sm:col-span-4 ${small}`}
+                  {/* Typing the name by hand breaks the link to the
+                      catalogue row: stock is decremented against that
+                      link, so it only survives an exact pick from the list. */}
+                  <MedicineName
+                    className="col-span-2 sm:col-span-4" value={m.drugName}
+                    onType={(name) => s.patchMedicine(i, { drugName: name, drugId: null, composition: null, match: 'none', approximate: false })}
+                    onPick={(d) => s.patchMedicine(i, { drugName: d.name, drugId: d.id, composition: d.composition, match: 'catalogue', approximate: false, alternatives: [] })}
                   />
-                  <DoseInput className="col-span-2 sm:col-span-3" label={`Dose for ${m.drugName}`} value={m.dosage} onChange={(d) => s.patchMedicine(i, { dosage: d })} />
+                  <DoseInput className="col-span-2 sm:col-span-3" label={`Dose for ${m.drugName}`} value={m.dosage} onChange={(d) => {
+                    const slots = parseDose(d);
+                    const implied = slots ? frequencyFromDose(slots) : null;
+                    s.patchMedicine(i, implied && shouldDeriveFrequency(m.frequency) ? { dosage: d, frequency: implied } : { dosage: d });
+                  }} />
                   <Pick className="col-span-1 sm:col-span-2" value={m.frequency} placeholder="Frequency" onChange={(f) => s.patchMedicine(i, { frequency: f })} options={FREQUENCIES.map((f) => ({ value: f, label: f }))} />
                   <input aria-label="Duration" placeholder="Duration, e.g. 5 days" value={m.duration} onChange={(e) => s.patchMedicine(i, { duration: e.target.value })} className={`col-span-1 sm:col-span-2 ${small} ${blocking && !m.duration.trim() ? 'border-ink-danger' : ''}`} />
                   <button type="button" onClick={() => s.removeMedicine(i)} aria-label={`Remove ${m.drugName}`} className="col-span-2 sm:col-span-1 min-h-[36px] flex items-center justify-center text-muted-foreground/70 hover:text-ink-danger"><Trash2 size={14} /></button>
@@ -253,27 +271,28 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
               );
             })}
           </div>
-          <button type="button" onClick={() => s.patchNote({ medicines: [...note.medicines, { spoken: '', drugId: null, drugName: '', composition: null, match: 'none', approximate: false, alternatives: [], dosage: '', frequency: 'OD', duration: '', instructions: '', source: '', notes: [] }] })}
-            className="mt-3 flex items-center gap-1 text-xs text-ink-success hover:underline"><Plus size={12} /> Add a medicine</button>
+          <button type="button" onClick={() => s.patchNote({ medicines: [...note.medicines, blankMedicine()] })}
+            className="mt-3 flex items-center gap-1 rounded-lg border border-dashed border-border/40 px-3 py-2 text-[13px] font-medium text-foreground/80 hover:bg-accent"><Plus size={13} /> Add a medicine</button>
         </div>
 
-        {note.labTests.length > 0 && (
+        <div>
+          <h4 className="text-[13px] font-semibold mb-2">Tests to order</h4>
+          <Tests tests={note.labTests} onChange={(labTests) => s.patchNote({ labTests })} />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Advice
+            <textarea rows={2} value={note.notes} onChange={(e) => s.patchNote({ notes: e.target.value })} className={`${input} text-foreground`} />
+          </label>
           <div>
-            <h4 className="text-[13px] font-semibold mb-2">Tests to order</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {note.labTests.map((t) => (
-                <span key={t} className="flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-lg bg-foreground/5 text-xs">
-                  {t}
-                  <button type="button" onClick={() => s.patchNote({ labTests: note.labTests.filter((x) => x !== t) })} aria-label={`Do not order ${t}`} className="p-1 rounded hover:bg-foreground/10"><X size={11} /></button>
-                </span>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Come back on</label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <DatePicker value={s.followUpDate} onChange={s.setFollowUpDate} label="Follow-up date" placeholder="No follow-up" min={todayInput()} clearable />
+              {[[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '1 month']].map(([days, label]) => (
+                <button type="button" key={label} onClick={() => s.setFollowUpDate(inDays(days as number))} className="px-2 py-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-[12px] text-foreground/80">{label}</button>
               ))}
             </div>
           </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Follow-up date</label>
-          <DatePicker value={s.followUpDate} onChange={s.setFollowUpDate} label="Follow-up date" placeholder="No follow-up" min={todayInput()} clearable />
         </div>
 
         {note.leftover.length > 0 && (
@@ -326,12 +345,14 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
           </div>
         )}
 
-        <div>
-          <button type="button" onClick={() => setShowHeard((v) => !v)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2" aria-expanded={showHeard}>
-            {showHeard ? 'Hide what was heard' : 'Show everything that was heard'}
-          </button>
-          {showHeard && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-foreground/5 p-3 text-[13px] text-foreground/80">{s.transcript}</p>}
-        </div>
+        {heard && (
+          <div>
+            <button type="button" onClick={() => setShowHeard((v) => !v)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2" aria-expanded={showHeard}>
+              {showHeard ? 'Hide what was heard' : 'Show everything that was heard'}
+            </button>
+            {showHeard && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-foreground/5 p-3 text-[13px] text-foreground/80">{s.transcript}</p>}
+          </div>
+        )}
 
         {/* Beside the button it answers. It used to sit at the top of the
             note, a screen above the Save button, so a save that was
@@ -339,7 +360,7 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
         {s.error && <div className="px-3 py-2 rounded-lg tone-danger text-sm" role="alert">{s.error}</div>}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={save} busyLabel="Saving…">Confirm and save</Button>
-          <Button variant="ghost" onClick={s.discard}>Discard</Button>
+          <Button variant="ghost" onClick={s.discard}>{heard ? 'Discard' : 'Close without saving'}</Button>
           <span className="text-[12px] text-muted-foreground">{note.engine.reason}</span>
         </div>
       </section>
@@ -384,24 +405,16 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
   // ── Idle ────────────────────────────────────────────────────────────
   return (
     <section ref={panel} id="listen" className="mb-6 p-4 rounded-xl border border-border/15 bg-foreground/[0.03] scroll-mt-6">
-      <h3 className="text-[16px] font-semibold">{s.status.canListen ? 'Talk to the patient. The assistant writes the visit.' : 'Let the assistant write this visit'}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h3 className="text-[16px] font-semibold">Write this visit</h3>
+        {/* The sheet by hand: one page for the complaint, the medicines,
+            the tests and the follow-up, with one Confirm. */}
+        <Button variant="secondary" icon={<NotebookPen size={14} />} onClick={() => s.startBlank(appointmentId, patientName)}>Write it myself</Button>
+      </div>
       {s.status.canListen && !typing ? (
-        // What happens, in the order it happens. A doctor who has never
-        // used this should know what the button will do before pressing it.
-        <ol className="mt-2 grid gap-2 text-[13.5px] sm:grid-cols-3">
-          {[
-            ['Ask the patient', 'and tick the box below.'],
-            ['Tap Listen and talk', 'as you normally would. The note fills in while you speak.'],
-            ['Check it and save', 'Nothing is saved until you press Confirm.'],
-          ].map(([head, rest], i) => (
-            <li key={head} className="flex gap-2.5 rounded-lg bg-background/60 px-3 py-2">
-              <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[12.5px] font-semibold text-background">{i + 1}</span>
-              <span><span className="font-semibold">{head}</span> <span className="text-muted-foreground">{rest}</span></span>
-            </li>
-          ))}
-        </ol>
+        <p className="mt-1 text-[13px] text-muted-foreground">Or talk to the patient as you normally would and let the assistant fill the same sheet. You check it before anything is saved.</p>
       ) : (
-        <p className="text-[13px] text-muted-foreground mt-0.5">Type or paste your notes in any order, and it will sort them into the note and prescription for you to check.</p>
+        <p className="text-[13px] text-muted-foreground mt-1">Type or paste your notes in any order, and it will sort them onto the sheet for you to check.</p>
       )}
       {s.error && <div className="mt-3 px-3 py-2 rounded-lg tone-danger text-sm" role="alert">{s.error}</div>}
 

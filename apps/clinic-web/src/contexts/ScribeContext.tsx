@@ -113,6 +113,8 @@ interface ScribeValue {
   patchMedicine: (index: number, changes: Partial<DraftMedicine>) => void;
   removeMedicine: (index: number) => void;
   start: (appointmentId: string, patientName: string) => Promise<void>;
+  /** Opens the sheet empty, to be written by hand. */
+  startBlank: (appointmentId: string, patientName: string) => Promise<boolean>;
   finish: () => Promise<void>;
   /** True when the note was made. On false, what was typed is still wanted. */
   makeFromTyped: (appointmentId: string, patientName: string, text: string) => Promise<boolean>;
@@ -457,6 +459,35 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Opens the sheet empty, for a doctor who would rather write than talk.
+   *
+   * It is the same sheet a listened note arrives on, and it is saved by the
+   * same Confirm, so a visit written by hand, by voice or half of each ends
+   * up as one note, one prescription and one lab order (the server's "one
+   * visit, one note" rule does the joining).
+   */
+  const startBlank = async (forAppointment: string, forPatient: string): Promise<boolean> => {
+    if (phase !== 'idle') return false;
+    setError(null);
+    try {
+      await openSession(forAppointment, false);
+      setAppointmentId(forAppointment);
+      setPatientName(forPatient);
+      setNote({
+        chiefComplaint: '', hopi: '', diagnosis: '', notes: '', vitals: {},
+        medicines: [], labTests: [], followUpInDays: null, flags: [], leftover: [],
+        engine: { model: null, reason: '' },
+      });
+      setPhase('review');
+      return true;
+    } catch (e) {
+      reset();
+      setError(e instanceof ApiError ? e.message : 'The sheet could not be opened.');
+      return false;
+    }
+  };
+
   const discard = async () => {
     const id = sessionId.current;
     // Forgotten first: stopping the recorder hands back its last piece,
@@ -571,7 +602,7 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       value={{
         status, phase, appointmentId, patientName, elapsed, sentSeconds, transcript, live, doing, error,
         note, followUpDate, setFollowUpDate, patchNote, patchMedicine, removeMedicine,
-        start, finish, makeFromTyped, discard, confirm, incomplete, also, confirmAlso, dismissAlso,
+        start, finish, makeFromTyped, startBlank, discard, confirm, incomplete, also, confirmAlso, dismissAlso,
       }}
     >
       {children}
