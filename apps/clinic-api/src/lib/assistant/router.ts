@@ -169,6 +169,9 @@ const PHONE = /(?:\d[\s-]?){8,12}/;
 
 const FIND = /\b(?:find|search(?: for)?|look ?up|pull up|open|show|get|call(?: in)?|dhundo|dhoondo|shodha|shodh|kholo|dikhao|ughda|dakhva|bulao|bolva|bolav)\b|ढूंढो|खोजो|शोधा|खोलो|दिखाओ|उघडा|दाखवा|बुलाओ|बोलवा|बोलाव/i;
 
+/** Asking for the consultation itself to be listened to and written. */
+const LISTEN = /\b(?:start|begin|shuru)\b.{0,20}\b(?:listening|recording|scribe|sunna|sunana)\b|\b(?:listen to|record|write|likho|likh do)\b.{0,12}\b(?:this |the |poora |pura |whole )?(?:consultation|conversation|visit|baat ?cheet)\b|\b(?:sun lo|suno aur likho|recording (?:chalu|shuru) karo)\b|सुनना शुरू|रिकॉर्डिंग (?:चालू|शुरू)|ऐका आणि लिहा|रेकॉर्डिंग सुरू/i;
+
 /** "Call the next one", as against "who is next". */
 const NEXT_ONE = /\b(?:next|agla|agli|pudhcha|pudhchi|pudhil)\b|अगला|अगली|पुढचा|पुढची|पुढील/i;
 const SEND_IN = /\b(?:open|call(?: in)?|send in|start|bring in|bulao|bhejo|kholo|ughda|bolva|bolav|pathva)\b|बुलाओ|भेजो|खोलो|उघडा|बोलवा|बोलाव|पाठवा/i;
@@ -244,6 +247,11 @@ export function route(input: string, context: RouteContext): Intent | null {
       if (said.test(text)) return { action, params: {} };
     }
   }
+
+  // ── "Listen to the consultation", asked of the bar ─────────────────
+  // The bar hears one instruction; a consultation is written from the
+  // panel on the visit. Asked here, they are taken there.
+  if (text.split(" ").length <= 9 && LISTEN.test(text)) return { action: "listen_to_visit", params: {} };
 
   // ── The queue, worked by voice ─────────────────────────────────────
   // Before "who is next", which the same two words would otherwise reach.

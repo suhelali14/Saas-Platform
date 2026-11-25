@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Mic, Square, NotebookPen, AlertTriangle, X, Plus, Trash2, Check } from 'lucide-react';
 import { Button } from './Button';
 import { Pick } from './Field';
@@ -122,6 +122,18 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
   /** Start was pressed before the patient's agreement was ticked. */
   const [askFirst, setAskFirst] = useState(false);
   const [typing, setTyping] = useState(false);
+  // Somebody asked the bar at the foot of the screen to "start listening".
+  // That bar takes one instruction; a consultation is written from here.
+  // So it sends them here (#listen) and this panel shows itself, with
+  // the one thing still needed pointed at.
+  const { hash, key } = useLocation();
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (hash !== '#listen' || s.phase !== 'idle') return;
+    panel.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTyping(false);
+    setAskFirst(true);
+  }, [hash, key, s.phase]);
   const [typed, setTyped] = useState('');
   const [showHeard, setShowHeard] = useState(false);
 
@@ -371,7 +383,7 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
 
   // ── Idle ────────────────────────────────────────────────────────────
   return (
-    <section className="mb-6 p-4 rounded-xl border border-border/15 bg-foreground/[0.03]">
+    <section ref={panel} id="listen" className="mb-6 p-4 rounded-xl border border-border/15 bg-foreground/[0.03] scroll-mt-6">
       <h3 className="text-[16px] font-semibold">{s.status.canListen ? 'Talk to the patient. The assistant writes the visit.' : 'Let the assistant write this visit'}</h3>
       {s.status.canListen && !typing ? (
         // What happens, in the order it happens. A doctor who has never
@@ -379,7 +391,7 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
         <ol className="mt-2 grid gap-2 text-[13.5px] sm:grid-cols-3">
           {[
             ['Ask the patient', 'and tick the box below.'],
-            ['Tap Start and talk', 'as you normally would. The note fills in while you speak.'],
+            ['Tap Listen and talk', 'as you normally would. The note fills in while you speak.'],
             ['Check it and save', 'Nothing is saved until you press Confirm.'],
           ].map(([head, rest], i) => (
             <li key={head} className="flex gap-2.5 rounded-lg bg-background/60 px-3 py-2">
@@ -412,9 +424,14 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
             <Button variant="primary" icon={<Mic size={14} />} onClick={async () => {
               if (!consent) { setAskFirst(true); return; }
               await s.start(appointmentId, patientName); setConsent(false);
-            }}>Start listening</Button>
+            }}>Listen to the consultation</Button>
             <button type="button" onClick={() => setTyping(true)} className="text-[13px] text-muted-foreground hover:text-foreground underline underline-offset-2">Type or paste my notes instead</button>
           </div>
+          {/* There are two microphones on this screen and they do
+              different jobs. Said here, where the choice is made. */}
+          <p className="text-[12.5px] text-muted-foreground">
+            This one listens to the whole conversation and writes the note. The microphone in the bar at the bottom is for one quick instruction, such as “order a CBC” or “BP 130 by 80”.
+          </p>
         </div>
       )}
 

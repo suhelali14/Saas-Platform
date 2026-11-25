@@ -318,7 +318,8 @@ export function AssistantBar() {
           else if (!spoke && !held && now - startedAt > NOTHING_SAID_MS) stopListening();
         }
       }, 60);
-      const limit = setTimeout(() => stopListening(), MAX_LISTEN_MS);
+      let ranOn = false;
+      const limit = setTimeout(() => { ranOn = true; stopListening(); }, MAX_LISTEN_MS);
       cleanup.current = () => {
         clearInterval(meter);
         clearTimeout(limit);
@@ -354,6 +355,11 @@ export function AssistantBar() {
           const result = await apiUpload<FromServer>('/assistant/voice', new File([blob], `ask-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' }), fields);
           setBusy(false);
           await show(result, result.heard);
+          // Twenty seconds of talk is a conversation, not an instruction:
+          // they were probably expecting the consultation to be written.
+          if (ranOn && context.appointmentId) {
+            setAsked((current) => current && { ...current, more: [...(current.more ?? []), { kind: 'sorry', say: 'That was a lot for one instruction, and I only heard the first 20 seconds. To have a whole consultation written, use “Listen to the consultation” on this screen.' }] });
+          }
         } catch (e) {
           fail(e);
         } finally {
@@ -373,12 +379,13 @@ export function AssistantBar() {
   // spoken now would be written into that note as something the doctor
   // said to the patient, so while it listens, requests are typed.
   const recordingVisit = scribe.phase === 'listening';
+  const onVisit = Boolean(onScreen(pathname).appointmentId);
   const reply = asked?.reply;
   const waiting = waitingCard(asked);
   const tone = (line: Line) => (line.tone === 'danger' ? 'text-ink-danger font-semibold' : line.tone === 'warning' ? 'text-ink-warning' : line.tone === 'muted' ? 'text-muted-foreground' : '');
   const micLabel = recordingVisit
     ? 'The microphone is writing a visit note. Type your request.'
-    : listening ? 'Listening. Tap to send now.' : 'Tap and say what you need';
+    : listening ? 'Listening. Tap to send now.' : onVisit ? 'Tap and give one instruction' : 'Tap and say what you need';
 
   return (
     <div
@@ -528,7 +535,7 @@ export function AssistantBar() {
             onBlur={() => setFocused(false)}
             disabled={busy || listening}
             autoComplete="off"
-            placeholder={listening ? 'Listening… just say it, I will stop when you do' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask, or tap the mic and say it' : 'Ask for anything'}
+            placeholder={listening ? 'Listening for one instruction… I will stop when you do' : busy ? 'Working on it…' : canHear && !recordingVisit ? (onVisit ? 'One instruction: “order a CBC”, “BP 130 by 80”' : 'Ask, or tap the mic and say it') : 'Ask for anything'}
             className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[15px] outline-none placeholder:text-muted-foreground/70"
           />
           <button type="submit" disabled={busy || listening || (!text.trim() && !waiting)} aria-label={!text.trim() && waiting ? 'Confirm' : 'Ask'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">

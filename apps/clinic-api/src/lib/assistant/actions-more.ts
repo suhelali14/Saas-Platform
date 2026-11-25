@@ -725,7 +725,29 @@ const staffList: Action = {
   },
 };
 
+/**
+ * "Start listening." The bar takes one instruction; a whole consultation
+ * is listened to from the panel on the visit, where the patient's
+ * agreement is ticked. So this takes them to that panel rather than
+ * starting anything: the tick is the doctor's to make, in front of the
+ * patient, and is never made for them.
+ */
+const listenToVisit: Action = {
+  name: "listen_to_visit",
+  summary: "Takes the doctor to where a whole consultation is listened to and written up. Use it when they ask you to start listening, record the consultation, or write the visit from the conversation.",
+  kind: "go",
+  schema: NONE,
+  jsonSchema: NO_PARAMS,
+  allowed: roles("DOCTOR"),
+  async run(context) {
+    const visit = await visitFor(context);
+    if (!visit) return sorry("Open the patient's visit first. Say “open” and their name, or “call the next patient”.");
+    return { kind: "go", to: `/appointments/${visit.id}/encounter#listen`, say: "Here. Tick that the patient agrees, then tap “Listen to the consultation”." };
+  },
+};
+
 export const MORE_ACTIONS: Action[] = [
+  listenToVisit,
   setVisitStatus, bookingsOnDate,
   visitBill, takePayment, addExpense, profitAndLoss,
   bookingRequests, answerBookingRequest,
