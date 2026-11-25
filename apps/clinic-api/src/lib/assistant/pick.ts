@@ -173,7 +173,11 @@ export async function pickAction(input: {
   const call = calls[0];
   // Three things in one sentence is a lot; past that it is not a request.
   const further = calls.slice(1, 3).map((b) => (b.type === "tool_use" ? { action: b.name, params: (b.input ?? {}) as Record<string, unknown> } : null)).filter((i): i is Intent => i !== null);
-  const said = response.content.filter((b) => b.type === "text").map((b) => (b.type === "text" ? b.text : "")).join(" ").trim();
+  // The model sometimes thinks aloud first ("The user asks for… I should
+  // say so in one sentence.") and then says it. Only the last paragraph is
+  // for the person; the thinking before it must never reach the screen.
+  const spoken = response.content.filter((b) => b.type === "text").map((b) => (b.type === "text" ? b.text : "")).join("\n\n");
+  const said = spoken.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean).pop() ?? "";
   if (call?.type === "tool_use") {
     return { intent: { action: call.name, params: (call.input ?? {}) as Record<string, unknown> }, further, said, usage };
   }
