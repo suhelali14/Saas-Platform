@@ -96,7 +96,8 @@ export async function clinicCaseSheetRoutes(app: FastifyInstance) {
     return caseSheet;
   });
 
-  app.post("/api/clinic/case-sheets/:id/attachments", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/case-sheets/:id/attachments", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicalWriteAuth(request, reply);
     if (!auth) return;
 

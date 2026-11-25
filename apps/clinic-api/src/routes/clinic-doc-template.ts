@@ -102,7 +102,8 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put("/api/clinic/document-template", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.put("/api/clinic/document-template", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -133,7 +134,8 @@ export async function clinicDocTemplateRoutes(app: FastifyInstance) {
    * because a preview that used a real patient would put PHI into a file
    * generated for a settings screen.
    */
-  app.post("/api/clinic/document-template/preview", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.post("/api/clinic/document-template/preview", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 

@@ -157,7 +157,8 @@ export async function clinicLabRoutes(app: FastifyInstance) {
   });
 
   // File result (uploaded PDF/image of the lab report).
-  app.post("/api/clinic/lab-orders/items/:itemId/result-file", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/lab-orders/items/:itemId/result-file", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireLabResultAuth(request, reply);
     if (!auth) return;
 

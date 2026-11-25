@@ -28,20 +28,26 @@ Written for: the owner. 25 November 2026. Everything here is on the
 | | |
 |---|---|
 | Listens to a consultation and writes the note, medicines, tests and follow-up | Built, tested with typed and one spoken consultation |
-| Does what it is asked from a bar on every screen | 48 things for the doctor's login, fewer for others |
+| Does what it is asked from a bar on every screen | 50 things for the admin doctor, fewer for others |
 | Remembers the conversation; takes corrections without a second record | Built, tested typed |
-| Several instructions in one go; stays listening until told to stop | Built; several-in-a-row by live voice untested |
+| Several instructions in one go; stays listening until told to stop | Built; one spoken run of four in a row worked (section 2) |
 | Works inside each login's permissions | Tested: reception, nurse and pharmacist were each refused what is not theirs |
 | Nothing is saved without a yes | Every change is a card first |
-| A new feature can describe itself to the assistant | Built; three features work this way |
+| A new feature can describe itself to the assistant | Built; five features work this way |
 
 ### How much of the app it covers
 
-Counted from the code, not estimated. Of 99 things the app can change,
-**23 can be done by voice.** The 76 that cannot are listed in
-`apps/clinic-api/test/assistant-coverage.baseline.json`. A check now
-fails the build if a new feature is added without saying whether the
-assistant may use it, so this number can only go up.
+Counted from the code, not estimated. Of 99 things the app can change:
+
+- **25 can be done by voice.**
+- **20 are left out on purpose**, each with the reason written on it:
+  passwords and logins, file uploads, page layouts, merging two
+  patients. For these it opens the screen instead.
+- **54 are gaps**, listed in
+  `apps/clinic-api/test/assistant-coverage.baseline.json`.
+
+A check now fails the build if a new feature is added without saying
+whether the assistant may use it, so the first number can only go up.
 
 Covered well: the queue, visits, prescriptions, tests and results,
 bills and payments, booking requests, patient details.
@@ -66,10 +72,28 @@ confirming every change. Results are in
 | 8 | Features that describe themselves | 12 of 12 |
 | 9 | A whole clinic day, fresh patients, four logins | 38 of 39 |
 
+| 10 | Two more features that describe themselves; things it must leave alone | 8 of 8 |
+
 Also 121 unit tests, all passing.
 
-What these rounds do not prove: they were **typed**. Speech adds its own
-mistakes, mostly in names and numbers.
+These rounds were **typed**. Speech adds its own mistakes, mostly in
+names and numbers.
+
+### One spoken call, end to end
+
+A computer voice, played into the real microphone path and through the
+real speech service, on one tap:
+
+| Second | Heard | What happened |
+|---|---|---|
+| 8.7 | "A new patient, Rohan Kulkarni, age 40, male." | A card to register him |
+| 16.0 | "No, his age is 45." | The same card, corrected |
+| 20.4 | "Yes." | Registered, file ATC-00026 |
+| 26.6 | "Who is next?" | The queue |
+
+It stayed listening until stopped. The first word, "Register", was lost
+as the microphone opened, and it was still understood. This is one run
+with a clear computer voice in English, not a doctor in a clinic.
 
 ## 3. What it costs to run
 

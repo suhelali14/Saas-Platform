@@ -136,7 +136,8 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put("/api/clinic/site/canvas", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.put("/api/clinic/site/canvas", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -184,7 +185,8 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
   });
 
   // ── Site layout config ────────────────────────────────────────────────
-  app.put("/api/clinic/site", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.put("/api/clinic/site", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -260,7 +262,8 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
     };
   });
 
-  app.post("/api/clinic/site/hero", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/site/hero", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -354,7 +357,8 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.post("/api/clinic/posts/:id/cover", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/posts/:id/cover", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -381,7 +385,8 @@ export async function clinicSiteRoutes(app: FastifyInstance) {
     return { photos };
   });
 
-  app.post("/api/clinic/gallery", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/gallery", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 

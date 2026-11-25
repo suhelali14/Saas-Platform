@@ -194,7 +194,8 @@ export async function clinicCertificateTemplateRoutes(app: FastifyInstance) {
   // ── Preview a template body against sample data. Used by the editor
   //    so the clinic can see what the resolved certificate will say
   //    before saving. ─────────────────────────────────────────────────
-  app.post("/api/clinic/certificate-templates/preview", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.post("/api/clinic/certificate-templates/preview", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
     const parsed = previewSchema.safeParse(request.body);

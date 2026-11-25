@@ -463,7 +463,8 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
    * it is not doctor-only -- but a nurse or pharmacist has no business
    * rewriting who a patient is.
    */
-  app.post("/api/clinic/patients/:id/merge", async (request, reply) => {
+  // Not for the assistant. It joins two patients' records for good. That is decided looking at both, not said in passing.
+  app.post("/api/clinic/patients/:id/merge", { config: { assistant: false } }, async (request, reply) => {
     const auth = requirePatientAdminAuth(request, reply);
     if (!auth) return;
 

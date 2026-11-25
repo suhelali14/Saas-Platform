@@ -126,7 +126,8 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
     return { data: withSessions, seats: seatUsage(staff.filter((s) => s.isActive).length) };
   });
 
-  app.post("/api/clinic/staff", async (request, reply) => {
+  // Not for the assistant. It decides who may sign in and as what. That is done deliberately, on the Staff screen.
+  app.post("/api/clinic/staff", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -157,7 +158,8 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
     return reply.status(201).send({ ...user, activeSessions: 0 });
   });
 
-  app.patch("/api/clinic/staff/:id", async (request, reply) => {
+  // Not for the assistant. It decides who may sign in and as what. That is done deliberately, on the Staff screen.
+  app.patch("/api/clinic/staff/:id", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -242,7 +244,8 @@ export async function clinicStaffRoutes(app: FastifyInstance) {
    * lost on the way home. Neither is a reason to deactivate the account
    * and stop the person working tomorrow.
    */
-  app.post("/api/clinic/staff/:id/revoke-sessions", async (request, reply) => {
+  // Not for the assistant. It decides who may sign in and as what. That is done deliberately, on the Staff screen.
+  app.post("/api/clinic/staff/:id/revoke-sessions", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 

@@ -5,6 +5,7 @@ import { requireClinicAuth, requireAdminAuth } from "../plugins/auth.js";
 import { saveUploadedFile, readStoredFile, mimeFromPath, FileValidationError } from "../lib/file-storage.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { getSetupStatus } from "../lib/setup-status.js";
+import { told } from "../lib/assistant/declare.js";
 
 // Clinic settings + per-doctor profile (Phase 5). Before this, the clinic's
 // address/phone/registration number/consultation fee could only be set by
@@ -85,7 +86,35 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
   // Clinic-wide branding/config -- doctor or admin only. Reception editing
   // the registration number that prints on legal certificates would be the
   // wrong boundary.
-  app.put("/api/clinic/settings", async (request, reply) => {
+  app.put("/api/clinic/settings", {
+    config: {
+      // The few clinic details somebody changes by saying so. The rest
+      // of this form (timings, the website's text) is edited on screen.
+      assistant: told({
+        name: "change_clinic_details",
+        summary: "Changes the clinic's own details: the consultation fee, phone number, address or name. 'Make the consultation fee 500', 'fees 400 se 500 kar do', 'clinic ka number badlo'. For the clinic's admin.",
+        asks: z.object({
+          consultationFee: z.number().nonnegative().max(1_000_000).optional().describe("The fee charged for a consultation, in rupees."),
+          phone: z.string().max(30).optional().describe("The clinic's phone number."),
+          address: z.string().max(500).optional().describe("The clinic's address."),
+          clinicName: z.string().min(1).max(200).optional().describe("The clinic's name, only when they say to rename it."),
+        }),
+        toBody: (a) => ({
+          ...(a.consultationFee !== undefined ? { defaultConsultationFee: a.consultationFee } : {}),
+          ...(a.phone ? { phone: a.phone } : {}),
+          ...(a.address ? { address: a.address } : {}),
+          ...(a.clinicName ? { name: a.clinicName } : {}),
+        }),
+        title: (a) => a.consultationFee !== undefined && !a.phone && !a.address && !a.clinicName
+          ? `Make the consultation fee ₹${a.consultationFee.toLocaleString("en-IN")} from now on?`
+          : "Change the clinic's details?",
+        labels: { consultationFee: "Consultation fee", clinicName: "Clinic name" },
+        done: () => "The clinic's details are changed. A new fee applies to bills raised from now on.",
+        adminOnly: true,
+        screen: "/settings",
+      }),
+    },
+  }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -104,7 +133,8 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
     return clinic;
   });
 
-  app.post("/api/clinic/settings/logo", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/settings/logo", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireAdminAuth(request, reply);
     if (!auth) return;
 
@@ -155,7 +185,8 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
     return user;
   });
 
-  app.post("/api/clinic/profile/signature", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/profile/signature", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
 
@@ -176,7 +207,8 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/api/clinic/profile/photo", async (request, reply) => {
+  // Not for the assistant. It takes a file, and a file cannot be said.
+  app.post("/api/clinic/profile/photo", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
 
@@ -200,7 +232,8 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
   // Staff can finally rotate their own credentials -- previously impossible
   // without a DB write. Requires the current password, so a walked-away
   // unlocked session can't silently lock the real owner out.
-  app.post("/api/clinic/profile/password", async (request, reply) => {
+  // Not for the assistant. A password or a login is typed by its owner, never spoken across a room or read to a model.
+  app.post("/api/clinic/profile/password", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
 
@@ -225,7 +258,8 @@ export async function clinicSettingsRoutes(app: FastifyInstance) {
   // password change -- current password required so a walked-away
   // session cannot silently transfer the login to someone else -- and
   // enforces uniqueness so two users cannot share one email.
-  app.post("/api/clinic/profile/email", async (request, reply) => {
+  // Not for the assistant. A password or a login is typed by its owner, never spoken across a room or read to a model.
+  app.post("/api/clinic/profile/email", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
 

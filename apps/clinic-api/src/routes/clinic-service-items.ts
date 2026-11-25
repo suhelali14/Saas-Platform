@@ -221,7 +221,8 @@ export async function clinicServiceItemRoutes(app: FastifyInstance) {
   // Reorder: an admin or the owning doctor supplies a list of
   // {id, sortOrder} to bulk-update. Used by the manager UI's
   // drag-handles.
-  app.post("/api/clinic/service-items/reorder", async (request, reply) => {
+  // Not for the assistant. It lays something out or previews it, which is done by eye on its own screen.
+  app.post("/api/clinic/service-items/reorder", { config: { assistant: false } }, async (request, reply) => {
     const auth = requireClinicalWriteAuth(request, reply);
     if (!auth) return;
     const parsed = z.array(z.object({ id: z.string(), sortOrder: z.number().int() })).max(500).safeParse(request.body);

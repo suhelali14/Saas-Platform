@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth, requireClinicalWriteAuth } from "../plugins/auth.js";
+import { told } from "../lib/assistant/declare.js";
 
 const createSchema = z.object({
   name: z.string().min(1).max(300),
@@ -213,7 +214,22 @@ export async function clinicDrugRoutes(app: FastifyInstance) {
   // finds nothing can add it here, immediately available for future
   // autocomplete. Doctor/admin only, same clinical-content gate as
   // prescriptions/case-sheets/certificates.
-  app.post("/api/clinic/drugs", async (request, reply) => {
+  app.post("/api/clinic/drugs", {
+    config: {
+      assistant: told({
+        name: "add_medicine_to_list",
+        summary: "Adds a medicine that is not in the clinic's list, so it can be prescribed and stocked: 'add a new medicine Zerodol SP', 'yeh dawai list mein nahi hai, jodo'. Needs its name as it should be written, with strength and form.",
+        asks: z.object({
+          name: z.string().trim().min(2).max(300).describe("The medicine's name as it should read on a prescription, with strength and form: 'Zerodol SP Tablet'."),
+          composition: z.string().max(500).optional().describe("What it contains, if they said."),
+          manufacturer: z.string().max(300).optional().describe("Who makes it, if they said."),
+        }),
+        title: (a) => `Add "${a.name}" to the clinic's list of medicines?`,
+        done: (drug, a) => `"${drug?.name ?? a.name}" is in the list. You can prescribe it now.`,
+        roles: ["DOCTOR"],
+      }),
+    },
+  }, async (request, reply) => {
     const auth = requireClinicalWriteAuth(request, reply);
     if (!auth) return;
 
