@@ -104,6 +104,8 @@ export async function pickAction(input: {
   screen?: string;
   /** Today's queue, with nobody named. */
   queue?: string;
+  /** Things the software does that this person's login may not. */
+  notTheirs?: string[];
   /** What has been said and done in this conversation, oldest first. */
   earlier?: { said: string; did: string }[];
   /** A question this assistant asked a moment ago, which this request answers. */
@@ -139,6 +141,9 @@ export async function pickAction(input: {
           `${input.hasPatient ? "A patient's record is open on their screen." : "No patient's record is open on their screen."} ` +
           `${input.hasVisit ? "A visit (consultation) for that patient is open." : ""} ` +
           `${input.screen ? `They are looking at: ${input.screen}. ` : ""}${input.queue ?? ""}\n\n` +
+          (input.notTheirs && input.notTheirs.length > 0
+            ? `The software also does these, but NOT for this person's login: ${input.notTheirs.join(", ")}. If they ask for one of them, say in one sentence that it is not available to their login. Do not open a screen instead.\n\n`
+            : "") +
           (input.earlier && input.earlier.length > 0
             ? `This conversation so far, oldest first:\n${input.earlier.map((turn, i) => `${i + 1}. They said: ${turn.said || "(typed nothing)"}\n   You: ${turn.did}`).join("\n")}\n\n`
             : "") +

@@ -30,6 +30,7 @@ import { checkDraft } from "../scribe/checks.js";
 import { SCREENS } from "./router.js";
 import { nameFit } from "./names.js";
 import { MORE_ACTIONS } from "./actions-more.js";
+import { declaredActions } from "./declare.js";
 import { sorry, strictObject, type Action, type ActionContext, type Asker, type Line, type Reply } from "./registry.js";
 import { estimatedRupees, usage as meterUsage } from "./meter.js";
 
@@ -1189,9 +1190,22 @@ export const ACTIONS: Action[] = [
 
 /** The actions this person may use in this clinic, right now. */
 export function actionsFor(asker: Asker): Action[] {
-  return ACTIONS.filter((a) => (!a.module || isFeatureEnabled(a.module)) && a.allowed(asker));
+  // The ones written here, then the ones routes declared for themselves.
+  // A hand-written entry wins over a declared one of the same name.
+  const all = [...ACTIONS, ...declaredActions().filter((d) => !ACTIONS.some((a) => a.name === d.name))];
+  return all.filter((a) => (!a.module || isFeatureEnabled(a.module)) && a.allowed(asker));
+}
+
+/**
+ * What the software does that this person may not: so that the assistant
+ * can say "not for your login" instead of finding a way round, or saying
+ * the app cannot do something it plainly can.
+ */
+export function actionsNotFor(asker: Asker): string[] {
+  const all = [...ACTIONS, ...declaredActions().filter((d) => !ACTIONS.some((a) => a.name === d.name))];
+  return all.filter((a) => (!a.module || isFeatureEnabled(a.module)) && !a.allowed(asker)).map((a) => a.name.replace(/_/g, " "));
 }
 
 export function actionNamed(name: string): Action | undefined {
-  return ACTIONS.find((a) => a.name === name);
+  return ACTIONS.find((a) => a.name === name) ?? declaredActions().find((a) => a.name === name);
 }

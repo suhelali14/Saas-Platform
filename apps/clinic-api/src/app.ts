@@ -40,6 +40,7 @@ import { clinicClaimRoutes } from "./routes/clinic-claims.js";
 import { clinicOtRoutes, clinicRadiologyRoutes, clinicNursingRoutes } from "./routes/clinic-wards.js";
 import { clinicScribeRoutes } from "./routes/clinic-scribe.js";
 import { clinicAssistantRoutes } from "./routes/clinic-assistant.js";
+import { collectDeclared } from "./lib/assistant/declare.js";
 import { INTERNAL_CALL_HEADER, INTERNAL_CALL_TOKEN } from "./lib/assistant/seal.js";
 
 export function buildApp() {
@@ -215,6 +216,10 @@ export function buildApp() {
 
   app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }); // matches lib/file-storage.ts's cap
   app.register(authPlugin);
+  // Before any route: each one is looked at as it is registered, and one
+  // that says the assistant may use it becomes something the assistant
+  // can be asked for (lib/assistant/declare.ts).
+  collectDeclared(app);
   app.register(healthRoutes);
   app.register(clinicAuthRoutes);
   app.register(clinicPatientRoutes);

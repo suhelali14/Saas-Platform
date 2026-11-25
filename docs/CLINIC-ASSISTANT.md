@@ -122,11 +122,51 @@ the real server.
 
 ### Adding something the assistant can do
 
-Add one entry to `ACTIONS` in `lib/assistant/actions.ts`: a name, a
-sentence describing it, who may use it, and a `run` function. For a
-change, add a `preview` that returns the confirm card and make `run`
-call the existing route with `context.call`. Nothing else changes. If
-the request is common, add a pattern to `router.ts` so it costs nothing.
+**A new feature tells the assistant about itself.** Where its route is
+registered, add `config: { assistant: told({...}) }` with one sentence
+saying what it does, the details it needs (a zod schema, each field
+described), and the question for the card:
+
+```ts
+app.post("/api/clinic/service-items", {
+  config: { assistant: told({
+    summary: "Adds a service to the price list: 'add ECG at 300'.",
+    asks: z.object({ name: z.string().describe("..."), price: z.number().describe("...") }),
+    toBody: (a) => ({ name: a.name, defaultPrice: a.price, category: "PROCEDURE" }),
+    title: (a) => `Add "${a.name}" to the price list at ₹${a.price}?`,
+    roles: ["DOCTOR"],
+  }) },
+}, handler);
+```
+
+That is all. When the server starts it looks at every route as it is
+registered (`lib/assistant/declare.ts`) and turns each one that told
+into an action: the tool the model is offered, the confirm card, the
+call to the route as the person asking, and the words for the result.
+No file of the assistant's is edited. `bind` fills in parts of the
+address the person does not say: whose file, which visit, which bill, or
+a medicine or service found by the name it was called.
+
+What is not generated is permission: the route decides that, as always,
+and a change still waits for a yes. Three features work this way today
+(adding to the price list, adding stock, giving a discount); the older
+actions are written by hand in `actions.ts` and `actions-more.ts`, which
+is still the place for one that reads the database itself or needs a
+card of its own.
+
+A feature that does not declare itself is not usable by voice. The
+assistant can still open its screen if the screen is in `SCREENS`
+(`router.ts`), and that list is kept by hand.
+
+Three things keep this working as the list grows:
+
+- **What a login may not do is told to the model by name**, so it says
+  "not available to your login" rather than finding a way round.
+- **Past sixty actions, only the likely ones are offered** for a request
+  (`lib/assistant/relevant.ts`), chosen by its words against each
+  action's own. Today's list is under that and is sent whole.
+- If the request is common, add a pattern to `router.ts` so it costs
+  nothing.
 
 A clinic's specialty forms need no entry. `lib/assistant/forms.ts`
 builds an action from each form's definition, so a form the clinic

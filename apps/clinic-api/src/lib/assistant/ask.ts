@@ -16,12 +16,13 @@
 import { route, type Intent } from "./router.js";
 import { FOR_PATIENT, REPLACES_CARD, pickAction, pickerAvailable } from "./pick.js";
 import { prisma } from "../prisma.js";
-import { actionNamed, actionsFor, patientNamed, queueInBrief, type RunContext } from "./actions.js";
+import { actionNamed, actionsFor, actionsNotFor, patientNamed, queueInBrief, type RunContext } from "./actions.js";
 import { SCREENS } from "./router.js";
 import { formActions } from "./forms.js";
 import { sorry, type Action, type Reply } from "./registry.js";
 import { modelIsCapped } from "./meter.js";
 import { sealed } from "./context.js";
+import { relevant } from "./relevant.js";
 
 export interface Answered {
   reply: Reply;
@@ -139,7 +140,10 @@ export async function ask(text: string, context: RunContext, pending?: { request
   }
 
   const forms = await formActions(context).catch(() => []);
-  const offered = [...actionsFor(context.asker), ...forms];
+  // All of them while the list is short; the likely ones once features
+  // declaring themselves have made it long (relevant.ts).
+  const mentioned = earlier.flatMap((turn) => [...turn.did.matchAll(/\b([a-z][a-z0-9_]{3,})\s*\{/g)].map((m) => m[1]!));
+  const offered = relevant([...actionsFor(context.asker), ...forms], request, mentioned);
   let picked;
   try {
     picked = await pickAction({
@@ -151,6 +155,7 @@ export async function ask(text: string, context: RunContext, pending?: { request
       role: context.asker.role,
       screen: screenInWords(context.screen),
       queue: await queueInBrief(context.today).catch(() => undefined),
+      notTheirs: actionsNotFor(context.asker),
       earlier,
       pending,
     });

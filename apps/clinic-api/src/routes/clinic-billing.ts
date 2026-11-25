@@ -11,6 +11,7 @@ import { resolveTemplate } from "../lib/document-template.js";
 import { resolveStoredPath } from "../lib/file-storage.js";
 import { isFeatureEnabled } from "../config/features.js";
 import { lockMoney } from "../lib/money-lock.js";
+import { told } from "../lib/assistant/declare.js";
 
 /** Rupees on a printed bill. pdfkit's built-in Helvetica has no glyph
  * for the rupee sign, so "Rs." is used deliberately rather than the
@@ -449,7 +450,25 @@ export async function clinicBillingRoutes(app: FastifyInstance) {
    * revenue walking out of the door, and a discount nobody approved should
    * not quietly settle a bill.
    */
-  app.post("/api/clinic/invoices/:id/discount", async (request, reply) => {
+  app.post("/api/clinic/invoices/:id/discount", {
+    config: {
+      assistant: told({
+        name: "give_discount",
+        summary: "Takes an amount off the patient's bill, with the reason: 'give him 100 off, he is staff', 'discount 50 rupaye, senior citizen', 'bill mein 200 kam karo'. Needs the amount in rupees and why.",
+        asks: z.object({
+          amount: z.number().nonnegative().max(10_000_000).describe("Rupees to take off the bill."),
+          reason: z.string().trim().min(3).max(200).describe("Why, in a few words, as they said it."),
+        }),
+        bind: { id: "bill" },
+        title: (a, about) => `Take ₹${a.amount.toLocaleString("en-IN")} off ${about.patient ? `${about.patient}'s` : "this"} bill?`,
+        done: (bill, a) => bill?.needsApproval
+          ? `₹${a.amount.toLocaleString("en-IN")} off is asked for and waits for the admin to approve it.`
+          : `₹${a.amount.toLocaleString("en-IN")} taken off. ${Number(bill?.balance ?? 0) > 0 ? `₹${Number(bill.balance).toLocaleString("en-IN")} is left to pay.` : "Nothing is left to pay."}`,
+        roles: ["RECEPTIONIST", "DOCTOR", "CASHIER", "BILLING_CLERK"],
+        module: "billing",
+      }),
+    },
+  }, async (request, reply) => {
     const auth = requireBillingAuth(request, reply);
     if (!auth) return;
     const { id } = request.params as { id: string };

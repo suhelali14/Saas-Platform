@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth, requirePharmacyAuth } from "../plugins/auth.js";
+import { told } from "../lib/assistant/declare.js";
 
 const NEAR_EXPIRY_DAYS = 30;
 
@@ -23,7 +24,38 @@ export async function clinicInventoryRoutes(app: FastifyInstance) {
     return { data: batches };
   });
 
-  app.post("/api/clinic/drugs/:id/batches", async (request, reply) => {
+  app.post("/api/clinic/drugs/:id/batches", {
+    config: {
+      assistant: told({
+        name: "add_stock",
+        summary: "Adds stock of a medicine that has arrived at the pharmacy: 'add 200 Paracetamol 650, expiry March 2028', 'naya stock aaya Metformin 500 ka 100 tablet'. Needs the medicine, how many, and the expiry date.",
+        asks: z.object({
+          medicine: z.string().trim().min(2).max(160).describe("The medicine, as it was said."),
+          quantity: z.number().int().positive().max(1_000_000).describe("How many units arrived."),
+          expiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("The expiry date as YYYY-MM-DD. For a month and year, the last day of that month."),
+          batchNumber: z.string().max(100).optional().describe("The batch number printed on the pack, if they said it."),
+          costPrice: z.number().nonnegative().optional().describe("What one unit cost, if they said it."),
+          reorderBelow: z.number().int().nonnegative().optional().describe("Warn when stock falls below this, if they said it."),
+        }),
+        bind: { id: { find: "medicine", from: "medicine" } },
+        toBody: (a, about) => ({
+          // A batch must have a number; a pack whose number was not read
+          // out is filed under the day it came in.
+          batchNumber: a.batchNumber ?? `IN-${about.today.getFullYear()}${String(about.today.getMonth() + 1).padStart(2, "0")}${String(about.today.getDate()).padStart(2, "0")}`,
+          expiryDate: new Date(`${a.expiry}T12:00:00`).toISOString(),
+          quantityInHand: a.quantity,
+          ...(a.costPrice !== undefined ? { costPrice: a.costPrice } : {}),
+          ...(a.reorderBelow !== undefined ? { reorderThreshold: a.reorderBelow } : {}),
+        }),
+        title: (a, about) => `Add ${a.quantity} of ${about.found.medicine ?? a.medicine} to the stock?`,
+        labels: { expiry: "Expires", batchNumber: "Batch", costPrice: "Cost each", reorderBelow: "Warn below" },
+        done: (_batch, a) => `${a.quantity} added to the stock.`,
+        roles: ["PHARMACIST", "DOCTOR"],
+        module: "pharmacy",
+        screen: "/pharmacy",
+      }),
+    },
+  }, async (request, reply) => {
     const auth = requirePharmacyAuth(request, reply);
     if (!auth) return;
 

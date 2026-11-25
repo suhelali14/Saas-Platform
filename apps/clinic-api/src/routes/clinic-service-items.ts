@@ -13,6 +13,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireClinicAuth, requireClinicalWriteAuth, requireAdminAuth } from "../plugins/auth.js";
 import { InvoiceItemCategory } from "../generated/prisma-client/index.js";
+import { told } from "../lib/assistant/declare.js";
 
 const upsertSchema = z.object({
   code: z.string().max(40).optional().nullable(),
@@ -93,7 +94,29 @@ export async function clinicServiceItemRoutes(app: FastifyInstance) {
     return item;
   });
 
-  app.post("/api/clinic/service-items", async (request, reply) => {
+  app.post("/api/clinic/service-items", {
+    config: {
+      // What the assistant needs to add a line to the price list. With
+      // this, "ECG is not on the price list" is no longer a dead end: the
+      // doctor says what it costs and it is there.
+      assistant: told({
+        name: "add_to_price_list",
+        summary: "Adds a service, procedure or test to the price list, so it can be charged on a bill: 'add ECG to the price list at 300', 'injection ka charge 150 rakho', 'new service dressing large 250'. Needs its name and its price.",
+        asks: z.object({
+          name: z.string().trim().min(1).max(200).describe("What the service is called, as it should read on a bill."),
+          price: z.number().nonnegative().max(10_000_000).describe("Its price in rupees."),
+          kind: z.enum(["CONSULTATION", "PROCEDURE", "LAB", "MEDICINE", "OTHER"]).optional().describe("What sort of charge it is. PROCEDURE when unsure."),
+          forWholeClinic: z.boolean().optional().describe("True only when they say it is for every doctor in the clinic. Otherwise it goes on their own list."),
+        }),
+        toBody: (a) => ({ name: a.name, defaultPrice: a.price, category: a.kind ?? "PROCEDURE", ...(a.forWholeClinic ? { doctorId: "CLINIC" } : {}) }),
+        title: (a) => `Add "${a.name}" to the price list at ₹${a.price.toLocaleString("en-IN")}?`,
+        labels: { kind: "Kind", forWholeClinic: "For every doctor" },
+        done: (item, a) => `"${item?.name ?? a.name}" is on the price list at ₹${a.price.toLocaleString("en-IN")}. You can charge it now.`,
+        roles: ["DOCTOR"],
+        module: "billing",
+      }),
+    },
+  }, async (request, reply) => {
     const auth = requireClinicalWriteAuth(request, reply);
     if (!auth) return;
     const parsed = upsertSchema.safeParse(request.body);
