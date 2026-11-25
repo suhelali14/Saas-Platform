@@ -700,7 +700,7 @@ const SCREEN_MODULE: Record<string, Feature> = {
 
 const openScreen: Action = {
   name: "open_screen",
-  summary: "Opens one of the app's screens. Use it when they ask for a screen, and ALSO when they want to do something that has no tool of its own but is done on a screen: staff (add, remove or change a login), settings (consultation fee, price list of services, letterhead, clinic name and timings, certificate wording, specialty forms, their own password or signature), website (edit the clinic's public site, posts, gallery, feedback), pharmacy (add stock, batches, a new medicine), billing (all bills, discounts), expenses (the spending ledger), analytics (reports and charts), audit (who opened what), patients (the whole register, merge duplicates), requests (appointment requests from the website), reminders (follow-ups due), labs (all lab orders), counter, claims, ipd (bed board), nursing, ot, radiology, departments, queue, overview.",
+  summary: "Opens one of the app's screens. Use it when they ask for a screen, and ALSO when they want to do something that has no tool of its own but is done on a screen: staff (add, remove or change a login), settings (consultation fee, price list of services, letterhead, clinic name and timings, certificate wording, specialty forms, their own password or signature), website (edit the clinic's public site, posts, gallery, feedback), pharmacy (add stock, batches, a new medicine), billing (all bills, discounts), expenses (the spending ledger and profit), analytics (charts of visits and diagnoses; it has nothing about money), audit (who opened what), patients (the whole register, merge duplicates), requests (appointment requests from the website), reminders (follow-ups due), labs (all lab orders), counter, claims, ipd (bed board), nursing, ot, radiology, departments, queue, overview.",
   kind: "go",
   schema: z.object({ screen: z.string() }),
   jsonSchema: strictObject({ screen: { type: "string", enum: SCREENS.map((s) => s.key) } }),
@@ -712,6 +712,10 @@ const openScreen: Action = {
     if (module && !isFeatureEnabled(module)) return sorry(`${screen.label} is not part of this clinic's plan.`);
     if (screen.key === "claims" && !isFeatureEnabled("insurance") && !isFeatureEnabled("schemes")) return sorry("Claims are not part of this clinic's plan.");
     if (["website", "staff", "audit"].includes(screen.key) && !context.asker.isAdmin) return sorry(`${screen.label} is for the clinic's admin.`);
+    // The screens about money open only for the logins that handle it:
+    // anybody else would be shown an empty page and a refusal.
+    if (screen.key === "billing" && !context.asker.isAdmin && !BILLING.includes(context.asker.role)) return sorry("Billing is not available to your login.");
+    if (screen.key === "expenses" && !context.asker.isAdmin && !["RECEPTIONIST", "DOCTOR", "ADMIN"].includes(context.asker.role)) return sorry("Expenses are not available to your login.");
     return { kind: "go", to: screen.path, say: `Opening ${screen.label}.` };
   },
 };
@@ -1123,17 +1127,18 @@ const addToQueue: Action = {
 
 const registerPatient: Action = {
   name: "register_patient",
-  summary: "Registers a new patient who has no file here yet. Give their name, and their age, sex and phone number if they were said.",
+  summary: "Registers a new patient who has no file here yet. Give their name, and their age, sex and phone number if they were said. Set checkIn when they also asked to put the new patient in today's queue ('register and check in', 'naya patient hai, queue mein daal do'): one tool does both.",
   kind: "write",
   schema: z.object({
     name: z.string().trim().min(2).max(200),
     age: z.number().int().min(0).max(150).nullable().optional(),
     gender: z.string().max(20).nullable().optional(),
     phone: z.string().max(30).nullable().optional(),
+    checkIn: z.boolean().nullable().optional(),
   }),
-  jsonSchema: strictObject({ name: str, age: optionalNumber, gender: { ...optionalString, description: "Male or Female." }, phone: optionalString }),
+  jsonSchema: strictObject({ name: str, age: optionalNumber, gender: { ...optionalString, description: "Male or Female." }, phone: optionalString, checkIn: { type: ["boolean", "null"], description: "True when they are here now and should also go into today's queue." } }),
   allowed: anyone,
-  async preview(_context, params: { name: string; age?: number | null; gender?: string | null; phone?: string | null }) {
+  async preview(_context, params: { name: string; age?: number | null; gender?: string | null; phone?: string | null; checkIn?: boolean | null }) {
     // The commonest way a duplicate file is made is registering someone
     // who is already here. Said before the file is created, not after.
     const digits = (params.phone ?? "").replace(/\D/g, "").slice(-10);
@@ -1146,7 +1151,7 @@ const registerPatient: Action = {
       kind: "confirm",
       action: "register_patient",
       params,
-      title: `Register ${params.name} as a new patient?`,
+      title: params.checkIn ? `Register ${params.name} and add them to today's queue?` : `Register ${params.name} as a new patient?`,
       lines: [
         { label: "Name", text: params.name },
         ...(params.age != null ? [{ label: "Age", text: String(params.age) }] : []),
@@ -1156,9 +1161,14 @@ const registerPatient: Action = {
       ],
     };
   },
-  async run(context: RunContext, params: { name: string; age?: number | null; gender?: string | null; phone?: string | null }) {
+  async run(context: RunContext, params: { name: string; age?: number | null; gender?: string | null; phone?: string | null; checkIn?: boolean | null }) {
     const res = await context.call("POST", "/api/clinic/patients", { name: params.name, ...(params.age != null ? { age: params.age } : {}), ...(params.gender ? { gender: params.gender } : {}), ...(params.phone ? { phone: params.phone } : {}) });
     if (res.status !== 201) return refusal(res, "The patient could not be registered.");
+    if (params.checkIn) {
+      const queued = await context.call("POST", "/api/clinic/appointments/walk-in", { patientId: res.body.id });
+      if (queued.status === 201) return { kind: "done", say: `${params.name} is registered, file number ${res.body.uhid}, and in the queue${queued.body.tokenNumber != null ? ` with token ${queued.body.tokenNumber}` : ""}.`, to: `/appointments/${queued.body.id}/encounter` };
+      return { kind: "done", say: `${params.name} is registered, file number ${res.body.uhid}, but could not be added to the queue. Add them from the queue screen.`, to: `/patients/${res.body.id}` };
+    }
     return { kind: "done", say: `${params.name} is registered, file number ${res.body.uhid}.`, to: `/patients/${res.body.id}` };
   },
 };

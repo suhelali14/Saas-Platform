@@ -146,9 +146,28 @@ creates later can be filled in by voice the same day.
 | Family members | | Add to today's queue |
 | Today's queue | | Register a patient |
 | What needs attention | | Fill in a specialty form |
-| Follow-ups due; who has stopped coming | | |
-| The day's takings | | |
-| The assistant's own usage and cost | | |
+| Follow-ups due; who has stopped coming | | Move a visit along: arrived, with the doctor, seen, cancelled, no-show |
+| The day's takings | | Take a payment |
+| The assistant's own usage and cost | | Record an expense |
+| Who is booked on a day | | Confirm or decline a website booking request |
+| The bill of a visit | | Enter a lab result |
+| Profit and loss (admin) | | Give out a prescription from the pharmacy |
+| Booking requests waiting | | Change a patient's details; add an allergy or condition |
+| Lab results awaited | | Dictate the case sheet |
+| Stock of a medicine; what is low or expiring | | Register a patient and check them in, in one go |
+| The clinic's numbers; the staff list (admin) | | |
+
+Two or three things asked in one breath ("BP 150 by 95 and call him back
+in a week") come back as a card each, confirmed one at a time.
+
+Where it has no action for something but a screen does it (adding a
+login, changing a fee, editing the website, entering stock), it opens
+that screen. A screen a login cannot use is not opened for it.
+
+**How this list is kept honest.** `docs/assistant-test-2026-11-25/qa/`
+holds seven rounds of every feature asked for in plain English, Hindi
+and Marathi, as a doctor, reception, a nurse, the pharmacist and the
+admin, with each change confirmed. Run it again after adding an action.
 
 ---
 

@@ -20,9 +20,16 @@ import { SCREENS } from "./router.js";
 import { formActions } from "./forms.js";
 import { sorry, type Action, type Reply } from "./registry.js";
 import { modelIsCapped } from "./meter.js";
+import { sealed } from "./context.js";
 
 export interface Answered {
   reply: Reply;
+  /**
+   * What else was asked for in the same breath, each as its own reply.
+   * A card among them is already sealed, to the patient it was drawn up
+   * for: two things said together need not be about the same person.
+   */
+  more?: Reply[];
   /** What worked out the request, so its cost is never a guess. */
   by: "rule" | "model" | "none";
   action: string | null;
@@ -134,7 +141,16 @@ export async function ask(text: string, context: RunContext, pending?: { request
   if (!picked.intent) return { reply: sorry(picked.said || HELP), by: "model", action: null, usage: picked.usage };
   const action = await resolve(picked.intent.action, context, forms);
   if (!action) return { reply: sorry(HELP), by: "model", action: null, usage: picked.usage };
-  return { reply: await perform(action, picked.intent, context), by: "model", action: action.name, usage: picked.usage };
+  // The rest first, each against the screen as it was when they spoke: a
+  // name in the first request must not become "him" in the second.
+  const more: Reply[] = [];
+  for (const intent of picked.further) {
+    const next = await resolve(intent.action, context, forms);
+    if (!next) continue;
+    const own: RunContext = { ...context };
+    more.push(sealed(await perform(next, intent, own), own));
+  }
+  return { reply: await perform(action, picked.intent, context), more, by: "model", action: action.name, usage: picked.usage };
 }
 
 /**

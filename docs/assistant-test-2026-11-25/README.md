@@ -276,6 +276,66 @@ Not shown: the tap and its automatic stop with a live voice in a noisy
 room. The stop is judged from loudness, and a loud waiting room may hold
 it open until the 20-second limit or a second tap.
 
+## 10. Every feature, asked for in plain words
+
+Seven rounds. Each round asks for the app's features the way a person
+would, as a doctor, reception, a nurse, the pharmacist and the admin, on
+the queue, a visit or a file. Every change is confirmed, so the whole
+path runs. What failed was fixed and asked again in the next round. Each
+request, what answered it, the time and the reply are in [qa/](qa/).
+
+| Round | What it asked | Passed |
+|---|---|---|
+| 1 | Every feature once | 56 of 67 (7 of the 11 were the test itself hitting the request limit) |
+| 2 | The failures again, then the same features in Hinglish and Marathi | 48 of 54 |
+| 3 | The failures again, and a whole visit from arrival to payment | 16 of 20 |
+| 4 | The failures again | 9 of 10 |
+| 5 | A nurse, allergies, two things at once, misheard words, role limits | 31 of 34 |
+| 6 | Several things in one breath | 11 of 13 |
+| 7 | The failures again | 8 of 8 |
+
+Faults these rounds found, all fixed and re-asked:
+
+| Fault | |
+|---|---|
+| Telling it something ("she is allergic to sulfa, note it") was answered as a question | Fixed |
+| "Did not come, mark her no show" listed patients who had stopped coming | Fixed |
+| "Show the bill" on a visit opened the billing screen | Fixed: shows that patient's bill |
+| "उद्या किती पेशंट आहेत" answered about today | Fixed |
+| A patient's name beside a screen's name ("Fatima Sayyed ki reports dikhao") opened the screen | Fixed |
+| "Urine report" did not find "Urine Routine & Microscopy" | Fixed |
+| Wanting to add staff or change a fee got "I cannot" | Fixed: opens the screen where it is done |
+| The second of two things asked together was dropped without a word | Fixed: a card for each |
+| "Register him and put him in the queue" only registered | Fixed |
+| A nurse asking for billing was taken to a screen that refuses her | Fixed |
+| The limit on requests was shared by everybody behind one router | Fixed: each person has their own |
+
+Left as they are, on purpose:
+
+- "ECG" or "injection" asked as a charge is refused when the clinic's
+  price list has no such item. It says so and where to add it.
+- "Paid by bank transfer" is asked back as cash, UPI or card, because
+  those are the three the ledger keeps.
+- "Kal" is read as yesterday unless the sentence is about the future.
+
+Two cards from one sentence:
+
+![Two things in one breath](ask/18-two-things-in-one-breath.png)
+
+## 11. Filters on a patient's history
+
+Added on the patient's file and inside a consultation ("Past visits"):
+by kind (notes, medicines, tests, forms, certificates, bills), by period
+(3 months, 6 months, 1 year) and by a typed word. In Chrome on one
+patient: 7 days at first, 4 with medicines, 3 containing "metformin",
+none for a nonsense word (and it says so). The history route takes
+`from` and `to`; a bad date is refused with 400. No sideways scroll at
+phone width.
+
+![Only medicines](filters/02-only-medicines.png)
+
+![Past visits inside a consultation](filters/05-only-tests-inside-a-consultation.png)
+
 ## What it cost
 
 | | |

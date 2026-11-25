@@ -99,7 +99,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     const context = await contextFor(app, request, parsed.data);
     const answered = await ask(parsed.data.text, context, parsed.data.pending);
     record(request, answered);
-    return { reply: sealed(answered.reply, context), by: answered.by, action: answered.action };
+    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action };
   });
 
   /** The same, spoken. The audio is transcribed and gone; it is not kept. */
@@ -140,7 +140,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       pendingRequest && pendingQuestion ? { request: pendingRequest.slice(0, 600), question: pendingQuestion.slice(0, 600) } : undefined,
     );
     record(request, answered);
-    return { reply: sealed(answered.reply, context), by: answered.by, action: answered.action, heard };
+    return { reply: sealed(answered.reply, context), more: answered.more ?? [], by: answered.by, action: answered.action, heard };
   });
 
   /** A change the person pressed Confirm on. */

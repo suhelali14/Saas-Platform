@@ -47,7 +47,23 @@ type Reply =
   | { kind: 'done'; say: string; to?: string }
   | { kind: 'sorry'; say: string };
 
-interface Asked { reply: Reply; heard?: string; by?: 'rule' | 'model' | 'none'; request?: string }
+interface Asked {
+  reply: Reply;
+  /** What else was asked for in the same breath: "order a CBC and book
+   *  him after a week" is two things, and each gets its own card. */
+  more?: Reply[];
+  heard?: string;
+  by?: 'rule' | 'model' | 'none';
+  request?: string;
+}
+type Card = Extract<Reply, { kind: 'confirm' }>;
+/** The first card still waiting for a yes, and where it sits (-1: the main reply). */
+function waitingCard(asked: Asked | null): { card: Card; at: number } | null {
+  if (!asked) return null;
+  if (asked.reply.kind === 'confirm') return { card: asked.reply, at: -1 };
+  const at = (asked.more ?? []).findIndex((r) => r.kind === 'confirm');
+  return at >= 0 ? { card: asked.more![at] as Card, at } : null;
+}
 /** What the server sends back: an answer, or which way a waiting card was decided. */
 type FromServer = Asked | { decided: 'yes' | 'no'; heard?: string };
 
@@ -138,7 +154,7 @@ export function AssistantBar() {
 
   // "Opening Fatima Sayyed's visit." has done its work once it is read.
   useEffect(() => {
-    if (asked?.reply.kind !== 'go') return;
+    if (asked?.reply.kind !== 'go' || (asked.more ?? []).length > 0) return;
     const timer = setTimeout(() => setAsked((current) => (current === asked ? null : current)), NOTE_MS);
     return () => clearTimeout(timer);
   }, [asked]);
@@ -181,7 +197,7 @@ export function AssistantBar() {
 
   const fail = (e: unknown) => setAsked({ reply: { kind: 'sorry', say: e instanceof ApiError ? e.message : 'The assistant could not be reached. Try again in a moment.' } });
 
-  const confirm = async (reply: Extract<Reply, { kind: 'confirm' }>) => {
+  const confirm = async (reply: Card, at = -1) => {
     setBusy(true);
     try {
       // The patient and visit the card was drawn up for, with its seal --
@@ -190,7 +206,11 @@ export function AssistantBar() {
         method: 'POST',
         data: { action: reply.action, params: reply.params, patientId: reply.patientId, appointmentId: reply.appointmentId, seal: reply.seal },
       });
-      setAsked(result);
+      // Only the card that was confirmed changes; the others stay as they are.
+      setAsked((current) => {
+        if (!current || (at < 0 && !(current.more ?? []).length)) return result;
+        return at < 0 ? { ...current, reply: result.reply } : { ...current, more: (current.more ?? []).map((r, i) => (i === at ? result.reply : r)) };
+      });
       // What is on screen may have just changed underneath it.
       window.dispatchEvent(new CustomEvent('assistant:changed'));
     } catch (e) {
@@ -204,9 +224,9 @@ export function AssistantBar() {
   const show = async (result: FromServer, request: string | undefined) => {
     if ('decided' in result) {
       // A yes or a no, to the card that was waiting when it was said.
-      const card = askedRef.current?.reply;
-      if (card?.kind !== 'confirm') return;
-      if (result.decided === 'yes') await confirm(card);
+      const waiting = waitingCard(askedRef.current);
+      if (!waiting) return;
+      if (result.decided === 'yes') await confirm(waiting.card, waiting.at);
       else setAsked(null);
       return;
     }
@@ -221,7 +241,7 @@ export function AssistantBar() {
     try {
       const result = await apiFetch<FromServer>('/assistant/ask', {
         method: 'POST',
-        data: { text: request, ...onScreen(pathname), screen: pathname, card: asked?.reply.kind === 'confirm', pending: pendingFrom(asked) },
+        data: { text: request, ...onScreen(pathname), screen: pathname, card: waitingCard(asked) !== null, pending: pendingFrom(asked) },
       });
       setText('');
       setBusy(false);
@@ -328,7 +348,7 @@ export function AssistantBar() {
           const fields: Record<string, string> = { screen: here };
           if (context.patientId) fields.patientId = context.patientId;
           if (context.appointmentId) fields.appointmentId = context.appointmentId;
-          if (askedRef.current?.reply.kind === 'confirm') fields.card = '1';
+          if (waitingCard(askedRef.current)) fields.card = '1';
           const pending = pendingFrom(askedRef.current);
           if (pending) { fields.pendingRequest = pending.request; fields.pendingQuestion = pending.question; }
           const result = await apiUpload<FromServer>('/assistant/voice', new File([blob], `ask-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' }), fields);
@@ -354,6 +374,7 @@ export function AssistantBar() {
   // said to the patient, so while it listens, requests are typed.
   const recordingVisit = scribe.phase === 'listening';
   const reply = asked?.reply;
+  const waiting = waitingCard(asked);
   const tone = (line: Line) => (line.tone === 'danger' ? 'text-ink-danger font-semibold' : line.tone === 'warning' ? 'text-ink-warning' : line.tone === 'muted' ? 'text-muted-foreground' : '');
   const micLabel = recordingVisit
     ? 'The microphone is writing a visit note. Type your request.'
@@ -403,6 +424,28 @@ export function AssistantBar() {
               <span className="text-[12px] text-muted-foreground">Nothing has been changed yet. Say “yes”, press Enter, or tap Confirm.</span>
             </div>
           )}
+          {(asked?.more ?? []).map((extra, i) => (
+            <div key={i} className="mt-3 border-t border-border/15 pt-3">
+              {(extra.kind === 'answer' || extra.kind === 'confirm') && <h3 className="text-[15px] font-semibold">{extra.title}</h3>}
+              {(extra.kind === 'sorry' || extra.kind === 'done' || extra.kind === 'go') && <p className="text-[14px]">{extra.kind === 'go' ? `${extra.say.replace(/^Opening /, 'Also asked for: ').replace(/\.$/, '')}. Ask again to open it.` : extra.say}</p>}
+              {(extra.kind === 'answer' || extra.kind === 'confirm') && (
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {extra.lines.map((line, x) => (
+                    <li key={x} className={`flex gap-3 text-[14px] leading-relaxed ${tone(line)}`}>
+                      {line.label && <span className="w-24 shrink-0 text-[12px] font-medium text-muted-foreground pt-0.5 sm:w-28">{line.label}</span>}
+                      <span className="min-w-0 flex-1 whitespace-pre-wrap">{line.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {extra.kind === 'confirm' && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button variant="primary" icon={<Check size={14} />} busyLabel="Doing it…" onClick={() => confirm(extra, i)}>Confirm</Button>
+                  <span className="text-[12px] text-muted-foreground">Nothing has been changed yet.</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -432,7 +475,7 @@ export function AssistantBar() {
           onSubmit={(e) => {
             e.preventDefault();
             // Enter on an empty line, with a card waiting, is a yes to it.
-            if (!text.trim() && reply?.kind === 'confirm') void confirm(reply);
+            if (!text.trim() && waiting) void confirm(waiting.card, waiting.at);
             else void ask(text);
           }}
           className="flex items-center gap-2 px-2 py-2"
@@ -488,7 +531,7 @@ export function AssistantBar() {
             placeholder={listening ? 'Listening… just say it, I will stop when you do' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask, or tap the mic and say it' : 'Ask for anything'}
             className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[15px] outline-none placeholder:text-muted-foreground/70"
           />
-          <button type="submit" disabled={busy || listening || (!text.trim() && reply?.kind !== 'confirm')} aria-label={!text.trim() && reply?.kind === 'confirm' ? 'Confirm' : 'Ask'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">
+          <button type="submit" disabled={busy || listening || (!text.trim() && !waiting)} aria-label={!text.trim() && waiting ? 'Confirm' : 'Ask'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">
             <CornerDownLeft size={17} />
           </button>
         </form>

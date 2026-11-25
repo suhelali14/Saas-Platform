@@ -24,6 +24,8 @@ import type { Intent } from "./router.js";
 
 export interface Picked {
   intent: Intent | null;
+  /** Anything further asked for in the same breath, in the order said. */
+  further: Intent[];
   /** What the model said instead of choosing: a question, or that it cannot. */
   said: string;
   usage: { model: string; inputTokens: number; outputTokens: number };
@@ -34,7 +36,8 @@ const SYSTEM = `You are the assistant built into a clinic's management software 
 You have a list of tools. Each one is something this software can do for the person who is asking. Work out which single tool does what they asked, and call it with the parameters their request gives you.
 
 How to choose:
-- Call exactly one tool when the request clearly matches one. Do not explain first; just call it.
+- Call a tool when the request clearly matches one. Do not explain first; just call it.
+- When they ask for two or three separate things in one breath ("order a CBC and book him after a week", "BP 140 by 90 and give amlodipine 5"), call a tool for each, in the order they were said, in this one reply. Never do the first and drop the rest. One thing that needs several details is still one tool.
 - When the request is about "this patient", "her", "him" and the context says a patient is on screen, the tool already knows who that is. Do not ask for the name.
 - When they name a patient and ask for something about or for that patient (their last prescription, record their BP, book them, order a test), call the tool for that thing and put the name they said in its for_patient field. One step: do not open the patient first. Leave for_patient out when they mean the patient on screen.
 - The context tells you which screen they are looking at and how today's queue stands. "Here", "this", "this one", "the one with the doctor", "the first one" mean what that context shows. A patient in the queue can be opened by token number.
@@ -42,6 +45,7 @@ How to choose:
 - When nothing on the list does what they asked, say so in one short sentence and, if something on the list comes close, say in plain words what you can do instead. Never pretend to have done something.
 - Requests are often spoken, with filler ("okay so now", "theek hai") and misheard words ("cube" for "queue"). Act on what they plainly meant. When they name a patient to open, see or start, find that patient, even if the name looks misspelt: the software matches names by sound.
 - Opening a screen and looking something up change nothing, so do them without asking leave. If they ask where something is or which screen shows it, open that screen.
+- Never open a screen as a way round something their login is not allowed to see or do: say it is not available to their login.
 - When they want to do something you have no tool for, but the software has a screen where it is done (adding a staff login, changing a fee, editing the website, adding stock), open that screen and tell them in a few words that it is done there. Say you cannot only when no screen does it either.
 - When filling in a form, set a field only when its value was actually said. Something said about a subject is not a finding on it: "he checks his feet daily" does not mean the feet were examined and found normal. Leave that field out.
 - Your list holds only what the person asking is allowed to do. If they ask for something a clinic's software plainly does but your list lacks (a receptionist asking to prescribe), say it is not available to their login. Do not suggest another way for them to do it.
@@ -122,10 +126,13 @@ export async function pickAction(input: {
   });
 
   const usage = { model, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
-  const call = response.content.find((b) => b.type === "tool_use");
+  const calls = response.content.filter((b) => b.type === "tool_use");
+  const call = calls[0];
+  // Three things in one sentence is a lot; past that it is not a request.
+  const further = calls.slice(1, 3).map((b) => (b.type === "tool_use" ? { action: b.name, params: (b.input ?? {}) as Record<string, unknown> } : null)).filter((i): i is Intent => i !== null);
   const said = response.content.filter((b) => b.type === "text").map((b) => (b.type === "text" ? b.text : "")).join(" ").trim();
   if (call?.type === "tool_use") {
-    return { intent: { action: call.name, params: (call.input ?? {}) as Record<string, unknown> }, said, usage };
+    return { intent: { action: call.name, params: (call.input ?? {}) as Record<string, unknown> }, further, said, usage };
   }
-  return { intent: null, said, usage };
+  return { intent: null, further: [], said, usage };
 }
