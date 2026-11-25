@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FlaskConical, CheckCircle2, Download, Upload } from 'lucide-react';
 import { Button } from '../components/Button';
 import { apiFetch, openPdf, ApiError, getApiBaseUrl } from '../lib/api';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 // `normalRange` comes from the clinic's test catalogue, joined by name on
 // the server. Null when the test was typed in free-hand and matches no
@@ -25,6 +26,8 @@ export function Labs() {
     load();
   }, [showAll]);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const qs = showAll ? '' : '?status=ORDERED';

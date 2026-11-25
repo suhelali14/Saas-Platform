@@ -6,6 +6,7 @@ import { PATIENT_CATEGORIES, CATEGORY_BADGES } from '../lib/categories';
 import { Pick } from '../components/Field';
 import { SpecialtyChip, type SpecialtyChipData } from '../components/SpecialtyChip';
 import { GENDERS } from '../lib/patient-fields';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Patient {
   id: string;
@@ -35,6 +36,8 @@ export function Patients() {
     return () => clearTimeout(t);
   }, [search]);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const qs = search ? `?search=${encodeURIComponent(search)}` : '';

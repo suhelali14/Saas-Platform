@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { apiFetch, ApiError } from '../lib/api';
 import { DatePicker } from '../components/DatePicker';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Item { drugName: string; dosage: string; frequency: string; duration: string; instructions: string | null }
 interface RxRow {
@@ -44,6 +45,8 @@ function Dispensing() {
     load();
   }, [showAll]);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const qs = showAll ? '' : '?dispensed=false';

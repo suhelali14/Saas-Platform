@@ -9,6 +9,7 @@ import { SkeletonStats } from '../components/Skeleton';
 import { Sparkline } from '../components/charts';
 import { CATEGORY_BADGES } from '../lib/categories';
 import { usePolling } from '../lib/usePolling';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 /**
  * The screen somebody reads between patients.
@@ -126,6 +127,8 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = useCallback(async () => {
     try {
       setData(await apiFetch<DashboardData>('/dashboard'));

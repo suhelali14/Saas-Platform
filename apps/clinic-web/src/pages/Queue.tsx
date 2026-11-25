@@ -21,6 +21,7 @@ import { WalkInPanel, type WalkInResult } from '../components/WalkIn';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Patient {
   id: string;
@@ -93,6 +94,8 @@ export function Queue() {
   const isToday = viewDate === toDateInput(new Date());
   const canRecordVitals = !!user && VITALS_ROLES.has(user.role);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = useCallback(async () => {
     try {
       const params = new URLSearchParams({ date: viewDate });

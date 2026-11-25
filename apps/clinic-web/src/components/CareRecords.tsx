@@ -1,3 +1,4 @@
+import { useAssistantChanged } from '../lib/assistant-changed';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users } from 'lucide-react';
@@ -33,6 +34,8 @@ import {
 export function useSpecialty(patientId: string | undefined, appointmentId?: string) {
   const [data, setData] = useState<SpecialtyOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = useCallback(async () => {
     if (!patientId) return;
     try {
@@ -146,7 +149,7 @@ export function CareRecords({ patient, data, reload, mode = 'patient', appointme
     return (
       <section className="mb-6 rounded-xl border border-border/15 bg-card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[15px] font-semibold">Specialty records</h2>
+          <h2 className="text-[15px] font-semibold">Forms for this visit</h2>
           {canRecord && <Button size="sm" variant="ghost" icon={<Plus size={13} />} onClick={() => setPicking((v) => !v)}>Another form</Button>}
         </div>
         {open.map((e) => {
@@ -186,11 +189,36 @@ export function CareRecords({ patient, data, reload, mode = 'patient', appointme
         {picker}
         {editor && <div className="mt-3">{editor}</div>}
         {thisVisit.length > 0 && (
-          <ul className="mt-3 space-y-1.5 border-t border-border/15 pt-3">
-            {thisVisit.map((r) => (
-              <li key={r.id} className="text-[14px]"><span className="font-medium">{forms.get(r.formKey)?.title ?? r.formKey}</span>{r.summary && <span className="text-muted-foreground"> · {r.summary}</span>}</li>
-            ))}
-          </ul>
+          <div className="mt-3 border-t border-border/15 pt-3">
+            <h3 className="mb-1.5 text-[13px] font-medium text-muted-foreground">Filled in on this visit</h3>
+            {/* One line for each form, saying what it holds now. A form
+                saved more than once used to be listed once per save, and
+                seven identical lines told nobody which one counted. */}
+            <ul className="space-y-2">
+              {[...new Set(thisVisit.map((r) => r.formKey))].map((key) => {
+                const saves = thisVisit.filter((r) => r.formKey === key).sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt));
+                const latest = saves[0]!;
+                const at = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+                return (
+                  <li key={key} className="text-[14px]">
+                    <p>
+                      <span className="font-medium">{forms.get(key)?.title ?? key}</span>
+                      {latest.summary && <span className="text-muted-foreground"> · {latest.summary}</span>}
+                    </p>
+                    <p className="text-[12.5px] text-muted-foreground">Saved at {at(latest.updatedAt ?? latest.createdAt)} by {latest.recordedByName}</p>
+                    {saves.length > 1 && (
+                      <details className="mt-0.5">
+                        <summary className="cursor-pointer text-[12.5px] text-muted-foreground">{saves.length - 1} earlier {saves.length === 2 ? 'entry' : 'entries'} of this form today</summary>
+                        <ul className="mt-1 space-y-0.5 border-l border-border/20 pl-3">
+                          {saves.slice(1).map((r) => <li key={r.id} className="text-[13px] text-muted-foreground">{at(r.createdAt)} · {r.summary || 'No values'}</li>)}
+                        </ul>
+                      </details>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </section>
     );

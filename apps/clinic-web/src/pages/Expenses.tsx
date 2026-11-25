@@ -9,6 +9,7 @@ import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { DatePicker } from '../components/DatePicker';
 import { toDateInput } from '../lib/date';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 /**
  * Expense ledger and profit & loss -- the other half of the SRS's billing
@@ -87,6 +88,8 @@ function Ledger({ range }: { range: { from: string; to: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = useCallback(async () => {
     setError(null);
     try {

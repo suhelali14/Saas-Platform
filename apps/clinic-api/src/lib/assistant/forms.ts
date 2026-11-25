@@ -13,6 +13,7 @@
  * the model is paid for in tokens on every request that reaches it.
  */
 
+import { prisma } from "../prisma.js";
 import { z } from "zod";
 import { sorry, type Action, type Line, type Reply } from "./registry.js";
 import type { RunContext } from "./actions.js";
@@ -95,6 +96,11 @@ export async function formActions(context: RunContext): Promise<Action[]> {
     const kept = (raw: Record<string, unknown>) =>
       Object.fromEntries(Object.entries(raw).filter(([key, value]) => byKey.has(key) && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0)));
 
+    /** This form, as already saved on the visit that is open, if it is. */
+    const onThisVisit = async (at: { patientId: string | null; appointmentId: string | null }) =>
+      at.appointmentId && at.patientId
+        ? prisma.specialtyRecord.findFirst({ where: { patientId: at.patientId, appointmentId: at.appointmentId, formKey: form.key, scope: "VISIT" }, orderBy: { createdAt: "desc" }, select: { id: true, data: true } })
+        : null;
     return {
       name,
       summary: `Fills in the "${form.title}" form for the patient whose record is open, from what was said. Give only the fields that were actually mentioned; leave every other field out.`,
@@ -104,21 +110,35 @@ export async function formActions(context: RunContext): Promise<Action[]> {
       schema: z.record(z.unknown()),
       jsonSchema: { type: "object", properties: Object.fromEntries(fields.map((f) => [f.key, schemaFor(f)])) },
       allowed: (asker) => ["DOCTOR", "NURSE"].includes(asker.role),
-      async preview(_context, params: Record<string, unknown>): Promise<Reply> {
+      async preview(previewContext, params: Record<string, unknown>): Promise<Reply> {
         const data = kept(params);
         if (Object.keys(data).length === 0) return sorry(`Tell me what to put in the ${form.title} form.`);
+        const already = await onThisVisit(previewContext);
         return {
           kind: "confirm",
           action: name,
           params: data,
-          title: `Fill in "${form.title}" with this?`,
-          lines: Object.entries(data).map(([key, value]): Line => {
-            const field = byKey.get(key)!;
-            return { label: field.label, text: `${shown(value)}${field.unit && typeof value === "number" ? ` ${field.unit}` : ""}` };
-          }),
+          title: already ? `Add this to the "${form.title}" already filled in on this visit?` : `Fill in "${form.title}" with this?`,
+          lines: [
+            ...Object.entries(data).map(([key, value]): Line => {
+              const field = byKey.get(key)!;
+              return { label: field.label, text: `${shown(value)}${field.unit && typeof value === "number" ? ` ${field.unit}` : ""}` };
+            }),
+            ...(already ? [{ text: "What is already on the form stays; these are added or corrected.", tone: "muted" } as Line] : []),
+          ],
         };
       },
       async run(runContext: RunContext, params: Record<string, unknown>): Promise<Reply> {
+        // The form was already filled in on this visit: this is more of
+        // the same form, not a second one. A doctor who says the fetal
+        // heart rate a minute after the weight means one antenatal check.
+        const already = await onThisVisit(runContext);
+        if (already) {
+          const merged = { ...((already.data ?? {}) as Record<string, unknown>), ...kept(params) };
+          const updated = await runContext.call("PUT", `/api/clinic/records/${already.id}`, { data: merged });
+          if (updated.status !== 200) return sorry(typeof updated.body?.error === "string" ? updated.body.error : `The ${form.title} form could not be updated.`);
+          return { kind: "done", say: `"${form.title}" on this visit is updated.` };
+        }
         const saved = await runContext.call("POST", `/api/clinic/patients/${runContext.patientId}/records`, {
           formKey: form.key,
           episodeId: form.episodeKey ? open.get(form.episodeKey) : null,

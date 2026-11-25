@@ -9,6 +9,7 @@ import { usePolling } from '../lib/usePolling';
 import { useToast } from '../components/Toast';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { describeDateInput, todayInput } from '../lib/date';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 /**
  * Appointments patients have asked for.
@@ -77,6 +78,8 @@ export function Requests() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = useCallback(async () => {
     try {
       setData(await apiFetch<{ requests: Request[]; newCount: number }>(

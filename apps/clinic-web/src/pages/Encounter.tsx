@@ -10,6 +10,7 @@ import { ScribePanel } from '../components/ScribePanel';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
 import { PastVisits } from '../components/PatientHistory';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Vitals { bp?: string; temp?: string; spo2?: string; weight?: string; pulse?: string }
 interface Appointment {
@@ -66,6 +67,8 @@ export function Encounter() {
     load();
   }, [id]);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const res = await apiFetch<{ appointment: Appointment; caseSheets: CaseSheet[]; prescriptions: Prescription[]; certificates: Certificate[]; labOrders: LabOrder[]; previousVisit: PreviousVisit | null }>(`/appointments/${id}/encounter`);
@@ -210,6 +213,9 @@ export function Encounter() {
         <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} onSaved={load} />
       )}
 
+      {canWriteClinical && hasModule('scribe') && (
+        <p className="mb-2 text-[13px] font-medium text-muted-foreground">Or write it yourself</p>
+      )}
       {canWriteClinical && (
         <div className="flex gap-2 mb-6 flex-wrap">
           <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">

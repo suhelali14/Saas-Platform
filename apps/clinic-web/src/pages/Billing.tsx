@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { apiFetch, openPdf, ApiError } from '../lib/api';
 import { Pick } from '../components/Field';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface InvoiceItem { id: string; category: string; description: string; quantity: number; amount: string }
 interface PaymentRow { id: string; amount: string; mode: string; paidAt: string; receivedBy: { name: string } }
@@ -52,6 +53,8 @@ export function Billing() {
     if (invoiceId) openInvoice(invoiceId);
   }, [location.state]);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const res = await apiFetch<{ data: Invoice[] }>('/invoices');

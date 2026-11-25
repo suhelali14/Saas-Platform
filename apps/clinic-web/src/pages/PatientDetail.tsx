@@ -18,6 +18,7 @@ import { useToast } from '../components/Toast';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
 import { HistoryFilters, filterDays, isFiltered, NO_FILTER, type HistoryFilter } from '../components/PatientHistory';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Patient {
   id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
@@ -133,6 +134,8 @@ export function PatientDetail() {
   const specialty = useSpecialty(id);
   const reloadAll = async () => { await Promise.all([load(), specialty.reload()]); };
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const res = await apiFetch<History>(`/patients/${id}/history`);

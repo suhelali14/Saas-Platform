@@ -1,3 +1,4 @@
+import { useAssistantChanged } from '../lib/assistant-changed';
 /**
  * Charges and payment, inside the Encounter screen.
  *
@@ -92,6 +93,8 @@ export function VisitCharges({ appointmentId, doctorId, onChanged }: { appointme
   }, [doctorId]);
 
   useEffect(() => { void load(); }, [load]);
+  // The assistant added a charge or took a payment: show it.
+  useAssistantChanged(() => { void load(); });
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
 
   const addFromCatalog = async (serviceItemId: string) => {

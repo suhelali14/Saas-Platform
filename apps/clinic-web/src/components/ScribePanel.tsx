@@ -119,6 +119,8 @@ function LiveNote({ note }: { note: Draft | null }) {
 export function ScribePanel({ appointmentId, patientName, onSaved }: { appointmentId: string; patientName: string; onSaved: () => void }) {
   const s = useScribe();
   const [consent, setConsent] = useState(false);
+  /** Start was pressed before the patient's agreement was ticked. */
+  const [askFirst, setAskFirst] = useState(false);
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState('');
   const [showHeard, setShowHeard] = useState(false);
@@ -370,28 +372,48 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
   // ── Idle ────────────────────────────────────────────────────────────
   return (
     <section className="mb-6 p-4 rounded-xl border border-border/15 bg-foreground/[0.03]">
-      <h3 className="text-[15px] font-semibold">Let the assistant write this visit</h3>
-      <p className="text-[13px] text-muted-foreground mt-0.5">
-        {s.status.canListen
-          ? 'It listens while you talk to the patient, and writes the note and prescription as you go for you to check.'
-          : 'Type or paste your notes in any order, and it will sort them into the note and prescription for you to check.'}
-      </p>
+      <h3 className="text-[16px] font-semibold">{s.status.canListen ? 'Talk to the patient. The assistant writes the visit.' : 'Let the assistant write this visit'}</h3>
+      {s.status.canListen && !typing ? (
+        // What happens, in the order it happens. A doctor who has never
+        // used this should know what the button will do before pressing it.
+        <ol className="mt-2 grid gap-2 text-[13.5px] sm:grid-cols-3">
+          {[
+            ['Ask the patient', 'and tick the box below.'],
+            ['Tap Start and talk', 'as you normally would. The note fills in while you speak.'],
+            ['Check it and save', 'Nothing is saved until you press Confirm.'],
+          ].map(([head, rest], i) => (
+            <li key={head} className="flex gap-2.5 rounded-lg bg-background/60 px-3 py-2">
+              <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[12.5px] font-semibold text-background">{i + 1}</span>
+              <span><span className="font-semibold">{head}</span> <span className="text-muted-foreground">{rest}</span></span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-[13px] text-muted-foreground mt-0.5">Type or paste your notes in any order, and it will sort them into the note and prescription for you to check.</p>
+      )}
       {s.error && <div className="mt-3 px-3 py-2 rounded-lg tone-danger text-sm" role="alert">{s.error}</div>}
 
       {s.status.canListen && !typing && (
         <div className="mt-3 flex flex-col gap-3">
-          <label className="flex items-start gap-2 text-[13px]">
-            <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+          <label className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-[14px] transition-colors ${consent ? 'border-ink-success/40 bg-ink-success/5' : askFirst ? 'border-ink-warning bg-ink-warning/10' : 'border-border/25 bg-background/60'}`}>
+            <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={consent} onChange={(e) => { setConsent(e.target.checked); setAskFirst(false); }} />
             <span>
-              The patient has agreed to this consultation being recorded to write their notes.
-              <span className="block text-muted-foreground mt-0.5">
+              <span className="font-medium">The patient agrees to this visit being listened to.</span>
+              <span className="block text-[12.5px] text-muted-foreground mt-0.5">
                 The recording is not kept. Their name, phone number, address and file number are removed before the note is written.
               </span>
             </span>
           </label>
+          {askFirst && !consent && <p className="-mt-1 text-[13px] font-medium text-ink-warning" role="alert">Ask the patient first, then tick the box above.</p>}
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" icon={<Mic size={14} />} disabled={!consent} onClick={async () => { await s.start(appointmentId, patientName); setConsent(false); }}>Start listening</Button>
-            <button type="button" onClick={() => setTyping(true)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Type or paste instead</button>
+            {/* Never greyed out: a button that does nothing when pressed
+                leaves a doctor guessing why. Pressed too early, it says
+                what is missing and points at it. */}
+            <Button variant="primary" icon={<Mic size={14} />} onClick={async () => {
+              if (!consent) { setAskFirst(true); return; }
+              await s.start(appointmentId, patientName); setConsent(false);
+            }}>Start listening</Button>
+            <button type="button" onClick={() => setTyping(true)} className="text-[13px] text-muted-foreground hover:text-foreground underline underline-offset-2">Type or paste my notes instead</button>
           </div>
         </div>
       )}

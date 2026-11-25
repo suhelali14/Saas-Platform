@@ -4,6 +4,7 @@ import { Bell, Phone, X } from 'lucide-react';
 import { apiFetch, ApiError } from '../lib/api';
 import { RecallList } from '../components/RecallList';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { useAssistantChanged } from '../lib/assistant-changed';
 
 interface Reminder {
   id: string;
@@ -26,6 +27,8 @@ export function Reminders() {
     load();
   }, []);
 
+  // The assistant changed something: show it.
+  useAssistantChanged(() => { void load(); });
   const load = async () => {
     try {
       const res = await apiFetch<{ data: Reminder[]; due: number; upcoming: number }>('/reminders');
