@@ -248,6 +248,9 @@ export function route(input: string, context: RouteContext): Intent | null {
     }
   }
 
+  // ── "What can you do?" ─────────────────────────────────────────────
+  if (text.split(" ").length <= 7 && /^(?:help|what can (?:you|i) (?:do|ask|say)|what do you do|kya kya kar sakte ho|kya kar sakte ho|tu kay karu shaktos|kay karu shakto|madad)\b\??$|^(?:मदद|क्या कर सकते हो|काय करू शकतोस)/i.test(text)) return { action: "what_can_you_do", params: {} };
+
   // ── "Listen to the consultation", asked of the bar ─────────────────
   // The bar hears one instruction; a consultation is written from the
   // panel on the visit. Asked here, they are taken there.

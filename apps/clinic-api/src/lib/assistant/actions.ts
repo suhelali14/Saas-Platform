@@ -178,7 +178,20 @@ export async function patientNamed(name: string, today: Date): Promise<{ patient
     };
   }
   const visit = live.find((v) => v.patientId === one.id && v.status === "IN_PROGRESS") ?? live.find((v) => v.patientId === one.id);
-  return { patientId: one.id, appointmentId: visit?.id ?? null, label: [one.name, one.uhid, one.age != null ? `${one.age}y` : null, one.gender].filter(Boolean).join(" · ") };
+  // Seen already today: the visit is over, but it is still the visit a
+  // payment, a result or a certificate asked for now belongs to. Paying
+  // on the way out is the ordinary order of things.
+  let appointmentId = visit?.id ?? null;
+  if (!appointmentId) {
+    const { start, end } = boundsOf(isoOf(today));
+    const seen = await prisma.appointment.findFirst({
+      where: { patientId: one.id, scheduledAt: { gte: start, lte: end }, status: "COMPLETED" },
+      orderBy: { scheduledAt: "desc" },
+      select: { id: true },
+    });
+    appointmentId = seen?.id ?? null;
+  }
+  return { patientId: one.id, appointmentId, label: [one.name, one.uhid, one.age != null ? `${one.age}y` : null, one.gender].filter(Boolean).join(" · ") };
 }
 
 /** Today's queue with nobody named in it: all a model needs to follow
@@ -1180,7 +1193,37 @@ const registerPatient: Action = {
   },
 };
 
+/**
+ * "What can you do?" Answered from the list itself, for the person
+ * asking: a receptionist is told what a receptionist can ask for. A
+ * feature that declared itself yesterday is in the answer today.
+ */
+const whatCanYouDo: Action = {
+  name: "what_can_you_do",
+  summary: "Says what the assistant can be asked for by this person: what it can look up, what it can change, and which screens it can open. Use it for 'what can you do', 'help', 'kya kya kar sakte ho', 'tu kay karu shaktos'.",
+  kind: "read",
+  schema: NONE,
+  jsonSchema: NO_PARAMS,
+  allowed: anyone,
+  async run(context) {
+    const mine = actionsFor(context.asker).filter((a) => a.name !== "what_can_you_do");
+    const said = (a: Action) => a.name.replace(/_/g, " ");
+    const screens = SCREENS.filter((s) => !SCREEN_MODULE[s.key] || isFeatureEnabled(SCREEN_MODULE[s.key]!)).map((s) => s.label);
+    return {
+      kind: "answer",
+      title: "Ask me in your own words. For your login I can:",
+      lines: [
+        { label: "Look up", text: mine.filter((a) => a.kind === "read").map(said).join(", ") },
+        { label: "Do, after you say yes", text: mine.filter((a) => a.kind === "write").map(said).join(", ") },
+        { label: "Open", text: screens.join(", ") },
+        { text: "Say several things in one go, correct me if I get one wrong, and say “yes” to a card to save it.", tone: "muted" },
+      ],
+    };
+  },
+};
+
 export const ACTIONS: Action[] = [
+  whatCanYouDo,
   findPatient, patientBrief, lastPrescription, labResults, visitHistory, visitOnDate, vitalsTrend, patientDues, familyMembers,
   queueSummary, needsAttention, followupsDue, recallList, todaysCollection, assistantUsage,
   openScreen, openNextPatient,

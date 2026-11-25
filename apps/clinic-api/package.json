@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "seed": "tsx prisma/seed-clinic.ts",
     "seed:drugs": "tsx prisma/seed-data/import-drugs.ts",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "node --import tsx --test test/*.test.ts",
+    "assistant:coverage": "node scripts/assistant-coverage.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

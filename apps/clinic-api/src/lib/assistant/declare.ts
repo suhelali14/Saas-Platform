@@ -48,6 +48,7 @@ import { prisma } from "../prisma.js";
 import { summarize } from "../../routes/clinic-billing.js";
 import type { Feature } from "../../config/features.js";
 import { sorry, type Action, type ActionContext, type Asker, type Line, type Reply } from "./registry.js";
+import { noteRoute } from "./app-map.js";
 
 type Call = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, payload?: unknown) => Promise<{ status: number; body: any }>;
 
@@ -100,8 +101,11 @@ export function told<A extends z.ZodRawShape>(spec: Told<A>): Told {
 
 declare module "fastify" {
   interface FastifyContextConfig {
-    /** Makes this route something the assistant can be asked for. */
-    assistant?: Told;
+    /** Makes this route something the assistant can be asked for; or
+     *  `false`, to say on purpose that it must not be (with a comment
+     *  saying why). scripts/assistant-coverage.mjs fails a new route that
+     *  changes something and says neither. */
+    assistant?: Told | false;
   }
 }
 
@@ -298,6 +302,11 @@ export function declaredActions(): Action[] {
 export function collectDeclared(app: FastifyInstance): void {
   app.addHook("onRoute", (route) => {
     const spec = route.config?.assistant;
+    // Every route goes on the map of the app, told or not (app-map.ts).
+    for (const method of Array.isArray(route.method) ? route.method : [route.method]) {
+      if (method === "HEAD" || method === "OPTIONS") continue;
+      noteRoute({ method, url: route.url, told: spec ? spec.name ?? nameFrom(method, route.url) : null, optedOut: spec === false });
+    }
     if (!spec) return;
     for (const method of Array.isArray(route.method) ? route.method : [route.method]) {
       if (method === "HEAD" || method === "OPTIONS") continue;

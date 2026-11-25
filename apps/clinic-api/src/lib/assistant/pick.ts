@@ -21,6 +21,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { env } from "../../config/env.js";
 import type { Action } from "./registry.js";
 import type { Intent } from "./router.js";
+import { appInWords } from "./app-map.js";
 
 export interface Picked {
   intent: Intent | null;
@@ -53,6 +54,7 @@ How to choose:
 - A correction is not a new request. When what they say now corrects or adds to a card that is still waiting (a spelling, a number, one more detail, "no, I said Sayyed"), call the SAME tool again with ALL of its details, corrected, and set replaces_card to that card's number. Never draw up a second card beside the first.
 - When what they say corrects something that is already done (a patient already registered with the name misspelt), change the record that exists, with the tool that changes it, naming the patient by their file number in for_patient. Never register or add a second time.
 - When they spell a name out letter by letter ("S A Y Y E D", "s for sugar, a, y, y, e, d"), join the letters and use exactly that spelling.
+- You are told below how this software is put together: each kind of record and what it joins to. Use it to understand what they mean ("her reports" are the lab orders of this patient; "what did we charge" is the bill of this visit). It tells you what the software HOLDS. What you can DO is only your list of tools.
 - Speak as a person would to a colleague. Never mention a tool's name, the word "tool", or anything about how you work.
 - Dates: today's date is given in the context. Write every date as YYYY-MM-DD.
 - Write names of people exactly as they were said. Write clinical text in short English, the way an Indian doctor writes a note.
@@ -117,7 +119,11 @@ export async function pickAction(input: {
   const response = await client.messages.create({
     model,
     max_tokens: 1200,
-    system: SYSTEM,
+    // Who it is, then how the app is put together, read from the app's
+    // own data model (app-map.ts). Both are the same on every request,
+    // so the provider keeps them and they are read back at a tenth of
+    // the price.
+    system: [{ type: "text", text: `${SYSTEM}\n\n${appInWords()}`, cache_control: { type: "ephemeral" } }],
     output_config: { effort: "low" },
     tools: input.actions.map((a, i, all) => ({
       name: a.name,
@@ -154,7 +160,15 @@ export async function pickAction(input: {
     ],
   });
 
-  const usage = { model, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
+  // What it is charged for, not only what it read afresh. The fixed part
+  // of every request (the tools, the instructions, the map of the app)
+  // is kept by the provider and read back at a tenth of the price; the
+  // first request after a pause writes it again at a quarter more. Left
+  // out of the count, as they were, the meter showed a quarter of the
+  // real cost.
+  const kept = response.usage.cache_read_input_tokens ?? 0;
+  const written = response.usage.cache_creation_input_tokens ?? 0;
+  const usage = { model, inputTokens: Math.round(response.usage.input_tokens + kept * 0.1 + written * 1.25), outputTokens: response.usage.output_tokens };
   const calls = response.content.filter((b) => b.type === "tool_use");
   const call = calls[0];
   // Three things in one sentence is a lot; past that it is not a request.
