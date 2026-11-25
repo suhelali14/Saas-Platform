@@ -8,6 +8,7 @@
 import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
 import { site, studioUrl } from '@/content/contact';
+import { productsCopy } from '@/content/products';
 
 const GUIDES_LABEL = { en: 'Guides for clinics', hi: 'क्लिनिक गाइड (English)', mr: 'क्लिनिक मार्गदर्शक (English)' } as const;
 
@@ -15,9 +16,13 @@ export function Footer() {
   const { footer, nav, site: siteText, simplePages } = useContent();
   const { locale } = useContentCtx();
 
+  const products = productsCopy[locale];
   const links = [
-    { label: nav.businesses, href: `${pathFor(locale, 'home')}#services` },
-    { label: nav.system, href: `${pathFor(locale, 'home')}#manifest` },
+    { label: products.lineup.clinic.name, href: pathFor(locale, 'clinic') },
+    { label: products.lineup.growth.name, href: pathFor(locale, 'growth') },
+    { label: products.lineup.vision.name, href: pathFor(locale, 'vision') },
+    { label: nav.businesses, href: `${pathFor(locale, 'vision')}#services` },
+    { label: nav.system, href: `${pathFor(locale, 'vision')}#manifest` },
     { label: nav.fares, href: pathFor(locale, 'pricing') },
     { label: simplePages.about.title, href: pathFor(locale, 'about') },
     { label: simplePages.founder.title, href: pathFor(locale, 'founder') },

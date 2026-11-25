@@ -677,7 +677,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'See the chart', href: '/#services' },
+      cta: { label: 'See the chart', href: '/vision' },
     },
 
     founder: {
@@ -956,7 +956,7 @@ export const en = {
           ],
         },
       ],
-      cta: { label: 'Read the chart', href: '/#services' },
+      cta: { label: 'Read the chart', href: '/vision' },
     },
   },
 };

@@ -26,6 +26,7 @@ import { serviceRows } from './content/structure';
 import { chartDefs } from './content/structure';
 import { site, contact, founder, googleSiteVerification } from './content/contact';
 import { searchTitles } from './content/seo';
+import { productsCopy } from './content/products';
 import { guides, guidesIndex, guideBySlug } from './content/guides';
 
 const esc = (s: string) =>
@@ -130,6 +131,9 @@ function jsonLd(locale: Locale) {
   return [org, app, website];
 }
 
+/** The three product pages, or null for any other page. */
+const productPage = (page: Page) => (page === 'clinic' || page === 'growth' || page === 'vision' ? page : null);
+
 /**
  * A secondary page's place in the site, for the breadcrumb trail a search
  * result can show under the title ("nayaversse.in > For clinics").
@@ -151,7 +155,10 @@ function breadcrumb(locale: Locale, page: Page) {
     items.push(crumb(2, guidesIndex.title, 'guides'), crumb(3, g ? g.title : page, page));
   } else {
     const simpleKey = pageToSimpleKey(page);
-    const name = simpleKey ? t.simplePages[simpleKey].title : page === 'pricing' ? t.farePanel.pageHeading : page;
+    const product = productPage(page);
+    const name = product
+      ? productsCopy[locale][`${product}Page`].title
+      : simpleKey ? t.simplePages[simpleKey].title : page === 'pricing' ? t.farePanel.pageHeading : page;
     items.push(crumb(2, name, page));
   }
   return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items };
@@ -206,6 +213,10 @@ export function pageMeta(locale: Locale, page: Page) {
     const g = guideBySlug(guideSlug(page));
     if (g) return { title: g.searchTitle, description: g.description };
   }
+  // The product pages carry a title and description written for a search
+  // result, kept with the rest of their words (content/products.ts).
+  const product = productPage(page);
+  if (product) return productsCopy[locale].seo[product];
   // The secondary pages each have their own title and lede that a crawler
   // reads as the <title> and meta description -- the reason this page
   // exists is to be found by someone searching for that exact thing.
@@ -315,6 +326,9 @@ export function render(locale: Locale, page: Page) {
 }
 
 export { allRoutes, locales, localesFor, pathFor, content, site, contact, founder, guides, guidesIndex };
+
+/** The words for "Built" and "In trial", per locale, for the build's honesty checks. */
+export const productStatus = Object.fromEntries(locales.map((l) => [l, productsCopy[l].status])) as Record<Locale, { built: string; trial: string; planned: string }>;
 
 /**
  * What each page is supposed to claim, counted from the content itself.

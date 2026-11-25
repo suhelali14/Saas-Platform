@@ -50,7 +50,7 @@ if (cssLink) {
 const mod = await import(pathToFileURL(ssr).href);
 const {
   render, allRoutes, pathFor, facts, statusWords, locales, localesFor, content, site, contact, pageMeta,
-  guides, guidesIndex, founder,
+  guides, guidesIndex, founder, productStatus,
 } = mod;
 
 /*
@@ -138,9 +138,16 @@ for (const { locale, page, file, html, out } of written) {
 
 // The honesty checks. A status word silently dropped, or a row flipped to
 // Live, is the one mistake on this site that actually matters.
+//
+// The service chart is on the Vision page (it was on the home page until the
+// site was arranged around its two products), so that is the page whose
+// status cells are counted.
 for (const locale of locales) {
-  const home = written.find((w) => w.locale === locale && w.page === 'home');
-  if (!home) continue;
+  const home = written.find((w) => w.locale === locale && w.page === 'vision');
+  if (!home) {
+    problems.push(`${locale}: no Vision page was written, so the service chart's statuses were never checked`);
+    continue;
+  }
   const words = statusWords[locale];
 
   // Counted by class, not by the word. The same word appears in the band's
@@ -157,7 +164,7 @@ for (const locale of locales) {
     const got = cells(cls);
     if (got !== want) {
       problems.push(
-        `${locale}/index.html: ${got} service rows marked ${label}, the content says ${want}` +
+        `${locale}/vision: ${got} service rows marked ${label}, the content says ${want}` +
           (label === 'Live'
             ? ' -- one clinic is in production, and the page must not imply more'
             : ''),
@@ -168,17 +175,34 @@ for (const locale of locales) {
   // And the word has to be present at all, or the page is not translated.
   for (const w of [words.live, words.building, words.waitlist]) {
     if (!home.html.includes(w)) {
-      problems.push(`${locale}/index.html: the status word "${w}" never renders`);
+      problems.push(`${locale}/vision: the status word "${w}" never renders`);
     }
   }
 
-  // No percentage anywhere. There is one customer and no study, so a figure
-  // here would have been invented by whoever added it.
-  const pct = home.html.match(/>[^<]*\b\d{1,3}\s?%/g) ?? [];
-  if (pct.length) {
-    problems.push(
-      `${locale}/index.html: found a percentage (${pct[0].trim().slice(0, 40)}) -- there is no measured result to cite`,
-    );
+  // No percentage anywhere a product is described. There is one customer and
+  // no study, so a figure would have been invented by whoever added it.
+  for (const page of ['home', 'clinic', 'growth', 'vision']) {
+    const w = written.find((x) => x.locale === locale && x.page === page);
+    const pct = w?.html.match(/>[^<]*\b\d{1,3}\s?%/g) ?? [];
+    if (pct.length) {
+      problems.push(
+        `${locale}/${page}: found a percentage (${pct[0].trim().slice(0, 40)}) -- there is no measured result to cite`,
+      );
+    }
+  }
+
+  // Growth is built and nobody uses it yet. Its page must say "Built" and
+  // must never carry the word the chart keeps for a product somebody pays
+  // for. The same goes for the assistant's films, which are in trial.
+  const growth = written.find((x) => x.locale === locale && x.page === 'growth');
+  const built = productStatus[locale];
+  if (growth) {
+    if (!growth.html.includes(`>${built.built}<`)) problems.push(`${locale}/growth: the status "${built.built}" never renders`);
+    if (growth.html.includes(`>${words.live}<`)) problems.push(`${locale}/growth: carries "${words.live}" -- no business uses Growth yet`);
+  }
+  const front = written.find((x) => x.locale === locale && x.page === 'home');
+  if (front && !front.html.includes(`>${built.trial}<`)) {
+    problems.push(`${locale}/index.html: the assistant's films are not marked "${built.trial}"`);
   }
 }
 

@@ -673,7 +673,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'यादी पहा', href: '/mr/#services' },
+      cta: { label: 'यादी पहा', href: '/mr/vision' },
     },
 
     founder: {
@@ -952,7 +952,7 @@ export const mr: Content = {
           ],
         },
       ],
-      cta: { label: 'यादी वाचा', href: '/mr/#services' },
+      cta: { label: 'यादी वाचा', href: '/mr/vision' },
     },
   },
 };

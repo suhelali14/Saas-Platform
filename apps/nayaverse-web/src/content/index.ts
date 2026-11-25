@@ -43,6 +43,10 @@ export const htmlLang: Record<Locale, string> = {
 
 export type Page =
   | 'home'
+  // The products, and what comes after them (content/products.ts).
+  | 'clinic'
+  | 'growth'
+  | 'vision'
   | 'pricing'
   | 'about'
   | 'founder'
@@ -79,6 +83,9 @@ export function localesFor(page: Page): Locale[] {
 
 /** Pages that live at /<slug>, matched by their slug on URL resolution. */
 const SIMPLE_PAGES: { page: Exclude<Page, 'home' | '404'>; slug: string }[] = [
+  { page: 'clinic', slug: 'clinic' },
+  { page: 'growth', slug: 'growth' },
+  { page: 'vision', slug: 'vision' },
   { page: 'pricing', slug: 'pricing' },
   { page: 'about', slug: 'about' },
   { page: 'founder', slug: 'founder' },

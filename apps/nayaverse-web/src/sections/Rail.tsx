@@ -10,6 +10,7 @@
  */
 import { useContent, useContentCtx } from '@/content/use-content';
 import { localeNames, locales, localesFor, pathFor, type Locale } from '@/content/index';
+import { productsCopy } from '@/content/products';
 import { cx } from '@/components/primitives';
 
 export function Rail({ onEnquire }: { onEnquire: () => void }) {
@@ -28,11 +29,15 @@ export function Rail({ onEnquire }: { onEnquire: () => void }) {
   // Dropped in this order as the rail narrows. Every one of them is also
   // in the footer, so nothing here becomes unreachable -- unlike the
   // language switcher below, which never drops.
+  //
+  // The two products come first and never both drop: Clinic is what is for
+  // sale, so it stays down to the narrowest phone that has room for it.
+  const products = productsCopy[locale].nav;
   const links = [
-    { label: nav.businesses, href: `${home}#services`, cls: 'hidden md:inline-block' },
-    { label: nav.health, href: pathFor(locale, 'for-clinics'), cls: 'hidden md:inline-block' },
-    { label: nav.system, href: pathFor(locale, 'features'), cls: 'hidden lg:inline-block' },
-    { label: nav.fares, href: pathFor(locale, 'pricing'), cls: 'hidden sm:inline-block' },
+    { label: products.clinic, href: pathFor(locale, 'clinic'), cls: 'hidden min-[420px]:inline-block' },
+    { label: products.growth, href: pathFor(locale, 'growth'), cls: 'hidden sm:inline-block' },
+    { label: products.vision, href: pathFor(locale, 'vision'), cls: 'hidden md:inline-block' },
+    { label: nav.fares, href: pathFor(locale, 'pricing'), cls: 'hidden lg:inline-block' },
     { label: nav.about, href: pathFor(locale, 'about'), cls: 'hidden xl:inline-block' },
     { label: nav.questions, href: `${home}#conditions`, cls: 'hidden lg:inline-block' },
   ];

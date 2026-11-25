@@ -13,7 +13,8 @@
  * be a product.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useContent } from '@/content/use-content';
+import { useContent, useContentCtx } from '@/content/use-content';
+import { productsCopy } from '@/content/products';
 import {
   chartDefs,
   clinicArrival,
@@ -55,8 +56,15 @@ const sortQueue = (rows: Seated[]) =>
   [...rows].sort((a, b) => rank(a) - rank(b) || a.arrival - b.arrival);
 const seat = (rows: ChartRowDef[]): Seated[] => rows.map((r, i) => ({ ...r, arrival: i }));
 
-export function DayCharts() {
+/**
+ * `clinicOnly` is the chart on the home and Clinic pages: just the live
+ * queue, with no tabs for trades that are not built. The five-trade version
+ * is the Vision page's.
+ */
+export function DayCharts({ clinicOnly = false }: { clinicOnly?: boolean }) {
   const { charts, chartSection, readiness } = useContent();
+  const { locale } = useContentCtx();
+  const queueWords = productsCopy[locale].queue;
   const [active, setActive] = useState(0);
   const [extra, setExtra] = useState<Seated[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -169,13 +177,14 @@ export function DayCharts() {
         </Band>
 
         <div className="px-4 pb-5 pt-7 sm:px-7">
-          <Heading>{chartSection.heading}</Heading>
-          <p className="t-prose mt-4 text-pretty text-[var(--ink-soft)]">{chartSection.lede}</p>
+          <Heading>{clinicOnly ? queueWords.heading : chartSection.heading}</Heading>
+          <p className="t-prose mt-4 text-pretty text-[var(--ink-soft)]">{clinicOnly ? words.lede : chartSection.lede}</p>
         </div>
 
         {/* The trades. Horizontally scrollable on a phone rather than wrapped
             into three ragged lines. */}
         <div
+          style={clinicOnly ? { display: 'none' } : undefined}
           role="tablist"
           aria-label={chartSection.heading}
           className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-5 sm:px-7"
@@ -222,8 +231,13 @@ export function DayCharts() {
 
         <div role="tabpanel" id={`panel-${def.key}`} aria-labelledby={`tab-${def.key}`}>
           <div className="px-4 pb-4 sm:px-7">
-            <h3 className="t-board text-[1.45rem] leading-none text-[var(--ink)]">{words.heading}</h3>
-            <p className="t-prose mt-3 text-[0.9375rem] text-[var(--ink-soft)]">{words.lede}</p>
+            {/* On its own the clinic chart has already said this above. */}
+            {!clinicOnly && (
+              <>
+                <h3 className="t-board text-[1.45rem] leading-none text-[var(--ink)]">{words.heading}</h3>
+                <p className="t-prose mt-3 text-[0.9375rem] text-[var(--ink-soft)]">{words.lede}</p>
+              </>
+            )}
 
             {/* The line that keeps this section honest. */}
             <p

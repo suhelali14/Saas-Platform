@@ -37,6 +37,18 @@
       "destination": "/index.html"
     },
     {
+      "source": "/clinic",
+      "destination": "/clinic.html"
+    },
+    {
+      "source": "/growth",
+      "destination": "/growth.html"
+    },
+    {
+      "source": "/vision",
+      "destination": "/vision.html"
+    },
+    {
       "source": "/pricing",
       "destination": "/pricing.html"
     },
@@ -113,6 +125,18 @@
       "destination": "/hi.html"
     },
     {
+      "source": "/hi/clinic",
+      "destination": "/hi/clinic.html"
+    },
+    {
+      "source": "/hi/growth",
+      "destination": "/hi/growth.html"
+    },
+    {
+      "source": "/hi/vision",
+      "destination": "/hi/vision.html"
+    },
+    {
       "source": "/hi/pricing",
       "destination": "/hi/pricing.html"
     },
@@ -163,6 +187,18 @@
     {
       "source": "/mr",
       "destination": "/mr.html"
+    },
+    {
+      "source": "/mr/clinic",
+      "destination": "/mr/clinic.html"
+    },
+    {
+      "source": "/mr/growth",
+      "destination": "/mr/growth.html"
+    },
+    {
+      "source": "/mr/vision",
+      "destination": "/mr/vision.html"
     },
     {
       "source": "/mr/pricing",

@@ -1,0 +1,296 @@
+{
+ "format": "yt",
+ "W": 1920,
+ "H": 1080,
+ "fps": 30,
+ "voice": "en-IN-NeerjaNeural",
+ "rate": "+6%",
+ "lead": 0.3,
+ "pad": 0.4,
+ "series": "NAYAVERSSE · THE CLINIC ASSISTANT",
+ "rightDark": "THE PROBLEM",
+ "rightCream": "RECORDED FROM THE REAL PRODUCT",
+ "shots": "modules-assistant",
+ "beats": [
+  {
+   "chapter": "THE TYPING",
+   "ground": "dark",
+   "min": 5,
+   "cap": "A clinic day is mostly *typing.* Names, tokens, bills and notes.",
+   "visual": {
+    "type": "flap",
+    "rows": [
+     { "text": "10:30 AM", "size": "s", "y": -230, "at": 0.25 },
+     { "text": "38 WAITING", "size": "l", "y": -120, "at": "w:2" },
+     { "text": "ALL TYPED", "size": "l", "y": 40, "at": "w:5", "color": "#eba63f" }
+    ]
+   },
+   "sayPro": "[serious] A clinic day is mostly typing. Names, tokens, bills and notes."
+  },
+  {
+   "chapter": "THE TYPING",
+   "ground": "dark",
+   "cap": "The doctor writes, the desk types, and the patient *waits.*",
+   "visual": { "type": "slips", "billAt": "w:4" },
+   "punch": "WAITING.",
+   "punchAt": "w:9",
+   "sayPro": "[tired] The doctor writes, the desk types, and the patient waits."
+  },
+  {
+   "chapter": "THE TYPING",
+   "ground": "dark",
+   "cap": "What if you could just *say* *it?*",
+   "visual": { "type": "sweep" },
+   "punch": "SAY IT.",
+   "punchAt": "w:5",
+   "sayPro": "[curious] What if you could just say it?"
+  },
+  {
+   "chapter": "MEET THE ASSISTANT",
+   "ground": "cream",
+   "min": 6,
+   "cap": "This is the *assistant,* inside Nayaversse. It waits at the foot of every screen.",
+   "say": "This is the assistant, inside Nayaversse. It waits at the foot of every screen.",
+   "visual": {
+    "type": "cards",
+    "logo": true,
+    "cards": [ { "shot": "call-before", "label": "THE QUEUE" } ]
+   },
+   "sayPro": "[warmly] This is the assistant, inside नयावर्स. It waits at the foot of every screen."
+  },
+  {
+   "chapter": "SAY IT",
+   "ground": "cream",
+   "cap": "One tap, and it *listens.* The doctor says: register a new patient, Sagar Deshpande, age forty.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "call-listening",
+      "label": "ON THE LINE",
+      "cam": [ { "at": "w:3", "dur": 1.2, "r": [0.25, 0.55, 0.66, 0.45] } ],
+      "ring": [ { "at": "w:4", "r": [0.35, 0.92, 0.47, 0.066] } ],
+      "cursor": { "at": 0.3, "dur": 0.8, "to": [0.372, 0.953], "click": 1.2 }
+     }
+    ]
+   },
+   "sayPro": "[confident] One tap, and it listens. The doctor says: register a new patient, Sagar Deshpande, age forty."
+  },
+  {
+   "chapter": "SAY IT",
+   "ground": "cream",
+   "cap": "It shows what it *understood,* and waits. Nothing is saved yet.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "call-card",
+      "label": "ON THE LINE",
+      "cam": [
+       { "at": 0, "dur": 0.01, "r": [0.25, 0.55, 0.66, 0.45] },
+       { "at": 0.1, "dur": 1.0, "r": [0.33, 0.58, 0.5, 0.34] }
+      ],
+      "ring": [
+       { "at": "w:3", "r": [0.357, 0.715, 0.2, 0.095] },
+       { "at": "w:7", "r": [0.357, 0.822, 0.082, 0.046] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "It shows what it understood, and waits. Nothing is saved yet."
+  },
+  {
+   "chapter": "SAY IT",
+   "ground": "cream",
+   "cap": "She corrects the age in one sentence. The *same* card changes, never a second record.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "call-fixed",
+      "label": "ON THE LINE",
+      "cam": [ { "at": 0, "dur": 0.01, "r": [0.33, 0.58, 0.5, 0.34] } ],
+      "ring": [ { "at": "w:3", "r": [0.357, 0.752, 0.16, 0.034] } ]
+     }
+    ]
+   },
+   "punch": "45",
+   "punchAt": "w:8",
+   "sayPro": "She corrects the age in one sentence. The same card changes, never a second record."
+  },
+  {
+   "chapter": "SAY IT",
+   "ground": "cream",
+   "cap": "She says yes, and he is *registered.*",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "call-done",
+      "label": "ON THE LINE",
+      "cam": [ { "at": 0, "dur": 0.01, "r": [0.33, 0.58, 0.5, 0.34] } ],
+      "ring": [ { "at": "w:5", "r": [0.357, 0.838, 0.37, 0.036] } ]
+     }
+    ]
+   },
+   "punch": "DONE.",
+   "punchAt": "w:6",
+   "sayPro": "[pleased] She says yes, and he is registered."
+  },
+  {
+   "chapter": "ANY LANGUAGE",
+   "ground": "cream",
+   "cap": "Ask in English, Hindi or Marathi, the way people really *mix* them.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "hindi-answer",
+      "label": "THE FRONT DESK ASKS",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.33, 0.56, 0.5, 0.36] } ],
+      "ring": [
+       { "at": "w:3", "r": [0.357, 0.644, 0.2, 0.028] },
+       { "at": "w:9", "r": [0.357, 0.674, 0.15, 0.03] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Ask in English, Hindi or Marathi, the way people really mix them."
+  },
+  {
+   "chapter": "ONE SENTENCE, ONE YES",
+   "ground": "cream",
+   "cap": "A payment is one sentence: Ganesh paid four hundred by *UPI.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "pay-card",
+      "label": "TAKING A PAYMENT",
+      "cam": [ { "at": "w:1", "dur": 1.2, "r": [0.33, 0.6, 0.5, 0.34] } ],
+      "ring": [ { "at": "w:6", "r": [0.357, 0.7, 0.3, 0.09] } ]
+     }
+    ]
+   },
+   "sayPro": "A payment is one sentence: Ganesh paid four hundred by U P I."
+  },
+  {
+   "chapter": "ONE SENTENCE, ONE YES",
+   "ground": "cream",
+   "cap": "One yes, and the bill is *settled.* Nothing changes until somebody confirms.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "pay-done",
+      "label": "TAKING A PAYMENT",
+      "cam": [ { "at": 0, "dur": 0.01, "r": [0.33, 0.6, 0.5, 0.34] } ],
+      "ring": [ { "at": "w:6", "r": [0.357, 0.8, 0.34, 0.036] } ]
+     }
+    ]
+   },
+   "sayPro": "One yes, and the bill is settled. Nothing changes until somebody confirms."
+  },
+  {
+   "chapter": "EVERYONE'S OWN LIMITS",
+   "ground": "cream",
+   "cap": "Every login can do only what that person is *allowed* to. The pharmacist cannot take payments.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "limits-refused",
+      "label": "SIGNED IN AS THE PHARMACIST",
+      "cam": [ { "at": "w:10", "dur": 1.2, "r": [0.33, 0.58, 0.5, 0.36] } ],
+      "ring": [
+       { "at": "w:1", "r": [0.012, 0.893, 0.1, 0.05] },
+       { "at": "w:13", "r": [0.357, 0.775, 0.45, 0.06] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Every login can do only what that person is allowed to. The pharmacist cannot take payments."
+  },
+  {
+   "chapter": "IN THE CONSULTING ROOM",
+   "ground": "cream",
+   "cap": "In the consulting room it listens to the visit: Hindi and English, *together.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "consult-listening",
+      "label": "LISTENING TO A VISIT",
+      "cam": [ { "at": "w:2", "dur": 1.2, "r": [0.15, 0.28, 0.62, 0.6] } ],
+      "ring": [ { "at": "w:9", "r": [0.195, 0.795, 0.485, 0.05] } ]
+     }
+    ]
+   },
+   "sayPro": "[softly] In the consulting room it listens to the visit: Hindi and English, together."
+  },
+  {
+   "chapter": "IN THE CONSULTING ROOM",
+   "ground": "cream",
+   "cap": "Then it drafts the note: the *complaint,* the history and the diagnosis.",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "consult-draft",
+      "label": "THE DRAFT",
+      "cam": [ { "at": 0, "dur": 0.01, "r": [0.15, 0.28, 0.62, 0.6] } ],
+      "ring": [
+       { "at": "w:6", "r": [0.195, 0.405, 0.485, 0.075] },
+       { "at": "w:11", "r": [0.195, 0.7, 0.485, 0.065] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Then it drafts the note: the complaint, the history and the diagnosis."
+  },
+  {
+   "chapter": "IN THE CONSULTING ROOM",
+   "ground": "cream",
+   "cap": "The medicines, the tests and the follow-up. Saved only when the doctor *confirms.*",
+   "visual": {
+    "type": "cards",
+    "continue": true,
+    "cards": [
+     {
+      "shot": "consult-draft-end",
+      "label": "THE DRAFT",
+      "cam": [
+       { "at": 0, "dur": 0.01, "r": [0.15, 0.28, 0.62, 0.6] },
+       { "at": 0.05, "dur": 1.0, "r": [0.15, 0.08, 0.62, 0.6] }
+      ],
+      "ring": [
+       { "at": "w:1", "r": [0.195, 0.13, 0.42, 0.115] },
+       { "at": "w:3", "r": [0.195, 0.41, 0.2, 0.05] },
+       { "at": "w:6", "r": [0.195, 0.485, 0.14, 0.05] },
+       { "at": "w:12", "r": [0.195, 0.585, 0.115, 0.052] }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[reassuring] The medicines, the tests and the follow-up. Saved only when the doctor confirms."
+  },
+  {
+   "chapter": "NAYAVERSSE",
+   "ground": "cream",
+   "min": 6,
+   "cap": "",
+   "say": "Nayaversse. The clinic's assistant, in trial now. Book a demo at nayaversse dot in.",
+   "visual": { "type": "end", "center": true },
+   "sayPro": "[warmly] नयावर्स. The clinic's assistant, in trial now. [friendly] Book a demo at नयावर्स dot in."
+  }
+ ],
+ "tts": "elevenlabs",
+ "elevenVoice": "OtEfb2LVzIE45wdYe54M",
+ "elevenModel": "eleven_v3",
+ "elevenStability": 0.5
+}

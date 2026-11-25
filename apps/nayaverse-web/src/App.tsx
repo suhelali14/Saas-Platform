@@ -14,6 +14,9 @@ import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, type Locale, type Page } from '@/content/index';
 import { Rail } from '@/sections/Rail';
 import { Hero } from '@/sections/Hero';
+import { Lineup } from '@/sections/Lineup';
+import { AssistantFilms, ClinicFilm } from '@/sections/Films';
+import { ClinicGets, ClinicTop, GrowthPage, VisionTop } from '@/sections/ProductPages';
 import { ServiceChart } from '@/sections/ServiceChart';
 import { DayCharts } from '@/sections/DayCharts';
 import { Manifest } from '@/sections/Manifest';
@@ -77,19 +80,56 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 -- and it is the one block that must be readable the instant
                 the prerendered HTML lands. */}
             <Hero onEnquire={onEnquire} />
-            <Reveal defer><ServiceChart /></Reveal>
-            <Reveal defer><DayCharts /></Reveal>
+            {/* What can be bought, before anything else: the live product,
+                the built one, and a pointer to what is only planned. The
+                chart of twenty-three trades this page used to open on is
+                the Vision page now. */}
+            <Reveal defer><Lineup /></Reveal>
+            <Reveal defer><ClinicFilm /></Reveal>
+            <Reveal defer><AssistantFilms /></Reveal>
+            <Reveal defer><DayCharts clinicOnly /></Reveal>
             {/* Straight after the live clinic chart: the reader who just
                 watched the queue re-rank is the one asking which class is
                 theirs and what a hospital gets. */}
             <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><About /></Reveal>
+            <Reveal defer><Conditions /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {page === 'clinic' && (
+          <>
+            <ClinicTop onEnquire={onEnquire} />
+            <Reveal defer><ClinicFilm /></Reveal>
+            <Reveal defer><ClinicGets onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><DayCharts clinicOnly /></Reveal>
+            <Reveal defer><AssistantFilms /></Reveal>
+            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {page === 'growth' && (
+          <>
+            <GrowthPage onEnquire={onEnquire} />
+            <Reveal defer><Enquiry /></Reveal>
+          </>
+        )}
+
+        {/* Everything planned after the two products, with the status each
+            part really has. The build counts this page's status cells
+            (scripts/prerender.mjs): it must never show more than one Live. */}
+        {page === 'vision' && (
+          <>
+            <VisionTop />
+            <Reveal defer><ServiceChart /></Reveal>
+            <Reveal defer><DayCharts /></Reveal>
             <Reveal defer><Route /></Reveal>
             <Reveal defer><Manifest /></Reveal>
             <Reveal defer><Growth /></Reveal>
             <Reveal defer><Services /></Reveal>
             <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><About /></Reveal>
-            <Reveal defer><Conditions /></Reveal>
             <Reveal defer><Enquiry /></Reveal>
           </>
         )}
@@ -106,8 +146,10 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
                 </p>
               </Board>
             </section>
-            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
+            {/* The live product's terms first; the fare chart under it is
+                for the general platform on the Vision page. */}
             <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
+            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
             <Reveal defer><Services /></Reveal>
             <Reveal defer><About /></Reveal>
             <Reveal defer><Conditions /></Reveal>
