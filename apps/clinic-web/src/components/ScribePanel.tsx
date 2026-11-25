@@ -430,7 +430,7 @@ export function ScribePanel({ appointmentId, patientName, onSaved }: { appointme
           {/* There are two microphones on this screen and they do
               different jobs. Said here, where the choice is made. */}
           <p className="text-[12.5px] text-muted-foreground">
-            This one listens to the whole conversation and writes the note. The microphone in the bar at the bottom is for one quick instruction, such as “order a CBC” or “BP 130 by 80”.
+            This one listens to the whole conversation and writes the note. The microphone in the bar at the bottom is for telling the assistant what to do, such as “order a CBC” or “BP 130 by 80”.
           </p>
         </div>
       )}

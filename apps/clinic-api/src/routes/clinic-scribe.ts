@@ -415,45 +415,80 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
       });
       if (claimed.count !== 1) throw Object.assign(new Error("This note has already been saved."), { statusCode: 409 });
 
-      const caseSheet = hasCaseSheet
-        ? await tx.caseSheet.create({
-            data: {
-              patientId: session.patientId,
-              appointmentId: session.appointmentId,
-              doctorId: auth.clinicUserId,
-              chiefComplaint: note.chiefComplaint || undefined,
-              hopi: note.hopi || undefined,
-              vitals: note.vitals,
-              diagnosis: note.diagnosis || undefined,
-              notes: note.notes || undefined,
-              followUpDate: note.followUpDate ? new Date(note.followUpDate) : undefined,
-              remindDoctor: note.followUpDate ? (note.remindDoctor ?? false) : false,
-            },
-          })
-        : null;
+      // ── One visit, one note ──────────────────────────────────────────
+      // A doctor may listen, stop, save, and then listen again on the
+      // same visit: the patient remembered something, or a relative came
+      // in. The second note is more of the same consultation, so it is
+      // added to what the visit already holds. Written as a second case
+      // sheet, a second prescription and a second lab order, the
+      // patient's file showed every medicine and every test twice.
+      const earlier = await tx.caseSheet.findFirst({
+        where: { appointmentId: session.appointmentId, doctorId: auth.clinicUserId },
+        orderBy: { createdAt: "desc" },
+      });
+      // What was said this time replaces what was written before; what
+      // was not said again is left as it was.
+      const sheetData = {
+        chiefComplaint: note.chiefComplaint || undefined,
+        hopi: note.hopi || undefined,
+        diagnosis: note.diagnosis || undefined,
+        notes: note.notes || undefined,
+        followUpDate: note.followUpDate ? new Date(note.followUpDate) : undefined,
+        ...(note.followUpDate ? { remindDoctor: note.remindDoctor ?? false } : {}),
+      };
+      const saidVitals = Object.fromEntries(Object.entries(note.vitals ?? {}).filter(([, v]) => v));
+      const caseSheet = !hasCaseSheet
+        ? null
+        : earlier
+          ? await tx.caseSheet.update({
+              where: { id: earlier.id },
+              data: { ...sheetData, ...(Object.keys(saidVitals).length > 0 ? { vitals: { ...((earlier.vitals ?? {}) as Record<string, string>), ...saidVitals } } : {}) },
+            })
+          : await tx.caseSheet.create({
+              data: { patientId: session.patientId, appointmentId: session.appointmentId, doctorId: auth.clinicUserId, vitals: note.vitals, remindDoctor: false, ...sheetData },
+            });
 
-      const prescription = note.medicines.length > 0
+      // A medicine already written on this visit, the same in every
+      // particular, is not written again. One whose dose or duration was
+      // changed is a new line: both are shown, and the doctor sees it.
+      const same = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+      const given = await tx.prescriptionItem.findMany({
+        where: { prescription: { appointmentId: session.appointmentId } },
+        select: { drugName: true, dosage: true, frequency: true, duration: true },
+      });
+      const alreadyGiven = new Set(given.map((g) => [same(g.drugName), same(g.dosage), g.frequency, same(g.duration)].join("|")));
+      const newMedicines = note.medicines.filter((m) => !alreadyGiven.has([same(m.drugName), same(m.dosage), m.frequency, same(m.duration)].join("|")));
+
+      const prescription = newMedicines.length > 0
         ? await tx.prescription.create({
             data: {
               patientId: session.patientId,
               appointmentId: session.appointmentId,
-              caseSheetId: caseSheet?.id,
+              caseSheetId: caseSheet?.id ?? earlier?.id,
               doctorId: auth.clinicUserId,
-              items: { create: note.medicines.map((m) => ({ ...m, instructions: m.instructions || undefined })) },
+              items: { create: newMedicines.map((m) => ({ ...m, instructions: m.instructions || undefined })) },
             },
           })
         : null;
 
-      const labOrder = labsOn && note.labTests.length > 0
+      // The same for tests: one already ordered on this visit is not
+      // ordered a second time.
+      const ordered = labsOn && note.labTests.length > 0
+        ? await tx.labOrderItem.findMany({ where: { labOrder: { appointmentId: session.appointmentId } }, select: { testName: true } })
+        : [];
+      const alreadyOrdered = new Set(ordered.map((o) => same(o.testName)));
+      const newTests = [...new Set(note.labTests.filter((name) => !alreadyOrdered.has(same(name))))];
+      const labOrder = labsOn && newTests.length > 0
         ? await tx.labOrder.create({
             data: {
               patientId: session.patientId,
               appointmentId: session.appointmentId,
               doctorId: auth.clinicUserId,
-              items: { create: note.labTests.map((testName) => ({ testName })) },
+              items: { create: newTests.map((testName) => ({ testName })) },
             },
           })
         : null;
+      const repeated = { medicines: note.medicines.length - newMedicines.length, tests: labsOn ? note.labTests.length - newTests.length : 0, noteUpdated: Boolean(caseSheet && earlier) };
 
       // Vitals said in the room belong on the visit too, where the queue
       // and the trend chart read them. Merged, so reception's earlier
@@ -472,7 +507,7 @@ export async function clinicScribeRoutes(app: FastifyInstance) {
         await tx.appointment.updateMany({ where: { id: session.appointmentId, completedAt: null }, data: { completedAt: new Date() } });
       }
 
-      return { caseSheetId: caseSheet?.id ?? null, prescriptionId: prescription?.id ?? null, labOrderId: labOrder?.id ?? null };
+      return { caseSheetId: caseSheet?.id ?? null, prescriptionId: prescription?.id ?? null, labOrderId: labOrder?.id ?? null, repeated };
     });
 
     return reply.status(201).send({ ...result, labTestsSkipped: !labsOn && note.labTests.length > 0 });

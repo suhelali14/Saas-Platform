@@ -482,7 +482,7 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       return false;
     }
     try {
-      const res = await apiFetch<{ labTestsSkipped: boolean }>(`/scribe/sessions/${id}/confirm`, {
+      const res = await apiFetch<{ labTestsSkipped: boolean; repeated?: { medicines: number; tests: number; noteUpdated: boolean } }>(`/scribe/sessions/${id}/confirm`, {
         method: 'POST',
         data: {
           chiefComplaint: note.chiefComplaint || undefined,
@@ -500,6 +500,14 @@ export function ScribeProvider({ children }: { children: ReactNode }) {
       });
       reset();
       if (res.labTestsSkipped) setError('The note was saved. The tests were not ordered, because lab orders are not part of this clinic’s plan.');
+      // This visit already had a note: it was added to, not doubled.
+      else if (res.repeated && (res.repeated.noteUpdated || res.repeated.medicines > 0 || res.repeated.tests > 0)) {
+        const kept = [
+          res.repeated.medicines > 0 && `${res.repeated.medicines} medicine${res.repeated.medicines === 1 ? '' : 's'}`,
+          res.repeated.tests > 0 && `${res.repeated.tests} test${res.repeated.tests === 1 ? '' : 's'}`,
+        ].filter(Boolean).join(' and ');
+        setError(`Saved. This visit already had a note, so it was updated${kept ? `; ${kept} already on this visit ${res.repeated.medicines + res.repeated.tests === 1 ? 'was' : 'were'} not written twice` : ''}.`);
+      }
       return true;
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'The note could not be saved.');

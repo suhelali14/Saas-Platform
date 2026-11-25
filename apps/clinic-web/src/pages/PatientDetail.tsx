@@ -506,12 +506,20 @@ function DayCard({ day }: { day: Day }) {
             </div>
           ))}
 
-          {day.records.map((r) => (
-            <p key={r.id}>
-              <span className="font-medium">{r.title}</span>
-              {r.summary && <span className="text-muted-foreground"> · {r.summary}</span>}
-            </p>
-          ))}
+          {/* One line for each form, the fullest of its saves. A form saved
+              several times in a day was once listed several times, and a
+              doctor could not tell which line was the day's reading. */}
+          {[...new Set(day.records.map((r) => r.formKey))].map((key) => {
+            const saves = day.records.filter((r) => r.formKey === key);
+            const latest = saves.reduce((a, b) => (b.summary.length >= a.summary.length ? b : a), saves[saves.length - 1]!);
+            return (
+              <p key={key}>
+                <span className="font-medium">{latest.title}</span>
+                {latest.summary && <span className="text-muted-foreground"> · {latest.summary}</span>}
+                {saves.length > 1 && <span className="text-[12.5px] text-muted-foreground"> (saved {saves.length} times that day)</span>}
+              </p>
+            );
+          })}
 
           {day.prescriptions.map((p) => (
             <div key={p.id} className="rounded-lg bg-accent/45 px-3 py-2.5">

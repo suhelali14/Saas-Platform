@@ -30,13 +30,15 @@ import { Button } from './Button';
  *
  * ── The microphone ───────────────────────────────────────────────────
  *
- * Tapped once, it listens, and stops by itself when the person stops
- * speaking. Held down, it listens for as long as it is held. Either way
- * it hears one request and then lets go.
+ * Tapped, it stays on the line like a phone call until it is tapped
+ * again. Each thing said is sent at the pause after it, so one
+ * instruction is being carried out while the next is being spoken. Held
+ * down, it hears one instruction and lets go with the finger.
  *
- * It is never left open. An assistant that listens all day for its name
- * sends audio to a speech service all day, and a clinic would pay for
- * hours of silence and waiting-room chatter.
+ * It does not listen all day. Silence is never sent, a call nobody
+ * speaks on hangs up after 25 seconds, and none runs past five minutes:
+ * an assistant that waited all day for its name would send a speech
+ * service hours of waiting-room chatter, and the clinic would pay for it.
  */
 
 interface Line { label?: string; text: string; to?: string; tone?: 'danger' | 'warning' | 'muted' }
@@ -106,12 +108,14 @@ function pickMimeType(): string {
 const ON_A_PATIENT = ['Summary', 'Last prescription', 'Lab reports', 'BP trend', 'Past visits'];
 const ANYWHERE = ['Who is next', 'Call the next patient', 'What needs attention', 'Follow-ups due', "Today's collection"];
 
-/** A request is one sentence. Past this the microphone lets go by itself. */
-const MAX_LISTEN_MS = 20_000;
+/** One instruction is cut off here even if the speaker never paused. */
+const MAX_PIECE_MS = 18_000;
+/** Nothing said for this long, and the call hangs itself up. */
+const HANG_UP_AFTER_MS = 25_000;
+/** However busy the doctor, a call to the assistant ends here. */
+const MAX_CALL_MS = 5 * 60_000;
 /** This long without a word, after some were said, and the request is over. */
 const QUIET_ENDS_MS = 1_300;
-/** This long with nothing said at all, and nobody is asking. */
-const NOTHING_SAID_MS = 7_000;
 /** Down for longer than this is a hold; shorter is a tap. */
 const HOLD_MS = 500;
 /** How long "Opening the queue." stays up after the screen has changed. */
@@ -127,6 +131,8 @@ export function AssistantBar() {
   const [asked, setAsked] = useState<Asked | null>(null);
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  /** Pieces of speech sent and not yet answered. */
+  const [working, setWorking] = useState(0);
   /** How loud the room is, 0 to 1, so the button shows it is hearing. */
   const [level, setLevel] = useState(0);
   const [canHear, setCanHear] = useState(false);
@@ -162,10 +168,9 @@ export function AssistantBar() {
   // Leaving the portal, or the bar being taken down, lets go of the
   // microphone whatever state it was in.
   useEffect(() => () => {
-    wanted.current = false;
     cancelled.current = true;
+    wanted.current = false;
     cleanup.current?.();
-    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
   }, []);
 
   const enabled = hasModule('scribe');
@@ -221,7 +226,7 @@ export function AssistantBar() {
   };
 
   /** What came back, put on screen and acted on. */
-  const show = async (result: FromServer, request: string | undefined) => {
+  const show = async (result: FromServer, request: string | undefined, onCall = false) => {
     if ('decided' in result) {
       // A yes or a no, to the card that was waiting when it was said.
       const waiting = waitingCard(askedRef.current);
@@ -230,7 +235,19 @@ export function AssistantBar() {
       else setAsked(null);
       return;
     }
-    setAsked({ ...result, request });
+    // On a call, one instruction follows another. A card still waiting
+    // for its yes is not swept away by the next thing said: the new
+    // answer goes under it.
+    const before = askedRef.current;
+    if (onCall && before && waitingCard(before)) {
+      const next: Asked = { ...before, heard: result.heard ?? before.heard, more: [...(before.more ?? []), result.reply, ...(result.more ?? [])] };
+      askedRef.current = next;
+      setAsked(next);
+    } else {
+      const next: Asked = { ...result, request };
+      askedRef.current = next;
+      setAsked(next);
+    }
     if (result.reply.kind === 'go') navigate(result.reply.to);
   };
 
@@ -253,96 +270,61 @@ export function AssistantBar() {
     }
   };
 
-  // ── The microphone ───────────────────────────────────────────────────
+  // ── The microphone: on call until hung up ────────────────────────────
+  //
+  // Tapped, it stays listening the way somebody on a phone call does,
+  // until it is tapped again. Each thing said is cut off at the pause
+  // after it and sent on its own, so the first instruction is being
+  // carried out while the second is still being spoken. Nothing is sent
+  // while nobody is talking, and a call nobody is speaking on hangs
+  // itself up.
   const stopListening = (cancel = false) => {
     wanted.current = false;
     if (cancel) cancelled.current = true;
     cleanup.current?.();
     cleanup.current = null;
-    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
   };
 
   const startListening = async () => {
-    if (listening || busy || wanted.current) return;
+    if (listening || wanted.current) return;
     wanted.current = true;
     cancelled.current = false;
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
-      // Asked to stop while the microphone was still opening.
-      if (!wanted.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      const mimeType = pickMimeType();
-      const rec = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32_000 } : undefined);
-      const parts: Blob[] = [];
-      let spoke = false;
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+    } catch {
+      wanted.current = false;
+      setAsked({ reply: { kind: 'sorry', say: 'This browser was not allowed to use the microphone. Allow it in the address bar, or type what you need.' } });
+      return;
+    }
+    // Asked to stop while the microphone was still opening.
+    if (!wanted.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
 
-      // ── Hearing when they have finished ──────────────────────────────
-      // The loudness of the room, a few times a second. The first moments
-      // set what quiet is in this room; clearly above that is speech; and
-      // quiet again for a little over a second, after speech, is the end
-      // of the request.
-      const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      const audio = AudioCtx ? new AudioCtx() : null;
-      const analyser = audio?.createAnalyser() ?? null;
-      if (audio && analyser) {
-        analyser.fftSize = 1024;
-        audio.createMediaStreamSource(stream).connect(analyser);
-      }
-      const samples = new Float32Array(analyser?.fftSize ?? 0);
-      const startedAt = Date.now();
-      let quiet = 0.01;
-      let loudFrames = 0;
-      let lastSpeechAt = 0;
-      const meter = setInterval(() => {
-        if (!analyser) return;
-        analyser.getFloatTimeDomainData(samples);
-        let sum = 0;
-        for (const s of samples) sum += s * s;
-        const loudness = Math.sqrt(sum / samples.length);
-        const now = Date.now();
-        // Capped: somebody who starts talking the instant they tap must
-        // not have their own voice taken for the room's quiet.
-        if (now - startedAt < 300) quiet = Math.min(0.02, Math.max(quiet, loudness * 1.2));
-        const threshold = Math.max(0.02, quiet * 2.5);
-        setLevel(Math.min(1, loudness / 0.15));
-        if (loudness > threshold) {
-          loudFrames += 1;
-          if (loudFrames >= 2) { spoke = true; lastSpeechAt = now; }
-        } else {
-          loudFrames = 0;
-          // A hold ends when the finger lifts, not at a pause for breath.
-          const held = startedByThisPress.current && downAt.current > 0;
-          if (spoke && !held && now - lastSpeechAt > QUIET_ENDS_MS) stopListening();
-          else if (!spoke && !held && now - startedAt > NOTHING_SAID_MS) stopListening();
-        }
-      }, 60);
-      let ranOn = false;
-      const limit = setTimeout(() => { ranOn = true; stopListening(); }, MAX_LISTEN_MS);
-      cleanup.current = () => {
-        clearInterval(meter);
-        clearTimeout(limit);
-        setLevel(0);
-        void audio?.close().catch(() => undefined);
-      };
+    const mimeType = pickMimeType();
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const audio = AudioCtx ? new AudioCtx() : null;
+    const analyser = audio?.createAnalyser() ?? null;
+    if (audio && analyser) {
+      analyser.fftSize = 1024;
+      audio.createMediaStreamSource(stream).connect(analyser);
+    }
+    const samples = new Float32Array(analyser?.fftSize ?? 0);
+    const callStartedAt = Date.now();
+    let quiet = 0.01;
+    let loudFrames = 0;
+    let lastSpeechAt = callStartedAt;
+    let over = false;
 
-      rec.ondataavailable = (e) => { if (e.data.size > 0) parts.push(e.data); };
-      rec.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        cleanup.current?.();
-        cleanup.current = null;
-        wanted.current = false;
-        setListening(false);
-        if (cancelled.current || parts.length === 0) return;
-        // Where loudness could not be measured, anything recorded counts.
-        if (analyser && !spoke) {
-          setAsked({ reply: { kind: 'sorry', say: 'I did not hear anything. Tap the microphone and say what you need.' } });
-          return;
-        }
-        const blob = new Blob(parts, { type: rec.mimeType });
-        const extension = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
-        setBusy(true);
+    // What was said goes out one piece at a time and in the order it was
+    // said: "open Vikram More" must have opened him before "record his
+    // pulse" is read.
+    let sending: Promise<void> = Promise.resolve();
+    const send = (blob: Blob) => {
+      setWorking((n) => n + 1);
+      sending = sending.then(async () => {
         try {
           const here = window.location.pathname;
           const context = onScreen(here);
@@ -352,27 +334,96 @@ export function AssistantBar() {
           if (waitingCard(askedRef.current)) fields.card = '1';
           const pending = pendingFrom(askedRef.current);
           if (pending) { fields.pendingRequest = pending.request; fields.pendingQuestion = pending.question; }
+          const extension = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
           const result = await apiUpload<FromServer>('/assistant/voice', new File([blob], `ask-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' }), fields);
-          setBusy(false);
-          await show(result, result.heard);
-          // Twenty seconds of talk is a conversation, not an instruction:
-          // they were probably expecting the consultation to be written.
-          if (ranOn && context.appointmentId) {
-            setAsked((current) => current && { ...current, more: [...(current.more ?? []), { kind: 'sorry', say: 'That was a lot for one instruction, and I only heard the first 20 seconds. To have a whole consultation written, use “Listen to the consultation” on this screen.' }] });
-          }
+          // A cough, a door, the patient's own remark: nothing to act on,
+          // and nothing to interrupt the doctor with either.
+          if (!('decided' in result) && result.heard !== undefined && result.heard.trim().length < 2) return;
+          await show(result, result.heard, true);
         } catch (e) {
           fail(e);
         } finally {
-          setBusy(false);
+          setWorking((n) => Math.max(0, n - 1));
         }
-      };
-      rec.start();
-      recorder.current = rec;
-      setListening(true);
-    } catch {
+      });
+    };
+
+    // One piece: from the first word of an instruction to the pause after it.
+    let rec: MediaRecorder | null = null;
+    let parts: Blob[] = [];
+    let spoke = false;
+    let pieceStartedAt = 0;
+    const beginPiece = () => {
+      parts = [];
+      spoke = false;
+      pieceStartedAt = Date.now();
+      const mine: Blob[] = parts;
+      const r = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32_000 } : undefined);
+      r.ondataavailable = (e) => { if (e.data.size > 0) mine.push(e.data); };
+      r.start();
+      rec = r;
+      recorder.current = r;
+    };
+    const endPiece = (keep: boolean) => {
+      const r = rec;
+      if (!r || r.state === 'inactive') return;
+      const mine = parts;
+      const had = spoke || !analyser;
+      r.onstop = () => { if (keep && had && !cancelled.current && mine.length > 0) send(new Blob(mine, { type: r.mimeType })); };
+      r.stop();
+      rec = null;
+    };
+
+    const hangUp = () => {
+      if (over) return;
+      over = true;
+      clearInterval(meter);
+      clearTimeout(limit);
+      endPiece(true);
+      stream.getTracks().forEach((track) => track.stop());
+      void audio?.close().catch(() => undefined);
       wanted.current = false;
-      setAsked({ reply: { kind: 'sorry', say: 'This browser was not allowed to use the microphone. Allow it in the address bar, or type what you need.' } });
-    }
+      cleanup.current = null;
+      setLevel(0);
+      setListening(false);
+    };
+
+    const meter = setInterval(() => {
+      const now = Date.now();
+      let loudness = 0;
+      if (analyser) {
+        analyser.getFloatTimeDomainData(samples);
+        let sum = 0;
+        for (const s of samples) sum += s * s;
+        loudness = Math.sqrt(sum / samples.length);
+        // Capped: somebody who starts talking the instant they tap must
+        // not have their own voice taken for the room's quiet.
+        if (now - callStartedAt < 300) quiet = Math.min(0.02, Math.max(quiet, loudness * 1.2));
+        setLevel(Math.min(1, loudness / 0.15));
+      }
+      const held = startedByThisPress.current && downAt.current > 0;
+      if (analyser && loudness > Math.max(0.02, quiet * 2.5)) {
+        loudFrames += 1;
+        if (loudFrames >= 2) { spoke = true; lastSpeechAt = now; }
+        // Somebody who does not pause is still cut, mid-breath if need be,
+        // so that what they said first is not kept waiting on the rest.
+        if (now - pieceStartedAt > MAX_PIECE_MS) { endPiece(true); beginPiece(); }
+        return;
+      }
+      loudFrames = 0;
+      // Held down, it is one instruction, ended by the finger lifting.
+      if (held) return;
+      if (spoke && now - lastSpeechAt > QUIET_ENDS_MS) { endPiece(true); beginPiece(); return; }
+      // A piece with nothing in it is thrown away before it grows.
+      if (!spoke && now - pieceStartedAt > 6_000) { endPiece(false); beginPiece(); }
+      // Nobody has spoken for a while: the call is over.
+      if (now - lastSpeechAt > HANG_UP_AFTER_MS) hangUp();
+    }, 60);
+    const limit = setTimeout(hangUp, MAX_CALL_MS);
+    cleanup.current = hangUp;
+
+    beginPiece();
+    setListening(true);
   };
 
   // A consultation is using the microphone to write a note. A request
@@ -385,7 +436,7 @@ export function AssistantBar() {
   const tone = (line: Line) => (line.tone === 'danger' ? 'text-ink-danger font-semibold' : line.tone === 'warning' ? 'text-ink-warning' : line.tone === 'muted' ? 'text-muted-foreground' : '');
   const micLabel = recordingVisit
     ? 'The microphone is writing a visit note. Type your request.'
-    : listening ? 'Listening. Tap to send now.' : onVisit ? 'Tap and give one instruction' : 'Tap and say what you need';
+    : listening ? 'Listening. Tap to stop.' : 'Tap, say what you need, and tap again when you are done';
 
   return (
     <div
@@ -490,7 +541,7 @@ export function AssistantBar() {
           {canHear && (
             <button
               type="button"
-              disabled={recordingVisit || busy}
+              disabled={recordingVisit || (busy && !listening)}
               onPointerDown={(e) => {
                 e.preventDefault();
                 // The finger may slide off the button while it is held;
@@ -504,8 +555,8 @@ export function AssistantBar() {
               onPointerUp={() => {
                 const heldFor = Date.now() - downAt.current;
                 downAt.current = 0;
-                // A second tap, or the end of a hold, sends what was said.
-                // The first tap just starts it: it stops when they do.
+                // A second tap hangs up; so does letting go after holding.
+                // The first tap only starts the call.
                 if (!startedByThisPress.current || heldFor >= HOLD_MS) stopListening();
                 startedByThisPress.current = false;
               }}
@@ -535,7 +586,7 @@ export function AssistantBar() {
             onBlur={() => setFocused(false)}
             disabled={busy || listening}
             autoComplete="off"
-            placeholder={listening ? 'Listening for one instruction… I will stop when you do' : busy ? 'Working on it…' : canHear && !recordingVisit ? (onVisit ? 'One instruction: “order a CBC”, “BP 130 by 80”' : 'Ask, or tap the mic and say it') : 'Ask for anything'}
+            placeholder={listening ? (working > 0 ? 'Doing that… keep going, I am listening' : 'Listening… say each thing, then tap ■ when you are done') : busy || working > 0 ? 'Working on it…' : canHear && !recordingVisit ? (onVisit ? 'Tell me what to do: “order a CBC”, “BP 130 by 80”' : 'Ask, or tap the mic and say it') : 'Ask for anything'}
             className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[15px] outline-none placeholder:text-muted-foreground/70"
           />
           <button type="submit" disabled={busy || listening || (!text.trim() && !waiting)} aria-label={!text.trim() && waiting ? 'Confirm' : 'Ask'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">
