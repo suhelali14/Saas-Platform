@@ -216,24 +216,34 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
     // from /invoices, and the patient's page must not be a way round that.
     const canSeeBills = BILLING_ROLES.has(auth.role);
 
+    // ?from=2026-01-01&to=2026-06-30 narrows every list to those days.
+    // Local days, both ends included. Left out, the whole history.
+    const range = z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).safeParse(request.query);
+    if (!range.success) return reply.status(400).send({ error: "Give dates as YYYY-MM-DD." });
+    const edge = (iso: string, end: boolean) => { const [y, m, d] = iso.split("-").map(Number) as [number, number, number]; return end ? new Date(y, m - 1, d, 23, 59, 59, 999) : new Date(y, m - 1, d); };
+    const between = range.data.from || range.data.to
+      ? { ...(range.data.from ? { gte: edge(range.data.from, false) } : {}), ...(range.data.to ? { lte: edge(range.data.to, true) } : {}) }
+      : undefined;
+    const created = between ? { createdAt: between } : {};
+
     const [caseSheets, prescriptions, certificates, appointments, labOrders, invoices] = await Promise.all([
       prisma.caseSheet.findMany({
-        where: { patientId: id },
+        where: { patientId: id, ...created },
         include: { doctor: { select: { name: true } }, attachments: true },
         orderBy: { createdAt: "desc" },
       }),
       prisma.prescription.findMany({
-        where: { patientId: id },
+        where: { patientId: id, ...created },
         include: { items: true, doctor: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.certificate.findMany({
-        where: { patientId: id },
+        where: { patientId: id, ...created },
         include: { doctor: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.appointment.findMany({
-        where: { patientId: id },
+        where: { patientId: id, ...(between ? { scheduledAt: between } : {}) },
         include: { doctor: { select: { name: true } } },
         orderBy: { scheduledAt: "desc" },
       }),
@@ -241,13 +251,13 @@ export async function clinicPatientRoutes(app: FastifyInstance) {
       // day: what was found, what was prescribed, what was tested and
       // what was paid, without opening four screens.
       prisma.labOrder.findMany({
-        where: { patientId: id },
+        where: { patientId: id, ...created },
         include: { items: { select: { id: true, testName: true, resultText: true, resultFileName: true, completedAt: true } }, doctor: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),
       canSeeBills
         ? prisma.invoice.findMany({
-            where: { patientId: id },
+            where: { patientId: id, ...created },
             include: { items: { select: { amount: true, quantity: true } }, payments: { select: { amount: true } } },
             orderBy: { createdAt: "desc" },
           })

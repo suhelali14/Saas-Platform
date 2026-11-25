@@ -63,6 +63,8 @@ function yesOrNo(text: string): "yes" | "no" | null {
   return YES.test(said) ? "yes" : NO.test(said) ? "no" : null;
 }
 
+const perPerson = (request: FastifyRequest) => (typeof request.headers.authorization === "string" && request.headers.authorization.length > 20 ? request.headers.authorization.slice(-48) : request.ip);
+
 export async function clinicAssistantRoutes(app: FastifyInstance) {
   function record(request: FastifyRequest, answered: Answered) {
     // What it cost and what did the work, per request, in the log the
@@ -85,7 +87,7 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
 
   // Sixty a minute is a person talking to it without pause. Past that it
   // is a loop, and each one may be a paid model call.
-  app.post("/api/clinic/assistant/ask", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (request, reply) => {
+  app.post("/api/clinic/assistant/ask", { config: { rateLimit: { max: 60, timeWindow: "1 minute", keyGenerator: perPerson } } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
     const parsed = askSchema.safeParse(request.body);
@@ -97,11 +99,11 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     const context = await contextFor(app, request, parsed.data);
     const answered = await ask(parsed.data.text, context, parsed.data.pending);
     record(request, answered);
-    return { reply: sealed(answered.reply, context), by: answered.by };
+    return { reply: sealed(answered.reply, context), by: answered.by, action: answered.action };
   });
 
   /** The same, spoken. The audio is transcribed and gone; it is not kept. */
-  app.post("/api/clinic/assistant/voice", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (request, reply) => {
+  app.post("/api/clinic/assistant/voice", { config: { rateLimit: { max: 30, timeWindow: "1 minute", keyGenerator: perPerson } } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
     const file = await request.file();
@@ -138,11 +140,11 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       pendingRequest && pendingQuestion ? { request: pendingRequest.slice(0, 600), question: pendingQuestion.slice(0, 600) } : undefined,
     );
     record(request, answered);
-    return { reply: sealed(answered.reply, context), by: answered.by, heard };
+    return { reply: sealed(answered.reply, context), by: answered.by, action: answered.action, heard };
   });
 
   /** A change the person pressed Confirm on. */
-  app.post("/api/clinic/assistant/run", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (request, reply) => {
+  app.post("/api/clinic/assistant/run", { config: { rateLimit: { max: 60, timeWindow: "1 minute", keyGenerator: perPerson } } }, async (request, reply) => {
     const auth = requireClinicAuth(request, reply);
     if (!auth) return;
     const parsed = runSchema.safeParse(request.body);

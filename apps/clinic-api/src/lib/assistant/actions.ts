@@ -29,6 +29,7 @@ import { clinicHost, doctorHabits } from "../scribe/clinic-host.js";
 import { checkDraft } from "../scribe/checks.js";
 import { SCREENS } from "./router.js";
 import { nameFit } from "./names.js";
+import { MORE_ACTIONS } from "./actions-more.js";
 import { sorry, strictObject, type Action, type ActionContext, type Asker, type Line, type Reply } from "./registry.js";
 import { estimatedRupees, usage as meterUsage } from "./meter.js";
 
@@ -258,7 +259,7 @@ const findPatient: Action = {
  */
 const openNextPatient: Action = {
   name: "open_next_patient",
-  summary: "Opens the visit of the next patient waiting in today's queue. Use it for 'next patient', 'call the next one', 'agla patient bulao', 'pudhcha patient'.",
+  summary: "Opens the visit of the next patient waiting in today's queue. Only when they tell you to call, send in or open the next one: 'call the next one', 'agla patient bulao', 'pudhcha patient bolva'. A question about who is next or how many are waiting is not this; answer it with the queue summary.",
   kind: "go",
   schema: NONE,
   jsonSchema: NO_PARAMS,
@@ -699,7 +700,7 @@ const SCREEN_MODULE: Record<string, Feature> = {
 
 const openScreen: Action = {
   name: "open_screen",
-  summary: "Opens one of the app's screens: queue, overview, patients, requests, reminders, labs, pharmacy, billing, expenses, analytics (reports), counter, claims, ipd (bed board), nursing, ot, radiology, departments, website, staff, settings, audit.",
+  summary: "Opens one of the app's screens. Use it when they ask for a screen, and ALSO when they want to do something that has no tool of its own but is done on a screen: staff (add, remove or change a login), settings (consultation fee, price list of services, letterhead, clinic name and timings, certificate wording, specialty forms, their own password or signature), website (edit the clinic's public site, posts, gallery, feedback), pharmacy (add stock, batches, a new medicine), billing (all bills, discounts), expenses (the spending ledger), analytics (reports and charts), audit (who opened what), patients (the whole register, merge duplicates), requests (appointment requests from the website), reminders (follow-ups due), labs (all lab orders), counter, claims, ipd (bed board), nursing, ot, radiology, departments, queue, overview.",
   kind: "go",
   schema: z.object({ screen: z.string() }),
   jsonSchema: strictObject({ screen: { type: "string", enum: SCREENS.map((s) => s.key) } }),
@@ -1100,7 +1101,7 @@ const writePrescription: Action = {
 
 const addToQueue: Action = {
   name: "add_to_queue",
-  summary: "Adds the patient whose record is open to today's queue as having arrived, and gives them a token. Use it for 'check in', 'add to queue', 'walk-in'.",
+  summary: "Adds a patient to today's queue as having arrived, and gives them a token: the patient on screen, or one named in for_patient. Use it for 'check in', 'add to queue', 'walk-in', 'X has come', 'X aa gaye hain', 'queue mein daal do'. This, not opening their file, is what somebody arriving calls for.",
   kind: "write",
   needsPatient: true,
   schema: z.object({ reason: z.string().max(500).nullable().optional() }),
@@ -1167,6 +1168,7 @@ export const ACTIONS: Action[] = [
   queueSummary, needsAttention, followupsDue, recallList, todaysCollection, assistantUsage,
   openScreen, openNextPatient,
   addFamilyMember, recordVitals, bookVisit, orderTests, writePrescription, addCharge, issueCertificate, addToQueue, registerPatient,
+  ...MORE_ACTIONS,
 ];
 
 /** The actions this person may use in this clinic, right now. */

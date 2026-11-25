@@ -118,6 +118,23 @@ export function readDate(text: string, today: Date): string | null {
   return null;
 }
 
+/**
+ * A day still to come: "tomorrow", "उद्या", "kal" said of the future.
+ * Kept apart from readDate, which reads "kal" as yesterday because a
+ * doctor asking about a visit is asking about one that happened.
+ */
+function readDayAhead(text: string, today: Date): string | null {
+  const t = text.toLowerCase();
+  const day = (offset: number) => { const d = new Date(today); d.setDate(d.getDate() + offset); return isoDate(d); };
+  if (/\b(?:day after tomorrow|parso|parson)\b.*\b(?:hain|hai|honge|hoga|aayenge|aanar|ahet|aahet)\b|परवा.*(?:आहेत|येणार)|परसों.*(?:हैं|होंगे|आएंगे)/.test(t)) return day(2);
+  if (/\b(?:tomorrow|udya|udyaa)\b|उद्या/.test(t)) return day(1);
+  if (/\bkal\b.*\b(?:hain|hai|honge|hoga|aayenge|aane wale)\b|कल.*(?:हैं|है|होंगे|आएंगे|आने वाले)/.test(t)) return day(1);
+  return null;
+}
+
+/** Who is booked on a day, as against one patient's visit on a day. */
+const BOOKED = /\b(?:appointments?|bookings?|booked|patients?|peshant|mareez|marij|coming|kitne|kiti|how many|who)\b|पेशंट|मरीज|अपॉइंटमेंट|किती|कितने|कोण|कौन/i;
+
 /** "this patient", as opposed to somebody named. */
 const THIS_PATIENT = /\b(?:this patient|the patient|him|her|his|their|them|iska|iski|inka|inki|isko|unka|unki|yancha|yanchi|hyancha|tyancha|tyanchi|tyache)\b|इसका|इसकी|इनका|इनकी|उनका|उनकी|यांचा|यांची|ह्यांचा|त्यांचा|त्यांची|याची|याचा/i;
 
@@ -129,6 +146,7 @@ const ABOUT_PATIENT: { said: RegExp; action: string }[] = [
   { said: /\b(?:pending|outstanding|due|baki|baaki|udhari)\b.{0,14}\b(?:bill|amount|payment|balance|paise|rakkam)\b|\b(?:how much (?:does|do) (?:she|he|they) owe)\b|\bbalance\b|बाकी|उधारी/i, action: "patient_dues" },
   { said: /\b(?:family|relatives?|husband|wife|mother|father|son|daughter|children)\b.{0,16}\b(?:records?|members?|linked|list|kaun|kon)\b|\bfamily\b|कुटुंब|परिवार/i, action: "family_members" },
   { said: /\b(?:past|previous|old|earlier|all|pichle|purane|magche|junya)\b.{0,12}\b(?:visits?|consultations?|bhet|bheti)\b|\bvisit history\b|\blast visit\b|पिछली विज़िट|मागील भेट|मागची भेट/i, action: "visit_history" },
+  { said: /\b(?:bill|invoice|charges)\b|बिल/i, action: "visit_bill" },
   // Last, on purpose: "BP history" and "visit history" each contain
   // "history", and must reach their own rule before this one.
   { said: /\b(?:allerg\w+)\b|एलर्जी|ॲलर्जी|अलर्जी/i, action: "patient_brief" },
@@ -138,7 +156,7 @@ const ABOUT_PATIENT: { said: RegExp; action: string }[] = [
 /** Questions about the clinic's day, not about one patient. */
 const ABOUT_CLINIC: { said: RegExp; action: string }[] = [
   { said: /\bassistant\b.{0,20}\b(?:usage|used|cost|costs?|spend|spent|bill|kharcha)\b|\b(?:usage|cost|spend) of (?:the )?assistant\b/i, action: "assistant_usage" },
-  { said: /\b(?:who(?:'s| is) (?:next|waiting)|how many (?:patients?|people) (?:are )?(?:waiting|left|today)|waiting (?:patients?|count)|kitne (?:patient|mareez|marij)|kiti (?:patient|peshant)|next patient)\b|कितने मरीज|किती पेशंट|पुढचा पेशंट|अगला मरीज/i, action: "queue_summary" },
+  { said: /\b(?:who(?:'s| is) (?:next|waiting)|how many (?:patients?|people)? ?(?:are )?(?:waiting|left|today)|waiting (?:patients?|count)|kitne (?:patient|mareez|marij)|kiti (?:patient|peshant)|next patient)\b|कितने मरीज|किती पेशंट|पुढचा पेशंट|अगला मरीज/i, action: "queue_summary" },
   { said: /\b(?:what (?:needs|is) (?:my )?attention|what(?:'s| is) pending|anything pending|pending (?:work|things|kaam)|to[- ]?do)\b|काय बाकी|क्या बाकी|काय राहिलं/i, action: "needs_attention" },
   { said: /\b(?:follow[- ]?ups?|recalls?)\b.{0,14}\b(?:due|today|pending|overdue|list)\b|\bwho(?:'s| is) (?:due|overdue)\b/i, action: "followups_due" },
   { said: /\b(?:stopped coming|not (?:come|been|seen|visited)|haven'?t (?:come|been|visited)|gone quiet|call back|lost to follow[- ]?up|nahi aaye|nahin aaye|aale nahi)\b|नहीं आए|आले नाहीत/i, action: "recall_list" },
@@ -211,7 +229,11 @@ export function route(input: string, context: RouteContext): Intent | null {
   // A request to CHANGE something is never answered by a rule that reads.
   // "Add her husband to the family" contains "family", and showing the
   // family list in reply would be answering a different question.
-  const changes = /\b(?:add|create|book|schedule|order|issue|write|record|note down|save|update|change|edit|remove|delete|cancel|link|register|admit|jodo|jod|banao|likho|likh|hatao|badlo|noand|nond|nondva)\b|जोड़ो|जोडा|बनाओ|लिखो|लिहा|हटाओ|काढा|बदलो|बदला|नोंदवा/i.test(text);
+  const changes =
+    /\b(?:add|create|book|schedule|order|issue|write|record|note down|note it|note that|note this|save|update|change|edit|remove|delete|cancel|link|register|admit|mark|set|put|start|finish|complete|enter|dispense|prescribe|paid|pay|received|took|bought|spent|jodo|jod|banao|likho|likh|hatao|badlo|noand|nond|nondva|bhara|de di|de diya|kar do|kar de|daal|daalo|dal do|laga|lagao|jod do|taka|ghala)\b|डाल|लगा|टाका|घाला|जोड़ो|जोडा|बनाओ|लिखो|लिहा|हटाओ|काढा|बदलो|बदला|नोंदवा|भरा|कर दो/i.test(text) ||
+    // "She is allergic to sulfa" tells; "what is she allergic to" asks.
+    /\ballergic to\s+\p{L}/iu.test(text) ||
+    /\b(?:has come|have come|did(?: not|n'?t) come|aa gaya|aa gayi|aaya hai|aayi hai|nahi aaya|nahi aayi)\b|आ गया|आ गई|आले आहेत|आली आहे/i.test(text);
 
   // ── About the patient on screen ────────────────────────────────────
   if (context.hasPatient && !changes) {
@@ -231,6 +253,13 @@ export function route(input: string, context: RouteContext): Intent | null {
     if (NEXT_ONE.test(text) && SEND_IN.test(text) && !/\b(?:who|kaun|kon|how many|kitne|kiti)\b|कौन|कोण|कितने|किती/i.test(text)) return { action: "open_next_patient", params: {} };
   }
 
+  // ── Another day's bookings ─────────────────────────────────────────
+  // Before today's queue, which "kitne patient" would otherwise reach.
+  if (!changes && text.split(" ").length <= 9) {
+    const ahead = readDayAhead(text, context.today);
+    if (ahead && BOOKED.test(text)) return { action: "bookings_on_date", params: { date: ahead } };
+  }
+
   // ── About the day ──────────────────────────────────────────────────
   if (!changes) {
     for (const { said, action } of ABOUT_CLINIC) {
@@ -244,7 +273,16 @@ export function route(input: string, context: RouteContext): Intent | null {
   // to contain "open" and "bill" is asking for something else.
   if (GO.test(text) && text.split(" ").length <= 6 && !FILE_WORDS.test(text) && !THIS_PATIENT.test(text)) {
     const screen = SCREENS.find((s) => s.said.test(text));
-    if (screen) return { action: "open_screen", params: { screen: screen.key } };
+    // Nothing else in the sentence. "Fatima Sayyed ki sari reports
+    // dikhao" names a screen and says "show", but it is asking for one
+    // patient's reports: what is left over is a name, and that is for
+    // the model to read, not for a rule to ignore.
+    const rest = screen
+      ? text.replace(GO, " ").replace(screen.said, " ")
+          .replace(/\b(?:the|me|my|our|a|an|to|of|please|screen|page|tab|section|list|ka|ki|ke|ko|sari|saari|sab|sabhi|all|mujhe|mala|zara|jara|ab|now|today'?s?|aaj)\b/gi, " ")
+          .replace(/[^\p{L}]/gu, "")
+      : "";
+    if (screen && rest.length <= 1) return { action: "open_screen", params: { screen: screen.key } };
   }
 
   // ── Find a patient ─────────────────────────────────────────────────

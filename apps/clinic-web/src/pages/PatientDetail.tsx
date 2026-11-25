@@ -17,6 +17,7 @@ import { SideBySideVisits } from '../components/SideBySideVisits';
 import { useToast } from '../components/Toast';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
+import { HistoryFilters, filterDays, isFiltered, NO_FILTER, type HistoryFilter } from '../components/PatientHistory';
 
 interface Patient {
   id: string; uhid: string; name: string; age: number | null; gender: string | null; phone: string | null;
@@ -128,6 +129,7 @@ export function PatientDetail() {
   const [panel, setPanel] = useState<'none' | 'caseSheet' | 'prescription' | 'certificate'>('none');
   const [editing, setEditing] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [filter, setFilter] = useState<HistoryFilter>(NO_FILTER);
   const specialty = useSpecialty(id);
   const reloadAll = async () => { await Promise.all([load(), specialty.reload()]); };
 
@@ -194,7 +196,10 @@ export function PatientDetail() {
   const todayKey = toDateInput(new Date());
   const upcoming = days.filter((d) => d.key > todayKey);
   const pastAndToday = days.filter((d) => d.key <= todayKey);
-  const visible = showAll ? pastAndToday : pastAndToday.slice(0, 8);
+  // Narrowed to what the doctor is looking for. A filter is a search, so
+  // it shows everything it finds rather than stopping at eight days.
+  const matching = filterDays(pastAndToday, filter);
+  const visible = showAll || isFiltered(filter) ? matching : matching.slice(0, 8);
   const todayVisit = data.appointments.find((a) => dayKey(a.scheduledAt) === todayKey && (a.status === 'CHECKED_IN' || a.status === 'IN_PROGRESS'));
   // A day counts as a visit if the patient was seen: a completed booking,
   // a case sheet, or a specialty form such as an antenatal check.
@@ -319,11 +324,16 @@ export function PatientDetail() {
               Nothing recorded yet. Each visit will appear here as one card, with its vitals, diagnosis, medicines, tests and bill.
             </p>
           ) : (
-            <ol className="relative space-y-4 border-l border-border/20 pl-5">
-              {visible.map((d) => <DayCard key={d.key} day={d} />)}
-            </ol>
+            <>
+              {pastAndToday.length >= 2 && (
+                <HistoryFilters value={filter} onChange={setFilter} showing={matching.length} of={pastAndToday.length} kinds={data.bills ? undefined : ['all', 'notes', 'medicines', 'tests', 'forms', 'certificates']} />
+              )}
+              <ol className="relative space-y-4 border-l border-border/20 pl-5">
+                {visible.map((d) => <DayCard key={d.key} day={d} />)}
+              </ol>
+            </>
           )}
-          {!showAll && pastAndToday.length > visible.length && (
+          {!showAll && !isFiltered(filter) && pastAndToday.length > visible.length && (
             <button type="button" onClick={() => setShowAll(true)} className="mt-4 text-[14px] font-medium underline underline-offset-4">
               Show {pastAndToday.length - visible.length} older day{pastAndToday.length - visible.length === 1 ? '' : 's'}
             </button>

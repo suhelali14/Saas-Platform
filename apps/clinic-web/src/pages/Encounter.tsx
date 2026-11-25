@@ -9,6 +9,7 @@ import { VisitCharges } from '../components/VisitCharges';
 import { ScribePanel } from '../components/ScribePanel';
 import { CareRecords, useSpecialty } from '../components/CareRecords';
 import { longDate } from '../lib/specialty';
+import { PastVisits } from '../components/PatientHistory';
 
 interface Vitals { bp?: string; temp?: string; spo2?: string; weight?: string; pulse?: string }
 interface Appointment {
@@ -191,6 +192,10 @@ export function Encounter() {
           )}
         </div>
       )}
+
+      {/* Everything before the last visit, to look through and narrow
+          down without leaving this one. */}
+      <PastVisits patientId={appointment.patient.id} />
 
       {specialty.data && (
         <CareRecords mode="visit" appointmentId={appointment.id} data={specialty.data} reload={specialty.reload}
