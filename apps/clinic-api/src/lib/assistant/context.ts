@@ -39,7 +39,7 @@ export function callAs(app: FastifyInstance, request: FastifyRequest): Call {
   };
 }
 
-export async function contextFor(app: FastifyInstance, request: FastifyRequest, on: { patientId?: string; appointmentId?: string }): Promise<RunContext> {
+export async function contextFor(app: FastifyInstance, request: FastifyRequest, on: { patientId?: string; appointmentId?: string; screen?: string }): Promise<RunContext> {
   let patientId: string | null = null;
   let appointmentId: string | null = null;
   // What the browser says is on screen is looked up, not taken on trust:
@@ -57,6 +57,8 @@ export async function contextFor(app: FastifyInstance, request: FastifyRequest, 
     patientId,
     appointmentId,
     today: new Date(),
+    // Only ever used to describe the screen in words; never as a path.
+    screen: on.screen && /^\/[\w/-]{0,120}$/.test(on.screen) ? on.screen : undefined,
     call: callAs(app, request),
   };
 }

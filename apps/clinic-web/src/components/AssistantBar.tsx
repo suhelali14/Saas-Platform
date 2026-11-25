@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Mic, CornerDownLeft, X, Check } from 'lucide-react';
+import { Mic, Square, CornerDownLeft, X, Check } from 'lucide-react';
 import { apiFetch, apiUpload, ApiError } from '../lib/api';
 import { useClinicAuth } from '../contexts/ClinicAuthContext';
 import { useScribe } from '../contexts/ScribeContext';
@@ -11,28 +11,32 @@ import { Button } from './Button';
  * The assistant, on every screen.
  *
  * One line at the bottom of the portal. Somebody types what they want, or
- * holds the microphone and says it -- "show her last prescription", "who
- * is next", "open billing", "add her husband Rajesh to the family" -- and
- * the app does it. They do not need to know where anything is.
+ * taps the microphone and says it -- "open Fatima Sayyed", "show her last
+ * prescription", "who is next", "note Ramesh Joshi's BP as 140 by 90" --
+ * and the app does it. They do not need to know where anything is.
  *
  * ── What it does with a request ──────────────────────────────────────
  *
- * Sends the words to the clinic's own API, which works out which of the
- * app's actions was meant (by rule when it can, by a language model when
- * it must) and runs it with the asker's own permissions. See
- * apps/clinic-api/src/lib/assistant/registry.ts.
+ * Sends the words, and which screen they were said on, to the clinic's
+ * own API. That works out which of the app's actions was meant (by rule
+ * when it can, by a language model when it must) and runs it with the
+ * asker's own permissions. See apps/clinic-api/src/lib/assistant/.
  *
  *   a lookup   comes back as a short answer, each line a link into the app
- *   a screen   is opened
+ *   a screen   is opened, and a line says what was opened
  *   a change   comes back as a card saying exactly what will be done, and
- *              is made only when Confirm is pressed
+ *              is made when the person says yes, presses Enter or taps
+ *              Confirm
  *
- * ── Why the microphone is held, not left on ──────────────────────────
+ * ── The microphone ───────────────────────────────────────────────────
  *
- * An assistant that listens all day for its name sends audio to a speech
- * service all day, and a clinic would pay for hours of silence and
- * waiting-room chatter. Held, it hears one request and costs a few
- * seconds.
+ * Tapped once, it listens, and stops by itself when the person stops
+ * speaking. Held down, it listens for as long as it is held. Either way
+ * it hears one request and then lets go.
+ *
+ * It is never left open. An assistant that listens all day for its name
+ * sends audio to a speech service all day, and a clinic would pay for
+ * hours of silence and waiting-room chatter.
  */
 
 interface Line { label?: string; text: string; to?: string; tone?: 'danger' | 'warning' | 'muted' }
@@ -44,6 +48,8 @@ type Reply =
   | { kind: 'sorry'; say: string };
 
 interface Asked { reply: Reply; heard?: string; by?: 'rule' | 'model' | 'none'; request?: string }
+/** What the server sends back: an answer, or which way a waiting card was decided. */
+type FromServer = Asked | { decided: 'yes' | 'no'; heard?: string };
 
 /**
  * A question the assistant asked back, which the next thing said answers.
@@ -82,10 +88,18 @@ function pickMimeType(): string {
  * nothing and shows what kind of thing to ask next.
  */
 const ON_A_PATIENT = ['Summary', 'Last prescription', 'Lab reports', 'BP trend', 'Past visits'];
-const ANYWHERE = ['Who is next', 'What needs attention', 'Follow-ups due', "Today's collection"];
+const ANYWHERE = ['Who is next', 'Call the next patient', 'What needs attention', 'Follow-ups due', "Today's collection"];
 
 /** A request is one sentence. Past this the microphone lets go by itself. */
-const MAX_HOLD_MS = 20_000;
+const MAX_LISTEN_MS = 20_000;
+/** This long without a word, after some were said, and the request is over. */
+const QUIET_ENDS_MS = 1_300;
+/** This long with nothing said at all, and nobody is asking. */
+const NOTHING_SAID_MS = 7_000;
+/** Down for longer than this is a hold; shorter is a tap. */
+const HOLD_MS = 500;
+/** How long "Opening the queue." stays up after the screen has changed. */
+const NOTE_MS = 4_500;
 
 export function AssistantBar() {
   const { hasModule } = useClinicAuth();
@@ -96,34 +110,45 @@ export function AssistantBar() {
   const [text, setText] = useState('');
   const [asked, setAsked] = useState<Asked | null>(null);
   const [busy, setBusy] = useState(false);
-  const [holding, setHolding] = useState(false);
+  const [listening, setListening] = useState(false);
+  /** How loud the room is, 0 to 1, so the button shows it is hearing. */
+  const [level, setLevel] = useState(0);
   const [canHear, setCanHear] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Everything to undo when listening ends: timers, the level meter. */
+  const cleanup = useRef<(() => void) | null>(null);
   const cancelled = useRef(false);
   // The recorder's callback outlives the render it was made in.
   const askedRef = useRef<Asked | null>(null);
   askedRef.current = asked;
-  /** The button is down. The microphone takes a moment to open, and by
-   *  then the button may already be up again. */
-  const wantHold = useRef(false);
+  /** Listening has been asked for. The microphone takes a moment to open,
+   *  and by then it may already have been asked to stop. */
+  const wanted = useRef(false);
+  const downAt = useRef(0);
+  const startedByThisPress = useRef(false);
 
-  // A card says "do this for the patient on screen". Once another screen
-  // is open that is no longer who is on screen, so the card goes: it is
-  // never left showing over a different patient with a Confirm on it.
-  // (The server would refuse it anyway; see lib/assistant/seal.ts.)
+  // A card says "do this for this patient". Once another screen is open
+  // it goes: it is never left showing over a different patient with a
+  // Confirm on it. (The server would refuse it anyway; see seal.ts.)
   useEffect(() => {
     setAsked((current) => (current?.reply.kind === 'confirm' ? null : current));
   }, [pathname]);
 
+  // "Opening Fatima Sayyed's visit." has done its work once it is read.
+  useEffect(() => {
+    if (asked?.reply.kind !== 'go') return;
+    const timer = setTimeout(() => setAsked((current) => (current === asked ? null : current)), NOTE_MS);
+    return () => clearTimeout(timer);
+  }, [asked]);
+
   // Leaving the portal, or the bar being taken down, lets go of the
   // microphone whatever state it was in.
   useEffect(() => () => {
-    wantHold.current = false;
+    wanted.current = false;
     cancelled.current = true;
-    if (holdTimer.current) clearTimeout(holdTimer.current);
+    cleanup.current?.();
     if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
   }, []);
 
@@ -142,35 +167,19 @@ export function AssistantBar() {
       const el = e.target as HTMLElement | null;
       const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
       if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); inputRef.current?.focus(); }
-      if (e.key === 'Escape' && asked) setAsked(null);
+      if (e.key === 'Escape') {
+        if (wanted.current) stopListening(true);
+        else if (asked) setAsked(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, asked]);
 
   if (!enabled) return null;
 
-  const show = (result: Asked) => {
-    setAsked(result);
-    if (result.reply.kind === 'go') navigate(result.reply.to);
-  };
-
   const fail = (e: unknown) => setAsked({ reply: { kind: 'sorry', say: e instanceof ApiError ? e.message : 'The assistant could not be reached. Try again in a moment.' } });
-
-  const ask = async (words: string) => {
-    const request = words.trim();
-    if (!request || busy) return;
-    setBusy(true);
-    try {
-      const result = await apiFetch<Asked>('/assistant/ask', { method: 'POST', data: { text: request, ...onScreen(pathname), pending: pendingFrom(asked) } });
-      show({ ...result, request });
-      setText('');
-    } catch (e) {
-      fail(e);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const confirm = async (reply: Extract<Reply, { kind: 'confirm' }>) => {
     setBusy(true);
@@ -191,43 +200,140 @@ export function AssistantBar() {
     }
   };
 
-  // ── Hold to talk ─────────────────────────────────────────────────────
-  const startHolding = async () => {
-    if (holding || busy || wantHold.current) return;
-    wantHold.current = true;
+  /** What came back, put on screen and acted on. */
+  const show = async (result: FromServer, request: string | undefined) => {
+    if ('decided' in result) {
+      // A yes or a no, to the card that was waiting when it was said.
+      const card = askedRef.current?.reply;
+      if (card?.kind !== 'confirm') return;
+      if (result.decided === 'yes') await confirm(card);
+      else setAsked(null);
+      return;
+    }
+    setAsked({ ...result, request });
+    if (result.reply.kind === 'go') navigate(result.reply.to);
+  };
+
+  const ask = async (words: string) => {
+    const request = words.trim();
+    if (!request || busy) return;
+    setBusy(true);
+    try {
+      const result = await apiFetch<FromServer>('/assistant/ask', {
+        method: 'POST',
+        data: { text: request, ...onScreen(pathname), screen: pathname, card: asked?.reply.kind === 'confirm', pending: pendingFrom(asked) },
+      });
+      setText('');
+      setBusy(false);
+      await show(result, request);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── The microphone ───────────────────────────────────────────────────
+  const stopListening = (cancel = false) => {
+    wanted.current = false;
+    if (cancel) cancelled.current = true;
+    cleanup.current?.();
+    cleanup.current = null;
+    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
+  };
+
+  const startListening = async () => {
+    if (listening || busy || wanted.current) return;
+    wanted.current = true;
     cancelled.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
-      // Let go while the microphone was still opening -- a quick tap, or
-      // a finger lifted to answer the browser's permission prompt. With
-      // nobody holding, recording now would run on, unheld, to the limit.
-      if (!wantHold.current) {
+      // Asked to stop while the microphone was still opening.
+      if (!wanted.current) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
       const mimeType = pickMimeType();
       const rec = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32_000 } : undefined);
       const parts: Blob[] = [];
+      let spoke = false;
+
+      // ── Hearing when they have finished ──────────────────────────────
+      // The loudness of the room, a few times a second. The first moments
+      // set what quiet is in this room; clearly above that is speech; and
+      // quiet again for a little over a second, after speech, is the end
+      // of the request.
+      const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audio = AudioCtx ? new AudioCtx() : null;
+      const analyser = audio?.createAnalyser() ?? null;
+      if (audio && analyser) {
+        analyser.fftSize = 1024;
+        audio.createMediaStreamSource(stream).connect(analyser);
+      }
+      const samples = new Float32Array(analyser?.fftSize ?? 0);
       const startedAt = Date.now();
+      let quiet = 0.01;
+      let loudFrames = 0;
+      let lastSpeechAt = 0;
+      const meter = setInterval(() => {
+        if (!analyser) return;
+        analyser.getFloatTimeDomainData(samples);
+        let sum = 0;
+        for (const s of samples) sum += s * s;
+        const loudness = Math.sqrt(sum / samples.length);
+        const now = Date.now();
+        // Capped: somebody who starts talking the instant they tap must
+        // not have their own voice taken for the room's quiet.
+        if (now - startedAt < 300) quiet = Math.min(0.02, Math.max(quiet, loudness * 1.2));
+        const threshold = Math.max(0.02, quiet * 2.5);
+        setLevel(Math.min(1, loudness / 0.15));
+        if (loudness > threshold) {
+          loudFrames += 1;
+          if (loudFrames >= 2) { spoke = true; lastSpeechAt = now; }
+        } else {
+          loudFrames = 0;
+          // A hold ends when the finger lifts, not at a pause for breath.
+          const held = startedByThisPress.current && downAt.current > 0;
+          if (spoke && !held && now - lastSpeechAt > QUIET_ENDS_MS) stopListening();
+          else if (!spoke && !held && now - startedAt > NOTHING_SAID_MS) stopListening();
+        }
+      }, 60);
+      const limit = setTimeout(() => stopListening(), MAX_LISTEN_MS);
+      cleanup.current = () => {
+        clearInterval(meter);
+        clearTimeout(limit);
+        setLevel(0);
+        void audio?.close().catch(() => undefined);
+      };
+
       rec.ondataavailable = (e) => { if (e.data.size > 0) parts.push(e.data); };
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        wantHold.current = false;
-        setHolding(false);
-        // A tap, not a hold: nothing was said.
-        if (cancelled.current || Date.now() - startedAt < 500 || parts.length === 0) return;
+        cleanup.current?.();
+        cleanup.current = null;
+        wanted.current = false;
+        setListening(false);
+        if (cancelled.current || parts.length === 0) return;
+        // Where loudness could not be measured, anything recorded counts.
+        if (analyser && !spoke) {
+          setAsked({ reply: { kind: 'sorry', say: 'I did not hear anything. Tap the microphone and say what you need.' } });
+          return;
+        }
         const blob = new Blob(parts, { type: rec.mimeType });
         const extension = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
         setBusy(true);
         try {
-          const context = onScreen(window.location.pathname);
-          const fields: Record<string, string> = {};
+          const here = window.location.pathname;
+          const context = onScreen(here);
+          const fields: Record<string, string> = { screen: here };
           if (context.patientId) fields.patientId = context.patientId;
           if (context.appointmentId) fields.appointmentId = context.appointmentId;
+          if (askedRef.current?.reply.kind === 'confirm') fields.card = '1';
           const pending = pendingFrom(askedRef.current);
           if (pending) { fields.pendingRequest = pending.request; fields.pendingQuestion = pending.question; }
-          const result = await apiUpload<Asked>('/assistant/voice', new File([blob], `ask-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' }), fields);
-          show({ ...result, request: result.heard });
+          const result = await apiUpload<FromServer>('/assistant/voice', new File([blob], `ask-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' }), fields);
+          setBusy(false);
+          await show(result, result.heard);
         } catch (e) {
           fail(e);
         } finally {
@@ -236,19 +342,11 @@ export function AssistantBar() {
       };
       rec.start();
       recorder.current = rec;
-      setHolding(true);
-      holdTimer.current = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, MAX_HOLD_MS);
+      setListening(true);
     } catch {
-      wantHold.current = false;
+      wanted.current = false;
       setAsked({ reply: { kind: 'sorry', say: 'This browser was not allowed to use the microphone. Allow it in the address bar, or type what you need.' } });
     }
-  };
-
-  const stopHolding = (cancel = false) => {
-    wantHold.current = false;
-    cancelled.current = cancel;
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
   };
 
   // A consultation is using the microphone to write a note. A request
@@ -257,6 +355,9 @@ export function AssistantBar() {
   const recordingVisit = scribe.phase === 'listening';
   const reply = asked?.reply;
   const tone = (line: Line) => (line.tone === 'danger' ? 'text-ink-danger font-semibold' : line.tone === 'warning' ? 'text-ink-warning' : line.tone === 'muted' ? 'text-muted-foreground' : '');
+  const micLabel = recordingVisit
+    ? 'The microphone is writing a visit note. Type your request.'
+    : listening ? 'Listening. Tap to send now.' : 'Tap and say what you need';
 
   return (
     <div
@@ -264,13 +365,14 @@ export function AssistantBar() {
       style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* ── What it answered ─────────────────────────────────────────── */}
-      {reply && reply.kind !== 'go' && (
+      {reply && (
         <div className="mb-2 max-h-[55vh] overflow-y-auto rounded-2xl border border-border/20 bg-background p-4 shadow-overlay" role="status" aria-live="polite">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               {asked?.heard && <p className="mb-1 text-[12px] text-muted-foreground">You said: “{asked.heard}”</p>}
               {(reply.kind === 'answer' || reply.kind === 'confirm') && <h3 className="text-[15px] font-semibold">{reply.title}</h3>}
               {(reply.kind === 'sorry' || reply.kind === 'done') && <p className="text-[14px]">{reply.say}</p>}
+              {reply.kind === 'go' && <p className="flex items-center gap-1.5 text-[14px] font-medium"><Check size={14} className="shrink-0 text-ink-success" aria-hidden="true" /> {reply.say}</p>}
             </div>
             <button type="button" onClick={() => setAsked(null)} aria-label="Close" className="-mr-1 -mt-1 shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-foreground/10"><X size={16} /></button>
           </div>
@@ -298,14 +400,14 @@ export function AssistantBar() {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button variant="primary" icon={<Check size={14} />} busy={busy} busyLabel="Doing it…" onClick={() => confirm(reply)}>Confirm</Button>
               <Button variant="ghost" onClick={() => setAsked(null)}>Cancel</Button>
-              <span className="text-[12px] text-muted-foreground">Nothing has been changed yet.</span>
+              <span className="text-[12px] text-muted-foreground">Nothing has been changed yet. Say “yes”, press Enter, or tap Confirm.</span>
             </div>
           )}
         </div>
       )}
 
       {/* ── Things to ask, while the line is empty and in use ────────── */}
-      {focused && !text && !reply && !busy && !holding && (
+      {focused && !text && !reply && !busy && !listening && (
         <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Things you can ask">
           {(onScreen(pathname).appointmentId || onScreen(pathname).patientId ? ON_A_PATIENT : ANYWHERE).map((suggestion) => (
             <button
@@ -327,43 +429,66 @@ export function AssistantBar() {
       <div className="rounded-2xl border border-border/20 bg-background shadow-overlay">
         <ScribeStatusRow />
         <form
-          onSubmit={(e) => { e.preventDefault(); void ask(text); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            // Enter on an empty line, with a card waiting, is a yes to it.
+            if (!text.trim() && reply?.kind === 'confirm') void confirm(reply);
+            else void ask(text);
+          }}
           className="flex items-center gap-2 px-2 py-2"
         >
           {canHear && (
             <button
               type="button"
               disabled={recordingVisit || busy}
-              onPointerDown={(e) => { e.preventDefault(); void startHolding(); }}
-              onPointerUp={() => stopHolding()}
-              onPointerLeave={() => holding && stopHolding()}
-              onPointerCancel={() => stopHolding(true)}
-              onKeyDown={(e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); void startHolding(); } }}
-              onKeyUp={(e) => { if (e.key === ' ' || e.key === 'Enter') stopHolding(); }}
-              // Focus moved away with the key still down: there will be
-              // no key-up here to end it.
-              onBlur={() => { if (wantHold.current) stopHolding(); }}
-              aria-label={recordingVisit ? 'The microphone is writing a visit note. Type your request.' : 'Hold to talk to the assistant'}
-              title={recordingVisit ? 'The microphone is writing a visit note. Type your request.' : 'Hold and speak, then let go'}
-              className={`flex h-11 w-11 shrink-0 touch-none select-none items-center justify-center rounded-xl transition-colors disabled:opacity-40 ${holding ? 'bg-ink-danger text-background' : 'bg-foreground/[0.06] text-foreground hover:bg-foreground/10'}`}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                // The finger may slide off the button while it is held;
+                // the lift must still be heard here.
+                e.currentTarget.setPointerCapture(e.pointerId);
+                downAt.current = Date.now();
+                // Already listening: this press is the one that ends it.
+                startedByThisPress.current = !wanted.current;
+                if (startedByThisPress.current) void startListening();
+              }}
+              onPointerUp={() => {
+                const heldFor = Date.now() - downAt.current;
+                downAt.current = 0;
+                // A second tap, or the end of a hold, sends what was said.
+                // The first tap just starts it: it stops when they do.
+                if (!startedByThisPress.current || heldFor >= HOLD_MS) stopListening();
+                startedByThisPress.current = false;
+              }}
+              onPointerCancel={() => { downAt.current = 0; startedByThisPress.current = false; }}
+              // From the keyboard there is no press to time: Space or Enter
+              // starts it, and again ends it.
+              onClick={(e) => { if (e.detail === 0) { if (wanted.current) stopListening(); else void startListening(); } }}
+              aria-label={micLabel}
+              aria-pressed={listening}
+              title={micLabel}
+              className={`relative flex h-11 w-11 shrink-0 touch-none select-none items-center justify-center rounded-xl transition-colors disabled:opacity-40 ${listening ? 'bg-ink-danger text-background' : 'bg-foreground/[0.06] text-foreground hover:bg-foreground/10'}`}
             >
-              <Mic size={18} />
+              {listening && (
+                // Grows with the voice, so it is plain that it is hearing.
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-ink-danger/50 transition-transform duration-75" style={{ transform: `scale(${1 + level * 0.35})` }} />
+              )}
+              {listening ? <Square size={15} fill="currentColor" /> : <Mic size={18} />}
             </button>
           )}
           <label className="sr-only" htmlFor="assistant-ask">Ask the assistant</label>
           <input
             id="assistant-ask"
             ref={inputRef}
-            value={holding ? '' : text}
+            value={listening ? '' : text}
             onChange={(e) => setText(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            disabled={busy || holding}
+            disabled={busy || listening}
             autoComplete="off"
-            placeholder={holding ? 'Listening… let go when done' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask, or hold the mic and say it' : 'Ask for anything'}
+            placeholder={listening ? 'Listening… just say it, I will stop when you do' : busy ? 'Working on it…' : canHear && !recordingVisit ? 'Ask, or tap the mic and say it' : 'Ask for anything'}
             className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[15px] outline-none placeholder:text-muted-foreground/70"
           />
-          <button type="submit" disabled={busy || holding || !text.trim()} aria-label="Ask" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">
+          <button type="submit" disabled={busy || listening || (!text.trim() && reply?.kind !== 'confirm')} aria-label={!text.trim() && reply?.kind === 'confirm' ? 'Confirm' : 'Ask'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-30">
             <CornerDownLeft size={17} />
           </button>
         </form>

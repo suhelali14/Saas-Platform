@@ -248,6 +248,34 @@ A second reviewer read the branch for faults. Fixed as a result:
 | A medicine the doctor withdrew aloud could come back in the note | Fixed |
 | A pattern for email addresses could be made to run very slowly | Bounded |
 
+## 9. Spoken as people really speak
+
+The owner said, from the queue: "Okay तो अभी open करते हैं cube में से
+Fatima Syed को ठीक है open करो।" It answered that nobody matched "Fatima
+Syed". The patient is Fatima Sayyed. Fixed, and re-run:
+
+| Asked, from the queue | What worked it out | Result |
+|---|---|---|
+| The owner's sentence above, word for word | model, 1.1 s | Fatima Sayyed's visit opened |
+| "Kavita Gaikwar ko kholo" | model, 0.8 s | Kavita Gaikwad's visit opened |
+| "call the next patient" | rule, 4 ms | The next waiting patient's visit opened |
+| "open token 5" | rule, 3 ms | That visit opened |
+| "open the one who is with the doctor right now" | model, 0.8 s | Fatima Sayyed's visit opened |
+| "show me Ramesh Joshi's last prescription" | model, 0.8 s | His prescription, without opening him first |
+| "Ramesh Joshi ka BP 140 by 90 aur weight 72 likh do" | model, 0.8 s | A card naming him; "haan kar do" confirmed it, by rule |
+| "open someone called Zzyzx Qwerty" | model | Said it could find nobody by that name |
+
+In Chrome, one tap on the microphone with a recorded voice: it stopped by
+itself and answered 3.7 seconds after the tap.
+
+A change for a patient who is not on screen, naming him first:
+
+![A named patient from the queue](ask/16-a-named-patient-from-the-queue.png)
+
+Not shown: the tap and its automatic stop with a live voice in a noisy
+room. The stop is judged from loudness, and a loud waiting room may hold
+it open until the 20-second limit or a second tap.
+
 ## What it cost
 
 | | |

@@ -44,6 +44,8 @@ export interface ActionContext {
   /** The visit on the asker's screen, when there is one. */
   appointmentId: string | null;
   today: Date;
+  /** The address of the screen they are looking at, e.g. "/queue". */
+  screen?: string;
 }
 
 /** One line of an answer. `to` makes it a link into the app. */

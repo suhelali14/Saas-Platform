@@ -95,6 +95,25 @@ the real server.
 - **A change calls the app's own route**, from inside the server, with
   the asker's own sign-in. The role check, the validation and the audit
   entry are the ones the screen's own Save button gets.
+- **Names are matched by sound** (`lib/assistant/names.ts`). A spoken
+  name arrives spelt however the speech engine chose: "Fatima Syed" for
+  Fatima Sayyed, or in Devanagari. When the letters find nobody, the
+  register is searched by how the name sounds. For a doctor, a patient
+  in today's queue opens at their visit; otherwise at their file.
+- **A request can name somebody who is not on screen.** "Note Ramesh
+  Joshi's BP as 140 by 90", said from the queue, draws up the card for
+  him. The card's first line is the patient it was taken to mean, in
+  full. If two patients fit the name, it lists them and changes nothing.
+- **It is told which screen the request was made on**, and how today's
+  queue stands by token number, with nobody named. So "the one with the
+  doctor" or "open token 5" can be followed.
+- **A card can be answered aloud.** "Yes", "haan kar do", "नको", or Enter
+  on an empty line. A yes or no to a waiting card is read by rule and
+  costs nothing.
+- **The microphone is tapped, not held.** One tap and it listens; it
+  stops by itself a little over a second after the person stops
+  speaking, and gives up after seven seconds of nothing. Holding it down
+  still works. It is never left open.
 - **A confirm card is sealed.** The server signs the action, its
   parameters, the patient, the visit and the person it was drawn up for
   (`lib/assistant/seal.ts`). Confirm sends the card back and the server
@@ -238,7 +257,9 @@ accuracy are both unverified.
 - **A typed or spoken request** is sent to the model as it was said when
   no rule recognises it. "Find patient Ramesh Joshi" is handled by rule
   and reaches no model; an unusual request that names a patient does.
-- **The model is given no records.** Lookups are done by code.
+- **The model is given no records.** Lookups are done by code. Beside
+  the request it is told the name of the screen and today's queue as
+  token numbers, with no patient named.
 - **Usage counters** hold numbers only. The server log records which
   action ran and how many tokens it used, never the words.
 - **The transcript of a confirmed note is kept**, so the difference

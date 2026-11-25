@@ -28,6 +28,7 @@ import { resolveMedicine } from "../scribe/engine.js";
 import { clinicHost, doctorHabits } from "../scribe/clinic-host.js";
 import { checkDraft } from "../scribe/checks.js";
 import { SCREENS } from "./router.js";
+import { nameFit } from "./names.js";
 import { sorry, strictObject, type Action, type ActionContext, type Asker, type Line, type Reply } from "./registry.js";
 import { estimatedRupees, usage as meterUsage } from "./meter.js";
 
@@ -102,39 +103,174 @@ function refusal(result: { status: number; body: any }, fallback: string): Reply
 
 // ── Looking things up ─────────────────────────────────────────────────
 
+/** Today's visits that are not over: who could be "opened" from the queue. */
+async function liveVisitsToday(today: Date) {
+  const { start, end } = boundsOf(isoOf(today));
+  return prisma.appointment.findMany({
+    where: { scheduledAt: { gte: start, lte: end }, status: { in: ["SCHEDULED", "CHECKED_IN", "IN_PROGRESS"] } },
+    select: { id: true, status: true, tokenNumber: true, priority: true, patientId: true, patient: { select: { name: true, category: true, dob: true, age: true } } },
+    orderBy: { scheduledAt: "asc" },
+  });
+}
+
+type LiveVisit = Awaited<ReturnType<typeof liveVisitsToday>>[number];
+const FOUND = { id: true, name: true, uhid: true, age: true, gender: true, phone: true } as const;
+
+/**
+ * Everybody a name, phone number or file number could mean, best first.
+ *
+ * By the letters as given; and only if that finds nobody, by the name as
+ * it SOUNDS (names.ts), because a name that was spoken arrives spelt
+ * however the speech engine chose.
+ */
+async function patientsCalled(q: string, live: LiveVisit[]) {
+  const byLetters = await prisma.patient.findMany({
+    where: {
+      mergedIntoId: null,
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { uhid: { contains: q, mode: "insensitive" } },
+        ...(q.replace(/\D/g, "").length >= 4 ? [{ phone: { contains: q.replace(/[\s-]/g, "") } }] : []),
+      ],
+    },
+    select: FOUND,
+    orderBy: { updatedAt: "desc" },
+    take: 7,
+  });
+  if (byLetters.length > 0 || !/\p{L}/u.test(q)) return byLetters;
+
+  // Names only: one narrow column of the register, read when a search
+  // has already failed.
+  const everyone = await prisma.patient.findMany({ where: { mergedIntoId: null }, select: { id: true, name: true }, orderBy: { updatedAt: "desc" }, take: 20_000 });
+  const inQueue = new Set(live.map((v) => v.patientId));
+  const fits = everyone
+    .map((p) => ({ id: p.id, fit: nameFit(q, p.name) + (inQueue.has(p.id) ? 0.05 : 0) }))
+    .filter((p) => p.fit >= 0.6)
+    .sort((a, b) => b.fit - a.fit);
+  // A name that fits in full beats those that only nearly do.
+  const best = fits.filter((p) => p.fit >= (fits[0]?.fit ?? 0) - 0.06).slice(0, 7);
+  if (best.length === 0) return [];
+  const rows = await prisma.patient.findMany({ where: { id: { in: best.map((p) => p.id) } }, select: FOUND });
+  return best.map((p) => rows.find((r) => r.id === p.id)).filter((r): r is NonNullable<typeof r> => Boolean(r));
+}
+
+/**
+ * The one patient a request named, for a request about somebody who is
+ * not on screen: "note Ramesh Joshi's BP as 140 by 90", said from the
+ * queue. Exactly one, or the reply that says why not. With their visit
+ * today, when they have one, so the change lands on it.
+ */
+export async function patientNamed(name: string, today: Date): Promise<{ patientId: string; appointmentId: string | null; label: string } | { reply: Reply }> {
+  const live = await liveVisitsToday(today);
+  const found = await patientsCalled(name.trim(), live);
+  if (found.length === 0) return { reply: sorry(`I could not find anyone called "${name}". Say the name again, or give their phone number.`) };
+  const here = found.filter((p) => live.some((v) => v.patientId === p.id));
+  const one = found.length === 1 ? found[0]! : here.length === 1 ? here[0]! : null;
+  if (!one) {
+    return {
+      reply: {
+        kind: "answer",
+        title: `${found.length} patients are called "${name}". Open the one you mean, then ask again.`,
+        lines: found.map((p) => ({ label: p.uhid, text: [p.name, p.age != null ? `${p.age}y` : null, p.gender, p.phone].filter(Boolean).join(" · "), to: `/patients/${p.id}` })),
+      },
+    };
+  }
+  const visit = live.find((v) => v.patientId === one.id && v.status === "IN_PROGRESS") ?? live.find((v) => v.patientId === one.id);
+  return { patientId: one.id, appointmentId: visit?.id ?? null, label: [one.name, one.uhid, one.age != null ? `${one.age}y` : null, one.gender].filter(Boolean).join(" · ") };
+}
+
+/** Today's queue with nobody named in it: all a model needs to follow
+ *  "the one with the doctor" or "the first one waiting". */
+export async function queueInBrief(today: Date): Promise<string> {
+  const live = await liveVisitsToday(today);
+  if (live.length === 0) return "Today's queue is empty.";
+  const tokens = (status: string) => live.filter((v) => v.status === status && v.tokenNumber != null).map((v) => v.tokenNumber).join(", ") || "none";
+  return `Today's queue, by token number: with the doctor: ${tokens("IN_PROGRESS")}; waiting: ${tokens("CHECKED_IN")}; yet to arrive: ${live.filter((v) => v.status === "SCHEDULED").length} booked.`;
+}
+
+const VISIT_STATE: Record<string, string> = { SCHEDULED: "yet to arrive", CHECKED_IN: "waiting", IN_PROGRESS: "with the doctor" };
+
+/**
+ * Finds who was meant, and opens them.
+ *
+ * Tried in the order that is cheapest and surest: a token number from
+ * today's queue; the letters as given, against name, phone and file
+ * number; and only then the name as it SOUNDS (names.ts), because a name
+ * that was spoken arrives spelt however the speech engine chose.
+ *
+ * For a doctor, a patient who is in today's queue opens at their visit,
+ * which is where a doctor asking for them wants to be. Anybody else, and
+ * anybody not in the queue, opens at their file.
+ */
 const findPatient: Action = {
   name: "find_patient",
-  summary: "Finds a patient by name, phone number or file number (UHID) and opens their file. Use it whenever somebody names a patient they want to see.",
+  summary: "Finds a patient by name, phone number, file number (UHID) or today's token number, and opens them. Use it only when opening the patient is ALL they asked for: 'open Fatima Sayyed', 'call in Ramesh', 'find patient Joshi', including from the queue. When they asked for something about or for a named patient (their last prescription, their reports, record their BP, book them, order a test), do not use this: use the tool for that thing and give the name in its for_patient field. The name may have been misheard or misspelt; pass it as it was said, without words like 'patient' or 'queue'. For a token, pass 'token 5'.",
   kind: "read",
-  schema: z.object({ query: z.string().trim().min(2).max(120) }),
-  jsonSchema: strictObject({ query: { ...str, description: "The name, phone number or file number as it was said." } }),
+  schema: z.object({ query: z.string().trim().min(1).max(120), open: z.enum(["visit", "file"]).nullable().optional() }),
+  jsonSchema: strictObject({
+    query: { ...str, description: "The name, phone number or file number as it was said, or 'token N'." },
+    open: { type: ["string", "null"], enum: ["visit", "file", null], description: "'file' only when they asked for the patient's file, record or history by that word. Otherwise leave it out." },
+  }),
   allowed: anyone,
-  async run(_context, params: { query: string }) {
-    const q = params.query;
-    const found = await prisma.patient.findMany({
-      where: {
-        mergedIntoId: null,
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { uhid: { contains: q, mode: "insensitive" } },
-          { phone: { contains: q.replace(/[\s-]/g, "") } },
-        ],
-      },
-      select: { id: true, name: true, uhid: true, age: true, gender: true, phone: true },
-      orderBy: { updatedAt: "desc" },
-      take: 7,
-    });
-    if (found.length === 0) return sorry(`Nobody on file matches "${q}". Check the spelling, or try their phone number.`);
-    if (found.length === 1) return { kind: "go", to: `/patients/${found[0]!.id}`, say: `Opening ${found[0]!.name}'s file.` };
+  async run(context, params: { query: string; open?: "visit" | "file" | null }) {
+    const q = params.query.trim();
+    const live = await liveVisitsToday(context.today);
+    const visitOf = (patientId: string) => live.find((v) => v.patientId === patientId && v.status === "IN_PROGRESS") ?? live.find((v) => v.patientId === patientId);
+    const wantsVisit = params.open === "visit" || (params.open !== "file" && context.asker.role === "DOCTOR");
+    const open = (patient: { id: string; name: string }): Reply => {
+      const visit = wantsVisit ? visitOf(patient.id) : undefined;
+      return visit
+        ? { kind: "go", to: `/appointments/${visit.id}/encounter`, say: `Opening ${patient.name}'s visit${visit.tokenNumber != null ? `, token ${visit.tokenNumber}` : ""}.` }
+        : { kind: "go", to: `/patients/${patient.id}`, say: `Opening ${patient.name}'s file.` };
+    };
+
+    const token = /^(?:token|टोकन)\s*(?:no\.?|number|नंबर)?\s*(\d{1,3})$/iu.exec(q);
+    if (token) {
+      const visit = live.find((v) => v.tokenNumber === Number(token[1]));
+      if (!visit) return sorry(`Nobody in today's queue has token ${token[1]}.`);
+      return { kind: "go", to: `/appointments/${visit.id}/encounter`, say: `Opening ${visit.patient.name}'s visit, token ${visit.tokenNumber}.` };
+    }
+    if (q.length < 2) return sorry("Tell me the patient's name, phone number or token.");
+
+    const found = await patientsCalled(q, live);
+    if (found.length === 0) return sorry(`I could not find anyone called "${q}". Say the name again, or give their phone number or token.`);
+    if (found.length === 1) return open(found[0]!);
+    // Several by that name, and one of them is here today: that one first.
+    const sorted = [...found].sort((a, b) => Number(Boolean(visitOf(b.id))) - Number(Boolean(visitOf(a.id))));
     return {
       kind: "answer",
       title: `${found.length === 7 ? "Several" : found.length} patients match "${q}"`,
-      lines: found.map((p) => ({
-        label: p.uhid,
-        text: [p.name, p.age != null ? `${p.age}y` : null, p.gender, p.phone].filter(Boolean).join(" · "),
-        to: `/patients/${p.id}`,
-      })),
+      lines: sorted.map((p) => {
+        const visit = visitOf(p.id);
+        return {
+          label: p.uhid,
+          text: [p.name, p.age != null ? `${p.age}y` : null, p.gender, p.phone, visit ? `in today's queue, ${VISIT_STATE[visit.status]}` : null].filter(Boolean).join(" · "),
+          to: visit && wantsVisit ? `/appointments/${visit.id}/encounter` : `/patients/${p.id}`,
+        };
+      }),
     };
+  },
+};
+
+/**
+ * "Call the next one." Opens the visit of whoever the queue would call
+ * next: the same order the queue screen shows, emergencies first.
+ */
+const openNextPatient: Action = {
+  name: "open_next_patient",
+  summary: "Opens the visit of the next patient waiting in today's queue. Use it for 'next patient', 'call the next one', 'agla patient bulao', 'pudhcha patient'.",
+  kind: "go",
+  schema: NONE,
+  jsonSchema: NO_PARAMS,
+  allowed: anyone,
+  async run(context) {
+    const live = await liveVisitsToday(context.today);
+    const waiting = live
+      .filter((v) => v.status === "CHECKED_IN")
+      .sort((a, b) => byTriage(a, b) || (a.tokenNumber ?? 9999) - (b.tokenNumber ?? 9999));
+    const next = waiting[0];
+    if (!next) return sorry("Nobody is waiting in the queue just now.");
+    return { kind: "go", to: `/appointments/${next.id}/encounter`, say: `Opening ${next.patient.name}'s visit${next.tokenNumber != null ? `, token ${next.tokenNumber}` : ""}. ${waiting.length - 1} more waiting.` };
   },
 };
 
@@ -1029,7 +1165,7 @@ const registerPatient: Action = {
 export const ACTIONS: Action[] = [
   findPatient, patientBrief, lastPrescription, labResults, visitHistory, visitOnDate, vitalsTrend, patientDues, familyMembers,
   queueSummary, needsAttention, followupsDue, recallList, todaysCollection, assistantUsage,
-  openScreen,
+  openScreen, openNextPatient,
   addFamilyMember, recordVitals, bookVisit, orderTests, writePrescription, addCharge, issueCertificate, addToQueue, registerPatient,
 ];
 

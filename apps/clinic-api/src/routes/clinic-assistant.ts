@@ -32,6 +32,10 @@ const askSchema = z.object({
   text: z.string().trim().min(1).max(600),
   patientId: z.string().max(60).optional(),
   appointmentId: z.string().max(60).optional(),
+  /** The address of the screen they are on. */
+  screen: z.string().max(200).optional(),
+  /** A card is waiting on their screen for a yes or a no. */
+  card: z.boolean().optional(),
   /** The question the assistant asked last, when this is the answer to it. */
   pending: z.object({ request: z.string().max(600), question: z.string().max(600) }).optional(),
 });
@@ -44,6 +48,20 @@ const runSchema = z.object({
   appointmentId: z.string().max(60).nullable().optional(),
   seal: z.string().max(200),
 });
+
+/**
+ * A yes or a no, said to a card that is waiting.
+ *
+ * The card is on the person's own screen and only their browser can send
+ * it back, so all the server says is which of the two was meant. It costs
+ * nothing: a spoken "haan, kar do" never reaches a model.
+ */
+const YES = /^(?:ok(?:ay)?[,. ]*)?(?:yes|yeah|yep|confirm(?: it)?|do it|go ahead|save(?: it)?|correct|right|haan?|ha|ji|ji haan?|kar ?do|kar ?de|theek hai|thik hai|sahi hai|ho|hoy|kara|karun taka|barobar|chalel)(?:[,. ]+(?:yes|confirm(?: it)?|do it|save(?: it)?|kar ?do|kara|please|haan?|ji|theek hai))*[.!।]?$|^(?:हाँ|हां|हा|जी|जी हाँ|ठीक है|सही है|कर दो|करो|हो|होय|करा|बरोबर|चालेल)(?:[,. ]+(?:कर दो|करो|करा|ठीक है|हाँ|हां))*[.!।]?$/iu;
+const NO = /^(?:no|nope|cancel(?: it)?|stop|leave it|don'?t|not now|nahi|nahin|nako|rehne do|rahu de|mat karo)[.!।]?$|^(?:नहीं|नही|नको|रहने दो|राहू दे|मत करो|कैंसल)[.!।]?$/iu;
+function yesOrNo(text: string): "yes" | "no" | null {
+  const said = text.trim();
+  return YES.test(said) ? "yes" : NO.test(said) ? "no" : null;
+}
 
 export async function clinicAssistantRoutes(app: FastifyInstance) {
   function record(request: FastifyRequest, answered: Answered) {
@@ -72,6 +90,10 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
     if (!auth) return;
     const parsed = askSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "Say or type what you need." });
+    if (parsed.data.card) {
+      const decided = yesOrNo(parsed.data.text);
+      if (decided) return { decided, by: "rule" };
+    }
     const context = await contextFor(app, request, parsed.data);
     const answered = await ask(parsed.data.text, context, parsed.data.pending);
     record(request, answered);
@@ -101,11 +123,15 @@ export async function clinicAssistantRoutes(app: FastifyInstance) {
       throw error;
     }
     if (heard.trim().length < 2) {
-      return { reply: { kind: "sorry", say: "I did not hear anything. Hold the microphone, speak, then let go." }, by: "none", heard: "" };
+      return { reply: { kind: "sorry", say: "I did not hear anything. Tap the microphone and say it again." }, by: "none", heard: "" };
+    }
+    if (field("card") === "1") {
+      const decided = yesOrNo(heard);
+      if (decided) return { decided, by: "rule", heard };
     }
     const pendingRequest = field("pendingRequest");
     const pendingQuestion = field("pendingQuestion");
-    const context = await contextFor(app, request, { patientId: field("patientId"), appointmentId: field("appointmentId") });
+    const context = await contextFor(app, request, { patientId: field("patientId"), appointmentId: field("appointmentId"), screen: field("screen") });
     const answered = await ask(
       heard,
       context,

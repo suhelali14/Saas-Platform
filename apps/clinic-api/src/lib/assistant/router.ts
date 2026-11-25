@@ -149,7 +149,12 @@ const ABOUT_CLINIC: { said: RegExp; action: string }[] = [
 const FILE_NUMBER = /\b[A-Z]{2,5}-?\d{3,6}\b/;
 const PHONE = /(?:\d[\s-]?){8,12}/;
 
-const FIND = /\b(?:find|search(?: for)?|look ?up|pull up|open|show|get|dhundo|dhoondo|shodha|shodh|kholo|dikhao|ughda|dakhva)\b|ढूंढो|खोजो|शोधा|खोलो|दिखाओ|उघडा|दाखवा/i;
+const FIND = /\b(?:find|search(?: for)?|look ?up|pull up|open|show|get|call(?: in)?|dhundo|dhoondo|shodha|shodh|kholo|dikhao|ughda|dakhva|bulao|bolva|bolav)\b|ढूंढो|खोजो|शोधा|खोलो|दिखाओ|उघडा|दाखवा|बुलाओ|बोलवा|बोलाव/i;
+
+/** "Call the next one", as against "who is next". */
+const NEXT_ONE = /\b(?:next|agla|agli|pudhcha|pudhchi|pudhil)\b|अगला|अगली|पुढचा|पुढची|पुढील/i;
+const SEND_IN = /\b(?:open|call(?: in)?|send in|start|bring in|bulao|bhejo|kholo|ughda|bolva|bolav|pathva)\b|बुलाओ|भेजो|खोलो|उघडा|बोलवा|बोलाव|पाठवा/i;
+const TOKEN = /\b(?:token|tokan)\s*(?:no\.?|number)?\s*(\d{1,3})\b|टोकन\s*(?:नंबर|क्रमांक)?\s*(\d{1,3})/i;
 const FILE_WORDS = /\b(?:patient|file|record|ka file|ki file|chi file|cha file|profile|case|mareez|marij|peshant)\b|पेशंट|मरीज|फाइल|फाईल/i;
 
 /** What is left of a search once the words that are not a name are gone. */
@@ -216,6 +221,14 @@ export function route(input: string, context: RouteContext): Intent | null {
     for (const { said, action } of ABOUT_PATIENT) {
       if (said.test(text)) return { action, params: {} };
     }
+  }
+
+  // ── The queue, worked by voice ─────────────────────────────────────
+  // Before "who is next", which the same two words would otherwise reach.
+  if (!changes && text.split(" ").length <= 8) {
+    const token = TOKEN.exec(text);
+    if (token && (SEND_IN.test(text) || text.split(" ").length <= 3)) return { action: "find_patient", params: { query: `token ${token[1] ?? token[2]}` } };
+    if (NEXT_ONE.test(text) && SEND_IN.test(text) && !/\b(?:who|kaun|kon|how many|kitne|kiti)\b|कौन|कोण|कितने|किती/i.test(text)) return { action: "open_next_patient", params: {} };
   }
 
   // ── About the day ──────────────────────────────────────────────────
