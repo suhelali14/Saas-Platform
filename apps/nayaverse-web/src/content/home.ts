@@ -15,12 +15,14 @@
 import type { Locale } from './index';
 
 export interface HomeCopy {
-  hero: { route: string[]; headline: string[]; lede: string };
+  hero: { headline: string[]; lede: string };
   screening: {
     heading: string;
     lede: string;
     /** The switch between the two films. */
     switchLabel: string;
+    /** On the small standby screen: what pressing it does. */
+    alsoShowing: string;
     recorded: string;
     englishOnly: string;
     visionLine: string;
@@ -38,7 +40,6 @@ export interface HomeCopy {
 
 const en: HomeCopy = {
   hero: {
-    route: ['Made in Sangli', 'One founder', 'No outside money'],
     headline: ['Software a', 'business runs', 'its day on'],
     lede:
       'Nayaversse is a small software company from Sangli. Our first product runs a clinic there every working day. Our second brings back the customers a business has lost. Both are on film below, recorded from the real thing.',
@@ -47,6 +48,7 @@ const en: HomeCopy = {
     heading: 'See them work',
     lede: 'Two products, two films. Nothing here is a mock-up: each film was recorded from the product itself, on made-up people.',
     switchLabel: 'Which film',
+    alsoShowing: 'Also showing',
     recorded: 'Recorded from the product',
     englishOnly: 'Narrated in English',
     visionLine: 'After these two: shops, salons, gyms and food, on the same records. None of it is built yet.',
@@ -93,7 +95,6 @@ const en: HomeCopy = {
 
 const hi: HomeCopy = {
   hero: {
-    route: ['सांगली में बना', 'एक संस्थापक', 'बाहर का पैसा नहीं'],
     headline: ['वह सॉफ़्टवेयर', 'जिस पर धंधा', 'दिन भर चलता है'],
     lede:
       'Nayaversse सांगली की एक छोटी सॉफ़्टवेयर कंपनी है। हमारा पहला प्रोडक्ट वहाँ के एक क्लिनिक को हर कामकाजी दिन चलाता है। दूसरा उन ग्राहकों को वापस लाता है जो धंधे से छूट गए। दोनों नीचे वीडियो में हैं, असली प्रोडक्ट से रिकॉर्ड किए हुए।',
@@ -102,6 +103,7 @@ const hi: HomeCopy = {
     heading: 'इन्हें काम करते देखिए',
     lede: 'दो प्रोडक्ट, दो फ़िल्में। यहाँ कुछ भी नक़ली नहीं है: हर फ़िल्म ख़ुद प्रोडक्ट से रिकॉर्ड की गई है, काल्पनिक लोगों पर।',
     switchLabel: 'कौन-सी फ़िल्म',
+    alsoShowing: 'यह भी देखिए',
     recorded: 'प्रोडक्ट से रिकॉर्ड किया गया',
     englishOnly: 'आवाज़ अंग्रेज़ी में',
     visionLine: 'इन दोनों के बाद: दुकान, सैलून, जिम और खाना-पीना, उन्हीं रिकॉर्ड पर। इनमें से अभी कुछ बना नहीं है।',
@@ -148,7 +150,6 @@ const hi: HomeCopy = {
 
 const mr: HomeCopy = {
   hero: {
-    route: ['सांगलीत बनलेलं', 'एक संस्थापक', 'बाहेरचा पैसा नाही'],
     headline: ['ते सॉफ्टवेअर', 'ज्यावर धंदा', 'दिवसभर चालतो'],
     lede:
       'Nayaversse ही सांगलीतली एक छोटी सॉफ्टवेअर कंपनी आहे. आमचं पहिलं प्रॉडक्ट तिथलं एक क्लिनिक रोज चालवतं. दुसरं धंद्यापासून तुटलेल्या ग्राहकांना परत आणतं. दोन्ही खाली व्हिडिओमध्ये आहेत, खऱ्या प्रॉडक्टमधून रेकॉर्ड केलेले.',
@@ -157,6 +158,7 @@ const mr: HomeCopy = {
     heading: 'त्यांना काम करताना पाहा',
     lede: 'दोन प्रॉडक्ट, दोन फिल्म्स. इथे काहीही बनावट नाही: प्रत्येक फिल्म स्वतः प्रॉडक्टमधून रेकॉर्ड केली आहे, काल्पनिक लोकांवर.',
     switchLabel: 'कोणती फिल्म',
+    alsoShowing: 'हेही पाहा',
     recorded: 'प्रॉडक्टमधून रेकॉर्ड केलेलं',
     englishOnly: 'निवेदन इंग्रजीत',
     visionLine: 'या दोघांनंतर: दुकान, सलून, जिम आणि खाद्य, त्याच नोंदींवर. यातलं अजून काहीही बनलेलं नाही.',

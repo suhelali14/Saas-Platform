@@ -91,10 +91,6 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
             <Reveal defer><Standing /></Reveal>
             <Reveal defer><AssistantFilms /></Reveal>
             <Reveal defer><DayCharts clinicOnly /></Reveal>
-            {/* Straight after the live clinic chart: the reader who just
-                watched the queue re-rank is the one asking which class is
-                theirs and what a hospital gets. */}
-            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
             <Reveal defer><Conditions /></Reveal>
             <Reveal defer><Enquiry /></Reveal>
           </>

@@ -113,7 +113,7 @@ const en: ProductsCopy = {
     headline: ['Software for', 'the working day', 'of a clinic'],
     lede:
       'Nayaversse Clinic runs a clinic in Sangli today: the queue, the patient file, prescriptions, billing, stock and the clinic’s own website. Nayaversse Growth, which brings back customers who stopped coming, is built and waiting for its first business. Everything planned after these is on the Vision page, and says it is not built.',
-    clinicNote: 'Running at a clinic in Sangli, every day',
+    clinicNote: 'Running at Vadgaonkar Clinic, Walwa, every working day',
     growthNote: 'Built. No business uses it yet',
     visionNote: 'Shops, salons, gyms, food. Not built',
     action: 'Book a walkthrough',
@@ -281,7 +281,7 @@ const hi: ProductsCopy = {
     headline: ['क्लिनिक के', 'पूरे दिन का', 'सॉफ़्टवेयर'],
     lede:
       'Nayaversse Clinic आज सांगली के एक क्लिनिक में चल रहा है: कतार, मरीज़ की फ़ाइल, प्रिस्क्रिप्शन, बिलिंग, स्टॉक और क्लिनिक की अपनी वेबसाइट। Nayaversse Growth, जो आना बंद कर चुके ग्राहकों को वापस लाता है, बन चुका है और अपने पहले धंधे का इंतज़ार कर रहा है। इनके बाद जो बनाना है वह “आगे की योजना” पेज पर है, और वहाँ साफ़ लिखा है कि वह अभी बना नहीं है।',
-    clinicNote: 'सांगली के एक क्लिनिक में रोज़ चल रहा है',
+    clinicNote: 'वालवा के वडगांवकर क्लिनिक में हर कामकाजी दिन चल रहा है',
     growthNote: 'बन चुका। अभी कोई धंधा इस्तेमाल नहीं करता',
     visionNote: 'दुकान, सैलून, जिम, खाना-पीना। अभी बना नहीं',
     action: 'डेमो बुक करें',
@@ -449,7 +449,7 @@ const mr: ProductsCopy = {
     headline: ['क्लिनिकच्या', 'पूर्ण दिवसाचं', 'सॉफ्टवेअर'],
     lede:
       'Nayaversse Clinic आज सांगलीतल्या एका क्लिनिकमध्ये चालू आहे: रांग, रुग्णाची फाइल, प्रिस्क्रिप्शन, बिलिंग, स्टॉक आणि क्लिनिकची स्वतःची वेबसाइट. Nayaversse Growth, जे यायचं थांबलेल्या ग्राहकांना परत आणतं, तयार आहे आणि पहिल्या धंद्याची वाट पाहत आहे. यानंतर जे बनवायचं आहे ते “पुढची योजना” पानावर आहे, आणि ते अजून बनलेलं नाही असं तिथे स्पष्ट लिहिलं आहे.',
-    clinicNote: 'सांगलीतल्या एका क्लिनिकमध्ये रोज चालू आहे',
+    clinicNote: 'वाळव्याच्या वडगांवकर क्लिनिकमध्ये रोज चालू आहे',
     growthNote: 'तयार. अजून कोणताही धंदा वापरत नाही',
     visionNote: 'दुकान, सलून, जिम, खाद्य. अजून बनलेलं नाही',
     action: 'डेमो ठरवा',

@@ -76,7 +76,7 @@ export function Player({
         >
           <img src={poster} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           <span className="absolute inset-0 bg-[color-mix(in_srgb,var(--board)_22%,transparent)] transition-colors group-hover:bg-transparent" style={{ transitionDuration: 'var(--dur)' }} />
-          <span className="plate absolute bottom-4 left-4 flex items-center gap-2.5">
+          <span className="plate absolute bottom-2 left-2 flex items-center gap-2 max-sm:!px-2.5 max-sm:!py-1.5 max-sm:!text-[0.8125rem] sm:bottom-4 sm:left-4 sm:gap-2.5">
             <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true" fill="currentColor">
               <path d="M2.5 1.2 10.5 6l-8 4.8z" />
             </svg>

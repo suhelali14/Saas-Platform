@@ -46,7 +46,7 @@ export function Standing() {
 
         <div className="grid lg:grid-cols-3">
           <article className={column}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-3">
               <p className={label}>{standing.clinic.label}</p>
               <Stamp tone="confirmed" pressed>{readiness.LIVE}</Stamp>
             </div>
@@ -61,7 +61,7 @@ export function Standing() {
           </article>
 
           <article className={column + ' border-t border-[color-mix(in_srgb,var(--rule)_20%,transparent)] lg:border-l lg:border-t-0'}>
-            <p className={label}>{standing.founder.label}</p>
+            <p className={label + ' flex min-h-[1.75rem] items-center'}>{standing.founder.label}</p>
             <h3 className={name}>{standing.founder.name}</h3>
             <ul className="mt-4">
               {standing.founder.lines.map((l) => (
@@ -84,7 +84,7 @@ export function Standing() {
           </article>
 
           <article className={column + ' border-t border-[color-mix(in_srgb,var(--rule)_20%,transparent)] lg:border-l lg:border-t-0'}>
-            <p className={label}>{standing.checks.label}</p>
+            <p className={label + ' flex min-h-[1.75rem] items-center'}>{standing.checks.label}</p>
             <ul className="mt-3">
               {standing.checks.lines.map((l) => (
                 <li key={l} className={line}>{l}</li>

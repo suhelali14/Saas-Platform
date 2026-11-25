@@ -56,6 +56,8 @@
     --priority: #a81f18;
     --stamp: #453585;
     --lamp: #eba63f;
+    /* Live, on the black board: the chart's green, lifted until it reads on enamel. */
+    --board-live: #6fd39a;
 
     /* --- motion -------------------------------------------------------
        Exponential ease-out from an already-visible default. The one authored
@@ -1603,6 +1605,36 @@
     transition: transform var(--dur-slow) var(--ease);
   }
   .indicator > button[aria-selected='true']::after { transform: scaleX(1); }
+
+  /* The film that is not playing: a small unlit screen, and its name. */
+  .standby {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .standby-screen {
+    position: relative;
+    display: block;
+    width: 9.5rem;
+    aspect-ratio: 16 / 9;
+    flex: none;
+    overflow: hidden;
+    background: #050607;
+    box-shadow: 0 0 0 1px #2a3238, 0 0 0 4px #0d1013, 0 0 0 5px #2a3238;
+  }
+  .standby-screen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.5;
+    filter: saturate(0.6);
+    transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease);
+  }
+  .standby:hover .standby-screen img,
+  .standby:focus-visible .standby-screen img {
+    opacity: 1;
+    filter: none;
+  }
 
   .screening-title {
     --flap-h: clamp(3rem, 7vw, 4.6rem);

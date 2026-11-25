@@ -46,7 +46,15 @@ const span = (chapter) => {
   return [mine[0].t0, mine.at(-1).t1];
 };
 ff(['-i', film, '-vf', 'scale=1280:720', ...SMALL, path.join(SITE, 'assistant.mp4')], 'assistant');
-still(film, span('SAY IT')[0] + 12, path.join(SITE, 'assistant.jpg'));
+// A still is taken just before a beat ends: its caption has finished
+// appearing by then and has not started to leave.
+const settled = (list, chapter, nth = 0) => {
+  const mine = list.filter((b) => b.chapter === chapter);
+  const b = mine[Math.min(nth, mine.length - 1)];
+  if (!b) throw new Error(`no chapter called "${chapter}"`);
+  return b.t1 - 0.6;
+};
+still(film, settled(beats, 'SAY IT', 1), path.join(SITE, 'assistant.jpg'));
 console.log(`assistant.mp4  ${mb(path.join(SITE, 'assistant.mp4'))}`);
 
 const PARTS = { say: 'SAY IT', language: 'ANY LANGUAGE', yes: 'ONE SENTENCE, ONE YES', limits: "EVERYONE'S OWN LIMITS", room: 'IN THE CONSULTING ROOM' };
@@ -59,7 +67,7 @@ for (const [name, chapter] of Object.entries(PARTS)) {
   ff(['-ss', t0.toFixed(2), '-t', len.toFixed(2), '-i', film,
     '-vf', `scale=1280:720,fade=t=in:st=0:d=0.3,fade=t=out:st=${(len - 0.3).toFixed(2)}:d=0.3`,
     '-af', `afade=t=in:st=0:d=0.2,afade=t=out:st=${(len - 0.3).toFixed(2)}:d=0.3`, ...SMALL, to], name);
-  still(film, t0 + len * 0.72, path.join(SITE, `assistant-${name}.jpg`));
+  still(film, settled(beats, chapter, 9), path.join(SITE, `assistant-${name}.jpg`));
   console.log(`assistant-${name}.mp4  ${len.toFixed(1)}s  ${mb(to)}`);
 }
 
@@ -69,9 +77,10 @@ for (const [name, chapter] of Object.entries(PARTS)) {
   if (fs.existsSync(from)) {
     const to = path.join(SITE, 'growth.mp4');
     ff(['-i', from, '-vf', 'scale=1280:720', ...SMALL, to], 'growth');
-    // The moment the proof is on screen.
-    const proof = JSON.parse(fs.readFileSync(path.join(OUT, '_story-growth/timeline-merged.json'), 'utf8')).beats.find((b) => b.chapter === 'PROOF, NOT IMPRESSIONS');
-    still(from, proof ? proof.t1 - 1.2 : 48, path.join(SITE, 'growth.jpg'));
+    // The product at work: the consent list. Not the proof screen, whose
+    // rupee figure is a demo salon's and would read as a result.
+    const growthBeats = JSON.parse(fs.readFileSync(path.join(OUT, '_story-growth/timeline-merged.json'), 'utf8')).beats;
+    still(from, settled(growthBeats, 'ONLY WHO AGREED', 0), path.join(SITE, 'growth.jpg'));
     console.log(`growth.mp4  ${mb(to)}`);
   } else console.log('growth: nayaversse-growth.mp4 is not rendered, left out');
 }
@@ -82,6 +91,9 @@ for (const [lang, file] of Object.entries({ en: 'nayaversse-yt.mp4', hi: 'nayave
   if (!fs.existsSync(from)) { console.log(`clinic-${lang}: ${file} is not rendered, left out`); continue; }
   const to = path.join(SITE, `clinic-${lang}.mp4`);
   ff(['-i', from, '-vf', 'scale=1280:720', ...SMALL, to], `clinic ${lang}`);
-  if (lang === 'en') still(from, 62, path.join(SITE, 'clinic.jpg'));
+  if (lang === 'en') {
+    const clinicBeats = JSON.parse(fs.readFileSync(path.join(OUT, '_story-yt/timeline-merged.json'), 'utf8')).beats;
+    still(from, settled(clinicBeats, 'THE FRONT DESK', 1), path.join(SITE, 'clinic.jpg'));
+  }
   console.log(`clinic-${lang}.mp4  ${mb(to)}`);
 }

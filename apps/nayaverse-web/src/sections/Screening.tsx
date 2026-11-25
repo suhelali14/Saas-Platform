@@ -22,7 +22,7 @@
  * chart's Live, Growth carries Built and the sentence that no business
  * uses it yet.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { m, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
@@ -47,7 +47,7 @@ export function Screening() {
 
   const films = [
     {
-      key: 'clinic', short: p.nav.clinic, words: p.lineup.clinic, status: readiness.LIVE, tone: 'var(--lamp)',
+      key: 'clinic', short: p.nav.clinic, words: p.lineup.clinic, status: readiness.LIVE, tone: 'var(--board-live)',
       film: clinicFilm[locale], length: '3:56', english: false, href: pathFor(locale, 'clinic'),
     },
     {
@@ -56,12 +56,19 @@ export function Screening() {
     },
   ] as const;
   const now = films[which]!;
+  const other = films[which === 0 ? 1 : 0]!;
 
   /* The screen draws up and the light crosses it as the section arrives. */
   const stage = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
   const still = useReducedMotion();
+  const [below, setBelow] = useState(false);
+  useEffect(() => {
+    const top = stage.current?.getBoundingClientRect().top ?? 0;
+    setBelow(top > window.innerHeight);
+  }, []);
   const moving = hydrated && !still;
+  const drawsUp = moving && below;
   const { scrollYProgress } = useScroll({ target: stage, offset: ['start end', 'start 0.18'] });
   const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
   const light = useTransform(scrollYProgress, [0, 1], ['-40%', '150%']);
@@ -120,15 +127,19 @@ export function Screening() {
         >
           {/* The screen takes the whole width of the board: the film is the
               argument, so it is the largest thing on the page. */}
-          <div ref={stage} className="min-w-0 px-5 py-5 sm:px-6 sm:py-6">
-            <m.div className="screen" style={moving ? { scale, transformOrigin: '50% 100%' } : undefined}>
+          <div ref={stage} className="min-w-0 py-5 sm:px-6 sm:py-6">
+            <m.div className="screen" style={drawsUp ? { scale, transformOrigin: '50% 100%' } : undefined}>
               <span className="screen-tick tl" aria-hidden="true" />
               <span className="screen-tick tr" aria-hidden="true" />
               <span className="screen-tick bl" aria-hidden="true" />
               <span className="screen-tick br" aria-hidden="true" />
-              {/* The new picture wipes across the old one, left to right. */}
+              {/* The new picture wipes across the old one, left to right. With
+                  two films the outgoing one is always the other, so its still
+                  sits underneath until the wipe has covered it. */}
+              <img src={other.film.poster} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
               <m.div
                 key={now.key}
+                className="relative"
                 initial={moving ? { clipPath: 'inset(0 100% 0 0)' } : false}
                 animate={{ clipPath: 'inset(0 0% 0 0)' }}
                 transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -143,23 +154,37 @@ export function Screening() {
                   autoStart={asked}
                 />
               </m.div>
-              {moving && (
+              {moving && !asked && (
                 <span className="screen-glare" aria-hidden="true">
                   <m.span style={{ left: light }} />
                 </span>
               )}
             </m.div>
-            <p className="t-label mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[var(--board-ink-soft)]">
-              <span>{words.recorded}</span>
-              <span data-figures>{now.length}</span>
-              <span>{p.film.sound}</span>
-              {now.english && <span>{words.englishOnly}</span>}
-            </p>
+            <div className="mt-5 flex flex-wrap items-start justify-between gap-x-8 gap-y-5">
+              <p className="t-label flex flex-wrap gap-x-4 gap-y-1 text-[var(--board-ink-soft)]">
+                <span>{words.recorded}</span>
+                <span data-figures>{now.length}</span>
+                <span>{p.film.sound}</span>
+                {now.english && <span>{words.englishOnly}</span>}
+              </p>
+              {/* The film that is not playing, on standby: both products are
+                  on the page whether or not anything is pressed. */}
+              <button type="button" onClick={() => pick(which === 0 ? 1 : 0)} className="standby group">
+                <span className="standby-screen">
+                  <img src={other.film.poster} alt="" loading="lazy" decoding="async" />
+                </span>
+                <span className="min-w-0 text-left">
+                  <span className="t-label block text-[var(--board-ink-soft)]">{words.alsoShowing}</span>
+                  <span className="t-board mt-1.5 block text-[1.5rem] leading-none text-[var(--board-ink)] transition-colors group-hover:text-[var(--lamp)]">{other.short}</span>
+                  <span className="t-label mt-1.5 block !text-[0.625rem]" style={{ color: other.tone }}>{other.status}</span>
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Under the screen, what is playing: the name on its drum, what
               it is for, and what it does, read left to right. */}
-          <div className="mt-8 grid gap-x-12 gap-y-8 px-5 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
+          <div className="mt-8 grid gap-x-12 gap-y-8 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
             <div className="min-w-0">
               {/* One drum, two cards: the name turns over when the film does. */}
               <div className="screening-title" aria-hidden="true">

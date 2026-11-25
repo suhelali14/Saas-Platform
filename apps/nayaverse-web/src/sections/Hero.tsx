@@ -25,7 +25,7 @@ import { useContent, useContentCtx } from '@/content/use-content';
 import { pathFor } from '@/content/index';
 import { productsCopy } from '@/content/products';
 import { homeCopy } from '@/content/home';
-import { Board, Chevron, cx } from '@/components/primitives';
+import { Board, cx } from '@/components/primitives';
 
 export function Hero({ onEnquire }: { onEnquire: () => void }) {
   const { readiness } = useContent();
@@ -34,7 +34,7 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
   const hero = { ...actions, ...homeCopy[locale].hero };
 
   const lines = [
-    { name: lineup.clinic.name, word: readiness.LIVE, note: hero.clinicNote, href: pathFor(locale, 'clinic'), tone: 'text-[var(--lamp)] border-[var(--lamp)]' },
+    { name: lineup.clinic.name, word: readiness.LIVE, note: hero.clinicNote, href: pathFor(locale, 'clinic'), tone: 'text-[var(--board-live)] border-[var(--board-live)]' },
     { name: lineup.growth.name, word: status.built, note: hero.growthNote, href: pathFor(locale, 'growth'), tone: 'text-[var(--board-ink)] border-[var(--board-ink-soft)]' },
     { name: lineup.vision.name, word: status.planned, note: hero.visionNote, href: pathFor(locale, 'vision'), tone: 'text-[var(--board-ink-soft)] border-[var(--steel-line)]' },
   ];
@@ -42,21 +42,12 @@ export function Hero({ onEnquire }: { onEnquire: () => void }) {
   return (
     <section id="top" className="frame frame-wide pb-10 pt-8 sm:pt-12">
       <Board className="px-5 py-8 sm:px-10 sm:py-11 lg:px-14 lg:py-12">
-        <ul className="t-label flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[var(--board-ink-soft)]">
-          {hero.route.map((stop, i) => (
-            <li key={stop} className="flex items-center gap-2">
-              {i > 0 && <Chevron className="text-[var(--lamp)]" />}
-              <span>{stop}</span>
-            </li>
-          ))}
-        </ul>
-
         {/* Two cells. On a desk: headline and lede, with the products and
             the action down the right. On a phone they stack, and what exists
             and the way to act still fit the first screen. (The split-flap
             departure line that used to sit here turns through the trades
             on the service chart, so it went to the Vision page with it.) */}
-        <div className="mt-7 grid gap-x-12 gap-y-9 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid gap-x-12 gap-y-9 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0">
             <h1 className="t-board t-display text-[var(--board-ink)]">
               {hero.headline.map((line) => (

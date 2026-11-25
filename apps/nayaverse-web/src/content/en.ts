@@ -431,7 +431,7 @@ export const en = {
       a: 'One. A clinic in Sangli, paying, in production. Every other row is being built, which is what its status says. If you need a vendor with a thousand customers, buy one — we would rather that than let you down.',
     },
     {
-      q: 'What does “Building” mean on my row?',
+      q: 'What does “Building” mean on the Vision page?',
       a: 'The plumbing is there; the screens for your trade are not finished. Catalogue, orders, stock, bookings, billing, customers and your website are written and working. Being first on a row means we build the rest with you in front of us. Expect rough edges; you keep the price you start on.',
     },
     {
@@ -687,7 +687,7 @@ export const en = {
         {
           heading: 'What he is building',
           body: [
-            "Nayaversse is one system for how a small business runs: the counter, stock, bookings, billing, customers and the business's own website. The clinic version is live at Vadgaonkar Clinic in Walwa, Sangli. Versions for shops, salons, gyms and food are being built, and every row of the chart on the home page says which is which.",
+            "Nayaversse is one system for how a small business runs: the counter, stock, bookings, billing, customers and the business's own website. The clinic version is live at Vadgaonkar Clinic in Walwa, Sangli. Versions for shops, salons, gyms and food are being built, and every row of the chart on the Vision page says which is which.",
           ],
         },
         {
@@ -952,7 +952,7 @@ export const en = {
         {
           heading: 'Status on every row',
           body: [
-            "The temptation when selling software is to show every line of business the product might serve and let the buyer sort out which is real. The chart on the home page refuses to. Every row has a status. A row that says Building is not for sale yet. A row that says Live has a clinic running on it that pays for the lights. The build fails if the chart says one thing and the content says another.",
+            "The temptation when selling software is to show every line of business the product might serve and let the buyer sort out which is real. The chart on the Vision page refuses to. Every row has a status. A row that says Building is not for sale yet. A row that says Live has a clinic running on it that pays for the lights. The build fails if the chart says one thing and the content says another.",
           ],
         },
       ],
