@@ -267,7 +267,11 @@ export function Layout() {
             the clinic's website did not come here to look at it. */}
         {/* Only an admin can fill the website in, so only an admin is
             asked to; a cashier cannot act on it. */}
-        {isAdmin && <SetupPrompt />}
+        {/* And only on the screens where an admin is looking after the
+            clinic, not the ones where a doctor is looking after a patient:
+            on a visit it pushed the patient's name a third of the way
+            down the screen. */}
+        {isAdmin && ['/', '/website', '/settings'].includes(location.pathname) && <SetupPrompt />}
         {/*
           Every portal screen is a separate chunk (see App.tsx), so the
           first visit to one has to wait for it. The boundary belongs

@@ -80,7 +80,7 @@ export function Billing() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl">
       <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><IndianRupee size={20} className="text-muted-foreground" /> Billing</h1>
       <p className="text-sm text-muted-foreground mb-4">Invoices, payments, and daily cash closing.</p>
 

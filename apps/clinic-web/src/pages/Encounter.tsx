@@ -99,215 +99,281 @@ export function Encounter() {
 
   if (!appointment) return error
     ? <div className="p-8 text-muted-foreground">{error}</div>
-    : <div className="p-4 sm:p-6 md:p-8 max-w-3xl"><SkeletonPanels count={3} label="Loading the consultation" /></div>;
+    : <div className="p-4 sm:p-6 md:p-8 max-w-6xl"><SkeletonPanels count={3} label="Loading the consultation" /></div>;
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(appointment.status) + 1];
   const hasVitals = appointment.vitals && Object.values(appointment.vitals).some(Boolean);
   const hasSafetyAlert = appointment.patient.allergies || appointment.patient.chronicConditions;
 
+  // ── What this visit holds, said once ────────────────────────────────
+  // A visit can have several prescriptions and lab orders on it (one
+  // written, one dictated, one from the assistant). Listed as a card
+  // each, the same medicine and the same test appeared four times and a
+  // doctor had to work out what the patient was actually given. Here
+  // each medicine and each test is one line.
+  const sameText = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const medicines = prescriptions
+    .flatMap((rx) => rx.items)
+    .filter((item, i, all) => all.findIndex((o) => [o.drugName, o.dosage, o.frequency, o.duration].map(sameText).join('|') === [item.drugName, item.dosage, item.frequency, item.duration].map(sameText).join('|')) === i);
+  const tests = labOrders
+    .flatMap((order) => order.items)
+    // A test ordered twice is one test; the copy with a result is the one to show.
+    .sort((x, y) => Number(Boolean(y.completedAt)) - Number(Boolean(x.completedAt)))
+    .filter((item, i, all) => all.findIndex((o) => sameText(o.testName) === sameText(item.testName)) === i);
+  const note = caseSheets[0];
+  const nothingYet = caseSheets.length === 0 && prescriptions.length === 0 && certificates.length === 0 && labOrders.length === 0;
+  const CARD = 'rounded-xl border border-border/15 bg-card p-4';
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl">
       <Link to="/queue" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to queue</Link>
 
-      {/* Patient safety banner -- surfaced first, above the fold, matching
-          real EHR allergy-alert conventions (a doctor should never have to
-          click away to discover a patient's allergies mid-consult). */}
-      {hasSafetyAlert && (
-        <div className="mb-4 p-3 rounded-xl border border-ink-danger/30 bg-ink-danger/10 flex items-start gap-2">
-          <AlertTriangle size={16} className="text-ink-danger shrink-0 mt-0.5" />
-          <div className="text-sm text-ink-danger">
-            {appointment.patient.allergies && <div><span className="font-semibold text-ink-danger">Allergies:</span> {appointment.patient.allergies}</div>}
-            {appointment.patient.chronicConditions && <div><span className="font-semibold text-ink-danger">Chronic conditions:</span> {appointment.patient.chronicConditions}</div>}
-          </div>
-        </div>
-      )}
-
-      <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.03] mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">{appointment.patient.name}</h1>
+      {/* ── Who this is ─────────────────────────────────────────────── */}
+      <header className="mb-5 rounded-xl border border-border/15 bg-card p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{appointment.patient.name}</h1>
               <span className="px-2 py-0.5 rounded-full tone-success text-xs font-mono font-semibold">{appointment.patient.uhid}</span>
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet">{STATUS_WORDS[appointment.status] ?? appointment.status}</span>
             </div>
-            <div className="text-sm text-muted-foreground flex flex-wrap gap-3 mt-1">
-              {appointment.patient.age != null && <span>{appointment.patient.age}y</span>}
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[14px] text-muted-foreground">
+              {appointment.patient.age != null && <span>{appointment.patient.age} years</span>}
               {appointment.patient.gender && <span>{appointment.patient.gender}</span>}
-              {appointment.patient.bloodGroup && <span>{appointment.patient.bloodGroup}</span>}
+              {appointment.patient.bloodGroup && <span>Blood group {appointment.patient.bloodGroup}</span>}
               {appointment.patient.phone && <span>{appointment.patient.phone}</span>}
-              <Link to={`/patients/${appointment.patient.id}`} className="text-ink-success hover:underline">Full profile →</Link>
-            </div>
+              <Link to={`/patients/${appointment.patient.id}`} className="font-medium text-ink-success hover:underline">Open full file →</Link>
+            </p>
+            <p className="mt-2 text-[14px]">
+              <span className="text-muted-foreground">Came for: </span>
+              <span className="font-medium">{appointment.reason || 'Not said'}</span>
+              <span className="text-muted-foreground">
+                {' · '}{new Date(appointment.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                {appointment.doctor ? ` · Dr. ${appointment.doctor.name.replace(/^Dr\.?\s*/i, '')}` : ''}
+              </span>
+            </p>
             {specialty.data?.pregnancy && (
               <p className="mt-2 inline-flex rounded-md tone-violet px-2.5 py-1 text-[14px] font-semibold">
                 Pregnant{specialty.data.pregnancy.ga ? ` · ${specialty.data.pregnancy.ga}` : ''}{specialty.data.pregnancy.edd ? ` · EDD ${longDate(specialty.data.pregnancy.edd)}` : ''}
               </p>
             )}
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-medium tone-violet shrink-0">{STATUS_WORDS[appointment.status] ?? appointment.status}</span>
-        </div>
-        <div className="text-xs text-muted-foreground/70 mt-3 flex items-center gap-3 flex-wrap">
-          <span>{new Date(appointment.scheduledAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-          {appointment.doctor && <span className="flex items-center gap-1"><User size={11} /> {appointment.doctor.name}</span>}
-          {appointment.reason && <span>· {appointment.reason}</span>}
-        </div>
-        {nextStatus && (
-          <button onClick={advanceStatus} className="mt-3 px-3 py-1.5 rounded-lg bg-foreground/10 text-xs font-medium hover:bg-foreground/20">
-            {NEXT_ACTION[nextStatus] ?? `Mark ${nextStatus}`}
-          </button>
-        )}
-      </div>
-
-      {/* Vitals -- viewable and editable right here, not just pre-consult
-          from the queue, so reception's earlier numbers or the doctor's own
-          update are both one click away. */}
-      <div className="p-4 rounded-xl border border-ink-info/20 bg-ink-info/5 mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-ink-info"><Activity size={14} /> Vitals</div>
-          {canRecordVitals && (
-            <button onClick={() => setPanel(panel === 'vitals' ? 'none' : 'vitals')} className="flex items-center gap-1 text-xs text-ink-info hover:underline">
-              <Pencil size={11} /> {hasVitals ? 'Update' : 'Record'}
+          {nextStatus && (
+            <button onClick={advanceStatus} className="shrink-0 rounded-lg bg-primary px-4 py-2 text-[14px] font-semibold text-primary-foreground hover:opacity-90">
+              {NEXT_ACTION[nextStatus] ?? `Mark ${nextStatus}`}
             </button>
           )}
         </div>
-        {panel === 'vitals' ? (
-          <VitalsInlineForm appointmentId={appointment.id} vitals={appointment.vitals} onDone={() => { setPanel('none'); load(); }} />
-        ) : hasVitals ? (
-          <div className="text-xs text-foreground/80 flex gap-3 flex-wrap">
-            {appointment.vitals?.bp && <span>BP: {appointment.vitals.bp}</span>}
-            {appointment.vitals?.temp && <span>Temp: {appointment.vitals.temp}</span>}
-            {appointment.vitals?.spo2 && <span>SpO2: {appointment.vitals.spo2}</span>}
-            {appointment.vitals?.pulse && <span>Pulse: {appointment.vitals.pulse}</span>}
-            {appointment.vitals?.weight && <span>Wt: {appointment.vitals.weight}</span>}
+
+        {/* Allergies and long-term conditions stay with the name: a doctor
+            should never have to look for them before prescribing. */}
+        {hasSafetyAlert && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-ink-danger/30 bg-ink-danger/10 p-3">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-ink-danger" />
+            <div className="text-[14px] text-ink-danger">
+              {appointment.patient.allergies && <div><span className="font-semibold">Allergic to:</span> {appointment.patient.allergies}</div>}
+              {appointment.patient.chronicConditions && <div><span className="font-semibold">Long-term conditions:</span> {appointment.patient.chronicConditions}</div>}
+            </div>
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground/70">Not recorded yet.</p>
         )}
-      </div>
-
-      {/* Continuity of care -- what happened last time, without leaving this screen. */}
-      {previousVisit && (
-        <div className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02] mb-6">
-          <div className="flex items-center gap-1.5 text-[14px] font-semibold mb-2"><History size={14} /> Last visit</div>
-          <div className="text-xs text-muted-foreground/70 mb-1">{new Date(previousVisit.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-          {previousVisit.chiefComplaint && <div className="text-sm"><span className="text-muted-foreground">Complaint:</span> {previousVisit.chiefComplaint}</div>}
-          {previousVisit.diagnosis && <div className="text-sm"><span className="text-muted-foreground">Diagnosis:</span> {previousVisit.diagnosis}</div>}
-          {previousVisit.followUpDate && (
-            <div className="text-sm text-ink-warning mt-1">Follow-up was due {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-          )}
-        </div>
-      )}
-
-      {/* Everything before the last visit, to look through and narrow
-          down without leaving this one. */}
-      <PastVisits patientId={appointment.patient.id} />
-
-      {specialty.data && (
-        <CareRecords mode="visit" appointmentId={appointment.id} data={specialty.data} reload={specialty.reload}
-          patient={{ id: appointment.patient.id, name: appointment.patient.name, age: appointment.patient.age, gender: appointment.patient.gender, dob: appointment.patient.dob }} />
-      )}
+      </header>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
-      {/* Above the forms it fills in: a doctor who uses it does not open
-          them, and one who does not is one scroll from where they were. */}
-      {canWriteClinical && hasModule('scribe') && (
-        <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} onSaved={load} />
-      )}
+      {/* Two columns on a wide screen: what the doctor does on the left,
+          what they look at while doing it on the right. One column on a
+          phone, with what they look at first. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {/* ── What to look at ─────────────────────────────────────── */}
+        <aside className="flex flex-col gap-4 lg:order-last" aria-label="About this patient">
+          <section className="rounded-xl border border-ink-info/20 bg-ink-info/5 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink-info"><Activity size={14} /> Vitals today</h2>
+              {canRecordVitals && (
+                <button onClick={() => setPanel(panel === 'vitals' ? 'none' : 'vitals')} className="flex items-center gap-1 text-[13px] font-medium text-ink-info hover:underline">
+                  <Pencil size={12} /> {hasVitals ? 'Change' : 'Record'}
+                </button>
+              )}
+            </div>
+            {panel === 'vitals' ? (
+              <VitalsInlineForm appointmentId={appointment.id} vitals={appointment.vitals} onDone={() => { setPanel('none'); load(); }} />
+            ) : hasVitals ? (
+              <dl className="grid grid-cols-3 gap-x-3 gap-y-2">
+                {([['BP', appointment.vitals?.bp], ['Pulse', appointment.vitals?.pulse], ['Temp', appointment.vitals?.temp], ['SpO₂', appointment.vitals?.spo2], ['Weight', appointment.vitals?.weight]] as [string, string | undefined][])
+                  .filter(([, v]) => v)
+                  .map(([k, v]) => (
+                    <div key={k}>
+                      <dt className="text-[12px] text-muted-foreground">{k}</dt>
+                      <dd className="text-[16px] font-semibold tabular-nums">{v}</dd>
+                    </div>
+                  ))}
+              </dl>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">Not recorded yet.</p>
+            )}
+          </section>
 
-      {canWriteClinical && hasModule('scribe') && (
-        <p className="mb-2 text-[13px] font-medium text-muted-foreground">Or write it yourself</p>
-      )}
-      {canWriteClinical && (
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <button onClick={() => setPanel(panel === 'caseSheet' ? 'none' : 'caseSheet')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
-            <FileText size={14} /> Case Sheet
-          </button>
-          <button onClick={() => setPanel(panel === 'prescription' ? 'none' : 'prescription')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
-            <Pill size={14} /> Prescription
-          </button>
-          <button onClick={() => setPanel(panel === 'certificate' ? 'none' : 'certificate')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
-            <Award size={14} /> Certificate
-          </button>
-{hasModule('labs') && (
-          <button onClick={() => setPanel(panel === 'labs' ? 'none' : 'labs')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/10 text-sm font-medium hover:bg-foreground/20">
-            <FlaskConical size={14} /> Order Labs
-          </button>
+          {/* Continuity of care -- what happened last time, without leaving this screen. */}
+          {previousVisit && (
+            <section className={CARD}>
+              <h2 className="mb-1 flex items-center gap-1.5 text-[14px] font-semibold"><History size={14} /> Last visit <span className="font-normal text-muted-foreground">· {new Date(previousVisit.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></h2>
+              {previousVisit.diagnosis && <p className="text-[14px] font-medium">{previousVisit.diagnosis}</p>}
+              {previousVisit.chiefComplaint && <p className="text-[13.5px] text-muted-foreground">Came for: {previousVisit.chiefComplaint}</p>}
+              {previousVisit.followUpDate && (
+                <p className="mt-1 text-[13.5px] text-ink-warning">Was asked to come back on {new Date(previousVisit.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+              )}
+            </section>
           )}
-        </div>
-      )}
 
-      {panel === 'caseSheet' && (
-        <CaseSheetForm patientId={appointment.patient.id} appointmentId={appointment.id} initialVitals={appointment.vitals || undefined} onDone={() => { setPanel('none'); load(); }} />
-      )}
-      {panel === 'prescription' && (
-        <PrescriptionForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
-      )}
-      {panel === 'certificate' && (
-        <CertificateForm patientId={appointment.patient.id} patientName={appointment.patient.name} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
-      )}
-      {panel === 'labs' && (
-        <LabOrderForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
-      )}
+          {/* Everything before the last visit, to look through and narrow
+              down without leaving this one. */}
+          <PastVisits patientId={appointment.patient.id} />
+        </aside>
 
-      {/* Charges + payment for this visit. Lives inside the Encounter so a
-          clinic without a dedicated cashier can bill before the patient
-          leaves, without navigating to Billing. */}
-      <VisitCharges appointmentId={appointment.id} doctorId={appointment.doctor?.id ?? null} onChanged={load} />
+        {/* ── What to do ──────────────────────────────────────────── */}
+        <div className="min-w-0">
+          {/* Above the forms it fills in: a doctor who uses it does not open
+              them, and one who does not is one scroll from where they were. */}
+          {canWriteClinical && hasModule('scribe') && (
+            <ScribePanel appointmentId={appointment.id} patientName={appointment.patient.name} onSaved={load} />
+          )}
 
-      <h2 className="text-[16px] font-semibold mb-3 mt-8">This visit</h2>
-      <div className="flex flex-col gap-3">
-        {caseSheets.length === 0 && prescriptions.length === 0 && certificates.length === 0 && labOrders.length === 0 && (
-          <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing recorded for this visit yet.</div>
-        )}
-        {labOrders.map((order) => (
-          <div key={order.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-2"><FlaskConical size={12} /> Lab Order · {order.doctor.name} · {order.status}</div>
-            {order.items.map((item) => (
-              <div key={item.id} className="text-sm flex items-center gap-2">
-                <span>{item.testName}</span>
-                {/* The doctor reading a result mid-consultation is exactly
-                    who needs the reference beside it. */}
-                {item.normalRange && <span className="text-[11px] text-muted-foreground/70">ref {item.normalRange}</span>}
-                {item.completedAt ? <span className="text-ink-success text-xs">Result: {item.resultText || 'file uploaded'}</span> : <span className="text-ink-warning text-xs">Pending</span>}
-              </div>
-            ))}
-          </div>
-        ))}
-        {caseSheets.map((c) => (
-          <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground/70 mb-2"><FileText size={12} /> Case Sheet · {c.doctor.name}</div>
-            {c.chiefComplaint && <div className="text-sm mb-1"><span className="text-muted-foreground">Complaint:</span> {c.chiefComplaint}</div>}
-            {c.diagnosis && <div className="text-sm mb-1"><span className="text-muted-foreground">Diagnosis:</span> {c.diagnosis}</div>}
-            {(c.attachments?.length ?? 0) > 0 && (
-              <div className="mt-2 flex flex-col gap-1">
-                {c.attachments.map((a) => (
-                  <button key={a.id} onClick={() => openPdf(`/case-sheets/attachments/${a.id}/file`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline w-fit">
-                    <Paperclip size={11} /> {a.fileName}
+          {canWriteClinical && (
+            <section className="mb-6">
+              <h2 className="mb-2 text-[13px] font-medium text-muted-foreground">{hasModule('scribe') ? 'Or write it yourself' : 'Write this visit'}</h2>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {([
+                  ['caseSheet', 'Note', 'Complaint and diagnosis', FileText],
+                  ['prescription', 'Medicines', 'Write a prescription', Pill],
+                  ...(hasModule('labs') ? [['labs', 'Tests', 'Order lab tests', FlaskConical]] : []),
+                  ['certificate', 'Certificate', 'Leave, fitness, referral', Award],
+                ] as [typeof panel, string, string, typeof FileText][]).map(([key, label, hint, Icon]) => (
+                  <button key={key} type="button" onClick={() => setPanel(panel === key ? 'none' : key)} aria-pressed={panel === key}
+                    className={`flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${panel === key ? 'border-foreground bg-foreground text-background' : 'border-border/20 bg-card hover:bg-accent'}`}>
+                    <span className="flex items-center gap-1.5 text-[14px] font-semibold"><Icon size={14} /> {label}</span>
+                    <span className={`text-[12px] ${panel === key ? 'text-background/75' : 'text-muted-foreground'}`}>{hint}</span>
                   </button>
                 ))}
               </div>
+              <div className={panel === 'caseSheet' || panel === 'prescription' || panel === 'certificate' || panel === 'labs' ? 'mt-3' : ''}>
+                {panel === 'caseSheet' && (
+                  <CaseSheetForm patientId={appointment.patient.id} appointmentId={appointment.id} initialVitals={appointment.vitals || undefined} onDone={() => { setPanel('none'); load(); }} />
+                )}
+                {panel === 'prescription' && (
+                  <PrescriptionForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
+                )}
+                {panel === 'certificate' && (
+                  <CertificateForm patientId={appointment.patient.id} patientName={appointment.patient.name} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
+                )}
+                {panel === 'labs' && (
+                  <LabOrderForm patientId={appointment.patient.id} appointmentId={appointment.id} onDone={() => { setPanel('none'); load(); }} />
+                )}
+              </div>
+            </section>
+          )}
+
+          {specialty.data && (
+            <CareRecords mode="visit" appointmentId={appointment.id} data={specialty.data} reload={specialty.reload}
+              patient={{ id: appointment.patient.id, name: appointment.patient.name, age: appointment.patient.age, gender: appointment.patient.gender, dob: appointment.patient.dob }} />
+          )}
+
+          {/* ── What has been written on this visit ───────────────── */}
+          <section className={`${CARD} mb-6`}>
+            <h2 className="mb-3 text-[16px] font-semibold">Written on this visit</h2>
+            {nothingYet ? (
+              <p className="text-[14px] text-muted-foreground">Nothing yet. The note, medicines and tests appear here as they are saved.</p>
+            ) : (
+              <dl className="space-y-4 text-[14px]">
+                {note && (
+                  <div>
+                    <dt className="mb-1 flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground"><FileText size={13} /> Note</dt>
+                    <dd>
+                      {note.diagnosis && <p className="text-[15px] font-semibold">{note.diagnosis}</p>}
+                      {note.chiefComplaint && <p><span className="text-muted-foreground">Came for: </span>{note.chiefComplaint}</p>}
+                      {note.notes && <p className="mt-0.5 whitespace-pre-line text-muted-foreground">{note.notes}</p>}
+                      {caseSheets.flatMap((c) => c.attachments ?? []).length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                          {caseSheets.flatMap((c) => c.attachments ?? []).map((file) => (
+                            <button key={file.id} onClick={() => openPdf(`/case-sheets/attachments/${file.id}/file`)} className="flex items-center gap-1 text-[13px] font-medium text-ink-success hover:underline">
+                              <Paperclip size={12} /> {file.fileName}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </dd>
+                  </div>
+                )}
+
+                {medicines.length > 0 && (
+                  <div>
+                    <dt className="mb-1 flex flex-wrap items-center justify-between gap-2 text-[13px] font-medium text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><Pill size={13} /> Medicines · {medicines.length}</span>
+                      <span className="flex flex-wrap gap-x-3">
+                        {prescriptions.map((rx, i) => (
+                          <button key={rx.id} onClick={() => openPdf(`/prescriptions/${rx.id}/pdf`)} className="flex items-center gap-1 font-medium text-ink-success hover:underline">
+                            <Download size={12} /> {prescriptions.length > 1 ? `Print prescription ${prescriptions.length - i}` : 'Print prescription'}
+                          </button>
+                        ))}
+                      </span>
+                    </dt>
+                    <dd>
+                      <ul className="space-y-1">
+                        {medicines.map((item, i) => (
+                          <li key={i}>
+                            <span className="font-medium">{item.drugName}</span>
+                            <span className="text-muted-foreground"> · {[item.dosage, item.frequency, item.duration].filter(Boolean).join(', ')}</span>
+                            {item.instructions && <span className="text-muted-foreground"> · {item.instructions}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
+
+                {tests.length > 0 && (
+                  <div>
+                    <dt className="mb-1 flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground"><FlaskConical size={13} /> Tests · {tests.length}</dt>
+                    <dd>
+                      <ul className="space-y-1">
+                        {tests.map((item) => (
+                          <li key={item.id} className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="font-medium">{item.testName}</span>
+                            {/* The doctor reading a result mid-consultation is exactly
+                                who needs the reference beside it. */}
+                            {item.completedAt
+                              ? <span>{item.resultText || 'report attached'}{item.normalRange ? <span className="text-muted-foreground"> (normal {item.normalRange})</span> : null}</span>
+                              : <span className="text-ink-warning">result awaited</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
+
+                {certificates.length > 0 && (
+                  <div>
+                    <dt className="mb-1 flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground"><Award size={13} /> Certificates · {certificates.length}</dt>
+                    <dd>
+                      <ul className="space-y-1">
+                        {certificates.map((c) => (
+                          <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span><span className="font-medium">{CERT_WORDS[c.type] ?? c.type}</span><span className="text-muted-foreground"> · Dr. {c.doctor.name.replace(/^Dr\.?\s*/i, '')}, {new Date(c.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</span></span>
+                            <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-[13px] font-medium text-ink-success hover:underline"><Download size={12} /> Print</button>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
+              </dl>
             )}
-          </div>
-        ))}
-        {prescriptions.map((p) => (
-          <div key={p.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Pill size={12} /> Prescription · {p.doctor.name}</div>
-              <button onClick={() => openPdf(`/prescriptions/${p.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline"><Download size={11} /> PDF</button>
-            </div>
-            {p.items.map((item, i) => (
-              <div key={i} className="text-sm"><span className="font-medium">{item.drugName}</span> — {item.dosage}, {item.frequency}, {item.duration}</div>
-            ))}
-          </div>
-        ))}
-        {certificates.map((c) => (
-          <div key={c.id} className="p-4 rounded-xl border border-border/10 bg-foreground/[0.02]">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/70"><Award size={12} /> {CERT_WORDS[c.type] ?? c.type} · {c.doctor.name}</div>
-              <button onClick={() => openPdf(`/certificates/${c.id}/pdf`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline"><Download size={11} /> PDF</button>
-            </div>
-            <p className="text-sm text-foreground/80">{c.content}</p>
-          </div>
-        ))}
+          </section>
+
+          {/* Charges + payment for this visit. Lives inside the Encounter so a
+              clinic without a dedicated cashier can bill before the patient
+              leaves, without navigating to Billing. */}
+          <VisitCharges appointmentId={appointment.id} doctorId={appointment.doctor?.id ?? null} onChanged={load} />
+        </div>
       </div>
     </div>
   );

@@ -16,17 +16,17 @@ interface RxRow {
 export function Pharmacy() {
   const [tab, setTab] = useState<'dispensing' | 'inventory'>('dispensing');
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl">
       <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2 mb-1"><Pill size={20} className="text-muted-foreground" /> Pharmacy</h1>
-      <p className="text-sm text-muted-foreground mb-4">Dispensing queue and stock management.</p>
+      <p className="text-sm text-muted-foreground mb-4">Prescriptions waiting to be given out, and what is on the shelf.</p>
       <SegmentedControl
         label="Pharmacy view"
         className="mb-6"
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'dispensing', label: 'Dispensing' },
-          { value: 'inventory', label: 'Inventory' },
+          { value: 'dispensing', label: 'To give out' },
+          { value: 'inventory', label: 'Stock' },
         ]}
       />
       {tab === 'dispensing' ? <Dispensing /> : <Inventory />}
@@ -75,7 +75,7 @@ function Dispensing() {
   return (
     <>
       <button onClick={() => setShowAll((v) => !v)} className="mb-4 px-3 py-1.5 rounded-lg bg-foreground/5 text-foreground/80 text-xs font-medium hover:bg-foreground/10">
-        {showAll ? 'Show pending only' : 'Show all'}
+        {showAll ? 'Show only those waiting' : 'Show those already given too'}
       </button>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
@@ -85,8 +85,8 @@ function Dispensing() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        {prescriptions.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">Nothing to dispense.</div>}
+      {prescriptions.length === 0 && <div className="rounded-xl border border-dashed border-border/25 px-5 py-10 text-center text-[14px] text-muted-foreground">No prescription is waiting to be given out.</div>}
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {prescriptions.map((rx) => (
           <div key={rx.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${rx.dispensed ? 'border-border/10' : 'border-ink-warning/30'}`}>
             <div className="flex items-center justify-between mb-2">
@@ -95,10 +95,10 @@ function Dispensing() {
                 <span className="text-xs text-muted-foreground/70 font-mono ml-2">{rx.patient.uhid}</span>
               </div>
               {rx.dispensed ? (
-                <span className="flex items-center gap-1 text-xs text-ink-success"><CheckCircle2 size={13} /> Dispensed</span>
+                <span className="flex items-center gap-1 text-[13px] text-ink-success"><CheckCircle2 size={13} /> Given out</span>
               ) : (
-                <Button variant="primary" size="sm" onClick={() => dispense(rx.id)} busy={dispensing === rx.id} busyLabel="Dispensing…">
-                  Mark Dispensed
+                <Button variant="primary" size="sm" onClick={() => dispense(rx.id)} busy={dispensing === rx.id} busyLabel="Saving…">
+                  Mark as given
                 </Button>
               )}
             </div>

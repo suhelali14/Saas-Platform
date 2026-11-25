@@ -75,73 +75,94 @@ export function Labs() {
     }
   };
 
+  // One card for each patient. A patient with three orders was three
+  // cards scattered down the page, and whoever was entering results from
+  // one printed report had to hunt for the other two.
+  const byPatient = new Map<string, { patient: LabOrderRow['patient']; orders: LabOrderRow[] }>();
+  for (const order of orders) {
+    const group = byPatient.get(order.patient.uhid) ?? { patient: order.patient, orders: [] };
+    group.orders.push(order);
+    byPatient.set(order.patient.uhid, group);
+  }
+  const groups = [...byPatient.values()];
+  const awaited = orders.flatMap((o) => o.items).filter((i) => !i.completedAt).length;
+  const shortDay = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-3xl">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><FlaskConical size={20} className="text-muted-foreground" /> Lab Orders</h1>
-        <button onClick={() => setShowAll((v) => !v)} className="px-3 py-1.5 rounded-lg bg-foreground/5 text-foreground/80 text-xs font-medium hover:bg-foreground/10">
-          {showAll ? 'Show pending only' : 'Show all'}
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><FlaskConical size={20} className="text-muted-foreground" /> Lab orders</h1>
+        <button onClick={() => setShowAll((v) => !v)} className="px-3 py-1.5 rounded-lg bg-foreground/5 text-foreground/80 text-[13px] font-medium hover:bg-foreground/10">
+          {showAll ? 'Show only results awaited' : 'Show finished ones too'}
         </button>
       </div>
-      <p className="text-sm text-muted-foreground mb-6">Tests ordered during consultation -- enter or upload results as they come back.</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        {orders.length === 0
+          ? 'Tests the doctor orders appear here, to have their results typed in or the report attached.'
+          : `${awaited} result${awaited === 1 ? '' : 's'} awaited, for ${groups.length} patient${groups.length === 1 ? '' : 's'}. Type the result and press Save, or attach the lab's report.`}
+      </p>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg tone-danger text-sm">{error}</div>}
 
-      <div className="flex flex-col gap-3">
-        {orders.length === 0 && <div className="text-center py-10 text-muted-foreground/70 text-sm">No lab orders.</div>}
-        {orders.map((order) => (
-          <div key={order.id} className={`p-4 rounded-xl border bg-foreground/[0.02] ${order.status === 'ORDERED' ? 'border-ink-warning/30' : 'border-border/10'}`}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <span className="font-medium text-sm">{order.patient.name}</span>
-                <span className="text-xs text-muted-foreground/70 font-mono ml-2">{order.patient.uhid}</span>
-                <div className="text-xs text-muted-foreground/70">Ordered by Dr. {order.doctor.name} · {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-              </div>
-              {order.status === 'COMPLETED' && <span className="flex items-center gap-1 text-xs text-ink-success"><CheckCircle2 size={13} /> Completed</span>}
-            </div>
+      {orders.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border/25 px-5 py-10 text-center text-[14px] text-muted-foreground">
+          {showAll ? 'No tests have been ordered yet.' : 'No results are awaited. Every test ordered has its result.'}
+        </div>
+      )}
+      {/* Two columns that pack downwards, so a patient with one test does
+          not leave a hole beside a patient with eight. */}
+      <div className="gap-4 lg:columns-2">
+        {groups.map(({ patient, orders: theirs }) => (
+          <section key={patient.uhid} className={`mb-4 break-inside-avoid rounded-xl border bg-card p-4 ${theirs.some((o) => o.status === 'ORDERED') ? 'border-ink-warning/30' : 'border-border/15'}`}>
+            <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[15px] font-semibold">{patient.name} <span className="ml-1 font-mono text-xs font-normal text-muted-foreground">{patient.uhid}</span></h2>
+              {theirs.every((o) => o.status === 'COMPLETED') && <span className="flex items-center gap-1 text-[13px] text-ink-success"><CheckCircle2 size={13} /> All results in</span>}
+            </header>
             <div className="flex flex-col gap-2">
-              {order.items.map((item) => (
-                <div key={item.id} className="p-2.5 rounded-lg bg-foreground/[0.02] border border-border/5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">
+              {theirs.flatMap((order) => order.items.map((item) => (
+                <div key={item.id} className="rounded-lg border border-border/10 bg-background/60 p-2.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <span className="text-[14px] font-medium">
                       {item.testName}
                       {/* Shown beside the name rather than only in the input,
                           so it is still there when someone reads the result
                           back weeks later -- which is when the reference
                           actually gets used. */}
                       {item.normalRange && (
-                        <span className="ml-2 font-normal text-[11px] text-muted-foreground/70" title="Indicative adult reference range. Intervals vary by laboratory and method -- the range printed on the lab's own report governs.">
-                          ref {item.normalRange}
+                        <span className="ml-2 font-normal text-[12px] text-muted-foreground" title="Indicative adult reference range. Intervals vary by laboratory and method -- the range printed on the lab's own report governs.">
+                          normal {item.normalRange}
                         </span>
                       )}
                     </span>
-                    {item.completedAt && <span className="text-[10px] text-ink-success">Done</span>}
+                    <span className="text-[12px] text-muted-foreground">Dr. {order.doctor.name.replace(/^Dr\.?\s*/i, '')} · {shortDay(order.createdAt)}</span>
                   </div>
-                  {item.resultText && <p className="text-xs text-foreground/80 mb-1">{item.resultText}</p>}
+                  {item.resultText && <p className="mt-1 text-[14px]"><span className="text-muted-foreground">Result: </span>{item.resultText}</p>}
                   {item.resultFilePath && (
-                    <button onClick={() => openPdf(`/lab-orders/items/${item.id}/file`)} className="flex items-center gap-1 text-xs text-ink-success hover:underline mb-1">
-                      <Download size={11} /> {item.resultFileName}
+                    <button onClick={() => openPdf(`/lab-orders/items/${item.id}/file`)} className="mt-1 flex items-center gap-1 text-[13px] font-medium text-ink-success hover:underline">
+                      <Download size={12} /> {item.resultFileName}
                     </button>
                   )}
                   {!item.completedAt && (
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="mt-1.5 flex items-center gap-2">
                       <input
-                        placeholder={item.normalRange ? `Enter result  (ref ${item.normalRange})` : 'Enter result...'}
+                        aria-label={`Result of ${item.testName} for ${patient.name}`}
+                        placeholder="Type the result"
                         value={resultDrafts[item.id] || ''}
                         onChange={(e) => setResultDrafts({ ...resultDrafts, [item.id]: e.target.value })}
-                        className="flex-1 px-2 py-1.5 rounded-lg bg-foreground/5 border border-border/10 text-xs outline-none"
+                        onKeyDown={(e) => { if (e.key === 'Enter') void saveResultText(item.id); }}
+                        className="min-w-0 flex-1 rounded-lg border border-border/15 bg-foreground/5 px-2.5 py-2 text-[14px] outline-none focus:border-ring"
                       />
                       <Button size="sm" onClick={() => saveResultText(item.id)} busy={saving === item.id}>Save</Button>
-                      <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/10 text-xs hover:bg-foreground/20 cursor-pointer">
-                        <Upload size={11} />
+                      <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-foreground/10 px-2.5 py-2 text-[13px] font-medium hover:bg-foreground/20" title="Attach the lab's report (PDF or photo)">
+                        <Upload size={12} /> Report
                         <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadResultFile(item.id, f); e.target.value = ''; }} />
                       </label>
                     </div>
                   )}
                 </div>
-              ))}
+              )))}
             </div>
-          </div>
+          </section>
         ))}
       </div>
     </div>
