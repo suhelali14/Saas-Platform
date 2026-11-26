@@ -108,6 +108,16 @@ const envSchema = z.object({
   // assistant cannot listen, and still structures notes that are typed or
   // pasted. Without ANTHROPIC_API_KEY it reads only what its own rules
   // can (numbers, medicines, tests, follow-up) and says so on the draft.
+  //
+  // Held back everywhere until this says "true": with it unset the
+  // assistant is off on this deployment whatever the plan or the module
+  // list says -- its routes are not registered and the portal shows no
+  // trace of it. Switching it on for a clinic is this line set to "true"
+  // plus "scribe" in CLINIC_FEATURES, then a restart.
+  ASSISTANT_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   SARVAM_API_KEY: z.string().optional(),
   // "unknown" lets the speech engine detect the language of each piece,
   // which is what a consultation that moves between three needs. Set a

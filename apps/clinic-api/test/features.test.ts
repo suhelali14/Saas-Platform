@@ -15,7 +15,7 @@ process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/unused";
 process.env.JWT_SECRET ??= "test-secret-not-used-for-anything-real-0000";
 process.env.REDIS_URL ??= "redis://127.0.0.1:6399";
 
-const { resolveModules, planDefaults, MODULES } = await import("../src/config/features.js");
+const { resolveModules, planDefaults, MODULES, ADD_ONS } = await import("../src/config/features.js");
 
 test("an old BASIC clinic with no explicit list keeps every module it had", () => {
   const on = resolveModules("BASIC", undefined);
@@ -59,5 +59,6 @@ test("each tier includes everything the tier below it does", () => {
     const higher = planDefaults(tiers[i]!);
     for (const k of lower) assert.ok(higher.has(k), `${tiers[i]} is missing ${k}`);
   }
-  assert.equal(planDefaults("ENTERPRISE").size, MODULES.length);
+  // The top plan has every module except the add-ons, which no plan brings.
+  assert.equal(planDefaults("ENTERPRISE").size, MODULES.length - ADD_ONS.size);
 });

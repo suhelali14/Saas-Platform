@@ -126,9 +126,14 @@ export interface Plan {
   readonly maxUsers: number | null;
 }
 
+/** Sold on their own and never arriving with a plan, not even the top
+ *  one: on only when a deal's explicit list (CLINIC_FEATURES) names them.
+ *  Keep in step with ADD_ONS in apps/provider-api/src/lib/plans.ts. */
+export const ADD_ONS: ReadonlySet<string> = new Set(["scribe"]);
+
 export function planDefaults(tier: PlanTier): Set<Feature> {
   const rank = PLAN_ORDER.indexOf(tier);
-  return new Set(MODULES.filter((m) => PLAN_ORDER.indexOf(m.from) <= rank).map((m) => m.key));
+  return new Set(MODULES.filter((m) => !ADD_ONS.has(m.key) && PLAN_ORDER.indexOf(m.from) <= rank).map((m) => m.key));
 }
 
 /**
@@ -154,7 +159,12 @@ export function resolveModules(tier: PlanTier, explicit: string | undefined): Se
 let cached: Set<Feature> | null = null;
 
 export function enabledModules(): Set<Feature> {
-  if (!cached) cached = resolveModules(env.CLINIC_PLAN, env.CLINIC_FEATURES);
+  if (!cached) {
+    cached = resolveModules(env.CLINIC_PLAN, env.CLINIC_FEATURES);
+    // The clinic assistant stays off until this deployment is told it may
+    // have it (ASSISTANT_ENABLED in config/env.ts), even if a list names it.
+    if (!env.ASSISTANT_ENABLED) cached.delete("scribe");
+  }
   return cached;
 }
 

@@ -114,9 +114,14 @@ export function runningFeatures(a: { plan: string; appliedFeatures: string | nul
   return FEATURES.map((f) => f.key).filter((k) => base.has(k));
 }
 
+/** Sold on their own and never part of a plan, not even the top one: a deal
+ *  switches them on with an override. Keep in step with ADD_ONS in
+ *  apps/clinic-api/src/config/features.ts. */
+export const ADD_ONS: ReadonlySet<string> = new Set(["scribe"]);
+
 export function featuresForPlan(plan: PlanTier): string[] {
   const rank = PLAN_ORDER.indexOf(plan);
-  return FEATURES.filter((f) => PLAN_ORDER.indexOf(f.from) <= rank).map((f) => f.key);
+  return FEATURES.filter((f) => !ADD_ONS.has(f.key) && PLAN_ORDER.indexOf(f.from) <= rank).map((f) => f.key);
 }
 
 export function resolveFeatures(plan: PlanTier, overrides: unknown): string[] {
