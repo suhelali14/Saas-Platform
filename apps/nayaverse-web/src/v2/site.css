@@ -127,6 +127,7 @@ body.v2::before { display: none; }
 /* --- header ---------------------------------------------------------- */
 .v-head { position: sticky; top: 0; z-index: 40; background: rgb(255 255 255 / 0.92); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--v-line); }
 .v-head-row { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px 28px; }
+.v-logo { display: inline-flex; align-items: center; min-height: 44px; }
 .v-logo img { height: 22px; width: auto; display: block; }
 .v-nav { display: flex; align-items: center; gap: 4px 28px; font-size: 15px; font-weight: 500; color: var(--v-body); }
 .v-nav a:hover, .v-nav a[aria-current='page'] { color: var(--v-ink); }
@@ -271,3 +272,113 @@ body.v2::before { display: none; }
   .v-dot::after { animation: none; }
   .v-book > a, .v-card, .v-slab, .v-btn, .v-btn-ghost { transition: none; }
 }
+
+/* ===================================================================
+   Second pass (26 November): motion that plays, real 3D, phone first.
+   =================================================================== */
+
+/* what shows on a phone, and what on a desktop */
+@media (max-width: 899px) { .v-only-desk { display: none !important; } }
+@media (min-width: 900px) { .v-only-phone { display: none !important; } }
+
+/* the hero arrives as the page opens: plain CSS, so it plays before any
+   script has loaded */
+@keyframes v-in { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes v-in-deep { from { opacity: 0; transform: perspective(1600px) translateY(60px) rotateX(18deg); } to { opacity: 1; transform: none; } }
+.v-hero-in { animation: v-in 0.9s var(--v-ease) both; }
+.v-hero-stage.v-hero-in { animation: v-in-deep 1.2s var(--v-ease) 0.3s both; }
+
+/* the 3D stage: the canvas spans the whole window, the screens under it are
+   the fallback until it has drawn */
+.v-3d { position: relative; }
+.v-3d-canvas { position: absolute; top: -40px; left: 50%; width: 100vw; height: calc(100% + 40px); transform: translateX(-50%); opacity: 0; transition: opacity 0.7s var(--v-ease); display: block; }
+.v-3d.is-3d .v-3d-canvas { opacity: 1; }
+.v-3d-fallback { transition: opacity 0.5s var(--v-ease); }
+.v-3d.is-3d .v-3d-fallback { opacity: 0; visibility: hidden; }
+/* on a desktop the stage is one height, whatever its fallback screen is;
+   the 3D scene is framed in it */
+@media (min-width: 900px) {
+  .v-hero-stage { height: 600px; padding-bottom: 0 !important; margin-bottom: 72px; }
+  .v-hero-stage .v-3d-fallback { position: absolute; inset: 0; overflow: hidden; }
+}
+.v-3d-labels { display: none; }
+.v-3d.is-3d .v-3d-labels { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; position: absolute; left: 0; right: 0; bottom: 18px; pointer-events: none; }
+.v-3d-labels a { pointer-events: auto; justify-self: center; display: inline-flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 999px; background: rgb(255 255 255 / 0.92); border: 1px solid var(--v-line); box-shadow: 0 16px 30px -18px rgb(22 24 29 / 0.35); transition: transform 0.3s var(--v-ease); }
+.v-3d-labels a:hover { transform: translateY(-3px); }
+
+/* the phone header: logo, language, menu */
+.v-icon-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; min-width: 42px; justify-content: center; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: var(--v-ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.v-icon-btn[aria-expanded="true"] { background: var(--v-alt); }
+.v-sheet { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-bottom: 1px solid var(--v-line); box-shadow: 0 24px 40px -24px rgb(22 24 29 / 0.3); padding: 6px 16px 20px; }
+.v-sheet nav { display: flex; flex-direction: column; }
+.v-sheet nav a:not(.v-btn) { display: flex; align-items: center; min-height: 54px; border-bottom: 1px solid var(--v-line); font-family: var(--v-head); font-weight: 700; font-size: 18px; }
+.v-sheet nav a[aria-current="page"]:not(.v-btn) { color: var(--v-accent); }
+@media (max-width: 899px) { .v-head-row { min-height: 60px; } .v-logo img { height: 19px; } }
+
+/* the deck: three screens, the front one bobbing; it turns by itself */
+.v-deck-stack { position: relative; height: 330px; perspective: 1100px; transform-style: preserve-3d; touch-action: pan-y; user-select: none; }
+.v-deck-card { position: absolute; left: 50%; top: 22px; width: min(300px, 80vw); margin-left: calc(min(300px, 80vw) / -2); border: 1px solid var(--v-line-strong); border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 28px 48px -26px rgb(22 24 29 / 0.5); transition: transform 0.75s var(--v-ease), opacity 0.75s var(--v-ease); }
+.v-deck-card img { display: block; width: 100%; height: 220px; object-fit: cover; object-position: left top; pointer-events: none; }
+.v-deck-cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--v-line); font-size: 12.5px; font-weight: 700; }
+.v-deck-cap .v-pill { font-size: 11px; padding: 2px 8px; }
+@keyframes v-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+.v-deck-front { animation: v-bob 6s ease-in-out infinite; }
+.v-deck-dots { display: flex; justify-content: center; gap: 6px; }
+.v-deck-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 4px; background: var(--v-line-strong); transition: width 0.35s var(--v-ease), background 0.35s; cursor: pointer; }
+.v-deck-dots button[aria-pressed="true"] { width: 20px; background: var(--v-ink); }
+.v-deck .v-deck-dots { margin-top: 6px; }
+
+/* cards you swipe, on a phone */
+.v-swipe-wrap { margin-top: 32px; }
+@media (min-width: 900px) { .v-swipe-wrap { display: none; } }
+.v-swipe { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 4px 16px 18px; scrollbar-width: none; }
+.v-swipe::-webkit-scrollbar { display: none; }
+.v-swipe-card { flex: 0 0 84%; scroll-snap-align: start; scroll-margin-left: 16px; background: #fff; border: 1px solid var(--v-line); border-radius: 18px; overflow: hidden; box-shadow: 0 20px 36px -28px rgb(22 24 29 / 0.4); }
+.v-swipe-card img { display: block; width: 100%; height: 200px; object-fit: cover; object-position: left top; border-bottom: 1px solid var(--v-line); }
+.v-swipe-count { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--v-muted); font-weight: 600; }
+
+/* the stepper's line fills while a row is shown, so you can see it will turn */
+.v-step[aria-selected="true"]::before { background: #f1d3c9; }
+.v-step-bar { position: absolute; left: 0; top: 20px; width: 3px; height: calc(100% - 40px); border-radius: 3px; background: var(--v-accent); transform-origin: top; }
+.v-step-bar.run { animation: v-fill 4.5s linear both; }
+@keyframes v-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* questions: all open on a desktop, one at a time on a phone */
+.v-acc button { all: unset; display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; cursor: default; }
+.v-acc button svg { display: none; flex: none; transition: transform 0.3s var(--v-ease); }
+@media (max-width: 899px) {
+  .v-acc > div { padding: 0; }
+  .v-acc button { cursor: pointer; min-height: 58px; padding: 6px 0; }
+  .v-acc button svg { display: block; }
+  .v-acc button[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .v-acc p { padding-bottom: 18px; margin-top: 0 !important; }
+  .v-acc p.v-closed { display: none; }
+  .v-acc button:focus-visible { outline: 2px solid var(--v-accent); outline-offset: 2px; }
+}
+
+/* the slabs drop into place, one after another */
+.v-stack.armed .v-slab { opacity: 0; transform: translateZ(calc(var(--z) + 240px)); }
+.v-stack.armed.in .v-slab { opacity: 1; transform: translateZ(var(--z)); transition: transform 1s var(--v-ease), opacity 0.6s ease; }
+.v-stack.armed.in .v-slab:nth-child(2) { transition-delay: 0.12s; }
+.v-stack.armed.in .v-slab:nth-child(3) { transition-delay: 0.24s; }
+.v-stack.armed.in .v-slab:nth-child(4) { transition-delay: 0.36s; }
+
+/* phone sizes: tighter type and spacing where a thumb reads */
+@media (max-width: 640px) {
+  .v-h1 { font-size: clamp(36px, 10.4vw, 44px); }
+  .v-h2 { font-size: clamp(28px, 8vw, 34px); }
+  .v-lead { font-size: 17px; }
+  .v-sec { padding: 56px 0; }
+  .v-table-row > * { padding-left: 18px; padding-right: 18px; }
+  .v-form { gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-hero-in, .v-hero-stage.v-hero-in, .v-deck-front, .v-step-bar.run { animation: none !important; }
+  .v-deck-card, .v-3d-canvas, .v-3d-fallback, .v-stack.armed .v-slab { transition: none !important; }
+}
+
+/* a pill is as wide as its words, also inside a column */
+.v-pill { width: fit-content; }
+/* the trade charts' tabs (the older chart panel on Vision): a thumb's size */
+@media (max-width: 899px) { .v2 [role="tablist"] [role="tab"] { min-height: 44px; } }

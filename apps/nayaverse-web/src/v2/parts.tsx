@@ -9,13 +9,14 @@
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, m, useMotionValue, useReducedMotion, useSpring } from 'motion/react';
+export { Rise } from './motion';
 import { useContentCtx } from '@/content/use-content';
 import { localeNames, locales, localesFor, pathFor, type Page } from '@/content/index';
 import { productsCopy, assistantFilms, clinicFilm, growthFilm, type FilmKey } from '@/content/products';
 import { siteCopy } from '@/content/site';
 import { contact, founder } from '@/content/contact';
 import { Player } from '@/sections/Films';
-import { useHydrated } from '@/components/Reveal';
+import { Rise, Swipe, Tilt } from './motion';
 import { shotSize, type ShotName } from './shots';
 
 export function useSite() {
@@ -24,23 +25,6 @@ export function useSite() {
 }
 
 /* ------------------------------------------------------------ small parts */
-
-export function Rise({ children, className, delay = 0, as = 'div' }: { children: ReactNode; className?: string; delay?: number; as?: 'div' | 'section' | 'li' }) {
-  const hydrated = useHydrated();
-  const still = useReducedMotion();
-  const Tag = m[as];
-  return (
-    <Tag
-      className={className}
-      initial={hydrated && !still ? { opacity: 0, y: 16 } : false}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay }}
-    >
-      {children}
-    </Tag>
-  );
-}
 
 export type Status = 'live' | 'built' | 'trial' | 'building' | 'waitlist';
 
@@ -127,13 +111,21 @@ function WaGlyph() {
 /* ---------------------------------------------------------- header, footer */
 
 export function Header() {
-  const { s, locale, page, href } = useSite();
+  const { s, p, locale, page, href } = useSite();
+  const [sheet, setSheet] = useState<null | 'menu' | 'lang'>(null);
   const links: [Page, string][] = [
     ['clinic', s.nav.clinic],
     ['growth', s.nav.growth],
     ['vision', s.nav.vision],
     ['pricing', s.nav.pricing],
   ];
+  const langHref = (l: (typeof locales)[number]) => pathFor(l, page !== '404' && localesFor(page).includes(l) ? page : 'home');
+  useEffect(() => {
+    if (!sheet) return;
+    const close = (e: KeyboardEvent) => e.key === 'Escape' && setSheet(null);
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [sheet]);
   return (
     <header className="v-head">
       <div className="v-wrap v-head-row">
@@ -147,32 +139,67 @@ export function Header() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
-          <div className="v-langs" role="group" aria-label="Language">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="v-langs v-only-desk" role="group" aria-label="Language">
             {locales.map((l) => (
-              <a
-                key={l}
-                href={pathFor(l, page !== '404' && localesFor(page).includes(l) ? page : 'home')}
-                lang={l}
-                hrefLang={l}
-                aria-current={l === locale ? 'true' : undefined}
-              >
+              <a key={l} href={langHref(l)} lang={l} hrefLang={l} aria-current={l === locale ? 'true' : undefined}>
                 {localeNames[l].short}
               </a>
             ))}
           </div>
-          <a href="#enquiry" className="v-btn">
+          <button type="button" className="v-icon-btn v-only-phone" aria-expanded={sheet === 'lang'} aria-label={localeNames[locale].native} onClick={() => setSheet(sheet === 'lang' ? null : 'lang')}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <circle cx="8" cy="8" r="6.2" />
+              <path d="M1.8 8h12.4M8 1.8c1.7 1.8 2.6 3.9 2.6 6.2S9.7 12.4 8 14.2M8 1.8C6.3 3.6 5.4 5.7 5.4 8s.9 4.4 2.6 6.2" />
+            </svg>
+            <span>{localeNames[locale].short}</span>
+          </button>
+          <button type="button" className="v-icon-btn v-only-phone" aria-expanded={sheet === 'menu'} aria-label="Menu" onClick={() => setSheet(sheet === 'menu' ? null : 'menu')}>
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {sheet === 'menu' ? <path d="M6 6l10 10M16 6L6 16" /> : <path d="M4 7h14M4 11h14M4 15h14" />}
+            </svg>
+          </button>
+          <a href="#enquiry" className="v-btn v-only-desk">
             {s.nav.book}
           </a>
         </div>
       </div>
-      <nav aria-label="Products" className="v-subnav">
-        {links.map(([to, label]) => (
-          <a key={to} href={href(to)} aria-current={page === to ? 'page' : undefined}>
-            {label}
-          </a>
-        ))}
-      </nav>
+      <AnimatePresence>
+        {sheet && (
+          <m.div
+            key={sheet}
+            className="v-sheet v-only-phone"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {sheet === 'menu' ? (
+              <nav aria-label="Main">
+                <a href={href('home')} aria-current={page === 'home' ? 'page' : undefined}>
+                  Nayaversse
+                </a>
+                {links.map(([to, label]) => (
+                  <a key={to} href={href(to)} aria-current={page === to ? 'page' : undefined}>
+                    {to === 'clinic' ? p.lineup.clinic.name : to === 'growth' ? p.lineup.growth.name : label}
+                  </a>
+                ))}
+                <a href="#enquiry" className="v-btn mt-3" onClick={() => setSheet(null)}>
+                  {s.nav.book}
+                </a>
+              </nav>
+            ) : (
+              <nav aria-label="Language">
+                {locales.map((l) => (
+                  <a key={l} href={langHref(l)} lang={l} hrefLang={l} aria-current={l === locale ? 'page' : undefined}>
+                    {localeNames[l].native}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </m.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
@@ -257,8 +284,11 @@ export function Stepper({ items }: { items: { title: string; text: string; alt: 
     return () => window.clearInterval(id);
   }, [picked, still, seen, items.length]);
   const cur = items[at]!;
+  const running = !picked && !still && seen;
   return (
-    <div ref={box} className="v-steps mt-14">
+    <>
+    <Swipe items={items} />
+    <div ref={box} className="v-steps v-only-desk mt-14">
       <div role="tablist" aria-orientation="vertical">
         {items.map((it, i) => (
           <button
@@ -279,6 +309,7 @@ export function Stepper({ items }: { items: { title: string; text: string; alt: 
               {it.tag}
             </span>
             <p>{it.text}</p>
+            {i === at && <span key={`bar-${at}`} className={`v-step-bar ${running ? 'run' : ''}`} aria-hidden="true" />}
           </button>
         ))}
       </div>
@@ -300,6 +331,7 @@ export function Stepper({ items }: { items: { title: string; text: string; alt: 
         </Lean>
       </div>
     </div>
+    </>
   );
 }
 
@@ -352,16 +384,20 @@ export function FilmsBand() {
         </Rise>
         <div className="v-grid2 mt-12">
           <Rise>
-            <div className="v-film">
-              <Player src={clinic.src} poster={clinic.poster} label={s.films.clinic} play={p.film.play} ratio="16 / 9" />
-            </div>
+            <Tilt>
+              <div className="v-film">
+                <Player src={clinic.src} poster={clinic.poster} label={s.films.clinic} play={p.film.play} ratio="16 / 9" />
+              </div>
+            </Tilt>
             <h3 className="v-h3 mt-5 text-white">{s.films.clinic}</h3>
             <p className="v-small mt-1">{s.films.clinicNote}</p>
           </Rise>
           <Rise delay={0.08}>
-            <div className="v-film">
-              <Player src={growthFilm.src} poster={growthFilm.poster} label={s.films.growth} play={p.film.play} ratio="16 / 9" />
-            </div>
+            <Tilt>
+              <div className="v-film">
+                <Player src={growthFilm.src} poster={growthFilm.poster} label={s.films.growth} play={p.film.play} ratio="16 / 9" />
+              </div>
+            </Tilt>
             <h3 className="v-h3 mt-5 text-white">{s.films.growth}</h3>
             <p className="v-small mt-1">{s.films.growthNote}</p>
           </Rise>
@@ -388,6 +424,7 @@ export function Questions() {
   // answer brought up to date now that Growth writes to customers.
   const list = t.conditions.map((c, i) => (i === 5 ? { q: c.q, a: s.questions.whatsapp } : c));
   list.splice(1, 0, s.questions.cost);
+  const [open, setOpen] = useState(0);
   return (
     <section id="questions" className="v-sec v-white">
       <div className="v-wrap">
@@ -395,11 +432,20 @@ export function Questions() {
           <h2 className="v-h2">{t.conditionsPanel.heading}.</h2>
           <p className="v-lead">{t.conditionsPanel.lede}</p>
         </Rise>
-        <div className="v-qs mt-12">
-          {list.map((c) => (
+        <div className="v-qs v-acc mt-12">
+          {list.map((c, i) => (
             <div key={c.q}>
-              <h3 className="v-h3 text-[18px]">{c.q}</h3>
-              <p>{c.a}</p>
+              <h3 className="v-h3 m-0 text-[18px]">
+                <button type="button" aria-expanded={open === i} aria-controls={`qa-${i}`} onClick={() => setOpen(open === i ? -1 : i)}>
+                  <span>{c.q}</span>
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M4 7l5 5 5-5" />
+                  </svg>
+                </button>
+              </h3>
+              <p id={`qa-${i}`} className={open === i ? '' : 'v-closed'}>
+                {c.a}
+              </p>
             </div>
           ))}
         </div>
