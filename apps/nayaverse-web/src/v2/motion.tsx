@@ -22,7 +22,7 @@ import { animate, stagger } from 'motion';
 import { m, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useHydrated } from '@/components/Reveal';
 import type { SceneScreen } from './scene3d';
-import { shotSize, type ShotName } from './shots';
+import { shotBg, shotSize, type ShotName } from './shots';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -345,7 +345,9 @@ export function Deck({ cards, label, tabs }: { cards: DeckCard[]; label: string;
                 <span>{c.title}</span>
                 {c.tag}
               </span>
-              <img src={`/shots/${c.shot}.webp`} alt={c.alt} width={w} height={h} loading="eager" decoding="async" draggable={false} />
+              {/* a picture wider than the card is fitted by its width, on its
+                  own ground, so nothing of it is cut at a side */}
+              <img src={`/shots/${c.shot}.webp`} alt={c.alt} width={w} height={h} loading="eager" decoding="async" draggable={false} style={w / h > 0.9 ? { objectFit: 'contain', background: shotBg[c.shot] } : undefined} />
             </Tag>
           );
         })}

@@ -10,7 +10,7 @@ import { prices, rupees } from '@/content/site';
 import { Player } from '@/sections/Films';
 import { DayCharts } from '@/sections/DayCharts';
 import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Fold, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
-import type { ShotName } from './shots';
+import { shotSize, type ShotName } from './shots';
 import { Arm, Deck, Marquee, Parallax, SideIn, Stage3D, Tilt, Words, scr } from './motion';
 
 function Sec({ tone = 'white', id, children }: { tone?: 'white' | 'alt' | 'dark'; id?: string; children: ReactNode }) {
@@ -61,7 +61,7 @@ function Screen({ name, alt, caption, crop, title, float, phone }: { name: ShotN
                   <Shot name={name} alt={alt} crop={crop} style={{ width: '100%' }} />
                 </span>
                 <span className="v-only-phone block">
-                  <Shot name={phone} alt={alt} style={{ width: '100%' }} />
+                  <Shot name={phone} alt={alt} crop={shotSize[phone][1] / shotSize[phone][0] > 1.4 ? 470 : undefined} style={{ width: '100%' }} />
                 </span>
               </>
             ) : (
@@ -84,7 +84,7 @@ function Screen({ name, alt, caption, crop, title, float, phone }: { name: ShotN
 
 function useDifferent() {
   const { s, p } = useSite();
-  const shots: ShotName[] = ['d-queue', 'd-listening', 'visit-draft', 'site-mr'];
+  const shots: ShotName[] = ['m-queue', 'm-listening', 'm-sheet', 'm-site'];
   const whole: ShotName[] = ['queue', 'listening', 'visit-draft', 'site-mr'];
   return s.different.items.map((it, i) => ({ ...it, shot: shots[i]!, wide: whole[i]!, tag: i === 1 ? <Pill kind="trial">{p.status.trial}</Pill> : undefined }));
 }
@@ -128,9 +128,9 @@ export function HomePage() {
                 { label: s.nav.growth, tag: <Pill kind="built">{p.status.built}</Pill> },
               ]}
               cards={[
-                { tab: 0, shot: 'd-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt, href: href('clinic'), more: s.clinic.more },
-                { tab: 0, shot: 'd-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt, href: href('clinic'), more: s.clinic.more },
-                { tab: 0, shot: 'd-assistant', title: s.assistant.heading, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.assistant.lede, href: href('clinic'), more: s.clinic.more },
+                { tab: 0, shot: 'm-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt, href: href('clinic'), more: s.clinic.more },
+                { tab: 0, shot: 'm-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt, href: href('clinic'), more: s.clinic.more },
+                { tab: 0, shot: 'm-sheet', title: s.different.items[2]!.title, alt: s.different.items[2]!.alt, href: href('clinic'), more: s.clinic.more },
                 { tab: 1, shot: 'd-growth', title: s.growth.shown[0]!.q, alt: s.growth.statementCaption, href: href('growth'), more: s.growthHow.more },
                 { tab: 1, shot: 'm-growth-chat', title: s.growth.firm[3]![0], alt: s.growth.repliesCaption, href: href('growth'), more: s.growthHow.more },
                 { tab: 1, shot: 'm-growth-waiting', title: s.growthHow.steps[2]!.title, alt: s.growthHow.steps[2]!.text, href: href('growth'), more: s.growthHow.more },
@@ -407,11 +407,11 @@ function Ledger() {
 export function ClinicPage() {
   const { t, s, p, locale } = useSite();
   const different = useDifferent();
-  const gets: [ShotName, string][] = [
-    ['patient', p.lineup.clinic.points[1]!],
-    ['billing', p.lineup.clinic.points[2]!],
-    ['pharmacy', p.lineup.clinic.points[2]!],
-    ['livequeue', p.lineup.clinic.points[3]!],
+  const gets: [ShotName, ShotName, string][] = [
+    ['patient', 'm-patient', p.lineup.clinic.points[1]!],
+    ['billing', 'm-billing', p.lineup.clinic.points[2]!],
+    ['pharmacy', 'm-pharmacy', p.lineup.clinic.points[2]!],
+    ['livequeue', 'm-livequeue', p.lineup.clinic.points[3]!],
   ];
   return (
     <>
@@ -458,11 +458,11 @@ export function ClinicPage() {
               <Deck
                 label={p.clinicPage.title}
                 cards={[
-                  { shot: 'd-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt },
-                  { shot: 'd-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt },
-                  { shot: 'visit-draft', title: s.different.items[2]!.title, alt: s.different.items[2]!.alt },
-                  { shot: 'd-assistant', title: s.assistant.heading, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.assistant.lede },
-                  { shot: 'site-mr', title: s.different.items[3]!.title, alt: s.different.items[3]!.alt },
+                  { shot: 'm-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt },
+                  { shot: 'm-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt },
+                  { shot: 'm-sheet', title: s.different.items[2]!.title, alt: s.different.items[2]!.alt },
+                  { shot: 'm-patient', title: t.manifest[2]!.items[0]!.name, alt: p.lineup.clinic.points[1]! },
+                  { shot: 'm-site', title: s.different.items[3]!.title, alt: s.different.items[3]!.alt },
                 ]}
               />
             </div>
@@ -478,10 +478,15 @@ export function ClinicPage() {
       <Sec>
         <Head h={p.clinicPage.getsHeading + '.'} lede={p.lineup.clinic.body} />
         <div className="v-grid2 mt-12">
-          {gets.map(([name, alt], i) => (
+          {gets.map(([name, onPhone, alt], i) => (
             <SideIn key={name} from={i % 2 ? 'right' : 'left'} far={60}>
               <Frame>
-                <Shot name={name} alt={alt} crop={300} style={{ width: '100%' }} />
+                <span className="v-only-desk block">
+                  <Shot name={name} alt={alt} crop={300} style={{ width: '100%' }} />
+                </span>
+                <span className="v-only-phone block">
+                  <Shot name={onPhone} alt={alt} crop={400} style={{ width: '100%' }} />
+                </span>
               </Frame>
               <p className="mt-4 text-[15px] text-[var(--v-body)]">{alt}</p>
             </SideIn>
@@ -581,7 +586,7 @@ export function GrowthPage() {
                   { shot: 'd-growth', title: g.shown[0]!.q, alt: g.statementCaption },
                   { shot: 'm-growth-chat', title: g.firm[3]![0], alt: g.repliesCaption },
                   { shot: 'm-growth-waiting', title: s.growthHow.steps[2]!.title, alt: s.growthHow.steps[2]!.text },
-                  { shot: 'growth-proof', title: g.proofHeading, alt: g.proof[0]! },
+                  { shot: 'm-growth-proof', title: g.proofHeading, alt: g.proof[0]! },
                 ]}
               />
               <p className="v-cap text-center">{g.statementCaption}</p>
@@ -644,7 +649,7 @@ export function GrowthPage() {
               ))}
             </div>
           </div>
-          <Screen name="growth-home" alt={s.growthHow.caption} caption={s.growthHow.caption} title={p.lineup.growth.name} float={{ name: 'growth-optin', side: 'left' }} />
+          <Screen name="growth-home" alt={s.growthHow.caption} caption={s.growthHow.caption} title={p.lineup.growth.name} float={{ name: 'growth-optin', side: 'left' }} phone="d-growth" />
         </div>
       </Sec>
 
@@ -658,7 +663,7 @@ export function GrowthPage() {
               </p>
             ))}
           </div>
-          <Screen name="growth-proof" alt={g.proof[0]!} float={{ name: 'growth-customers', side: 'right', crop: 150 }} />
+          <Screen name="growth-proof" alt={g.proof[0]!} float={{ name: 'growth-customers', side: 'right', crop: 150 }} phone="m-growth-proof" />
         </div>
       </Sec>
 
@@ -672,7 +677,7 @@ export function GrowthPage() {
               ))}
             </ul>
           </div>
-          <Screen name="growth-autoreply" alt={g.repliesCaption} caption={g.repliesCaption} />
+          <Screen name="growth-autoreply" alt={g.repliesCaption} caption={g.repliesCaption} phone="m-growth-chat" />
         </div>
       </Sec>
 

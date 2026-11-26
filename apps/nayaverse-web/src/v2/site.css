@@ -571,3 +571,10 @@ html { scroll-padding-top: 84px; }
   .v-sheet { height: calc(100dvh - 60px); overflow-y: auto; padding-bottom: 32px; }
   .v-head .v-sheet .v-btn { display: inline-flex; min-height: 54px; font-size: 16px; }
 }
+
+/* phone captures: whole screens, shown from their top, never cut at a side */
+.v-deck-stack { height: 432px; }
+.v-deck-card img { height: 340px; object-position: center top; }
+.v-swipe-card img { height: 320px; object-position: center top; }
+@media (max-width: 899px) { .v-swipe-card::after { top: 274px; } }
+.v-zoom-pan img { width: auto; }

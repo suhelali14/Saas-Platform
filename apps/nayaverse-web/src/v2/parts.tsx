@@ -315,13 +315,19 @@ export function Footer() {
  *  Tapping one opens it large, to be dragged around. Mounted once. */
 export function Zoomer() {
   const { s } = useSite();
-  const [img, setImg] = useState<{ src: string; alt: string } | null>(null);
+  const [img, setImg] = useState<{ src: string; alt: string; width: number; drag: boolean } | null>(null);
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (window.innerWidth >= 900) return;
       const el = (e.target as HTMLElement | null)?.closest?.('.v-frame img, .v-swipe-card img') as HTMLImageElement | null;
       if (!el || el.closest('.v-float')) return;
-      setImg({ src: el.currentSrc || el.src, alt: el.alt });
+      // a screen taken at a phone's width opens whole, edge to edge, and is
+      // read by scrolling down; only a wide desktop one opens larger than
+      // the screen, to be dragged sideways
+      const fit = window.innerWidth - 28;
+      const tall = el.naturalHeight >= el.naturalWidth;
+      const width = tall ? fit : Math.round(Math.max(fit, Math.min(el.naturalWidth / 1.45, 1100)));
+      setImg({ src: el.currentSrc || el.src, alt: el.alt, width, drag: width > fit });
     };
     document.addEventListener('click', onClick);
     return () => document.removeEventListener('click', onClick);
@@ -341,9 +347,9 @@ export function Zoomer() {
       {img && (
         <m.div className="v-zoom" role="dialog" aria-modal="true" aria-label={img.alt} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           <div className="v-zoom-pan">
-            <m.img src={img.src} alt={img.alt} initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} />
+            <m.img src={img.src} alt={img.alt} style={{ width: img.width }} initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} />
           </div>
-          <p className="v-zoom-hint">{s.phone.drag}</p>
+          {img.drag && <p className="v-zoom-hint">{s.phone.drag}</p>}
           <button type="button" className="v-zoom-close" onClick={() => setImg(null)} aria-label={s.phone.close} autoFocus>
             <svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l10 10M16 6L6 16" />
