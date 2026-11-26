@@ -128,17 +128,21 @@ export function HomePage() {
             />
           </div>
           <Stage3D
+            hint={s.hero.stageHint}
             className="v-hero-stage v-only-desk v-hero-in mt-10"
             screens={[
-              // the two products, side by side and turned a little toward each other
-              scr('queue', 7.0, [-3.78, -0.3, 0], [0, 0.15, 0], { href: href('clinic'), main: true }),
-              scr('growth-home', 7.0, [3.78, -0.3, 0], [0, -0.15, 0], { href: href('growth'), main: true, crop: 0.65 }),
-              // their other screens, further back; the two at the sides sit in the page's margins
-              scr('rx', 3.0, [-5.5, 2.25, -3.2], [0, 0.2, 0.02]),
-              scr('growth-autoreply', 3.4, [5.6, 2.3, -3.6], [0, -0.2, -0.02]),
-              scr('listening', 2.9, [-10.4, -0.1, -2.2], [0, 0.32, 0], { crop: 0.82 }),
-              scr('growth-proof', 3.0, [10.5, 0, -2.6], [0, -0.32, 0], { crop: 0.8 }),
-              scr('site-mr', 2.6, [0, 2.5, -6.5]),
+              // Two groups, one per product. In each, one screen is in front
+              // and the others wait behind; they change places when pressed,
+              // and by themselves every few seconds.
+              scr('queue', 7.0, [-3.78, -0.3, 0], [0, 0.15, 0], { href: href('clinic'), main: true, group: 0 }),
+              scr('growth-home', 7.0, [3.78, -0.3, 0], [0, -0.15, 0], { href: href('growth'), main: true, crop: 0.65, group: 1 }),
+              scr('rx', 3.0, [-5.5, 2.25, -3.2], [0, 0.2, 0.02], { group: 0 }),
+              scr('growth-autoreply', 3.4, [5.6, 2.3, -3.6], [0, -0.2, -0.02], { group: 1 }),
+              // the two at the sides sit in the page's margins
+              scr('listening', 2.9, [-10.4, -0.1, -2.2], [0, 0.32, 0], { crop: 0.78, group: 0 }),
+              scr('growth-proof', 3.0, [10.5, 0, -2.6], [0, -0.32, 0], { crop: 0.76, group: 1 }),
+              scr('site-mr', 2.5, [-1.7, 2.5, -6.5], undefined, { crop: 0.9, group: 0 }),
+              scr('growth-customers', 2.5, [1.7, 2.5, -6.5], undefined, { crop: 0.76, group: 1 }),
             ]}
             labels={
               <>
@@ -424,15 +428,17 @@ export function ClinicPage() {
             <PlayLink>{s.hero.films}</PlayLink>
           </div>
           <Stage3D
+            hint={s.hero.stageHint}
             className="v-hero-stage mt-10 pb-16"
             screens={[
+              // one group: any screen behind can be brought to the front
               scr('queue', 8.6, [0, -0.25, 0], [0.03, 0, 0], { main: true }),
-              scr('patient', 3.3, [-7.6, 0.9, -2.4], [0, 0.3, 0.02], { crop: 0.85 }),
-              scr('billing', 3.1, [7.7, 1.0, -2.8], [0, -0.3, -0.02], { crop: 0.8 }),
-              scr('pharmacy', 3.0, [-8.6, -2.3, -1.4], [0, 0.34, 0]),
-              scr('listening', 2.8, [8.7, -2.2, -1.6], [0, -0.34, 0], { crop: 0.85 }),
+              scr('patient', 3.3, [-7.6, 0.9, -2.4], [0, 0.3, 0.02], { crop: 0.7 }),
+              scr('billing', 3.1, [7.7, 1.0, -2.8], [0, -0.3, -0.02], { crop: 0.62 }),
+              scr('pharmacy', 3.0, [-8.6, -2.3, -1.4], [0, 0.34, 0], { crop: 0.88 }),
+              scr('listening', 2.8, [8.7, -2.2, -1.6], [0, -0.34, 0], { crop: 0.78 }),
               scr('rx', 2.8, [-3.2, 2.7, -6], [0, 0.1, 0]),
-              scr('site-mr', 2.8, [3.4, 2.7, -6.4], [0, -0.1, 0]),
+              scr('site-mr', 2.8, [3.4, 2.7, -6.4], [0, -0.1, 0], { crop: 0.9 }),
             ]}
           >
             <Screen name="queue" alt={s.different.items[0]!.alt} />
@@ -528,15 +534,17 @@ export function GrowthPage() {
             </div>
           </div>
           <Stage3D
+            hint={s.hero.stageHint}
             className="v-hero-stage mt-10 pb-16"
             screens={[
-              // what went out and came back, beside an enquiry being answered
-              scr('growth-statement', 5.3, [-4.5, -0.3, 0], [0, 0.15, 0], { main: true, crop: 0.6 }),
-              scr('growth-autoreply', 7.6, [2.9, -0.3, 0], [0, -0.13, 0], { main: true }),
-              scr('growth-customers', 3.2, [-5.6, 2.3, -3.4], [0, 0.2, 0.02], { crop: 0.8 }),
-              scr('growth-proof', 3.2, [5.4, 2.3, -3.6], [0, -0.2, -0.02], { crop: 0.75 }),
-              scr('growth-optin', 3.2, [-10.4, -0.4, -2.2], [0, 0.32, 0]),
-              scr('growth-reports', 2.9, [10.6, -0.1, -2.6], [0, -0.32, 0], { crop: 0.7 }),
+              // what went out and came back, beside an enquiry being answered;
+              // each side's other screens wait behind it
+              scr('growth-statement', 5.3, [-4.5, -0.3, 0], [0, 0.15, 0], { main: true, crop: 0.6, group: 0 }),
+              scr('growth-autoreply', 7.6, [2.9, -0.3, 0], [0, -0.13, 0], { main: true, group: 1 }),
+              scr('growth-customers', 3.2, [-5.6, 2.3, -3.4], [0, 0.2, 0.02], { crop: 0.84, group: 0 }),
+              scr('growth-proof', 3.2, [5.4, 2.3, -3.6], [0, -0.2, -0.02], { crop: 0.68, group: 1 }),
+              scr('growth-home', 3.2, [-10.4, -0.4, -2.2], [0, 0.32, 0], { crop: 0.74, group: 0 }),
+              scr('growth-reports', 2.9, [10.6, -0.1, -2.6], [0, -0.32, 0], { crop: 0.6, group: 1 }),
             ]}
           >
             <div className="mx-auto max-w-[820px]">

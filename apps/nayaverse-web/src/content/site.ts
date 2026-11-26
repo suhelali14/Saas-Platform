@@ -19,7 +19,7 @@ export const prices = {
 
 export interface SiteCopy {
   nav: { clinic: string; growth: string; vision: string; pricing: string; book: string; whatsapp: string };
-  hero: { before: string; accent: string; after: string; lede: string; book: string; films: string; clinicLine: string; growthLine: string };
+  hero: { before: string; accent: string; after: string; lede: string; book: string; films: string; clinicLine: string; growthLine: string; stageHint: string };
   facts: { title: string; text: string }[];
   products: { heading: string; lede: string; growthPoints: string[]; growthLine: string; growthFor: string };
   money: { from: string; perMonth: string; custom: string };
@@ -98,6 +98,7 @@ const en: SiteCopy = {
     films: 'Watch the films',
     clinicLine: 'The whole day of a clinic. The queue sorts itself.',
     growthLine: 'Your marketing, without the marketing firm.',
+    stageHint: 'Press a screen at the back to bring it forward.',
   },
   facts: [
     { title: 'Two products', text: 'Clinic and Growth, each with its true status on it' },
@@ -276,6 +277,7 @@ const hi: SiteCopy = {
     films: 'फ़िल्में देखें',
     clinicLine: 'क्लिनिक का पूरा दिन। कतार अपने आप सही क्रम में लगती है।',
     growthLine: 'आपकी मार्केटिंग, बिना मार्केटिंग फ़र्म के।',
+    stageHint: 'पीछे की किसी स्क्रीन को दबाएँ, वह आगे आ जाएगी।',
   },
   facts: [
     { title: 'दो प्रोडक्ट', text: 'क्लिनिक और ग्रोथ, हर एक पर उसकी सच्ची स्थिति लिखी है' },
@@ -454,6 +456,7 @@ const mr: SiteCopy = {
     films: 'फिल्म पाहा',
     clinicLine: 'क्लिनिकचा पूर्ण दिवस. रांग आपोआप योग्य क्रमात लागते.',
     growthLine: 'तुमचे मार्केटिंग, मार्केटिंग फर्मशिवाय.',
+    stageHint: 'मागची कोणतीही स्क्रीन दाबा, ती पुढे येईल.',
   },
   facts: [
     { title: 'दोन उत्पादने', text: 'क्लिनिक आणि ग्रोथ, प्रत्येकावर त्याची खरी स्थिती लिहिलेली' },

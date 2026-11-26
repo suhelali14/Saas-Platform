@@ -2,16 +2,24 @@
  * The product screens as objects in space (three.js).
  *
  * The real screens, each a white rounded card with the screenshot on its
- * face, at different depths. They fly in from the back on load, bob gently,
- * and move by depth: the pointer and the scroll shift near cards a little and
- * far cards more, which is what makes it read as space rather than a tilted
- * picture. Far cards fade toward the page's white. The main cards lift when
- * pointed at and open their product when pressed, and each carries an HTML
- * label that follows it. With reduced motion asked for, one still frame is
- * drawn and nothing moves.
+ * face. Every screen starts in a place: one at the front of its group (a
+ * product), the others further back. The places are fixed; the cards move
+ * between them:
+ *
+ *   - Press a card at the back and it swings forward to the front of its
+ *     group, while the one that was in front goes back to where it came from.
+ *   - Left alone, the groups take turns doing this by themselves every few
+ *     seconds, so every screen comes forward in time.
+ *   - Press the card in front and it opens its product (where it has a page).
+ *
+ * They fly in from the back on load, bob gently, and move by depth with the
+ * pointer and the scroll. Far cards fade toward the page's white. Each
+ * group's label follows whichever card is in front. With reduced motion
+ * asked for, nothing moves by itself and a pressed card changes places at
+ * once.
  *
  * The canvas is drawn at its own on-screen size (never stretched), and the
- * camera is placed so the main cards span the page's content width at any
+ * camera is placed so the front cards span the page's content width at any
  * window width.
  *
  * Loaded only in the browser, after the page is on screen; the prerendered
@@ -23,13 +31,16 @@ export type SceneScreen = {
   src: string;
   w: number; // pixels, for the aspect ratio
   h: number;
-  width: number; // world units
+  width: number; // world units, in the place it starts in
   pos: [number, number, number];
   rot?: [number, number, number];
   href?: string;
+  /** Starts at the front of its group. */
   main?: boolean;
   /** The share of the screenshot's height shown, from the top. */
   crop?: number;
+  /** Which product's screens it changes places with. */
+  group?: number;
 };
 
 export type SceneHandle = { dispose: () => void };
@@ -71,6 +82,11 @@ function shadowTexture(): THREE.Texture {
 }
 
 const FOV = 30;
+/** Every card is modelled at this width and scaled to the place it is in. */
+const UNIT = 7;
+/** How long a change of places takes, and how long the stage rests between them. */
+const SWAP = 1.25;
+const REST = 4.2;
 
 export function mountScene(
   host: HTMLElement,
@@ -100,21 +116,46 @@ export function mountScene(
   const world = new THREE.Group();
   scene.add(world);
 
+  // the places: fixed. Cards move between the places of their own group.
+  type Slot = { pos: THREE.Vector3; rot: THREE.Euler; scale: number; main: boolean; group: number; href?: string };
+  const slots: Slot[] = screens.map((s) => ({
+    pos: new THREE.Vector3(...s.pos),
+    rot: new THREE.Euler(...(s.rot ?? [0, 0, 0])),
+    scale: s.width / UNIT,
+    main: Boolean(s.main),
+    group: s.group ?? 0,
+    href: s.href,
+  }));
+
   const loader = new THREE.TextureLoader();
   const shadow = shadowTexture();
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
-  type Item = { group: THREE.Group; face: THREE.Mesh; shade: THREE.Mesh; height: number; base: THREE.Vector3; rot: THREE.Euler; phase: number; s: SceneScreen; lift: number; delay: number; label?: HTMLElement };
+  type Pose = { pos: THREE.Vector3; rx: number; ry: number; rz: number; scale: number; front: number };
+  type Item = {
+    group: THREE.Group;
+    face: THREE.Mesh;
+    shade: THREE.Mesh;
+    height: number; // at UNIT width
+    slot: number;
+    cur: Pose;
+    from: Pose;
+    t0: number; // when its change of places began; -1 when it is at rest
+    dir: number; // 1 coming forward, -1 going back
+    phase: number;
+    lift: number;
+    delay: number;
+  };
   const items: Item[] = [];
-  const labels = Array.from(host.querySelectorAll<HTMLElement>('[data-label]'));
+  const poseOf = (s: Slot): Pose => ({ pos: s.pos.clone(), rx: s.rot.x, ry: s.rot.y, rz: s.rot.z, scale: s.scale, front: s.main ? 1 : 0 });
   let pending = screens.length;
 
   screens.forEach((s, i) => {
     const crop = s.crop ?? 1;
-    const width = s.width;
+    const width = UNIT;
     const height = (width * s.h * crop) / s.w;
     const group = new THREE.Group();
     const r = Math.min(width, height) * 0.045;
-    const edge = s.main ? 0.07 : 0.05;
+    const edge = 0.075;
 
     // the card: white, a little thick, rounded; its rim is the screen's border
     const body = new THREE.Mesh(
@@ -160,13 +201,16 @@ export function mountScene(
     shade.renderOrder = -1;
     group.add(shade);
 
-    const base = new THREE.Vector3(...s.pos);
-    const rot = new THREE.Euler(...(s.rot ?? [0, 0, 0]));
-    group.position.copy(base);
-    group.rotation.copy(rot);
     world.add(group);
-    items.push({ group, face, shade, height, base, rot, phase: i * 1.7, s, lift: 0, delay: s.main ? i * 0.14 : 0.3 + i * 0.08, label: s.main ? labels[items.filter((x) => x.s.main).length] : undefined });
+    const slot = slots[i]!;
+    items.push({ group, face, shade, height, slot: i, cur: poseOf(slot), from: poseOf(slot), t0: -1, dir: 1, phase: i * 1.7, lift: 0, delay: slot.main ? i * 0.14 : 0.3 + i * 0.08 });
   });
+
+  // each group's turn order: the card in front first, then who comes next
+  const groups = [...new Set(slots.map((s) => s.group))].sort((a, b) => a - b);
+  const order = new Map<number, Item[]>(groups.map((g) => [g, items.filter((it) => slots[it.slot]!.group === g).sort((a, b) => Number(slots[b.slot]!.main) - Number(slots[a.slot]!.main))]));
+  const labels = Array.from(host.querySelectorAll<HTMLElement>('[data-label]'));
+  const frontOf = (g: number) => items.find((it) => slots[it.slot]!.group === g && slots[it.slot]!.main);
 
   // pointer and scroll
   const pointer = new THREE.Vector2(0, 0);
@@ -174,30 +218,70 @@ export function mountScene(
   let scrollP = 0;
   const ray = new THREE.Raycaster();
   let hovered: Item | null = null;
-  const mains = items.filter((it) => it.s.href);
+  const clock = new THREE.Clock();
+  let nextTurn = Infinity; // when the stage next changes places by itself
+  let turn = 0;
+
+  const moving = () => items.some((it) => it.t0 >= 0);
+
+  /** Brings a card at the back to the front of its group; the front one takes its place. */
+  function bring(it: Item, now: number) {
+    const place = slots[it.slot]!;
+    if (place.main || moving()) return false;
+    const front = frontOf(place.group);
+    if (!front) return false;
+    const back = it.slot;
+    const begin = (x: Item, to: number, dir: number) => {
+      x.from = { ...x.cur, pos: x.cur.pos.clone() };
+      x.slot = to;
+      x.dir = dir;
+      x.t0 = opts.still ? -1 : now;
+      if (opts.still) x.cur = poseOf(slots[to]!);
+    };
+    begin(it, front.slot, 1);
+    begin(front, back, -1);
+    const q = order.get(place.group)!;
+    q.splice(q.indexOf(it), 1);
+    q.splice(q.indexOf(front), 1);
+    q.unshift(it);
+    q.push(front);
+    return true;
+  }
+
+  const pick = (e: PointerEvent) => {
+    const r = canvas.getBoundingClientRect();
+    const p = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
+    ray.setFromCamera(p, camera);
+    const hit = ray.intersectObjects(items.map((m) => m.face))[0];
+    return hit ? items.find((m) => m.face === hit.object) ?? null : null;
+  };
+  const pressable = (it: Item | null) => Boolean(it && (!slots[it.slot]!.main || slots[it.slot]!.href));
 
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
     const r = canvas.getBoundingClientRect();
-    target.set(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
-    target.x = Math.max(-1.2, Math.min(1.2, target.x));
-    target.y = Math.max(-1.6, Math.min(1.6, target.y));
-    if (e.target === canvas) {
-      ray.setFromCamera(new THREE.Vector2(Math.max(-1, Math.min(1, target.x)), Math.max(-1, Math.min(1, target.y))), camera);
-      const hit = ray.intersectObjects(mains.map((m) => m.face))[0];
-      hovered = hit ? mains.find((m) => m.face === hit.object) ?? null : null;
-      canvas.style.cursor = hovered ? 'pointer' : '';
-    } else if (hovered) {
-      hovered = null;
-      canvas.style.cursor = '';
-    }
+    target.set(Math.max(-1.2, Math.min(1.2, ((e.clientX - r.left) / r.width) * 2 - 1)), Math.max(-1.6, Math.min(1.6, -(((e.clientY - r.top) / r.height) * 2 - 1))));
+    hovered = e.target === canvas ? pick(e) : null;
+    canvas.style.cursor = pressable(hovered) ? 'pointer' : '';
   };
   const onLeave = () => {
     hovered = null;
     canvas.style.cursor = '';
   };
-  const onClick = () => {
-    if (hovered?.s.href) window.location.href = hovered.s.href;
+  const onClick = (e: PointerEvent) => {
+    const it = pick(e);
+    if (!it) return;
+    const place = slots[it.slot]!;
+    if (place.main) {
+      if (place.href) window.location.href = place.href;
+      return;
+    }
+    const now = clock.getElapsedTime();
+    if (bring(it, now)) {
+      // the reader is choosing now: the stage waits longer before its own next turn
+      nextTurn = now + SWAP + REST * 2.2;
+      if (opts.still) frame(99);
+    }
   };
   const onScroll = () => {
     const r = host.getBoundingClientRect();
@@ -206,7 +290,7 @@ export function mountScene(
   };
   window.addEventListener('pointermove', onMove, { passive: true });
   canvas.addEventListener('pointerleave', onLeave);
-  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('click', onClick as EventListener);
   window.addEventListener('scroll', onScroll, { passive: true });
 
   let cw = 1;
@@ -236,7 +320,6 @@ export function mountScene(
   });
   io.observe(host);
 
-  const clock = new THREE.Clock();
   let start = -1;
   let raf = 0;
   let readyDone = false;
@@ -246,12 +329,15 @@ export function mountScene(
     size();
     onScroll();
     start = clock.getElapsedTime();
+    nextTurn = start + 3.4;
     opts.onReady();
     if (opts.still) frame(99);
     else loop();
   }
 
   const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 4);
+  const inOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
   const at = new THREE.Vector3();
 
   function frame(t: number) {
@@ -259,29 +345,70 @@ export function mountScene(
     pointer.lerp(target, opts.still ? 1 : 0.07);
     world.rotation.y = pointer.x * 0.09;
     world.rotation.x = -pointer.y * 0.04 + scrollP * 0.16;
+
+    // the stage's own turn: the next card of the next group comes forward
+    if (!opts.still && t > nextTurn && !moving() && !hovered && document.visibilityState === 'visible') {
+      for (let n = 0; n < groups.length; n++) {
+        const q = order.get(groups[(turn + n) % groups.length]!)!;
+        if (q.length > 1 && bring(q[1]!, t)) {
+          turn = (turn + n + 1) % groups.length;
+          break;
+        }
+      }
+      nextTurn = t + SWAP + REST;
+    }
+
     for (const it of items) {
+      const place = slots[it.slot]!;
+      // where it is: at rest in its place, or on the way to it
+      if (it.t0 >= 0) {
+        const p = Math.min(1, (t - it.t0) / SWAP);
+        const e = inOut(p);
+        const arc = Math.sin(Math.PI * p);
+        it.cur.pos.lerpVectors(it.from.pos, place.pos, e);
+        // the one coming forward swings out toward the reader and over;
+        // the one going back sinks away behind it
+        it.cur.pos.z += arc * (it.dir > 0 ? 2.6 : -1.6);
+        it.cur.pos.y += arc * (it.dir > 0 ? 0.35 : -0.25);
+        it.cur.rx = mix(it.from.rx, place.rot.x, e) - arc * 0.1 * it.dir;
+        it.cur.ry = mix(it.from.ry, place.rot.y, e) + arc * 0.5 * it.dir * (place.pos.x < it.from.pos.x ? 1 : -1);
+        it.cur.rz = mix(it.from.rz, place.rot.z, e);
+        it.cur.scale = mix(it.from.scale, place.scale, e);
+        it.cur.front = mix(it.from.front, place.main ? 1 : 0, e);
+        if (p >= 1) {
+          it.t0 = -1;
+          it.cur = poseOf(place);
+        }
+      }
+      const c = it.cur;
       const k = opts.still ? 1 : ease((since - it.delay) / 1.4);
-      const depth = -it.base.z; // 0 for the main cards, more for the ones behind
-      const bob = opts.still ? 0 : Math.sin(t * 0.7 + it.phase) * (it.s.main ? 0.05 : 0.11);
-      it.lift += ((hovered === it ? 1 : 0) - it.lift) * 0.12;
+      const depth = -c.pos.z; // 0 at the front, more for the ones behind
+      const bob = opts.still ? 0 : Math.sin(t * 0.7 + it.phase) * mix(0.11, 0.05, c.front);
+      it.lift += ((hovered === it && pressable(it) ? 1 : 0) - it.lift) * 0.12;
       it.group.position.set(
         // parallax: what is further away moves further, against the pointer
-        it.base.x - pointer.x * (0.12 + depth * 0.16),
-        it.base.y + bob + it.lift * 0.14 + pointer.y * depth * 0.07 + scrollP * (0.22 + depth * 0.12),
-        it.base.z - (1 - k) * 16 + it.lift * 0.7,
+        c.pos.x - pointer.x * (0.12 + Math.max(0, depth) * 0.16),
+        c.pos.y + bob + it.lift * 0.14 + pointer.y * Math.max(0, depth) * 0.07 + scrollP * (0.22 + Math.max(0, depth) * 0.12),
+        c.pos.z - (1 - k) * 16 + it.lift * mix(1.1, 0.7, c.front),
       );
-      it.group.rotation.set(it.rot.x + (1 - k) * 0.45, it.rot.y * (0.35 + 0.65 * k) * (1 - it.lift * 0.7), it.rot.z);
+      it.group.rotation.set(c.rx + (1 - k) * 0.45, c.ry * (0.35 + 0.65 * k) * (1 - it.lift * 0.7), c.rz);
+      it.group.scale.setScalar(c.scale * (1 + it.lift * mix(0.06, 0, c.front)));
       (it.face.material as THREE.MeshBasicMaterial).opacity = k;
-      (it.shade.material as THREE.MeshBasicMaterial).opacity = k * (it.s.main ? 0.55 + it.lift * 0.25 : 0.34);
-      if (it.label) {
-        at.set(0, -it.height / 2 - 0.12, 0.05);
-        it.group.localToWorld(at).project(camera);
-        const x = ((at.x + 1) / 2) * cw;
-        const y = ((1 - at.y) / 2) * ch;
-        it.label.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, 0)`;
-        it.label.style.opacity = String(k);
-      }
+      (it.shade.material as THREE.MeshBasicMaterial).opacity = k * (mix(0.34, 0.55, c.front) + it.lift * 0.25);
     }
+
+    // each group's label follows whichever card is in front
+    groups.forEach((g, i) => {
+      const label = labels[i];
+      const it = frontOf(g);
+      if (!label || !it) return;
+      const k = opts.still ? 1 : ease((since - it.delay) / 1.4);
+      at.set(0, -it.height / 2 - 0.18, 0.05);
+      it.group.localToWorld(at).project(camera);
+      label.style.transform = `translate3d(${(((at.x + 1) / 2) * cw).toFixed(1)}px, ${(((1 - at.y) / 2) * ch).toFixed(1)}px, 0) translate(-50%, 0)`;
+      // it steps aside while the cards change places, and returns with the new one
+      label.style.opacity = String(it.t0 >= 0 ? Math.max(0, (t - it.t0) / SWAP - 0.7) / 0.3 : k);
+    });
     renderer.render(scene, camera);
   }
 
@@ -302,7 +429,7 @@ export function mountScene(
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('scroll', onScroll);
       canvas.removeEventListener('pointerleave', onLeave);
-      canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('click', onClick as EventListener);
       scene.traverse((o) => {
         const m = o as THREE.Mesh;
         m.geometry?.dispose();

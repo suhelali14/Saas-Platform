@@ -469,3 +469,8 @@ html { scroll-padding-top: 84px; }
 /* things that slide in from a side must never widen the page */
 .v2 main > section, .v-sec { overflow-x: clip; }
 @media (max-width: 640px) { .v-marquee { margin-left: -16px; margin-right: -16px; } }
+
+/* under the 3D stage: how to use it, once it can be used */
+.v-3d-hint { display: none; }
+.v-3d.is-3d .v-3d-hint { display: block; position: absolute; left: 0; right: 0; bottom: -44px; margin: 0; text-align: center; font-size: 13px; color: var(--v-muted); animation: v-in 0.8s var(--v-ease) 2.4s both; }
+.v-deck-card:not(.v-deck-front) { cursor: pointer; }

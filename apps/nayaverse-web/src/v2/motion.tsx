@@ -216,7 +216,7 @@ export function Marquee({ rows }: { rows: ReactNode[][] }) {
 }
 
 /** The product screens in three.js on wide screens; the children are the fallback. */
-export function Stage3D({ screens, children, className = '', fit, labels }: { screens: SceneScreen[]; children: ReactNode; className?: string; /** world units the page's content width shows */ fit?: number; labels?: ReactNode }) {
+export function Stage3D({ screens, children, className = '', fit, labels, hint }: { screens: SceneScreen[]; children: ReactNode; className?: string; /** world units the page's content width shows */ fit?: number; labels?: ReactNode; /** shown under the stage once the screens can be pressed */ hint?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
@@ -244,6 +244,7 @@ export function Stage3D({ screens, children, className = '', fit, labels }: { sc
     <div ref={host} className={`v-3d ${on ? 'is-3d' : ''} ${className}`}>
       <div className="v-3d-fallback">{children}</div>
       {labels && <div className="v-3d-labels">{labels}</div>}
+      {hint && <p className="v-3d-hint">{hint}</p>}
     </div>
   );
 }
@@ -301,6 +302,13 @@ export function Deck({ cards, label }: { cards: { shot: ShotName; title: string;
               style={{ transform: SPOTS[spot], zIndex: n - spot, opacity: spot === 2 ? 0.9 : 1 }}
               aria-hidden={spot !== 0}
               tabIndex={spot === 0 ? undefined : -1}
+              onClick={(e: React.MouseEvent) => {
+                // a card behind comes to the front; only the front one opens its page
+                if (spot === 0) return;
+                e.preventDefault();
+                setTouched(true);
+                setFront(i);
+              }}
             >
               <span className="v-deck-cap">
                 <span>{c.title}</span>
