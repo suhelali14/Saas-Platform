@@ -6,9 +6,13 @@
  * product), the others further back. The places are fixed; the cards move
  * between them:
  *
- *   - Press a card at the back and it swings forward to the front of its
- *     group, while the one that was in front goes back to where it came from.
- *   - Left alone, the groups take turns doing this by themselves every few
+ *   - The places of a group form a ring, in the order its screens are
+ *     listed. On a turn every card moves round to the next place: one
+ *     arrives at the front, the one in front goes to the last place, and the
+ *     rest move up behind it, like a wheel.
+ *   - Press a card at the back and the wheel turns until that card is in
+ *     front.
+ *   - Left alone, the groups take turns turning by themselves every few
  *     seconds, so every screen comes forward in time.
  *   - Press the card in front and it opens its product (where it has a page).
  *
@@ -86,7 +90,7 @@ const FOV = 30;
 const UNIT = 7;
 /** How long a change of places takes, and how long the stage rests between them. */
 const SWAP = 1.25;
-const REST = 4.2;
+const REST = 3.4;
 
 export function mountScene(
   host: HTMLElement,
@@ -206,9 +210,15 @@ export function mountScene(
     items.push({ group, face, shade, height, slot: i, cur: poseOf(slot), from: poseOf(slot), t0: -1, dir: 1, phase: i * 1.7, lift: 0, delay: slot.main ? i * 0.14 : 0.3 + i * 0.08 });
   });
 
-  // each group's turn order: the card in front first, then who comes next
+  // each group's ring of places: the front one first, then the others in the
+  // order they were listed, which is the way round the wheel
   const groups = [...new Set(slots.map((s) => s.group))].sort((a, b) => a - b);
-  const order = new Map<number, Item[]>(groups.map((g) => [g, items.filter((it) => slots[it.slot]!.group === g).sort((a, b) => Number(slots[b.slot]!.main) - Number(slots[a.slot]!.main))]));
+  const rings = new Map<number, number[]>(
+    groups.map((g) => {
+      const mine = slots.map((_, i) => i).filter((i) => slots[i]!.group === g);
+      return [g, [...mine.filter((i) => slots[i]!.main), ...mine.filter((i) => !slots[i]!.main)]];
+    }),
+  );
   const labels = Array.from(host.querySelectorAll<HTMLElement>('[data-label]'));
   const frontOf = (g: number) => items.find((it) => slots[it.slot]!.group === g && slots[it.slot]!.main);
 
@@ -224,36 +234,42 @@ export function mountScene(
 
   const moving = () => items.some((it) => it.t0 >= 0);
 
-  /** Brings a card at the back to the front of its group; the front one takes its place. */
-  function bring(it: Item, now: number) {
-    const place = slots[it.slot]!;
-    if (place.main || moving()) return false;
-    const front = frontOf(place.group);
-    if (!front) return false;
-    const back = it.slot;
-    const begin = (x: Item, to: number, dir: number) => {
+  /** Turns a group's wheel by `steps` places: every card moves round, and
+   *  the card that was `steps` places behind the front arrives in front. */
+  function turnWheel(g: number, steps: number, now: number) {
+    const ring = rings.get(g)!;
+    const n = ring.length;
+    if (n < 2 || steps % n === 0 || moving()) return false;
+    for (const x of items) {
+      const from = ring.indexOf(x.slot);
+      if (from < 0) continue;
+      const to = (((from - steps) % n) + n) % n;
       x.from = { ...x.cur, pos: x.cur.pos.clone() };
-      x.slot = to;
-      x.dir = dir;
+      x.slot = ring[to]!;
+      x.dir = to === 0 ? 1 : from === 0 ? -1 : 0;
       x.t0 = opts.still ? -1 : now;
-      if (opts.still) x.cur = poseOf(slots[to]!);
-    };
-    begin(it, front.slot, 1);
-    begin(front, back, -1);
-    const q = order.get(place.group)!;
-    q.splice(q.indexOf(it), 1);
-    q.splice(q.indexOf(front), 1);
-    q.unshift(it);
-    q.push(front);
+      if (opts.still) x.cur = poseOf(slots[x.slot]!);
+    }
     return true;
   }
+  /** Brings a card at the back to the front by turning its wheel that far. */
+  function bring(it: Item, now: number) {
+    const place = slots[it.slot]!;
+    if (place.main) return false;
+    return turnWheel(place.group, rings.get(place.group)!.indexOf(it.slot), now);
+  }
 
-  const pick = (e: PointerEvent) => {
-    const r = canvas.getBoundingClientRect();
-    const p = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
+  // where the pointer is over the canvas, if it is; the card under it is
+  // found again every frame, because the cards move under a pointer at rest
+  let over: THREE.Vector2 | null = null;
+  const under = (p: THREE.Vector2) => {
     ray.setFromCamera(p, camera);
     const hit = ray.intersectObjects(items.map((m) => m.face))[0];
     return hit ? items.find((m) => m.face === hit.object) ?? null : null;
+  };
+  const pick = (e: PointerEvent) => {
+    const r = canvas.getBoundingClientRect();
+    return under(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1)));
   };
   const pressable = (it: Item | null) => Boolean(it && (!slots[it.slot]!.main || slots[it.slot]!.href));
 
@@ -261,10 +277,12 @@ export function mountScene(
     if (e.pointerType !== 'mouse') return;
     const r = canvas.getBoundingClientRect();
     target.set(Math.max(-1.2, Math.min(1.2, ((e.clientX - r.left) / r.width) * 2 - 1)), Math.max(-1.6, Math.min(1.6, -(((e.clientY - r.top) / r.height) * 2 - 1))));
-    hovered = e.target === canvas ? pick(e) : null;
+    over = e.target === canvas ? new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1)) : null;
+    hovered = over ? under(over) : null;
     canvas.style.cursor = pressable(hovered) ? 'pointer' : '';
   };
   const onLeave = () => {
+    over = null;
     hovered = null;
     canvas.style.cursor = '';
   };
@@ -278,8 +296,8 @@ export function mountScene(
     }
     const now = clock.getElapsedTime();
     if (bring(it, now)) {
-      // the reader is choosing now: the stage waits longer before its own next turn
-      nextTurn = now + SWAP + REST * 2.2;
+      // the wheel goes on turning by itself after the usual rest
+      nextTurn = now + SWAP + REST;
       if (opts.still) frame(99);
     }
   };
@@ -346,11 +364,18 @@ export function mountScene(
     world.rotation.y = pointer.x * 0.09;
     world.rotation.x = -pointer.y * 0.04 + scrollP * 0.16;
 
-    // the stage's own turn: the next card of the next group comes forward
-    if (!opts.still && t > nextTurn && !moving() && !hovered && document.visibilityState === 'visible') {
+    if (over && !opts.still) {
+      hovered = under(over);
+      canvas.style.cursor = pressable(hovered) ? 'pointer' : '';
+    }
+    // The stage's own turn: the next card of the next group comes forward.
+    // It keeps turning with the pointer resting on it; it waits only while
+    // the pointer is on a card at the back, which the reader may be about to
+    // press.
+    const aiming = Boolean(hovered && !slots[hovered.slot]!.main);
+    if (!opts.still && t > nextTurn && !moving() && !aiming && document.visibilityState === 'visible') {
       for (let n = 0; n < groups.length; n++) {
-        const q = order.get(groups[(turn + n) % groups.length]!)!;
-        if (q.length > 1 && bring(q[1]!, t)) {
+        if (turnWheel(groups[(turn + n) % groups.length]!, 1, t)) {
           turn = (turn + n + 1) % groups.length;
           break;
         }
@@ -366,12 +391,13 @@ export function mountScene(
         const e = inOut(p);
         const arc = Math.sin(Math.PI * p);
         it.cur.pos.lerpVectors(it.from.pos, place.pos, e);
-        // the one coming forward swings out toward the reader and over;
-        // the one going back sinks away behind it
-        it.cur.pos.z += arc * (it.dir > 0 ? 2.6 : -1.6);
-        it.cur.pos.y += arc * (it.dir > 0 ? 0.35 : -0.25);
+        // the one coming forward swings out toward the reader and over; the
+        // one leaving the front sinks away behind it; the rest glide round
+        // to the next place with a small lift
+        it.cur.pos.z += arc * (it.dir > 0 ? 2.6 : it.dir < 0 ? -1.6 : 0.6);
+        it.cur.pos.y += arc * (it.dir > 0 ? 0.35 : it.dir < 0 ? -0.25 : 0.18);
         it.cur.rx = mix(it.from.rx, place.rot.x, e) - arc * 0.1 * it.dir;
-        it.cur.ry = mix(it.from.ry, place.rot.y, e) + arc * 0.5 * it.dir * (place.pos.x < it.from.pos.x ? 1 : -1);
+        it.cur.ry = mix(it.from.ry, place.rot.y, e) + arc * (it.dir === 0 ? 0.18 : 0.5 * it.dir) * (place.pos.x < it.from.pos.x ? 1 : -1);
         it.cur.rz = mix(it.from.rz, place.rot.z, e);
         it.cur.scale = mix(it.from.scale, place.scale, e);
         it.cur.front = mix(it.from.front, place.main ? 1 : 0, e);
