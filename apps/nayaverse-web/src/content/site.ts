@@ -19,7 +19,8 @@ export const prices = {
 
 export interface SiteCopy {
   nav: { clinic: string; growth: string; vision: string; pricing: string; book: string; whatsapp: string };
-  hero: { before: string; accent: string; after: string; lede: string; book: string; films: string; clinicLine: string; growthLine: string; stageHint: string };
+  hero: { before: string; accent: string; after: string; lede: string; book: string; films: string; clinicLine: string; growthLine: string; stageHint: string; ledeShort: string };
+  phone: { enlarge: string; drag: string; close: string };
   facts: { title: string; text: string }[];
   products: { heading: string; lede: string; growthPoints: string[]; growthLine: string; growthFor: string };
   money: { from: string; perMonth: string; custom: string };
@@ -99,7 +100,9 @@ const en: SiteCopy = {
     clinicLine: 'The whole day of a clinic. The queue sorts itself.',
     growthLine: 'Your marketing, without the marketing firm.',
     stageHint: 'Press a screen at the back to bring it forward.',
+    ledeShort: 'A software company from Sangli with two products: Clinic, live at a paying clinic, and Growth, which does a marketing firm’s work.',
   },
+  phone: { enlarge: 'Tap to enlarge', drag: 'Drag to look around', close: 'Close' },
   facts: [
     { title: 'Two products', text: 'Clinic and Growth, each with its true status on it' },
     { title: 'One live business', text: 'A clinic in Sangli, paying, in production since October 2026' },
@@ -278,7 +281,9 @@ const hi: SiteCopy = {
     clinicLine: 'क्लिनिक का पूरा दिन। कतार अपने आप सही क्रम में लगती है।',
     growthLine: 'आपकी मार्केटिंग, बिना मार्केटिंग फ़र्म के।',
     stageHint: 'पीछे की किसी स्क्रीन को दबाएँ, वह आगे आ जाएगी।',
+    ledeShort: 'सांगली की एक सॉफ़्टवेयर कंपनी, दो प्रोडक्ट के साथ: क्लिनिक, जो एक क्लिनिक में पैसे देकर रोज़ चल रहा है, और ग्रोथ, जो मार्केटिंग फ़र्म का काम करता है।',
   },
+  phone: { enlarge: 'बड़ा देखने के लिए टैप करें', drag: 'इधर-उधर देखने के लिए खींचें', close: 'बंद करें' },
   facts: [
     { title: 'दो प्रोडक्ट', text: 'क्लिनिक और ग्रोथ, हर एक पर उसकी सच्ची स्थिति लिखी है' },
     { title: 'एक चालू व्यवसाय', text: 'सांगली का एक क्लिनिक, पैसे देकर, अक्टूबर 2026 से रोज़ इस्तेमाल में' },
@@ -457,7 +462,9 @@ const mr: SiteCopy = {
     clinicLine: 'क्लिनिकचा पूर्ण दिवस. रांग आपोआप योग्य क्रमात लागते.',
     growthLine: 'तुमचे मार्केटिंग, मार्केटिंग फर्मशिवाय.',
     stageHint: 'मागची कोणतीही स्क्रीन दाबा, ती पुढे येईल.',
+    ledeShort: 'सांगलीची एक सॉफ्टवेअर कंपनी, दोन उत्पादनांसह: क्लिनिक, जे एका क्लिनिकमध्ये पैसे देऊन रोज चालू आहे, आणि ग्रोथ, जे मार्केटिंग फर्मचे काम करते.',
   },
+  phone: { enlarge: 'मोठे पाहण्यासाठी टॅप करा', drag: 'आजूबाजूला पाहण्यासाठी ओढा', close: 'बंद करा' },
   facts: [
     { title: 'दोन उत्पादने', text: 'क्लिनिक आणि ग्रोथ, प्रत्येकावर त्याची खरी स्थिती लिहिलेली' },
     { title: 'एक चालू व्यवसाय', text: 'सांगलीतील एक क्लिनिक, पैसे देऊन, ऑक्टोबर 2026 पासून रोज वापरात' },

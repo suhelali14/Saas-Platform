@@ -33,6 +33,7 @@ function useArmed(ref: React.RefObject<HTMLElement | null>, onIn: (el: HTMLEleme
     const el = ref.current;
     if (!el || reduced()) return;
     if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+    if (window.innerWidth <= 640 && el.closest('.v-snap')) return;
     onArm?.(el);
     const io = new IntersectionObserver(
       ([e]) => {
@@ -257,25 +258,52 @@ export function scr(name: ShotName, width: number, pos: [number, number, number]
 
 /* --------------------------------------------------------------- the deck */
 
-const SPOTS = [
-  'translate3d(0,0,60px) rotateZ(-1.5deg)',
-  'translate3d(-26px,-8px,-30px) rotateZ(-5deg)',
-  'translate3d(30px,-18px,-80px) rotateZ(4deg)',
-];
+// where a card sits by how far it is from the front
+const SPOTS = ['translate3d(0, 0, 60px) rotate(0deg)', 'translate3d(16px, -16px, -40px) rotate(3.5deg)', 'translate3d(-14px, -30px, -110px) rotate(-3deg)'];
+const BEHIND = 'translate3d(0, -34px, -180px) rotate(0deg)';
+const AWAY = 'translate3d(-125%, 12px, 0) rotate(-9deg)';
 
-export function Deck({ cards, label }: { cards: { shot: ShotName; title: string; tag: ReactNode; alt: string; href?: string }[]; label: string }) {
+export type DeckCard = { shot: ShotName; title: string; alt: string; tag?: ReactNode; href?: string; more?: string; tab?: number };
+
+/**
+ * A phone's version of the stage: a deck of real screens. The front card is
+ * thrown aside on a swipe (or by itself every few seconds) and the next one
+ * comes up; a card behind comes forward when tapped. With `tabs`, the deck
+ * belongs to more than one product: the tab of the card in front is lit, and
+ * tapping a tab brings that product's first screen forward. After a touch it
+ * waits a while, then goes on turning.
+ */
+export function Deck({ cards, label, tabs }: { cards: DeckCard[]; label: string; tabs?: { label: string; tag?: ReactNode }[] }) {
   const [front, setFront] = useState(0);
-  const [touched, setTouched] = useState(false);
   const still = useReducedMotion();
+  const hold = useRef(0);
   const startX = useRef<number | null>(null);
   const n = cards.length;
   useEffect(() => {
-    if (still || touched) return;
-    const id = window.setInterval(() => setFront((f) => (f + 1) % n), 3600);
+    if (still) return;
+    const id = window.setInterval(() => {
+      if (Date.now() < hold.current || document.visibilityState !== 'visible') return;
+      setFront((f) => (f + 1) % n);
+    }, 3800);
     return () => window.clearInterval(id);
-  }, [still, touched, n]);
+  }, [still, n]);
+  const go = (i: number) => {
+    hold.current = Date.now() + 7000;
+    setFront(((i % n) + n) % n);
+  };
+  const cur = cards[front]!;
   return (
     <div className="v-deck" role="region" aria-roledescription="carousel" aria-label={label}>
+      {tabs && (
+        <div className="v-deck-tabs" role="tablist" aria-label={label}>
+          {tabs.map((tab, i) => (
+            <button key={tab.label} type="button" role="tab" aria-selected={cur.tab === i} onClick={() => go(cards.findIndex((c) => c.tab === i))}>
+              <span>{tab.label}</span>
+              {tab.tag}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         className="v-deck-stack"
         onPointerDown={(e) => {
@@ -286,28 +314,31 @@ export function Deck({ cards, label }: { cards: { shot: ShotName; title: string;
           const dx = e.clientX - startX.current;
           startX.current = null;
           if (Math.abs(dx) < 36) return;
-          setTouched(true);
-          setFront((f) => (f + (dx < 0 ? 1 : n - 1)) % n);
+          go(front + (dx < 0 ? 1 : -1));
+        }}
+        onPointerCancel={() => {
+          startX.current = null;
         }}
       >
         {cards.map((c, i) => {
           const spot = (i - front + n) % n;
           const [w, h] = shotSize[c.shot];
           const Tag = c.href ? 'a' : 'div';
+          // the card that has just left the front is thrown off to the side
+          const place = spot < 3 ? SPOTS[spot] : n > 3 && spot === n - 1 ? AWAY : BEHIND;
           return (
             <Tag
               key={c.shot}
               href={c.href}
               className={`v-deck-card ${spot === 0 ? 'v-deck-front' : ''}`}
-              style={{ transform: SPOTS[spot], zIndex: n - spot, opacity: spot === 2 ? 0.9 : 1 }}
+              style={{ transform: place, zIndex: spot < 3 ? n - spot : 0, opacity: spot === 0 ? 1 : spot === 1 ? 0.96 : spot === 2 ? 0.88 : 0 }}
               aria-hidden={spot !== 0}
               tabIndex={spot === 0 ? undefined : -1}
               onClick={(e: React.MouseEvent) => {
                 // a card behind comes to the front; only the front one opens its page
                 if (spot === 0) return;
                 e.preventDefault();
-                setTouched(true);
-                setFront(i);
+                go(i);
               }}
             >
               <span className="v-deck-cap">
@@ -319,19 +350,20 @@ export function Deck({ cards, label }: { cards: { shot: ShotName; title: string;
           );
         })}
       </div>
-      <div className="v-deck-dots">
-        {cards.map((c, i) => (
-          <button
-            key={c.shot}
-            type="button"
-            aria-label={c.title}
-            aria-pressed={i === front}
-            onClick={() => {
-              setTouched(true);
-              setFront(i);
-            }}
-          />
-        ))}
+      <div className="v-deck-foot">
+        <span className="v-deck-dots">
+          {cards.map((c, i) => (
+            <button key={c.shot} type="button" aria-label={c.title} aria-pressed={i === front} onClick={() => go(i)} />
+          ))}
+        </span>
+        {cur.href && cur.more && (
+          <a href={cur.href} className="v-link">
+            {cur.more}
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8h10M9 4l4 4-4 4" />
+            </svg>
+          </a>
+        )}
       </div>
     </div>
   );

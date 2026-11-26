@@ -13,7 +13,7 @@ import { ContentProvider } from '@/content/use-content';
 import { content, pathFor, isGuidePage, type Locale, type Page } from '@/content/index';
 import { SimplePage, pageToSimpleKey } from '@/sections/SimplePage';
 import { GuideArticle, GuidesIndex } from '@/sections/Guides';
-import { Enquiry, Footer, Header, PhoneBar, Questions } from '@/v2/parts';
+import { Enquiry, Footer, Header, PhoneBar, Questions, Zoomer } from '@/v2/parts';
 import { ClinicPage, GrowthPage, HomePage, PricingPage, VisionPage } from '@/v2/pages';
 
 function Body({ locale, page }: { locale: Locale; page: Page }) {
@@ -95,6 +95,7 @@ function Body({ locale, page }: { locale: Locale; page: Page }) {
         </main>
         <Footer />
         <PhoneBar />
+        <Zoomer />
       </div>
     </MotionProvider>
   );

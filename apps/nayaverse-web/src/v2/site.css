@@ -474,3 +474,100 @@ html { scroll-padding-top: 84px; }
 .v-3d-hint { display: none; }
 .v-3d.is-3d .v-3d-hint { display: block; position: absolute; left: 0; right: 0; bottom: -44px; margin: 0; text-align: center; font-size: 13px; color: var(--v-muted); animation: v-in 0.8s var(--v-ease) 2.4s both; }
 .v-deck-card:not(.v-deck-front) { cursor: pointer; }
+
+/* ===================================================================
+   Fourth pass (27 November): the phone, re-imagined.
+   =================================================================== */
+
+/* the hero's buttons: the main one full width under a thumb */
+@media (max-width: 640px) {
+  .v-hero-cta { gap: 10px; }
+  .v-hero-cta .v-btn, .v-hero-cta .v-btn-ghost { flex: 1 1 100%; justify-content: center; min-height: 54px; }
+}
+
+/* the deck: larger, with the two products as tabs above it */
+.v-deck-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 26px; padding: 4px; border-radius: 16px; background: var(--v-alt); }
+.v-deck-tabs button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 10px; border: 0; border-radius: 12px; background: transparent; font: inherit; font-family: var(--v-head); font-size: 16px; font-weight: 700; color: var(--v-muted); cursor: pointer; transition: background 0.3s var(--v-ease), color 0.3s, box-shadow 0.3s; -webkit-tap-highlight-color: transparent; }
+.v-deck-tabs button[aria-selected="true"] { background: #fff; color: var(--v-ink); box-shadow: 0 1px 2px rgb(22 24 29 / 0.08), 0 8px 18px -10px rgb(22 24 29 / 0.3); }
+.v-deck-tabs .v-pill { font-size: 11px; padding: 2px 8px; }
+.v-deck-stack { height: 372px; perspective: 1200px; }
+.v-deck-card { top: 34px; width: min(340px, 87vw); margin-left: calc(min(340px, 87vw) / -2); border-radius: 18px; color: inherit; transition: transform 0.8s var(--v-ease), opacity 0.6s var(--v-ease); will-change: transform; }
+.v-deck-card img { height: 282px; object-position: left top; }
+.v-deck-cap { min-height: 44px; padding: 8px 14px; font-family: var(--v-head); font-size: 14.5px; font-weight: 700; }
+.v-deck-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 4px; }
+.v-deck .v-deck-dots { margin-top: 0; }
+.v-deck-foot .v-link { font-size: 15px; }
+/* the old sideways-crop rule gives way: phone captures are shown from their top */
+.v-swipe-card img { object-position: left 10%; }
+
+/* the bar at the foot waits until the hero has gone, and steps aside for the form */
+@media (max-width: 640px) {
+  .v-phonebar { transform: translateY(115%); transition: transform 0.5s var(--v-ease); }
+  .v-phonebar.on { transform: none; }
+}
+
+/* rows to swipe, where cards stood in a tall stack */
+@media (max-width: 640px) {
+  .v-snap { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; margin-left: -16px; margin-right: -16px; padding: 4px 16px 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .v-snap::-webkit-scrollbar { display: none; }
+  .v-snap > * { flex: 0 0 86%; scroll-snap-align: start; scroll-margin-left: 16px; }
+  .v-snap > .v-card:hover { transform: none; }
+}
+
+/* a product screen opens large when tapped */
+@media (max-width: 899px) {
+  .v-frame, .v-swipe-card { position: relative; }
+  .v-frame img, .v-swipe-card img { cursor: zoom-in; }
+  .v-frame::after, .v-swipe-card::after { content: ''; position: absolute; right: 10px; bottom: 10px; width: 36px; height: 36px; border-radius: 50%; background: rgb(255 255 255 / 0.94) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2316181D' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='9' cy='9' r='5.2'/%3E%3Cpath d='M13 13l4 4M9 6.8v4.4M6.8 9h4.4'/%3E%3C/svg%3E") center / 18px no-repeat; border: 1px solid var(--v-line); box-shadow: 0 8px 18px -8px rgb(22 24 29 / 0.4); pointer-events: none; }
+  .v-swipe-card::after { top: 154px; bottom: auto; }
+  .v-float .v-frame::after { display: none; }
+}
+.v-zoom { position: fixed; inset: 0; z-index: 80; background: rgb(17 19 23 / 0.95); display: flex; flex-direction: column; }
+.v-zoom-pan { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 68px 14px 64px; overscroll-behavior: contain; }
+.v-zoom-pan img { display: block; width: max(100%, min(230vw, 1100px)); max-width: none; height: auto; border-radius: 12px; background: #fff; }
+.v-zoom-close { position: fixed; top: 12px; right: 12px; width: 46px; height: 46px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #fff; color: var(--v-ink); cursor: pointer; box-shadow: 0 10px 24px -8px rgb(0 0 0 / 0.6); }
+.v-zoom-hint { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); margin: 0; padding: 7px 14px; border-radius: 999px; background: rgb(255 255 255 / 0.16); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; backdrop-filter: blur(8px); }
+
+/* a group that folds away on a phone; on a wide screen its heading is not a button */
+.v-fold-btn { appearance: none; background: none; border: 0; font: inherit; color: inherit; text-align: left; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.v-fold-btn svg { display: none; flex: none; transition: transform 0.3s var(--v-ease); }
+@media (min-width: 900px) { .v-fold-btn { pointer-events: none; } }
+@media (max-width: 899px) {
+  .v-fold { padding-top: 4px !important; padding-bottom: 4px !important; }
+  .v-fold-btn { width: 100% !important; min-height: 56px; padding: 8px 0 !important; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .v-fold-btn svg { display: block; }
+  .v-fold.open > .v-fold-btn svg { transform: rotate(180deg); }
+  .v-fold:not(.open) > .v-fold-body { display: none; }
+  .v-fold.open > .v-fold-body { padding-bottom: 14px; }
+  .v-rules > .v-fold { padding: 4px 0 !important; }
+}
+
+/* small things on a phone */
+@media (max-width: 640px) {
+  .v-facts > div { padding: 18px 14px; }
+  .v-facts .v-h3 { font-size: 17px !important; }
+  .v-table { border-radius: 16px; }
+  .v-qs { gap: 0; }
+  .v-foot { padding-top: 48px; }
+  .v-film { border-radius: 14px; }
+  .v-sheet nav .v-btn-ghost { min-height: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-phonebar, .v-deck-tabs button, .v-fold-btn svg { transition: none !important; }
+}
+
+/* phone: the first screen must reach the deck, and the menu is a whole sheet */
+@media (max-width: 640px) {
+  .v2 main > section:first-child > .v-wrap { padding-top: 30px; }
+  /* one row: the main button, and the films as a round play button beside it */
+  .v-hero-cta { flex-wrap: nowrap; }
+  .v-hero-cta .v-btn { flex: 1 1 auto; }
+  .v-hero-cta .v-btn-ghost.v-play { flex: 0 0 54px; width: 54px; padding: 0; justify-content: center; }
+  .v-hero-cta .v-play-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .v-deck-tabs { margin-bottom: 16px; }
+}
+@media (max-width: 899px) {
+  .v-sheet { height: calc(100dvh - 60px); overflow-y: auto; padding-bottom: 32px; }
+  .v-head .v-sheet .v-btn { display: inline-flex; min-height: 54px; font-size: 16px; }
+}

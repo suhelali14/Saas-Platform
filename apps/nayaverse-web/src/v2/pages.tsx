@@ -9,7 +9,7 @@ import { growthFilm } from '@/content/products';
 import { prices, rupees } from '@/content/site';
 import { Player } from '@/sections/Films';
 import { DayCharts } from '@/sections/DayCharts';
-import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
+import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Fold, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
 import type { ShotName } from './shots';
 import { Arm, Deck, Marquee, Parallax, SideIn, Stage3D, Tilt, Words, scr } from './motion';
 
@@ -109,21 +109,31 @@ export function HomePage() {
             ]}
           />
           <p className="v-lead v-hero-in text-[19px]" style={{ animationDelay: '0.45s' }}>
-            {s.hero.lede}
+            <span className="v-only-desk">{s.hero.lede}</span>
+            <span className="v-only-phone">{s.hero.ledeShort}</span>
           </p>
-          <div className="v-hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: '0.58s' }}>
-            <a href="#enquiry" className="v-btn v-only-desk">
+          <div className="v-hero-cta v-hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: '0.58s' }}>
+            <a href="#enquiry" className="v-btn">
               {s.hero.book}
             </a>
             <PlayLink>{s.hero.films}</PlayLink>
           </div>
-          <div className="v-only-phone mt-8 pb-14">
+          <div className="v-only-phone mt-9 pb-12">
+            {/* The two products as one deck: the tab of the screen in front is
+                lit, and the deck goes through Clinic's screens, then Growth's. */}
             <Deck
               label={s.products.heading}
+              tabs={[
+                { label: s.nav.clinic, tag: <Pill kind="live">{t.readiness.LIVE}</Pill> },
+                { label: s.nav.growth, tag: <Pill kind="built">{p.status.built}</Pill> },
+              ]}
               cards={[
-                { shot: 'd-queue', title: p.lineup.clinic.name, tag: <Pill kind="live">{t.readiness.LIVE}</Pill>, alt: s.different.items[0]!.alt, href: href('clinic') },
-                { shot: 'd-growth', title: p.lineup.growth.name, tag: <Pill kind="built">{p.status.built}</Pill>, alt: s.growthHow.caption, href: href('growth') },
-                { shot: 'd-assistant', title: s.assistant.heading, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.assistant.lede },
+                { tab: 0, shot: 'd-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt, href: href('clinic'), more: s.clinic.more },
+                { tab: 0, shot: 'd-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt, href: href('clinic'), more: s.clinic.more },
+                { tab: 0, shot: 'd-assistant', title: s.assistant.heading, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.assistant.lede, href: href('clinic'), more: s.clinic.more },
+                { tab: 1, shot: 'd-growth', title: s.growth.shown[0]!.q, alt: s.growth.statementCaption, href: href('growth'), more: s.growthHow.more },
+                { tab: 1, shot: 'm-growth-chat', title: s.growth.firm[3]![0], alt: s.growth.repliesCaption, href: href('growth'), more: s.growthHow.more },
+                { tab: 1, shot: 'm-growth-waiting', title: s.growthHow.steps[2]!.title, alt: s.growthHow.steps[2]!.text, href: href('growth'), more: s.growthHow.more },
               ]}
             />
           </div>
@@ -204,7 +214,7 @@ export function HomePage() {
 
       <Sec tone="alt" id="products">
         <Head h={s.products.heading} lede={s.products.lede} />
-        <div className="v-grid2 mt-12">
+        <div className="v-grid2 v-snap mt-12">
           <Rise className="v-card flex flex-col">
             <Pill kind="live">{t.readiness.LIVE}</Pill>
             <h3 className="v-h3 mt-4 text-[26px]">{p.lineup.clinic.name}</h3>
@@ -421,7 +431,7 @@ export function ClinicPage() {
           />
           <p className="v-lead text-[19px]">{p.clinicPage.lede}</p>
           <p className="v-small mt-3 max-w-[680px]">{p.clinicPage.liveNote}</p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="v-hero-cta mt-9 flex flex-wrap gap-3">
             <a href="#enquiry" className="v-btn">
               {p.clinicPage.action}
             </a>
@@ -441,7 +451,21 @@ export function ClinicPage() {
               scr('pharmacy', 3.0, [-8.6, -2.3, -1.4], [0, 0.34, 0], { crop: 0.88 }),
             ]}
           >
-            <Screen name="queue" alt={s.different.items[0]!.alt} />
+            <div className="v-only-desk">
+              <Screen name="queue" alt={s.different.items[0]!.alt} />
+            </div>
+            <div className="v-only-phone">
+              <Deck
+                label={p.clinicPage.title}
+                cards={[
+                  { shot: 'd-queue', title: s.different.items[0]!.title, alt: s.different.items[0]!.alt },
+                  { shot: 'd-listening', title: s.different.items[1]!.title, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.different.items[1]!.alt },
+                  { shot: 'visit-draft', title: s.different.items[2]!.title, alt: s.different.items[2]!.alt },
+                  { shot: 'd-assistant', title: s.assistant.heading, tag: <Pill kind="trial">{p.status.trial}</Pill>, alt: s.assistant.lede },
+                  { shot: 'site-mr', title: s.different.items[3]!.title, alt: s.different.items[3]!.alt },
+                ]}
+              />
+            </div>
           </Stage3D>
         </div>
       </section>
@@ -521,7 +545,7 @@ export function GrowthPage() {
                 ]}
               />
               <p className="v-lead text-[19px]">{g.lede}</p>
-              <div className="mt-9 flex flex-wrap gap-3">
+              <div className="v-hero-cta mt-9 flex flex-wrap gap-3">
                 <a href="#enquiry" className="v-btn">
                   {g.pilot}
                 </a>
@@ -547,8 +571,20 @@ export function GrowthPage() {
               scr('growth-reports', 2.9, [10.6, -0.1, -2.6], [0, -0.32, 0], { crop: 0.6, group: 1 }),
             ]}
           >
-            <div className="mx-auto max-w-[820px]">
-              <Screen name="growth-statement" alt={g.statementCaption} caption={g.statementCaption} title={p.growthPage.title} phone="d-growth" />
+            <div className="v-only-desk mx-auto max-w-[820px]">
+              <Screen name="growth-statement" alt={g.statementCaption} caption={g.statementCaption} title={p.growthPage.title} />
+            </div>
+            <div className="v-only-phone">
+              <Deck
+                label={p.growthPage.title}
+                cards={[
+                  { shot: 'd-growth', title: g.shown[0]!.q, alt: g.statementCaption },
+                  { shot: 'm-growth-chat', title: g.firm[3]![0], alt: g.repliesCaption },
+                  { shot: 'm-growth-waiting', title: s.growthHow.steps[2]!.title, alt: s.growthHow.steps[2]!.text },
+                  { shot: 'growth-proof', title: g.proofHeading, alt: g.proof[0]! },
+                ]}
+              />
+              <p className="v-cap text-center">{g.statementCaption}</p>
             </div>
           </Stage3D>
         </div>
@@ -578,7 +614,7 @@ export function GrowthPage() {
 
       <Sec>
         <Head h={g.waysHeading} lede={g.waysLede} />
-        <div className="v-grid2 mt-12">
+        <div className="v-grid2 v-snap mt-12">
           {g.ways.map((w, i) => (
             <Rise key={w.kicker} className="v-card" delay={i * 0.06}>
               <p className="m-0 text-[14px] font-semibold text-[var(--v-accent)]">{w.kicker}</p>
@@ -674,7 +710,7 @@ export function GrowthPage() {
 
       <Sec tone="alt">
         <Head h={g.standingHeading} />
-        <div className="v-grid3 mt-10">
+        <div className="v-grid3 v-snap mt-10">
           {g.standing.map((x) => (
             <Rise key={x.t} className="v-card">
               <h3 className="v-h3">{x.t}</h3>
@@ -713,9 +749,19 @@ export function VisionPage() {
             const rows = serviceRows.filter((r) => r.group === g);
             if (!rows.length) return null;
             return (
-              <div key={g} className={`flex flex-wrap gap-x-8 py-5 ${gi ? 'border-t border-[var(--v-ink)]' : ''}`}>
-                <h3 className="v-h3 w-[170px] flex-none py-3 text-[20px]">{t.groups[g]}</h3>
-                <div className="min-w-0 flex-[1_1_520px]">
+              <Fold
+                key={g}
+                start={gi === 0}
+                className={`flex flex-wrap gap-x-8 py-5 ${gi ? 'border-t border-[var(--v-ink)]' : ''}`}
+                btnClass="w-[170px] flex-none py-3"
+                bodyClass="min-w-0 flex-[1_1_520px]"
+                head={
+                  <>
+                    <h3 className="v-h3 inline text-[20px]">{t.groups[g]}</h3>
+                    <span className="v-only-phone v-small ml-2">{rows.length}</span>
+                  </>
+                }
+              >
                   {rows.map((r, i) => (
                     <div key={r.code} className={`flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3 ${i ? 'border-t border-[var(--v-line)]' : ''}`}>
                       <span className="w-[210px] flex-none font-semibold">{t.services[r.code as keyof typeof t.services].name}</span>
@@ -725,8 +771,7 @@ export function VisionPage() {
                       </span>
                     </div>
                   ))}
-                </div>
-              </div>
+              </Fold>
             );
           })}
         </div>
@@ -760,20 +805,26 @@ export function VisionPage() {
         <Head h={t.manifestPanel.heading + '.'} lede={t.manifestPanel.lede} />
         <div className="v-rules mt-12">
           {t.manifest.map((grp) => (
-            <div key={grp.heading} className="flex flex-wrap gap-x-14 gap-y-4">
-              <div className="w-[260px] flex-none">
-                <h3 className="v-h3 text-[22px]">{grp.heading}</h3>
-                <p className="v-small mt-2">{grp.note}</p>
-              </div>
-              <div className="grid min-w-0 flex-[1_1_520px] gap-x-10 gap-y-5 sm:grid-cols-2">
+            <Fold
+              key={grp.heading}
+              start={grp === t.manifest[0]}
+              className="flex flex-wrap gap-x-14 gap-y-4"
+              btnClass="w-[260px] flex-none"
+              bodyClass="grid min-w-0 flex-[1_1_520px] gap-x-10 gap-y-5 sm:grid-cols-2"
+              head={
+                <>
+                  <h3 className="v-h3 text-[22px]">{grp.heading}</h3>
+                  <span className="v-small mt-2 block font-normal">{grp.note}</span>
+                </>
+              }
+            >
                 {grp.items.map((it) => (
                   <div key={it.name}>
                     <div className="font-semibold">{it.name}</div>
                     <p className="mb-0 mt-1 text-[15px] text-[var(--v-body)]">{it.detail}</p>
                   </div>
                 ))}
-              </div>
-            </div>
+            </Fold>
           ))}
         </div>
       </Sec>
@@ -841,7 +892,7 @@ export function PricingPage() {
 
       <Sec tone="alt">
         <Head h={pr.clinicHeading} lede={pr.clinicLede} />
-        <div className="v-grid3 mt-12">
+        <div className="v-grid3 v-snap mt-12">
           {t.healthLine.classes.map((c, i) => (
             <Rise key={c.klass} className="v-card flex flex-col" delay={(i % 3) * 0.05}>
               <div className="flex items-center justify-between gap-3">

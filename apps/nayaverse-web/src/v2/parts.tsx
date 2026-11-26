@@ -203,9 +203,17 @@ export function Header() {
                     {to === 'clinic' ? p.lineup.clinic.name : to === 'growth' ? p.lineup.growth.name : label}
                   </a>
                 ))}
-                <a href="#enquiry" className="v-btn mt-3" onClick={() => setSheet(null)}>
+                <a href="#enquiry" className="v-btn mt-4" onClick={() => setSheet(null)}>
                   {s.nav.book}
                 </a>
+                <span className="mt-2 flex gap-2">
+                  <a className="v-btn-ghost flex-1 justify-center" href={`tel:${contact.phone.replace(/\s/g, '')}`}>
+                    {s.about.call}
+                  </a>
+                  <a className="v-btn-ghost flex-1 justify-center" href={`https://wa.me/${contact.whatsapp}`} target="_blank" rel="noopener noreferrer">
+                    WhatsApp
+                  </a>
+                </span>
               </nav>
             ) : (
               <nav aria-label="Language">
@@ -225,8 +233,27 @@ export function Header() {
 
 export function PhoneBar() {
   const { s } = useSite();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    let atForm = false;
+    const update = () => setShow(window.scrollY > 560 && !atForm);
+    const form = document.getElementById('enquiry');
+    const io = form
+      ? new IntersectionObserver(([e]) => {
+          atForm = Boolean(e?.isIntersecting);
+          update();
+        })
+      : null;
+    if (form) io!.observe(form);
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+    return () => {
+      io?.disconnect();
+      window.removeEventListener('scroll', update);
+    };
+  }, []);
   return (
-    <div className="v-phonebar">
+    <div className={`v-phonebar ${show ? 'on' : ''}`} inert={!show}>
       <a href="#enquiry" className="v-btn">
         {s.nav.book}
       </a>
@@ -279,6 +306,69 @@ export function Footer() {
         <p className="mt-12 border-t border-[#2a2e35] pt-6 text-[13px]">{t.footer.legal}</p>
       </div>
     </footer>
+  );
+}
+
+/* ---------------------------------------------------- phone: enlarge, fold */
+
+/** On a phone a product screen is too small to read at the page's width.
+ *  Tapping one opens it large, to be dragged around. Mounted once. */
+export function Zoomer() {
+  const { s } = useSite();
+  const [img, setImg] = useState<{ src: string; alt: string } | null>(null);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (window.innerWidth >= 900) return;
+      const el = (e.target as HTMLElement | null)?.closest?.('.v-frame img, .v-swipe-card img') as HTMLImageElement | null;
+      if (!el || el.closest('.v-float')) return;
+      setImg({ src: el.currentSrc || el.src, alt: el.alt });
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
+  useEffect(() => {
+    if (!img) return;
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setImg(null);
+    window.addEventListener('keydown', esc);
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', esc);
+      document.documentElement.style.overflow = '';
+    };
+  }, [img]);
+  return (
+    <AnimatePresence>
+      {img && (
+        <m.div className="v-zoom" role="dialog" aria-modal="true" aria-label={img.alt} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <div className="v-zoom-pan">
+            <m.img src={img.src} alt={img.alt} initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} />
+          </div>
+          <p className="v-zoom-hint">{s.phone.drag}</p>
+          <button type="button" className="v-zoom-close" onClick={() => setImg(null)} aria-label={s.phone.close} autoFocus>
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l10 10M16 6L6 16" />
+            </svg>
+          </button>
+        </m.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/** A group that folds away on a phone, where a long page costs the most.
+ *  On a wide screen it is always open and the heading is not a button. */
+export function Fold({ head, children, start = false, className = '', btnClass = '', bodyClass = '' }: { head: ReactNode; children: ReactNode; start?: boolean; className?: string; btnClass?: string; bodyClass?: string }) {
+  const [open, setOpen] = useState(start);
+  return (
+    <div className={`v-fold ${open ? 'open' : ''} ${className}`}>
+      <button type="button" className={`v-fold-btn ${btnClass}`} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="min-w-0">{head}</span>
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M4 7l5 5 5-5" />
+        </svg>
+      </button>
+      <div className={`v-fold-body ${bodyClass}`}>{children}</div>
+    </div>
   );
 }
 
@@ -438,9 +528,9 @@ export function FilmsBand() {
 
 export function PlayLink({ children }: { children: ReactNode }) {
   return (
-    <a href="#films" className="v-btn-ghost">
+    <a href="#films" className="v-btn-ghost v-play">
       <PlayGlyph />
-      {children}
+      <span className="v-play-text">{children}</span>
     </a>
   );
 }
