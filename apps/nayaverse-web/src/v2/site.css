@@ -298,7 +298,7 @@ body.v2::before { display: none; }
 /* on a desktop the stage is one height, whatever its fallback screen is;
    the 3D scene is framed in it */
 @media (min-width: 900px) {
-  .v-hero-stage { height: 600px; padding-bottom: 0 !important; margin-bottom: 72px; }
+  .v-hero-stage { padding-bottom: 0 !important; }
   .v-hero-stage .v-3d-fallback { position: absolute; inset: 0; overflow: hidden; }
 }
 .v-3d-labels { display: none; }
@@ -382,3 +382,90 @@ body.v2::before { display: none; }
 .v-pill { width: fit-content; }
 /* the trade charts' tabs (the older chart panel on Vision): a thumb's size */
 @media (max-width: 899px) { .v2 [role="tablist"] [role="tab"] { min-height: 44px; } }
+
+/* ===================================================================
+   Third pass (26 November): framed screens, a sharper 3D stage,
+   parallax and side motion.
+   =================================================================== */
+
+/* the card every product screen sits in */
+.v-frame { border: 1px solid #dfe0e3; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgb(22 24 29 / 0.05), 0 18px 36px -18px rgb(22 24 29 / 0.22), 0 56px 96px -56px rgb(22 24 29 / 0.38); }
+.v-frame img { display: block; width: 100%; height: auto; }
+.v-frame-bar { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 16px; border-bottom: 1px solid var(--v-line); background: #fbfbfa; }
+.v-frame-dots { display: inline-flex; gap: 6px; flex: none; }
+.v-frame-dots i { width: 9px; height: 9px; border-radius: 50%; background: #dcdee1; }
+.v-frame-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--v-body); }
+.v-frame-bar .v-pill { margin-left: auto; font-size: 11.5px; padding: 2px 9px; }
+/* one height for every step; a taller screen fades out at the foot */
+.v-frame-view { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--bg, #fff); }
+.v-frame-view::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: linear-gradient(to bottom, transparent, var(--bg, #fff)); pointer-events: none; }
+@media (max-width: 640px) { .v-frame { border-radius: 14px; } .v-frame-bar { min-height: 32px; padding: 0 12px; } .v-frame-dots i { width: 7px; height: 7px; } }
+/* the older bare screens take the same corners and shadow */
+.v-shot { border-radius: 18px; border-color: #dfe0e3; box-shadow: 0 1px 2px rgb(22 24 29 / 0.05), 0 18px 36px -18px rgb(22 24 29 / 0.22), 0 56px 96px -56px rgb(22 24 29 / 0.38); }
+
+/* a second, smaller screen floating over a corner, moving at its own speed */
+.v-screen { position: relative; }
+.v-float { position: absolute; z-index: 2; width: 46%; bottom: 9%; pointer-events: none; }
+.v-float-left { left: -9%; }
+.v-float-right { right: -7%; }
+.v-float .v-frame { border-radius: 14px; box-shadow: 0 24px 48px -20px rgb(22 24 29 / 0.45); }
+.v-float .v-frame-bar { min-height: 26px; padding: 0 10px; }
+.v-float .v-frame-dots i { width: 6px; height: 6px; }
+@media (max-width: 1100px) { .v-float-left { left: -3%; } .v-float-right { right: -3%; } }
+@media (max-width: 640px) { .v-float { display: none; } }
+
+/* the 3D stage: its height follows the window, and the labels share the
+   canvas's box so each can follow its card */
+@media (min-width: 900px) {
+  .v-hero-stage { height: clamp(400px, 39vw, 560px); margin-bottom: 64px; }
+}
+.v-3d.is-3d .v-3d-labels { display: block; position: absolute; top: -40px; left: 50%; width: 100vw; height: calc(100% + 40px); transform: translateX(-50%); bottom: auto; right: auto; pointer-events: none; }
+.v-3d-labels a { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform; white-space: nowrap; gap: 10px; padding: 8px 14px; transition: box-shadow 0.3s var(--v-ease), background 0.3s; }
+.v-3d-labels a:hover { transform: none; background: #fff; box-shadow: 0 20px 34px -16px rgb(22 24 29 / 0.45); }
+
+/* the header: a clean sheet over the page, with the reader's place as a line */
+.v-head { background: rgb(255 255 255 / 0.9); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px); }
+.v-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--v-accent); transform-origin: left; z-index: 2; }
+
+/* the headline's words rise into place one after another */
+.v-words .v-word { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.14em 0.03em 0.16em; margin: -0.14em -0.03em -0.16em; }
+.v-words .v-word > span { display: inline-block; animation: v-word 0.95s var(--v-ease) both; }
+@keyframes v-word { from { transform: translateY(118%) rotate(4deg); opacity: 0; } to { transform: none; opacity: 1; } }
+:lang(hi) .v-words .v-word, :lang(mr) .v-words .v-word { padding-top: 0.3em; margin-top: -0.3em; }
+
+/* the trades, drifting past in two rows */
+.v-marquee { margin: 40px -24px 0; overflow: hidden; -webkit-mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent); mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent); }
+.v-marquee-row { padding: 6px 0; }
+.v-marquee-run { display: flex; gap: 12px; width: max-content; animation: v-run 70s linear infinite; }
+.v-marquee-run.rev { animation-direction: reverse; }
+.v-marquee:hover .v-marquee-run { animation-play-state: paused; }
+@keyframes v-run { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 6px)); } }
+.v-marquee-chip { display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--v-line); background: #fff; font-size: 15px; font-weight: 600; color: var(--v-ink); white-space: nowrap; }
+.v-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.v-chip-live { background: var(--v-live); box-shadow: 0 0 0 4px var(--v-live-soft); }
+.v-chip-building { background: #d9a441; }
+.v-chip-waitlist { background: transparent; border: 1.5px solid #9ca2aa; }
+
+/* small things */
+.v-btn, .v-btn-ghost { -webkit-tap-highlight-color: transparent; }
+.v-btn:active, .v-btn-ghost:active, .v-chip:active { transform: translateY(0) scale(0.98); }
+.v-card { border-radius: 20px; }
+.v-ticks li:first-child { border-top: 0; }
+.v-ticks { border-top: 1px solid var(--v-line); }
+.v-film { box-shadow: 0 40px 80px -48px rgb(0 0 0 / 0.7); }
+.v-swipe-card, .v-deck-card { border-radius: 16px; }
+html { scroll-padding-top: 84px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .v-words .v-word > span, .v-marquee-run { animation: none !important; }
+  .v-marquee { -webkit-mask-image: none; mask-image: none; margin-left: 0; margin-right: 0; }
+  .v-marquee-run { flex-wrap: wrap; width: auto; }
+  .v-marquee-copy { display: none; }
+}
+
+/* last touches */
+.v-head { background: rgb(255 255 255 / 0.95); }
+.v-swipe-card img, .v-deck-card img { object-position: left 10%; }
+/* things that slide in from a side must never widen the page */
+.v2 main > section, .v-sec { overflow-x: clip; }
+@media (max-width: 640px) { .v-marquee { margin-left: -16px; margin-right: -16px; } }

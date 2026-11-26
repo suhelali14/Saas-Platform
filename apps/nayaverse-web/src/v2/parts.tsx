@@ -16,8 +16,8 @@ import { productsCopy, assistantFilms, clinicFilm, growthFilm, type FilmKey } fr
 import { siteCopy } from '@/content/site';
 import { contact, founder } from '@/content/contact';
 import { Player } from '@/sections/Films';
-import { Rise, Swipe, Tilt } from './motion';
-import { shotSize, type ShotName } from './shots';
+import { Rise, ScrollLine, SideIn, Swipe, Tilt } from './motion';
+import { shotBg, shotSize, type ShotName } from './shots';
 
 export function useSite() {
   const { t, locale, page } = useContentCtx();
@@ -52,6 +52,24 @@ export function Shot({ name, alt, crop, style, priority }: { name: ShotName; alt
       decoding="async"
       style={crop ? { height: crop, objectFit: 'cover', objectPosition: 'left top', ...style } : style}
     />
+  );
+}
+
+/** The card every product screen sits in: rounded, with a quiet window bar. */
+export function Frame({ title, tag, children, className = '' }: { title?: ReactNode; tag?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <div className={`v-frame ${className}`}>
+      <div className="v-frame-bar">
+        <span className="v-frame-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        {title && <span className="v-frame-title">{title}</span>}
+        {tag}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -128,6 +146,7 @@ export function Header() {
   }, [sheet]);
   return (
     <header className="v-head">
+      <ScrollLine />
       <div className="v-wrap v-head-row">
         <a href={href('home')} className="v-logo" aria-label="Nayaversse">
           <img src="/wordmark.png" alt="Nayaversse" width={600} height={86} />
@@ -265,7 +284,7 @@ export function Footer() {
 
 /* ------------------------------------------------------------- the stepper */
 
-export function Stepper({ items }: { items: { title: string; text: string; alt: string; shot: ShotName; tag?: ReactNode }[] }) {
+export function Stepper({ items }: { items: { title: string; text: string; alt: string; shot: ShotName; /** the whole screen, for the wide layout */ wide?: ShotName; tag?: ReactNode }[] }) {
   const [at, setAt] = useState(0);
   const [picked, setPicked] = useState(false);
   const still = useReducedMotion();
@@ -284,11 +303,13 @@ export function Stepper({ items }: { items: { title: string; text: string; alt: 
     return () => window.clearInterval(id);
   }, [picked, still, seen, items.length]);
   const cur = items[at]!;
+  const wide = cur.wide ?? cur.shot;
   const running = !picked && !still && seen;
   return (
     <>
     <Swipe items={items} />
     <div ref={box} className="v-steps v-only-desk mt-14">
+      <SideIn from="left">
       <div role="tablist" aria-orientation="vertical">
         {items.map((it, i) => (
           <button
@@ -313,23 +334,31 @@ export function Stepper({ items }: { items: { title: string; text: string; alt: 
           </button>
         ))}
       </div>
+      </SideIn>
+      <SideIn from="right">
       <div id="step-panel" role="tabpanel" aria-labelledby={`step-${at}`}>
         <Lean>
-          <figure className="v-shot">
-            <AnimatePresence mode="wait" initial={false}>
-              <m.div
-                key={cur.shot}
-                initial={still ? false : { opacity: 0, scale: 0.985 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={still ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <Shot name={cur.shot} alt={cur.alt} crop={460} style={{ width: '100%' }} />
-              </m.div>
-            </AnimatePresence>
-          </figure>
+          <Frame title={cur.title} tag={cur.tag}>
+            {/* One height for every step, so nothing below jumps; the whole
+                screen is shown at the frame's width, and a taller one fades
+                out at the foot instead of being cut. */}
+            <div className="v-frame-view" style={{ ['--bg' as string]: shotBg[wide] }}>
+              <AnimatePresence mode="wait" initial={false}>
+                <m.div
+                  key={wide}
+                  initial={still ? false : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={still ? undefined : { opacity: 0, y: -8 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <Shot name={wide} alt={cur.alt} style={{ width: '100%' }} />
+                </m.div>
+              </AnimatePresence>
+            </div>
+          </Frame>
         </Lean>
       </div>
+      </SideIn>
     </div>
     </>
   );

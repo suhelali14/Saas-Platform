@@ -27,3 +27,31 @@ export const shotSize = {
 } as const;
 
 export type ShotName = keyof typeof shotSize;
+
+/** The colour at each screen's bottom edge, so a frame taller than the screen continues it. */
+export const shotBg: Record<ShotName, string> = {
+  'assistant-card': '#fefdf9',
+  'audit': '#f8f4ee',
+  'billing': '#f8f4ee',
+  'd-assistant': '#f0ece4',
+  'd-growth': '#eaeaea',
+  'd-listening': '#f8f4ee',
+  'd-queue': '#f8f4ee',
+  'growth-autoreply': '#f6f6f4',
+  'growth-customers': '#f6f6f4',
+  'growth-home': '#f6f6f4',
+  'growth-optin': '#ffffff',
+  'growth-proof': '#f6f6f4',
+  'growth-reports': '#f6f6f4',
+  'growth-statement': '#ebebeb',
+  'listening': '#f8f4ee',
+  'livequeue': '#ffffff',
+  'patient': '#f6f5ee',
+  'pharmacy': '#f8f4ee',
+  'queue': '#f8f4ee',
+  'rx': '#f8f4ee',
+  'site-mr': '#f9fbfc',
+  'site': '#f9fbfc',
+  'visit-draft': '#f8f4ee',
+  'website-builder': '#f8f4ee',
+};

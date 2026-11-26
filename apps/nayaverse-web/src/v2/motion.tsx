@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { animate, stagger } from 'motion';
 import { m, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { useHydrated } from '@/components/Reveal';
 import type { SceneScreen } from './scene3d';
 import { shotSize, type ShotName } from './shots';
 
@@ -91,22 +92,131 @@ export function Arm({ children, className }: { children: ReactNode; className?: 
 }
 
 /** A screen that tips back as it enters and straightens at the middle of the window. */
+/** True once the page is live in the browser and motion is wanted. Scroll-
+ *  linked styles are applied only then, so the prerendered page is at rest. */
+function useLive() {
+  const hydrated = useHydrated();
+  const still = useReducedMotion();
+  return hydrated && !still;
+}
+
 export function Tilt({ children, className = '' }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const still = useReducedMotion();
+  const live = useLive();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
-  const rotateX = useTransform(scrollYProgress, [0, 1], [22, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
-  const y = useTransform(scrollYProgress, [0, 1], [60, 0]);
+  const rotateX = useTransform(scrollYProgress, [0, 1], [18, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [50, 0]);
   return (
     <div ref={ref} className={`v-tilt ${className}`}>
-      <m.div style={still ? undefined : { rotateX, scale, y, transformPerspective: 1400 }}>{children}</m.div>
+      <m.div style={live ? { rotateX, scale, y, transformPerspective: 1400 } : undefined}>{children}</m.div>
+    </div>
+  );
+}
+
+/** A layer that moves with the scroll at its own speed: above 0 it lags
+ *  behind the page, below 0 it runs ahead. Layers at different speeds are
+ *  what reads as depth. */
+export function Parallax({ children, speed = 0.3, className = '' }: { children: ReactNode; speed?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const live = useLive();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], [speed * 140, speed * -140]);
+  return (
+    <div ref={ref} className={className}>
+      <m.div style={live ? { y } : undefined}>{children}</m.div>
+    </div>
+  );
+}
+
+/** Slides in from one side as it is scrolled to, and settles by the time it
+ *  is a third of the way up the window. Driven by the scroll, so it follows
+ *  the reader's own pace in both directions. */
+export function SideIn({ children, from = 'left', className = '', far = 90 }: { children: ReactNode; from?: 'left' | 'right'; className?: string; far?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const live = useLive();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'start 0.62'] });
+  const x = useTransform(scrollYProgress, [0, 1], [from === 'left' ? -far : far, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.7], [0, 1]);
+  return (
+    <div ref={ref} className={className}>
+      <m.div style={live ? { x, opacity } : undefined}>{children}</m.div>
+    </div>
+  );
+}
+
+/** How far down the page the reader is, as a line under the header. */
+export function ScrollLine() {
+  const live = useLive();
+  const { scrollYProgress } = useScroll();
+  if (!live) return null;
+  return <m.div className="v-progress" style={{ scaleX: scrollYProgress }} aria-hidden="true" />;
+}
+
+/** A headline whose words rise into place one after another as the page
+ *  opens. Plain CSS, so it plays before any script has loaded. */
+export function Words({ parts, className = '' }: { parts: [string, boolean][]; className?: string }) {
+  // words, each made of pieces that may differ in colour ("on" + ".")
+  const words: { text: string; accent: boolean }[][] = [[]];
+  for (const [text, accent] of parts) {
+    for (const piece of text.split(/(\s+)/)) {
+      if (!piece) continue;
+      if (/^\s+$/.test(piece)) words.push([]);
+      else words[words.length - 1]!.push({ text: piece, accent });
+    }
+  }
+  const list = words.filter((w) => w.length);
+  return (
+    <h1 className={`v-h1 v-words ${className}`}>
+      {list.map((w, i) => (
+        <span key={i}>
+          <span className="v-word">
+            <span style={{ animationDelay: `${0.05 + i * 0.055}s` }}>
+              {w.map((s, j) => (
+                <span key={j} className={s.accent ? 'v-accent' : undefined}>
+                  {s.text}
+                </span>
+              ))}
+            </span>
+          </span>
+          {i < list.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </h1>
+  );
+}
+
+/** Two rows of chips drifting in opposite directions, pushed further by the
+ *  scroll. Without motion they wrap into an ordinary list. */
+export function Marquee({ rows }: { rows: ReactNode[][] }) {
+  const live = useLive();
+  const { scrollY } = useScroll();
+  const a = useTransform(scrollY, (v) => -(v * 0.08) % 600);
+  const b = useTransform(scrollY, (v) => ((v * 0.08) % 600) - 600);
+  return (
+    <div className="v-marquee">
+      {rows.map((row, r) => (
+        <m.div key={r} className="v-marquee-row" style={live ? { x: r % 2 ? b : a } : undefined}>
+          <div className={`v-marquee-run ${r % 2 ? 'rev' : ''}`}>
+            {row.map((chip, i) => (
+              <span key={i} className="v-marquee-chip">
+                {chip}
+              </span>
+            ))}
+            {row.map((chip, i) => (
+              <span key={`c${i}`} className="v-marquee-chip v-marquee-copy" aria-hidden="true">
+                {chip}
+              </span>
+            ))}
+          </div>
+        </m.div>
+      ))}
     </div>
   );
 }
 
 /** The product screens in three.js on wide screens; the children are the fallback. */
-export function Stage3D({ screens, children, className = '', camZ, labels }: { screens: SceneScreen[]; children: ReactNode; className?: string; camZ?: number; labels?: ReactNode }) {
+export function Stage3D({ screens, children, className = '', fit, labels }: { screens: SceneScreen[]; children: ReactNode; className?: string; /** world units the page's content width shows */ fit?: number; labels?: ReactNode }) {
   const host = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
@@ -119,7 +229,7 @@ export function Stage3D({ screens, children, className = '', camZ, labels }: { s
     const go = () =>
       import('./scene3d').then(({ mountScene }) => {
         if (dead) return;
-        handle = mountScene(el, screens, { still: reduced(), camZ, onReady: () => setOn(true) });
+        handle = mountScene(el, screens, { still: reduced(), fit, onReady: () => setOn(true) });
       });
     const w = window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number };
     if (w.requestIdleCallback) w.requestIdleCallback(go, { timeout: 700 });

@@ -9,9 +9,9 @@ import { growthFilm } from '@/content/products';
 import { prices, rupees } from '@/content/site';
 import { Player } from '@/sections/Films';
 import { DayCharts } from '@/sections/DayCharts';
-import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
+import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
 import type { ShotName } from './shots';
-import { Arm, Deck, Stage3D, Tilt, scr } from './motion';
+import { Arm, Deck, Marquee, Parallax, SideIn, Stage3D, Tilt, Words, scr } from './motion';
 
 function Sec({ tone = 'white', id, children }: { tone?: 'white' | 'alt' | 'dark'; id?: string; children: ReactNode }) {
   return (
@@ -46,17 +46,37 @@ function From({ n, custom }: { n?: number; custom?: boolean }) {
   );
 }
 
-function Screen({ name, alt, caption, crop, bar }: { name: ShotName; alt: string; caption?: string; crop?: number; bar?: ReactNode }) {
+/** A product screen in its frame. It tips up into place as it is scrolled to,
+ *  and can carry a smaller screen floating over one corner, which moves at
+ *  its own speed so the two read as layers. */
+function Screen({ name, alt, caption, crop, title, float, phone }: { name: ShotName; alt: string; caption?: string; crop?: number; title?: ReactNode; float?: { name: ShotName; side: 'left' | 'right'; crop?: number }; /** the same screen captured at a phone's width */ phone?: ShotName }) {
   return (
-    <figure className="m-0">
+    <figure className="v-screen m-0">
       <Tilt>
         <Lean>
-          <div className="v-shot">
-            {bar && <div className="v-shot-bar">{bar}</div>}
-            <Shot name={name} alt={alt} crop={crop} style={{ width: '100%' }} />
-          </div>
+          <Frame title={title}>
+            {phone ? (
+              <>
+                <span className="v-only-desk block">
+                  <Shot name={name} alt={alt} crop={crop} style={{ width: '100%' }} />
+                </span>
+                <span className="v-only-phone block">
+                  <Shot name={phone} alt={alt} style={{ width: '100%' }} />
+                </span>
+              </>
+            ) : (
+              <Shot name={name} alt={alt} crop={crop} style={{ width: '100%' }} />
+            )}
+          </Frame>
         </Lean>
       </Tilt>
+      {float && (
+        <Parallax speed={-0.45} className={`v-float v-float-${float.side}`}>
+          <Frame>
+            <Shot name={float.name} alt="" crop={float.crop} style={{ width: '100%' }} />
+          </Frame>
+        </Parallax>
+      )}
       {caption && <figcaption className="v-cap">{caption}</figcaption>}
     </figure>
   );
@@ -65,7 +85,8 @@ function Screen({ name, alt, caption, crop, bar }: { name: ShotName; alt: string
 function useDifferent() {
   const { s, p } = useSite();
   const shots: ShotName[] = ['d-queue', 'd-listening', 'visit-draft', 'site-mr'];
-  return s.different.items.map((it, i) => ({ ...it, shot: shots[i]!, tag: i === 1 ? <Pill kind="trial">{p.status.trial}</Pill> : undefined }));
+  const whole: ShotName[] = ['queue', 'listening', 'visit-draft', 'site-mr'];
+  return s.different.items.map((it, i) => ({ ...it, shot: shots[i]!, wide: whole[i]!, tag: i === 1 ? <Pill kind="trial">{p.status.trial}</Pill> : undefined }));
 }
 
 /* ======================================================================= home */
@@ -79,15 +100,18 @@ export function HomePage() {
     <>
       <section className="v-white overflow-hidden">
         <div className="v-wrap pt-12 sm:pt-16">
-          <h1 className="v-h1 v-hero-in max-w-[980px]">
-            {s.hero.before}
-            <span className="v-accent">{s.hero.accent}</span>
-            {s.hero.after}
-          </h1>
-          <p className="v-lead v-hero-in text-[19px]" style={{ animationDelay: '0.12s' }}>
+          <Words
+            className="max-w-[980px]"
+            parts={[
+              [s.hero.before, false],
+              [s.hero.accent, true],
+              [s.hero.after, false],
+            ]}
+          />
+          <p className="v-lead v-hero-in text-[19px]" style={{ animationDelay: '0.45s' }}>
             {s.hero.lede}
           </p>
-          <div className="v-hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: '0.24s' }}>
+          <div className="v-hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: '0.58s' }}>
             <a href="#enquiry" className="v-btn v-only-desk">
               {s.hero.book}
             </a>
@@ -104,25 +128,26 @@ export function HomePage() {
             />
           </div>
           <Stage3D
-            className="v-hero-stage v-only-desk v-hero-in mt-6"
+            className="v-hero-stage v-only-desk v-hero-in mt-10"
             screens={[
-              scr('queue', 6.2, [-3.45, 0.55, 0], [0, 0.3, 0], { href: href('clinic'), main: true, crop: 0.92 }),
-              scr('growth-home', 6.2, [3.45, 0.55, 0], [0, -0.3, 0], { href: href('growth'), main: true, crop: 0.62 }),
-              scr('rx', 2.8, [-7.5, 2.6, -4], [0, 0.35, 0.03]),
-              scr('growth-autoreply', 3.2, [7.7, 2.7, -4.5], [0, -0.35, -0.03]),
-              scr('livequeue', 2.2, [-7.3, -2.5, -3], [0, 0.3, -0.02], { crop: 0.55 }),
-              scr('growth-proof', 3.0, [7.4, -2.6, -3.5], [0, -0.3, 0.02]),
-              scr('d-listening', 2.0, [-1.7, 3.3, -6.5], [0, 0.1, 0]),
-              scr('site-mr', 3.0, [2.3, -3.5, -6], [0, -0.1, 0]),
+              // the two products, side by side and turned a little toward each other
+              scr('queue', 7.0, [-3.78, -0.3, 0], [0, 0.15, 0], { href: href('clinic'), main: true }),
+              scr('growth-home', 7.0, [3.78, -0.3, 0], [0, -0.15, 0], { href: href('growth'), main: true, crop: 0.65 }),
+              // their other screens, further back; the two at the sides sit in the page's margins
+              scr('rx', 3.0, [-5.5, 2.25, -3.2], [0, 0.2, 0.02]),
+              scr('growth-autoreply', 3.4, [5.6, 2.3, -3.6], [0, -0.2, -0.02]),
+              scr('listening', 2.9, [-10.4, -0.1, -2.2], [0, 0.32, 0], { crop: 0.82 }),
+              scr('growth-proof', 3.0, [10.5, 0, -2.6], [0, -0.32, 0], { crop: 0.8 }),
+              scr('site-mr', 2.6, [0, 2.5, -6.5]),
             ]}
             labels={
               <>
-                <a href={href('clinic')}>
-                  <span className="v-h3 text-[17px]">{p.lineup.clinic.name}</span>
+                <a href={href('clinic')} data-label="">
+                  <span className="v-h3 text-[16px]">{p.lineup.clinic.name}</span>
                   <Pill kind="live">{t.readiness.LIVE}</Pill>
                 </a>
-                <a href={href('growth')}>
-                  <span className="v-h3 text-[17px]">{p.lineup.growth.name}</span>
+                <a href={href('growth')} data-label="">
+                  <span className="v-h3 text-[16px]">{p.lineup.growth.name}</span>
                   <Pill kind="built">{p.status.built}</Pill>
                 </a>
               </>
@@ -235,7 +260,7 @@ export function HomePage() {
 
       <Sec id="growth-how">
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-          <div>
+          <SideIn from="left">
             <Rise>
               <Pill kind="built">{p.status.built}</Pill>
               <h2 className="v-h2 mt-4">{s.growthHow.heading}</h2>
@@ -255,8 +280,8 @@ export function HomePage() {
             <a href={href('growth')} className="v-link mt-2">
               {s.growthHow.more} <Arrow />
             </a>
-          </div>
-          <Screen name="growth-statement" alt={s.growth.statementCaption} caption={s.growthHow.caption} />
+          </SideIn>
+          <Screen name="growth-statement" alt={s.growth.statementCaption} caption={s.growthHow.caption} title={p.lineup.growth.name} float={{ name: 'growth-autoreply', side: 'left' }} phone="d-growth" />
         </div>
       </Sec>
 
@@ -278,7 +303,18 @@ export function HomePage() {
             </Pill>
           </div>
         </div>
-        <a href={href('vision')} className="v-btn-ghost mt-8">
+        <Marquee
+          rows={[serviceRows.slice(0, 12), serviceRows.slice(12)].map((row) =>
+            row.map((r) => (
+              <>
+                <i className={`v-chip-dot v-chip-${r.status.toLowerCase()}`} aria-hidden="true" />
+                {t.services[r.code as keyof typeof t.services].name}
+                <span className="sr-only">: {t.readiness[r.status]}</span>
+              </>
+            )),
+          )}
+        />
+        <a href={href('vision')} className="v-btn-ghost mt-10">
           {s.visionTeaser.link} <Arrow />
         </a>
       </Sec>
@@ -371,9 +407,14 @@ export function ClinicPage() {
             <Pill kind="live">{t.readiness.LIVE}</Pill>
             <span className="v-small">{p.clinicPage.title}</span>
           </div>
-          <h1 className="v-h1 v-hero-in mt-5 max-w-[980px]">
-            {p.hero.headline[0]} <span className="v-accent">{p.hero.headline[1]}</span> {p.hero.headline[2]}
-          </h1>
+          <Words
+            className="mt-5 max-w-[980px]"
+            parts={[
+              [p.hero.headline[0] + ' ', false],
+              [p.hero.headline[1]!, true],
+              [' ' + p.hero.headline[2], false],
+            ]}
+          />
           <p className="v-lead text-[19px]">{p.clinicPage.lede}</p>
           <p className="v-small mt-3 max-w-[680px]">{p.clinicPage.liveNote}</p>
           <div className="mt-9 flex flex-wrap gap-3">
@@ -385,12 +426,13 @@ export function ClinicPage() {
           <Stage3D
             className="v-hero-stage mt-10 pb-16"
             screens={[
-              scr('queue', 8.4, [0, 0.1, 0], [0.04, 0, 0], { main: true, crop: 0.9 }),
-              scr('patient', 3.0, [-7.2, 2.5, -4], [0, 0.35, 0.03]),
-              scr('billing', 2.8, [7.3, 2.6, -4.5], [0, -0.35, -0.03]),
-              scr('pharmacy', 2.9, [-7.2, -2.4, -3], [0, 0.3, -0.02]),
-              scr('d-listening', 2.0, [7.1, -2.4, -3], [0, -0.3, 0.02]),
-              scr('rx', 2.6, [0.4, 3.7, -7], [0, 0, 0]),
+              scr('queue', 8.6, [0, -0.25, 0], [0.03, 0, 0], { main: true }),
+              scr('patient', 3.3, [-7.6, 0.9, -2.4], [0, 0.3, 0.02], { crop: 0.85 }),
+              scr('billing', 3.1, [7.7, 1.0, -2.8], [0, -0.3, -0.02], { crop: 0.8 }),
+              scr('pharmacy', 3.0, [-8.6, -2.3, -1.4], [0, 0.34, 0]),
+              scr('listening', 2.8, [8.7, -2.2, -1.6], [0, -0.34, 0], { crop: 0.85 }),
+              scr('rx', 2.8, [-3.2, 2.7, -6], [0, 0.1, 0]),
+              scr('site-mr', 2.8, [3.4, 2.7, -6.4], [0, -0.1, 0]),
             ]}
           >
             <Screen name="queue" alt={s.different.items[0]!.alt} />
@@ -407,12 +449,12 @@ export function ClinicPage() {
         <Head h={p.clinicPage.getsHeading + '.'} lede={p.lineup.clinic.body} />
         <div className="v-grid2 mt-12">
           {gets.map(([name, alt], i) => (
-            <Rise key={name} delay={(i % 2) * 0.06}>
-              <div className="v-shot">
+            <SideIn key={name} from={i % 2 ? 'right' : 'left'} far={60}>
+              <Frame>
                 <Shot name={name} alt={alt} crop={300} style={{ width: '100%' }} />
-              </div>
+              </Frame>
               <p className="mt-4 text-[15px] text-[var(--v-body)]">{alt}</p>
-            </Rise>
+            </SideIn>
           ))}
         </div>
       </Sec>
@@ -464,11 +506,14 @@ export function GrowthPage() {
                 <Pill kind="built">{p.status.built}</Pill>
                 <span className="v-small">{p.growthPage.title}</span>
               </div>
-              <h1 className="v-h1 v-hero-in mt-5">
-                {g.before}
-                <span className="v-accent">{g.accent}</span>
-                {g.after}
-              </h1>
+              <Words
+                className="mt-5"
+                parts={[
+                  [g.before, false],
+                  [g.accent, true],
+                  [g.after, false],
+                ]}
+              />
               <p className="v-lead text-[19px]">{g.lede}</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <a href="#enquiry" className="v-btn">
@@ -485,17 +530,17 @@ export function GrowthPage() {
           <Stage3D
             className="v-hero-stage mt-10 pb-16"
             screens={[
-              scr('growth-statement', 4.4, [-1.6, 0.1, 0], [0, 0.2, 0], { main: true, crop: 0.72 }),
-              scr('growth-home', 4.8, [3.4, 0.4, -1.8], [0, -0.32, 0], { crop: 0.6 }),
-              scr('growth-autoreply', 3.2, [-7.1, 2.5, -4], [0, 0.35, 0.03]),
-              scr('growth-customers', 3.0, [7.4, 2.7, -5], [0, -0.35, -0.03]),
-              scr('growth-optin', 3.2, [-7.1, -2.6, -3.5], [0, 0.3, -0.02]),
-              scr('growth-reports', 2.6, [6.9, -2.6, -3], [0, -0.3, 0.02], { crop: 0.7 }),
-              scr('growth-proof', 2.8, [0.6, 3.7, -7], [0, 0, 0]),
+              // what went out and came back, beside an enquiry being answered
+              scr('growth-statement', 5.3, [-4.5, -0.3, 0], [0, 0.15, 0], { main: true, crop: 0.6 }),
+              scr('growth-autoreply', 7.6, [2.9, -0.3, 0], [0, -0.13, 0], { main: true }),
+              scr('growth-customers', 3.2, [-5.6, 2.3, -3.4], [0, 0.2, 0.02], { crop: 0.8 }),
+              scr('growth-proof', 3.2, [5.4, 2.3, -3.6], [0, -0.2, -0.02], { crop: 0.75 }),
+              scr('growth-optin', 3.2, [-10.4, -0.4, -2.2], [0, 0.32, 0]),
+              scr('growth-reports', 2.9, [10.6, -0.1, -2.6], [0, -0.32, 0], { crop: 0.7 }),
             ]}
           >
             <div className="mx-auto max-w-[820px]">
-              <Screen name="growth-statement" alt={g.statementCaption} caption={g.statementCaption} />
+              <Screen name="growth-statement" alt={g.statementCaption} caption={g.statementCaption} title={p.growthPage.title} phone="d-growth" />
             </div>
           </Stage3D>
         </div>
@@ -555,7 +600,7 @@ export function GrowthPage() {
               ))}
             </div>
           </div>
-          <Screen name="growth-home" alt={s.growthHow.caption} caption={s.growthHow.caption} />
+          <Screen name="growth-home" alt={s.growthHow.caption} caption={s.growthHow.caption} title={p.lineup.growth.name} float={{ name: 'growth-optin', side: 'left' }} />
         </div>
       </Sec>
 
@@ -569,7 +614,7 @@ export function GrowthPage() {
               </p>
             ))}
           </div>
-          <Screen name="growth-proof" alt={g.proof[0]!} />
+          <Screen name="growth-proof" alt={g.proof[0]!} float={{ name: 'growth-customers', side: 'right', crop: 150 }} />
         </div>
       </Sec>
 
