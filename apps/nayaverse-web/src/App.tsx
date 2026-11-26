@@ -1,207 +1,101 @@
 /**
- * Two pages in three languages, switched on the path.
+ * The site in three languages, switched on the path.
  *
  * No client router on purpose. Every route is prerendered to real HTML and a
  * link between them is a normal navigation, which for a six-page site is
  * faster than shipping a router and strictly better for a crawler. The only
  * JavaScript that matters here is the charts, the fare selector and the form.
  */
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { MotionProvider, Reveal } from '@/components/Reveal';
-import { SteelGround } from '@/components/SteelGround';
-import { settleAll, startSettling } from '@/components/settle';
+import { startSettling } from '@/components/settle';
 import { ContentProvider } from '@/content/use-content';
-import { content, pathFor, type Locale, type Page } from '@/content/index';
-import { Rail } from '@/sections/Rail';
-import { Hero } from '@/sections/Hero';
-import { Screening } from '@/sections/Screening';
-import { Standing } from '@/sections/Standing';
-import { AssistantFilms, ClinicFilm } from '@/sections/Films';
-import { ClinicGets, ClinicTop, GrowthPage, VisionTop } from '@/sections/ProductPages';
-import { ServiceChart } from '@/sections/ServiceChart';
-import { DayCharts } from '@/sections/DayCharts';
-import { Manifest } from '@/sections/Manifest';
-import { Route } from '@/sections/Route';
-import { Growth } from '@/sections/Growth';
-import { Services } from '@/sections/Services';
-import { Fares } from '@/sections/Fares';
-import { HealthLine } from '@/sections/HealthLine';
-import { About } from '@/sections/About';
-import { Conditions } from '@/sections/Conditions';
-import { Enquiry } from '@/sections/Enquiry';
-import { Footer } from '@/sections/Footer';
+import { content, pathFor, isGuidePage, type Locale, type Page } from '@/content/index';
 import { SimplePage, pageToSimpleKey } from '@/sections/SimplePage';
 import { GuideArticle, GuidesIndex } from '@/sections/Guides';
-import { isGuidePage } from '@/content/index';
-import { Board, Heading } from '@/components/primitives';
-
-function useEnquire() {
-  return useCallback(() => {
-    const target = document.getElementById('enquiry');
-    if (!target) return;
-    // Real heights for everything above it first, or the scroll is aimed
-    // at a placeholder (components/settle.ts).
-    settleAll();
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    // Land the caret in the first field rather than leaving someone to find it.
-    window.setTimeout(() => {
-      target.querySelector<HTMLInputElement>('input, select')?.focus({ preventScroll: true });
-    }, 520);
-  }, []);
-}
+import { Enquiry, Footer, Header, PhoneBar, Questions } from '@/v2/parts';
+import { ClinicPage, GrowthPage, HomePage, PricingPage, VisionPage } from '@/v2/pages';
 
 function Body({ locale, page }: { locale: Locale; page: Page }) {
-  const onEnquire = useEnquire();
   const t = content[locale];
   useEffect(() => startSettling(), []);
 
   return (
     <MotionProvider>
-    <SteelGround />
-    <div className="relative z-10 flex min-h-screen flex-col">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-[var(--lamp)] focus:px-3 focus:py-2 focus:text-[var(--ink)]"
-      >
-        {t.nav.skip}
-      </a>
+      <div className="v2 flex min-h-screen flex-col">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[var(--v-accent)] focus:px-3 focus:py-2 focus:text-white"
+        >
+          {t.nav.skip}
+        </a>
+        <Header />
+        <main id="main" className="flex-1">
+          {/* The approved design (26 November 2026): the company first, then
+              its two products, then what comes after. The build still counts
+              the Vision page's status cells and refuses a Live on Growth
+              (scripts/prerender.mjs). */}
+          {page === 'home' && <HomePage />}
+          {page === 'clinic' && <ClinicPage />}
+          {page === 'growth' && <GrowthPage />}
+          {page === 'vision' && <VisionPage />}
+          {page === 'pricing' && <PricingPage />}
 
-      <Rail onEnquire={onEnquire} />
+          {pageToSimpleKey(page) && (
+            <>
+              <div className="py-10">
+                <Reveal defer>
+                  <SimplePage locale={locale} page={page} />
+                </Reveal>
+              </div>
+              <Questions />
+              <Enquiry />
+            </>
+          )}
 
-      <main id="main" className="flex-1">
-        {page === 'home' && (
-          <>
-            {/* The reading path: what is this and what does it cost, is my
-                business on the chart, what does it look like for my trade,
-                what is in it, why it is worth money, what else comes with it,
-                the price, who you are dealing with, the awkward questions,
-                then the counter. */}
-            {/* The hero is deliberately NOT wrapped. It is on screen before
-                anyone scrolls, so fading it in is a delay dressed as polish
-                -- and it is the one block that must be readable the instant
-                the prerendered HTML lands. */}
-            <Hero onEnquire={onEnquire} />
-            {/* Who Nayaversse is (the board above), then its two products
-                at work on film, then who stands behind them. The screening
-                is not wrapped in a reveal: it carries the page's one
-                authored movement itself, driven by the scroll. The chart of
-                twenty-three trades this page used to open on is the Vision
-                page now. */}
-            <Screening />
-            <Reveal defer><Standing /></Reveal>
-            <Reveal defer><AssistantFilms /></Reveal>
-            <Reveal defer><DayCharts clinicOnly /></Reveal>
-            <Reveal defer><Conditions /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
+          {page === 'guides' && (
+            <>
+              <div className="py-10">
+                <Reveal defer>
+                  <GuidesIndex />
+                </Reveal>
+              </div>
+              <Questions />
+              <Enquiry />
+            </>
+          )}
 
-        {page === 'clinic' && (
-          <>
-            <ClinicTop onEnquire={onEnquire} />
-            <Reveal defer><ClinicFilm /></Reveal>
-            <Reveal defer><ClinicGets onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><DayCharts clinicOnly /></Reveal>
-            <Reveal defer><AssistantFilms /></Reveal>
-            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
+          {isGuidePage(page) && (
+            <>
+              <div className="py-10">
+                <Reveal defer>
+                  <GuideArticle page={page} />
+                </Reveal>
+              </div>
+              <Enquiry />
+            </>
+          )}
 
-        {page === 'growth' && (
-          <>
-            <GrowthPage onEnquire={onEnquire} />
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {/* Everything planned after the two products, with the status each
-            part really has. The build counts this page's status cells
-            (scripts/prerender.mjs): it must never show more than one Live. */}
-        {page === 'vision' && (
-          <>
-            <VisionTop />
-            <Reveal defer><ServiceChart /></Reveal>
-            <Reveal defer><DayCharts /></Reveal>
-            <Reveal defer><Route /></Reveal>
-            <Reveal defer><Manifest /></Reveal>
-            <Reveal defer><Growth /></Reveal>
-            <Reveal defer><Services /></Reveal>
-            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {page === 'pricing' && (
-          <>
-            <section className="frame frame-wide pb-10 pt-8 sm:pt-12">
-              <Board className="px-5 py-8 sm:px-10 sm:py-11">
-                <h1 className="t-board text-[clamp(2.6rem,8vw,5rem)] text-[var(--board-ink)]">
-                  {t.farePanel.pageHeading}
-                </h1>
-                <p className="t-lede mt-5 text-pretty text-[var(--board-ink-soft)]">
-                  {t.farePanel.pageLede}
-                </p>
-              </Board>
-            </section>
-            {/* The live product's terms first; the fare chart under it is
-                for the general platform on the Vision page. */}
-            <Reveal defer><HealthLine onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><Fares onEnquire={onEnquire} /></Reveal>
-            <Reveal defer><Services /></Reveal>
-            <Reveal defer><About /></Reveal>
-            <Reveal defer><Conditions /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {pageToSimpleKey(page) && (
-          <>
-            <Reveal defer><SimplePage locale={locale} page={page} /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {page === 'guides' && (
-          <>
-            <Reveal defer><GuidesIndex /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {isGuidePage(page) && (
-          <>
-            <Reveal defer><GuideArticle page={page} /></Reveal>
-            <Reveal defer><Enquiry /></Reveal>
-          </>
-        )}
-
-        {page === '404' && (
-          <section className="frame void">
-            <Board className="px-5 py-12 sm:px-10 sm:py-16">
-              <Heading as="h1" className="text-[var(--board-ink)]">
-                {t.notFound.heading}
-              </Heading>
-              <p className="t-lede mt-5 text-[var(--board-ink-soft)]">{t.notFound.lede}</p>
-              <ul className="mt-6 flex flex-wrap gap-x-7 gap-y-3">
-                <li>
-                  <a href={pathFor(locale, 'home')} className="engraved">
+          {page === '404' && (
+            <section className="v-sec">
+              <div className="v-wrap">
+                <h1 className="v-h1">{t.notFound.heading}</h1>
+                <p className="v-lead">{t.notFound.lede}</p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <a href={pathFor(locale, 'home')} className="v-btn">
                     {t.notFound.chart}
                   </a>
-                </li>
-                <li>
-                  <a href={pathFor(locale, 'pricing')} className="engraved">
+                  <a href={pathFor(locale, 'pricing')} className="v-btn-ghost">
                     {t.notFound.fares}
                   </a>
-                </li>
-              </ul>
-            </Board>
-          </section>
-        )}
-      </main>
-
-      <Footer />
-    </div>
+                </div>
+              </div>
+            </section>
+          )}
+        </main>
+        <Footer />
+        <PhoneBar />
+      </div>
     </MotionProvider>
   );
 }

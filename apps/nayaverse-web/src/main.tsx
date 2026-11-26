@@ -18,7 +18,10 @@ import '@fontsource/khand/500.css';
 import '@fontsource/khand/600.css';
 import '@fontsource/ibm-plex-sans-devanagari/400.css';
 import '@fontsource/ibm-plex-sans-devanagari/600.css';
+import '@fontsource-variable/plus-jakarta-sans';
+import '@fontsource-variable/inter';
 import './index.css';
+import './v2/site.css';
 import { App } from './App';
 import { resolveRoute } from './content/index';
 
