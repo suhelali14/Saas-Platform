@@ -943,11 +943,45 @@ model AppointmentRequest {
   /// Why it was declined, for the clinic's own record.
   note           String?
 
+  /// Where the request came from: "website" (the clinic's own page) or
+  /// "whatsapp" (the clinic's WhatsApp assistant, through the connector).
+  source           String    @default("website")
+  /// A WhatsApp request picks an exact free time and doctor from the slots
+  /// the connector offered; reception still confirms it. Null for website
+  /// requests, which ask for a day and a window only.
+  requestedAt      DateTime?
+  doctorId         String?
+  serviceName      String?
+  /// Which connector token sent it, so its confirmation goes back the same way.
+  connectorTokenId String?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@index([status, createdAt])
   @@index([phone])
+}
+
+/// A token the clinic gives its Nayaverse Growth WhatsApp assistant (the
+/// connector, docs in Growth's CLINIC_CONNECTOR.md). It can read the
+/// clinic's doctors, timings, fees and free slots, ask for an appointment
+/// that reception confirms, and tell a patient their own next appointment
+/// by the phone they write from. Nothing else: no record, no prescription,
+/// no result. Only a hash is stored; the token is shown once.
+model ConnectorToken {
+  id            String    @id @default(cuid())
+  name          String
+  tokenHash     String    @unique
+  /// The last four characters, so the clinic can tell its tokens apart.
+  tokenTail     String
+  /// Where confirmations are sent (Growth registers it when it connects).
+  callbackUrl   String?
+  createdById   String?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime?
+  revokedAt     DateTime?
+  revokedByName String?
 }
 
 enum RequestStatus {

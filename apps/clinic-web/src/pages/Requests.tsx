@@ -59,6 +59,11 @@ interface Request {
   createdAt: string;
   patient: { id: string; uhid: string; name: string } | null;
   appointment: { id: string; scheduledAt: string; status: string } | null;
+  /** "website" or "whatsapp": a WhatsApp request picked an exact free time and doctor. */
+  source?: string;
+  requestedAt?: string | null;
+  doctorId?: string | null;
+  serviceName?: string | null;
   /** Attached by the list endpoint for NEW requests. */
   matches?: Match[];
 }
@@ -193,13 +198,20 @@ function RequestRow({
                 {r.status === 'DECLINED' && (
                   <span className="tone-neutral rounded-full px-2 py-0.5 text-[11px] font-medium">Declined</span>
                 )}
+                {r.source === 'whatsapp' && (
+                  <span className="tone-success rounded-full px-2 py-0.5 text-[11px] font-medium">WhatsApp</span>
+                )}
               </div>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <a href={`tel:${r.phone}`} className="flex items-center gap-1.5 text-primary hover:underline">
                   <Phone size={12} aria-hidden /> {r.phone}
                 </a>
-                {r.preferredDate && (
+                {r.requestedAt ? (
+                  <span>
+                    Picked {new Date(r.requestedAt).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                ) : r.preferredDate && (
                   <span>
                     Asked for {describeDateInput(r.preferredDate.slice(0, 10))}
                     {r.preferredSlot && `, ${SLOT_LABEL[r.preferredSlot] ?? r.preferredSlot}`}
@@ -260,8 +272,13 @@ function HandlePanel({
   onDone: (m: string) => void;
   onError: (m: string) => void;
 }) {
-  const [date, setDate] = useState(r.preferredDate ? r.preferredDate.slice(0, 10) : todayInput());
-  const [time, setTime] = useState(defaultTime(r.preferredSlot));
+  // A WhatsApp request picked an exact time: start from it.
+  const picked = r.requestedAt ? new Date(r.requestedAt) : null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const [date, setDate] = useState(
+    picked ? `${picked.getFullYear()}-${pad(picked.getMonth() + 1)}-${pad(picked.getDate())}` : r.preferredDate ? r.preferredDate.slice(0, 10) : todayInput(),
+  );
+  const [time, setTime] = useState(picked ? `${pad(picked.getHours())}:${pad(picked.getMinutes())}` : defaultTime(r.preferredSlot));
   const [note, setNote] = useState('');
   const [declining, setDeclining] = useState(false);
 
@@ -290,6 +307,7 @@ function HandlePanel({
           // would be parsed as UTC midnight and land on the previous day
           // in IST -- the trap lib/date exists to avoid.
           scheduledAt: new Date(`${date}T${time || '10:00'}:00`).toISOString(),
+          ...(r.doctorId ? { doctorId: r.doctorId } : {}),
           ...(choice && choice !== 'new' ? { patientId: choice } : {}),
           ...(choice === 'new' ? { createNewPatient: true } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireFrontDeskAuth } from "../plugins/auth.js";
 import { generatePatientUhid } from "../lib/uhid.js";
+import { notifyConnector } from "../lib/connector-notify.js";
 import {
   findDuplicatesForDetails, NEAR_CERTAIN_SCORE, type DuplicateCandidate,
 } from "../lib/patient-duplicates.js";
@@ -338,6 +339,9 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
       });
     });
 
+    // A WhatsApp request: the patient hears back there (lib/connector-notify.ts).
+    notifyConnector(id);
+
     // So the screen can say "we used the existing record" rather than
     // leaving reception to notice there is no new UHID.
     return { ...result, autoLinked };
@@ -361,7 +365,7 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
     // Declined, never deleted. The clinic's record of who asked and what
     // was decided is the point; a tidy list that loses that is worse than
     // a long one.
-    return prisma.appointmentRequest.update({
+    const declined = await prisma.appointmentRequest.update({
       where: { id },
       data: {
         status: "DECLINED",
@@ -371,5 +375,7 @@ export async function clinicBookingRoutes(app: FastifyInstance) {
         note: body.data.note ?? null,
       },
     });
+    notifyConnector(id);
+    return declined;
   });
 }

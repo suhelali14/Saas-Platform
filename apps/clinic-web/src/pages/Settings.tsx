@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList } from 'lucide-react';
+import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList, Link2 } from 'lucide-react';
+import { ConnectorSettings } from '../components/ConnectorSettings';
 import { SpecialtySettings } from '../components/SpecialtySettings';
 import { useToast } from '../components/Toast';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
@@ -50,7 +51,7 @@ const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
 
 export function Settings() {
   const { user, isAdmin } = useClinicAuth();
-  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents' | 'forms'>(ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile');
+  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents' | 'forms' | 'connections'>(ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile');
   const canEditClinic = user && ADMIN_ROLES.has(user.role);
 
   return (
@@ -78,6 +79,9 @@ export function Settings() {
           // same rule the API applies.
           ...(isAdmin ? [{ value: 'forms' as const, label: <><ClipboardList size={13} /> Specialty forms</> }] : []),
           ...(canEditClinic ? [{ value: 'data' as const, label: <><Database size={13} /> Data & Backup</> }] : []),
+          // A connector token opens the diary to the WhatsApp assistant:
+          // admins only, the same rule the API applies.
+          ...(isAdmin ? [{ value: 'connections' as const, label: <><Link2 size={13} /> Connections</> }] : []),
         ]}
       />
 
@@ -92,6 +96,7 @@ export function Settings() {
       {tab === 'documents' && canEditClinic && <DocumentSettings />}
       {tab === 'forms' && isAdmin && <SpecialtySettings />}
       {tab === 'data' && canEditClinic && <DataSettings />}
+      {tab === 'connections' && isAdmin && <ConnectorSettings />}
     </div>
   );
 }

@@ -29,6 +29,7 @@ import { clinicExpenseRoutes } from "./routes/clinic-expenses.js";
 import { clinicExportRoutes } from "./routes/clinic-export.js";
 import { clinicSiteRoutes } from "./routes/clinic-site.js";
 import { clinicBookingRoutes } from "./routes/clinic-booking.js";
+import { clinicConnectorRoutes } from "./routes/clinic-connector.js";
 import { clinicTranslationRoutes } from "./routes/clinic-translations.js";
 import { clinicDocTemplateRoutes } from "./routes/clinic-doc-template.js";
 import { isFeatureEnabled } from "./config/features.js";
@@ -203,6 +204,9 @@ export function buildApp() {
       // booking request or feedback goes through, and a patient is never
       // shown a message about the clinic's account with Nayaversse.
       if (path.startsWith("/api/clinic/public/")) return;
+      // Patients asking through the clinic's WhatsApp assistant are the same
+      // patients as the website's: their request still reaches reception.
+      if (path === "/api/connector/v1/requests" || path === "/api/connector/v1/callback") return;
       // Asking the assistant is a POST, and looking something up through
       // it changes nothing. A change it is asked to make goes through the
       // app's own route, which this same hook refuses.
@@ -242,6 +246,7 @@ export function buildApp() {
   app.register(clinicExportRoutes);
   app.register(clinicSiteRoutes);
   app.register(clinicBookingRoutes);
+  app.register(clinicConnectorRoutes);
   app.register(clinicDocTemplateRoutes);
 
   // Plan-gated modules. A module that is off is never registered, so its
