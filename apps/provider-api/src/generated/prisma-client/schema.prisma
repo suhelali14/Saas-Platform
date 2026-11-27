@@ -548,3 +548,130 @@ model Agreement {
   @@index([accountId, createdAt])
   @@index([status, effectiveFrom])
 }
+
+// ── Subscriptions for every product (Growth now, clinics next) ─────────
+//
+// The console sells each product's plans as Razorpay subscriptions,
+// monthly or yearly, and tells the product's server what the customer may
+// use, over signed server-to-server calls (src/lib/s2s.ts). The product
+// enforces it; the console bills. No product secret is stored here: a
+// product's public key is enough to check its calls.
+
+enum Product {
+  CLINIC
+  GROWTH
+}
+
+enum SubInterval {
+  MONTH
+  YEAR
+}
+
+enum SubStatus {
+  CREATED // made; the customer has not set up the payment yet
+  AUTHENTICATED // payment set up; the first charge is on its way
+  ACTIVE
+  PENDING // a renewal failed; Razorpay is retrying
+  HALTED // renewals stopped after failed retries
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+/// The console's own billing settings: one row.
+model BillingSettings {
+  id                String   @id @default("default")
+  /// The yearly price is twelve months less this percentage, unless an
+  /// offer sets its own. The founder types it; 0 until then.
+  yearlyDiscountPct Decimal  @default(0) @db.Decimal(5, 2)
+  updatedBy         String?
+  updatedAt         DateTime @updatedAt
+}
+
+/// What a product sells: a plan, a single module, or a plan made for one
+/// customer. Prices are a month, in paise; null is not on sale.
+model CatalogOffer {
+  id                String   @id
+  product           Product
+  /// The product's own name for it, e.g. "plan-10k".
+  code              String
+  kind              String // plan | module | custom
+  name              String
+  summary           String   @default("")
+  includes          String[] @default([])
+  /// What the product opens for it. Growth: { modules, videosMonth, aiSecondsMonth }.
+  grants            Json
+  monthlyPricePaise Int?
+  yearlyDiscountPct Decimal? @db.Decimal(5, 2)
+  published         Boolean  @default(false)
+  /// A custom offer is for one customer of the product only.
+  accountRef        String?
+  accountName       String?
+  position          Int      @default(0)
+  updatedBy         String?
+  updatedAt         DateTime @updatedAt
+
+  @@unique([product, code])
+}
+
+/// Razorpay plans already made, so the same price and interval reuse one.
+model RazorpayPlan {
+  id          String      @id // Razorpay's plan_...
+  interval    SubInterval
+  amountPaise Int
+  name        String
+  createdAt   DateTime    @default(now())
+
+  @@unique([interval, amountPaise, name])
+}
+
+model Subscription {
+  id                     String      @id @default(cuid())
+  product                Product
+  /// The customer in the product: a Growth business id, or a clinic account id.
+  accountRef             String
+  accountName            String
+  offerCodes             String[]
+  offerNames             String[]
+  /// What each offer opened when bought, so a later catalogue edit changes nothing paid for.
+  grants                 Json
+  interval               SubInterval
+  /// Charged each cycle, in paise.
+  amountPaise            Int
+  razorpayPlanId         String?
+  razorpaySubscriptionId String?     @unique
+  shortUrl               String?
+  /// test: paid on the product's stand-in checkout, renewed by the console; no money moves.
+  test                   Boolean     @default(false)
+  status                 SubStatus   @default(CREATED)
+  currentStart           DateTime?
+  currentEnd             DateTime?
+  cancelAtEnd            Boolean     @default(false)
+  /// A switch to another plan starts when the one it replaces ends.
+  startsAt               DateTime?
+  replacesId             String?
+  createdBy              String
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  charges SubscriptionCharge[]
+
+  @@index([product, accountRef])
+}
+
+/// One paid cycle, and whether the product has been told.
+model SubscriptionCharge {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  /// Razorpay's pay_...; null for a test charge.
+  paymentId      String?      @unique
+  amountPaise    Int
+  periodStart    DateTime
+  periodEnd      DateTime
+  pushedAt       DateTime?
+  pushError      String?
+  createdAt      DateTime     @default(now())
+
+  @@index([pushedAt])
+}

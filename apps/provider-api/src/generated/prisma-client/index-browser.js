@@ -365,6 +365,77 @@ exports.Prisma.AgreementScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.BillingSettingsScalarFieldEnum = {
+  id: 'id',
+  yearlyDiscountPct: 'yearlyDiscountPct',
+  updatedBy: 'updatedBy',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CatalogOfferScalarFieldEnum = {
+  id: 'id',
+  product: 'product',
+  code: 'code',
+  kind: 'kind',
+  name: 'name',
+  summary: 'summary',
+  includes: 'includes',
+  grants: 'grants',
+  monthlyPricePaise: 'monthlyPricePaise',
+  yearlyDiscountPct: 'yearlyDiscountPct',
+  published: 'published',
+  accountRef: 'accountRef',
+  accountName: 'accountName',
+  position: 'position',
+  updatedBy: 'updatedBy',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RazorpayPlanScalarFieldEnum = {
+  id: 'id',
+  interval: 'interval',
+  amountPaise: 'amountPaise',
+  name: 'name',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SubscriptionScalarFieldEnum = {
+  id: 'id',
+  product: 'product',
+  accountRef: 'accountRef',
+  accountName: 'accountName',
+  offerCodes: 'offerCodes',
+  offerNames: 'offerNames',
+  grants: 'grants',
+  interval: 'interval',
+  amountPaise: 'amountPaise',
+  razorpayPlanId: 'razorpayPlanId',
+  razorpaySubscriptionId: 'razorpaySubscriptionId',
+  shortUrl: 'shortUrl',
+  test: 'test',
+  status: 'status',
+  currentStart: 'currentStart',
+  currentEnd: 'currentEnd',
+  cancelAtEnd: 'cancelAtEnd',
+  startsAt: 'startsAt',
+  replacesId: 'replacesId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SubscriptionChargeScalarFieldEnum = {
+  id: 'id',
+  subscriptionId: 'subscriptionId',
+  paymentId: 'paymentId',
+  amountPaise: 'amountPaise',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  pushedAt: 'pushedAt',
+  pushError: 'pushError',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -480,6 +551,27 @@ exports.AgreementStatus = exports.$Enums.AgreementStatus = {
   EXPIRED: 'EXPIRED'
 };
 
+exports.Product = exports.$Enums.Product = {
+  CLINIC: 'CLINIC',
+  GROWTH: 'GROWTH'
+};
+
+exports.SubInterval = exports.$Enums.SubInterval = {
+  MONTH: 'MONTH',
+  YEAR: 'YEAR'
+};
+
+exports.SubStatus = exports.$Enums.SubStatus = {
+  CREATED: 'CREATED',
+  AUTHENTICATED: 'AUTHENTICATED',
+  ACTIVE: 'ACTIVE',
+  PENDING: 'PENDING',
+  HALTED: 'HALTED',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED'
+};
+
 exports.Prisma.ModelName = {
   ProviderUser: 'ProviderUser',
   ClinicAccount: 'ClinicAccount',
@@ -491,7 +583,12 @@ exports.Prisma.ModelName = {
   Quotation: 'Quotation',
   QuotationLineItem: 'QuotationLineItem',
   QuotationActivity: 'QuotationActivity',
-  Agreement: 'Agreement'
+  Agreement: 'Agreement',
+  BillingSettings: 'BillingSettings',
+  CatalogOffer: 'CatalogOffer',
+  RazorpayPlan: 'RazorpayPlan',
+  Subscription: 'Subscription',
+  SubscriptionCharge: 'SubscriptionCharge'
 };
 
 /**

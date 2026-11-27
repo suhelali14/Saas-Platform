@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
-import { LogOut, Building2, Receipt, Presentation, FileText } from "lucide-react";
+import { LogOut, Building2, Receipt, Presentation, FileText, Sprout, Repeat } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import { Login } from "./pages/Login";
@@ -14,6 +14,8 @@ import { InvoiceView } from "./pages/InvoiceView";
 import { Quotations } from "./pages/Quotations";
 import { QuotationDetail } from "./pages/QuotationDetail";
 import { AgreementDetail } from "./pages/AgreementDetail";
+import { Growth } from "./pages/Growth";
+import { Subscriptions } from "./pages/Subscriptions";
 
 function Booting({ label }: { label: string }) {
   return (
@@ -61,6 +63,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   const onBilling = pathname.startsWith("/billing") || pathname.startsWith("/invoices");
   const onDemos = pathname.startsWith("/demos");
   const onPipeline = pathname.startsWith("/quotations") || pathname.startsWith("/agreements");
+  const onGrowth = pathname.startsWith("/growth");
+  const onSubs = pathname.startsWith("/subscriptions");
+  const tab = (on: boolean) =>
+    cn(
+      "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+      on ? "bg-accent font-semibold text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+    );
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,6 +97,14 @@ function Shell({ children }: { children: React.ReactNode }) {
             >
               <Building2 className="size-4" />
               Clinics
+            </Link>
+            <Link to="/growth" className={tab(onGrowth)}>
+              <Sprout className="size-4" />
+              Growth
+            </Link>
+            <Link to="/subscriptions" className={tab(onSubs)}>
+              <Repeat className="size-4" />
+              Subscriptions
             </Link>
             <Link
               to="/quotations"
@@ -151,6 +168,8 @@ export default function App() {
             <Route path="/" element={<Protected><Shell><Accounts /></Shell></Protected>} />
             <Route path="/clinics/:id" element={<Protected><Shell><AccountDetail /></Shell></Protected>} />
             <Route path="/billing" element={<Protected><Shell><Billing /></Shell></Protected>} />
+            <Route path="/growth" element={<Protected><Shell><Growth /></Shell></Protected>} />
+            <Route path="/subscriptions" element={<Protected><Shell><Subscriptions /></Shell></Protected>} />
             <Route path="/demos" element={<Protected><Shell><Demos /></Shell></Protected>} />
             <Route path="/invoices/:id" element={<Protected><Shell><InvoiceView /></Shell></Protected>} />
             <Route path="/quotations" element={<Protected><Shell><Quotations /></Shell></Protected>} />

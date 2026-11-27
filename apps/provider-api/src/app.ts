@@ -12,6 +12,8 @@ import { isPlatformSubdomain } from "./lib/subdomain.js";
 import { billingRoutes } from "./routes/billing.js";
 import { demoRoutes } from "./routes/demos.js";
 import { quotationRoutes } from "./routes/quotations.js";
+import { s2sRoutes } from "./routes/s2s.js";
+import { subscriptionRoutes } from "./routes/subscriptions.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -91,6 +93,9 @@ export function buildApp() {
   app.register(billingRoutes);
   app.register(demoRoutes);
   app.register(quotationRoutes);
+  app.register(subscriptionRoutes);
+  // Its own scope: products' signed calls and Razorpay's webhook read the body as sent.
+  app.register(s2sRoutes);
   // Public and unauthenticated: every clinic site calls this to boot.
   app.register(publicTenantRoutes);
 

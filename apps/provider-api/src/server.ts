@@ -2,6 +2,7 @@ import "dotenv/config";
 import { buildApp } from "./app.js";
 import { env } from "./config/env.js";
 import { startHealthPolling } from "./lib/health.js";
+import { renewTestSubscriptions, retryPushes } from "./lib/subscriptions.js";
 
 const app = buildApp();
 
@@ -18,4 +19,12 @@ app.listen({ port: env.PORT, host }, (err, address) => {
   }
   app.log.info(`Provider console API listening at ${address}`);
   startHealthPolling();
+  // Paid cycles a product has not heard about are retried; in test mode
+  // the console renews test subscriptions as Razorpay would.
+  if (env.SUBSCRIPTIONS_MODE !== "off") {
+    setInterval(() => {
+      retryPushes().catch((e) => app.log.warn({ err: e }, "subscription pushes"));
+      if (env.SUBSCRIPTIONS_MODE === "test") renewTestSubscriptions().catch((e) => app.log.warn({ err: e }, "test renewals"));
+    }, 60_000).unref();
+  }
 });

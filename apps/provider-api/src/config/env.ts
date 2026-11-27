@@ -97,6 +97,37 @@ const envSchema = z.object({
   // PREFIX/FY/0001. Kept short: GST caps an invoice number at 16 characters.
   INVOICE_PREFIX: z.string().max(6).default("NV"),
   INVOICE_DUE_DAYS: z.coerce.number().int().min(0).max(120).default(15),
+
+  // ── Subscriptions for every product (src/lib/subscriptions.ts) ──────
+  // off: nothing is sold here. test: a product's stand-in checkout marks a
+  // subscription paid and the console renews it by itself; no money moves.
+  // razorpay: real Razorpay subscriptions, monthly or yearly.
+  SUBSCRIPTIONS_MODE: z.enum(["off", "test", "razorpay"]).default("off"),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  RAZORPAY_BASE: z.string().url().default("https://api.razorpay.com/v1"),
+  // Days a paid period stays open after its end, while a renewal is
+  // charged and confirmed.
+  SUBSCRIPTION_GRACE_DAYS: z.coerce.number().int().min(0).max(15).default(2),
+
+  // ── Server-to-server (src/lib/s2s.ts) ───────────────────────────────
+  // This console's private Ed25519 key (base64 PKCS#8), from
+  // scripts/s2s-keygen.mjs. Its public half goes to each product.
+  CONSOLE_SIGNING_KEY: z.string().optional(),
+  // Nayaverse Growth: its address (e.g. https://uat.growth.nayaverse.in)
+  // and its public key (base64 SPKI). Both empty: Growth is not connected.
+  GROWTH_URL: z.string().url().optional(),
+  GROWTH_PUBLIC_KEY: z.string().optional(),
+}).superRefine((e, ctx) => {
+  if (e.SUBSCRIPTIONS_MODE === "razorpay") {
+    for (const k of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"] as const) {
+      if (!e[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [k], message: `SUBSCRIPTIONS_MODE=razorpay needs ${k}` });
+    }
+  }
+  if (e.SUBSCRIPTIONS_MODE !== "off" && !e.CONSOLE_SIGNING_KEY) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["CONSOLE_SIGNING_KEY"], message: "Selling subscriptions needs CONSOLE_SIGNING_KEY to tell products what was paid" });
+  }
 });
 
 export const env = envSchema.parse(process.env);
