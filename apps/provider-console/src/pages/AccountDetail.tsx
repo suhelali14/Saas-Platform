@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { SignedConnection } from "@/components/SignedConnection";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Rocket, CheckCircle2, Circle, Wallet, Activity,
@@ -115,6 +116,7 @@ export function AccountDetail() {
           <InvoicesPanel account={a} onChanged={load} />
           <Checklist accountId={a.id} steps={a.steps} onChange={load} />
           <Addresses account={a} meta={meta} onSave={save} onChanged={load} />
+          <SignedConnection account={a} onChanged={load} />
         </div>
         <div className="space-y-4">
           <DealPanel account={a} meta={meta} monthlyValue={data.monthlyValue} onSaved={load} />

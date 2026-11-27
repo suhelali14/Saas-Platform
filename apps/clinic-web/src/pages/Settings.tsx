@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList, Link2 } from 'lucide-react';
+import { Settings as SettingsIcon, Building2, UserCircle, KeyRound, Upload, Plus, X, ExternalLink, Database, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList, Link2, CreditCard } from 'lucide-react';
 import { ConnectorSettings } from '../components/ConnectorSettings';
+import { PlanSettings } from '../components/PlanSettings';
+import { useSearchParams } from 'react-router-dom';
 import { SpecialtySettings } from '../components/SpecialtySettings';
 import { useToast } from '../components/Toast';
 import { SkeletonList, SkeletonTable, SkeletonStats, SkeletonForm, SkeletonPanels } from '../components/Skeleton';
@@ -51,7 +53,11 @@ const ADMIN_ROLES = new Set(['DOCTOR', 'ADMIN']);
 
 export function Settings() {
   const { user, isAdmin } = useClinicAuth();
-  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents' | 'forms' | 'connections'>(ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile');
+  // ?tab=plan opens the plan straight away: Razorpay and the test checkout come back there.
+  const [query] = useSearchParams();
+  const [tab, setTab] = useState<'clinic' | 'profile' | 'security' | 'data' | 'documents' | 'forms' | 'connections' | 'plan'>(
+    query.get('tab') === 'plan' && isAdmin ? 'plan' : ADMIN_ROLES.has(user?.role ?? '') ? 'clinic' : 'profile',
+  );
   const canEditClinic = user && ADMIN_ROLES.has(user.role);
 
   return (
@@ -82,6 +88,8 @@ export function Settings() {
           // A connector token opens the diary to the WhatsApp assistant:
           // admins only, the same rule the API applies.
           ...(isAdmin ? [{ value: 'connections' as const, label: <><Link2 size={13} /> Connections</> }] : []),
+          // Paying for the plan is the admin's, as the API requires.
+          ...(isAdmin ? [{ value: 'plan' as const, label: <><CreditCard size={13} /> Plan</> }] : []),
         ]}
       />
 
@@ -97,6 +105,7 @@ export function Settings() {
       {tab === 'forms' && isAdmin && <SpecialtySettings />}
       {tab === 'data' && canEditClinic && <DataSettings />}
       {tab === 'connections' && isAdmin && <ConnectorSettings />}
+      {tab === 'plan' && isAdmin && <PlanSettings />}
     </div>
   );
 }

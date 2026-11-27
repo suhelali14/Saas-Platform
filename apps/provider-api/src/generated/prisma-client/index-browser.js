@@ -165,6 +165,7 @@ exports.Prisma.ClinicAccountScalarFieldEnum = {
   appliedAt: 'appliedAt',
   planJobId: 'planJobId',
   isDemo: 'isDemo',
+  s2sPublicKey: 's2sPublicKey',
   publicDomain: 'publicDomain',
   portalDomain: 'portalDomain',
   apiDomain: 'apiDomain',

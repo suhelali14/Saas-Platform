@@ -3815,6 +3815,7 @@ export namespace Prisma {
     appliedAt: Date | null
     planJobId: string | null
     isDemo: boolean | null
+    s2sPublicKey: string | null
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -3859,6 +3860,7 @@ export namespace Prisma {
     appliedAt: Date | null
     planJobId: string | null
     isDemo: boolean | null
+    s2sPublicKey: string | null
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -3904,6 +3906,7 @@ export namespace Prisma {
     appliedAt: number
     planJobId: number
     isDemo: number
+    s2sPublicKey: number
     publicDomain: number
     portalDomain: number
     apiDomain: number
@@ -3970,6 +3973,7 @@ export namespace Prisma {
     appliedAt?: true
     planJobId?: true
     isDemo?: true
+    s2sPublicKey?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -4014,6 +4018,7 @@ export namespace Prisma {
     appliedAt?: true
     planJobId?: true
     isDemo?: true
+    s2sPublicKey?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -4059,6 +4064,7 @@ export namespace Prisma {
     appliedAt?: true
     planJobId?: true
     isDemo?: true
+    s2sPublicKey?: true
     publicDomain?: true
     portalDomain?: true
     apiDomain?: true
@@ -4191,6 +4197,7 @@ export namespace Prisma {
     appliedAt: Date | null
     planJobId: string | null
     isDemo: boolean
+    s2sPublicKey: string | null
     publicDomain: string | null
     portalDomain: string | null
     apiDomain: string | null
@@ -4255,6 +4262,7 @@ export namespace Prisma {
     appliedAt?: boolean
     planJobId?: boolean
     isDemo?: boolean
+    s2sPublicKey?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -4308,6 +4316,7 @@ export namespace Prisma {
     appliedAt?: boolean
     planJobId?: boolean
     isDemo?: boolean
+    s2sPublicKey?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -4353,6 +4362,7 @@ export namespace Prisma {
     appliedAt?: boolean
     planJobId?: boolean
     isDemo?: boolean
+    s2sPublicKey?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -4398,6 +4408,7 @@ export namespace Prisma {
     appliedAt?: boolean
     planJobId?: boolean
     isDemo?: boolean
+    s2sPublicKey?: boolean
     publicDomain?: boolean
     portalDomain?: boolean
     apiDomain?: boolean
@@ -4409,7 +4420,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ClinicAccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "contactName" | "contactEmail" | "contactPhone" | "city" | "notes" | "status" | "plan" | "featureOverrides" | "monthlyFee" | "currency" | "billingCycle" | "startedAt" | "renewsAt" | "pricingModel" | "setupFee" | "yearlyFee" | "licenceFee" | "amcPercent" | "hostingFee" | "maxUsersOverride" | "billingName" | "billingAddress" | "gstin" | "billingState" | "appliedPlan" | "appliedFeatures" | "appliedReadOnly" | "appliedAt" | "planJobId" | "isDemo" | "publicDomain" | "portalDomain" | "apiDomain" | "neonProjectId" | "vercelWebProjectId" | "vercelApiProjectId" | "provisionedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["clinicAccount"]>
+  export type ClinicAccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "contactName" | "contactEmail" | "contactPhone" | "city" | "notes" | "status" | "plan" | "featureOverrides" | "monthlyFee" | "currency" | "billingCycle" | "startedAt" | "renewsAt" | "pricingModel" | "setupFee" | "yearlyFee" | "licenceFee" | "amcPercent" | "hostingFee" | "maxUsersOverride" | "billingName" | "billingAddress" | "gstin" | "billingState" | "appliedPlan" | "appliedFeatures" | "appliedReadOnly" | "appliedAt" | "planJobId" | "isDemo" | "s2sPublicKey" | "publicDomain" | "portalDomain" | "apiDomain" | "neonProjectId" | "vercelWebProjectId" | "vercelApiProjectId" | "provisionedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["clinicAccount"]>
   export type ClinicAccountInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     steps?: boolean | ClinicAccount$stepsArgs<ExtArgs>
     activity?: boolean | ClinicAccount$activityArgs<ExtArgs>
@@ -4489,6 +4500,7 @@ export namespace Prisma {
        * A demonstration deployment: made-up patients, reset nightly.
        */
       isDemo: boolean
+      s2sPublicKey: string | null
       publicDomain: string | null
       portalDomain: string | null
       apiDomain: string | null
@@ -4971,6 +4983,7 @@ export namespace Prisma {
     readonly appliedAt: FieldRef<"ClinicAccount", 'DateTime'>
     readonly planJobId: FieldRef<"ClinicAccount", 'String'>
     readonly isDemo: FieldRef<"ClinicAccount", 'Boolean'>
+    readonly s2sPublicKey: FieldRef<"ClinicAccount", 'String'>
     readonly publicDomain: FieldRef<"ClinicAccount", 'String'>
     readonly portalDomain: FieldRef<"ClinicAccount", 'String'>
     readonly apiDomain: FieldRef<"ClinicAccount", 'String'>
@@ -22881,6 +22894,7 @@ export namespace Prisma {
     appliedAt: 'appliedAt',
     planJobId: 'planJobId',
     isDemo: 'isDemo',
+    s2sPublicKey: 's2sPublicKey',
     publicDomain: 'publicDomain',
     portalDomain: 'portalDomain',
     apiDomain: 'apiDomain',
@@ -23642,6 +23656,7 @@ export namespace Prisma {
     appliedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
     planJobId?: StringNullableFilter<"ClinicAccount"> | string | null
     isDemo?: BoolFilter<"ClinicAccount"> | boolean
+    s2sPublicKey?: StringNullableFilter<"ClinicAccount"> | string | null
     publicDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableFilter<"ClinicAccount"> | string | null
@@ -23694,6 +23709,7 @@ export namespace Prisma {
     appliedAt?: SortOrderInput | SortOrder
     planJobId?: SortOrderInput | SortOrder
     isDemo?: SortOrder
+    s2sPublicKey?: SortOrderInput | SortOrder
     publicDomain?: SortOrderInput | SortOrder
     portalDomain?: SortOrderInput | SortOrder
     apiDomain?: SortOrderInput | SortOrder
@@ -23749,6 +23765,7 @@ export namespace Prisma {
     appliedAt?: DateTimeNullableFilter<"ClinicAccount"> | Date | string | null
     planJobId?: StringNullableFilter<"ClinicAccount"> | string | null
     isDemo?: BoolFilter<"ClinicAccount"> | boolean
+    s2sPublicKey?: StringNullableFilter<"ClinicAccount"> | string | null
     publicDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableFilter<"ClinicAccount"> | string | null
@@ -23801,6 +23818,7 @@ export namespace Prisma {
     appliedAt?: SortOrderInput | SortOrder
     planJobId?: SortOrderInput | SortOrder
     isDemo?: SortOrder
+    s2sPublicKey?: SortOrderInput | SortOrder
     publicDomain?: SortOrderInput | SortOrder
     portalDomain?: SortOrderInput | SortOrder
     apiDomain?: SortOrderInput | SortOrder
@@ -23854,6 +23872,7 @@ export namespace Prisma {
     appliedAt?: DateTimeNullableWithAggregatesFilter<"ClinicAccount"> | Date | string | null
     planJobId?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     isDemo?: BoolWithAggregatesFilter<"ClinicAccount"> | boolean
+    s2sPublicKey?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     publicDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     portalDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
     apiDomain?: StringNullableWithAggregatesFilter<"ClinicAccount"> | string | null
@@ -25517,6 +25536,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -25569,6 +25589,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -25621,6 +25642,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25673,6 +25695,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25725,6 +25748,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -25770,6 +25794,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25815,6 +25840,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27988,6 +28014,7 @@ export namespace Prisma {
     appliedAt?: SortOrder
     planJobId?: SortOrder
     isDemo?: SortOrder
+    s2sPublicKey?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -28042,6 +28069,7 @@ export namespace Prisma {
     appliedAt?: SortOrder
     planJobId?: SortOrder
     isDemo?: SortOrder
+    s2sPublicKey?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -28086,6 +28114,7 @@ export namespace Prisma {
     appliedAt?: SortOrder
     planJobId?: SortOrder
     isDemo?: SortOrder
+    s2sPublicKey?: SortOrder
     publicDomain?: SortOrder
     portalDomain?: SortOrder
     apiDomain?: SortOrder
@@ -31665,6 +31694,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -31716,6 +31746,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -31783,6 +31814,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31834,6 +31866,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31885,6 +31918,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -31936,6 +31970,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32028,6 +32063,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32079,6 +32115,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32161,6 +32198,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32212,6 +32250,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32279,6 +32318,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32330,6 +32370,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32381,6 +32422,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32432,6 +32474,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32499,6 +32542,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32550,6 +32594,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32601,6 +32646,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32652,6 +32698,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32719,6 +32766,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32770,6 +32818,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32821,6 +32870,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -32872,6 +32922,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -33093,6 +33144,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -33144,6 +33196,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -33701,6 +33754,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -33752,6 +33806,7 @@ export namespace Prisma {
     appliedAt?: Date | string | null
     planJobId?: string | null
     isDemo?: boolean
+    s2sPublicKey?: string | null
     publicDomain?: string | null
     portalDomain?: string | null
     apiDomain?: string | null
@@ -33922,6 +33977,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null
@@ -33973,6 +34029,7 @@ export namespace Prisma {
     appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     planJobId?: NullableStringFieldUpdateOperationsInput | string | null
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    s2sPublicKey?: NullableStringFieldUpdateOperationsInput | string | null
     publicDomain?: NullableStringFieldUpdateOperationsInput | string | null
     portalDomain?: NullableStringFieldUpdateOperationsInput | string | null
     apiDomain?: NullableStringFieldUpdateOperationsInput | string | null

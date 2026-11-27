@@ -1,6 +1,7 @@
 import type { KeyObject } from "node:crypto";
 import { env } from "../config/env.js";
 import { prisma } from "./prisma.js";
+import { resolveFeatures, type PlanTier } from "./plans.js";
 import * as rzp from "./razorpay.js";
 import { privateKeyFrom, publicKeyFrom, s2sFetch } from "./s2s.js";
 
@@ -23,6 +24,8 @@ export interface Grants {
   modules?: string[];
   videosMonth?: number;
   aiSecondsMonth?: number;
+  /** A clinic plan's tier: BASIC, STANDARD, PREMIUM or ENTERPRISE. */
+  plan?: string;
 }
 
 /** Growth's modules, as its owners read them (Growth's internal/plans). */
@@ -54,13 +57,43 @@ export function growthConnection(): Connection | null {
   return growth;
 }
 
-/** The public key a product signs with, by the key id it sends. */
-export function productKey(keyId: string | undefined): { product: ProductKey; key: KeyObject } | null {
+/** Who signed a call: Growth (for any of its businesses), or one clinic
+ *  (for itself only, so its account is fixed by its key). */
+export interface Signer {
+  product: ProductKey;
+  key: KeyObject;
+  account?: { id: string; name: string };
+}
+
+export async function whoSigned(keyId: string | undefined): Promise<Signer | null> {
   if (keyId === "growth") {
     const g = growthConnection();
     return g ? { product: "GROWTH", key: g.publicKey } : null;
   }
-  return null;
+  const slug = keyId?.startsWith("clinic:") ? keyId.slice(7) : "";
+  if (!slug || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(slug)) return null;
+  const a = await prisma.clinicAccount.findUnique({ where: { slug }, select: { id: true, name: true, s2sPublicKey: true } });
+  if (!a?.s2sPublicKey) return null;
+  try {
+    return { product: "CLINIC", key: publicKeyFrom(a.s2sPublicKey), account: { id: a.id, name: a.name } };
+  } catch {
+    return null;
+  }
+}
+
+/** A clinic server's address: its API domain (health checks use the same). */
+export function clinicBase(a: { apiDomain: string | null }): string | null {
+  if (!a.apiDomain) return null;
+  // A clinic running on the same computer, while developing only.
+  if (env.NODE_ENV !== "production" && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(a.apiDomain)) return `http://${a.apiDomain}`;
+  return /^https?:\/\//.test(a.apiDomain) ? a.apiDomain.replace(/\/api\/clinic\/?$/, "") : `https://${a.apiDomain}`;
+}
+
+/** A signed call from this console to one clinic's server. */
+export function callClinic<T = unknown>(a: { apiDomain: string | null; s2sPublicKey: string | null }, path: string, method = "GET", body?: unknown): Promise<T> {
+  const base = clinicBase(a);
+  if (!base || !a.s2sPublicKey) throw Object.assign(new Error("This clinic is not connected for signed calls yet: set its API domain and paste its public key."), { status: 409 });
+  return s2sFetch<T>({ base, path, method, body, key: signingKey(), keyId: "console" });
 }
 
 /** A signed call from this console to Growth. */
@@ -237,7 +270,11 @@ export async function pushCharge(chargeId: string): Promise<void> {
   const months = sub.interval === "MONTH" ? 1 : 12;
   const grants = sub.grants as unknown as Record<string, Grants & { name: string }>;
   try {
-    if (sub.product !== "GROWTH") throw new Error(`No connection for ${sub.product} yet.`);
+    if (sub.product === "CLINIC") {
+      await pushClinicPlan(sub.accountRef, grants, new Date(ch.periodEnd.getTime() + grace), `${sub.interval === "MONTH" ? "Monthly" : "Yearly"} subscription`);
+      await prisma.subscriptionCharge.update({ where: { id: ch.id }, data: { pushedAt: new Date(), pushError: null } });
+      return;
+    }
     await callGrowth("/api/s2s/v1/grants", "POST", {
       ref: ch.id,
       businessId: sub.accountRef,
@@ -260,6 +297,27 @@ export async function pushCharge(chargeId: string): Promise<void> {
     await prisma.subscriptionCharge.update({ where: { id: ch.id }, data: { pushError: (err as Error).message.slice(0, 300) } });
     throw err;
   }
+}
+
+/**
+ * Sets a clinic's plan on its own server, at once, and records what the
+ * clinic now runs. The module list is the plan's, with the clinic's deal
+ * overrides, as "Apply plan" has always sent it.
+ */
+export async function pushClinicPlan(accountId: string, grants: Record<string, Grants & { name: string }>, paidUntil: Date, note: string) {
+  const a = await prisma.clinicAccount.findUnique({ where: { id: accountId } });
+  if (!a) throw new Error("No such clinic account.");
+  const tier = Object.values(grants).map((g) => g.plan).find(Boolean) as PlanTier | undefined;
+  if (!tier) throw new Error("This subscription names no clinic plan.");
+  const features = resolveFeatures(tier, a.featureOverrides);
+  await callClinic(a, "/api/s2s/v1/plan", "PUT", { plan: tier, features, readOnly: false, paidUntil: paidUntil.toISOString(), note });
+  await prisma.clinicAccount.update({
+    where: { id: a.id },
+    data: {
+      plan: tier, renewsAt: paidUntil, appliedPlan: tier, appliedFeatures: features.join(","), appliedReadOnly: false, appliedAt: new Date(),
+      ...(a.status === "SUSPENDED" ? { status: "LIVE" as const } : {}),
+    },
+  });
 }
 
 /** The stand-in checkout's "pay" (test mode): the first cycle, paid now. */

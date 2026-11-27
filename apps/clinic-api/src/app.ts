@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import multipart from "@fastify/multipart";
@@ -33,7 +33,8 @@ import { clinicConnectorRoutes } from "./routes/clinic-connector.js";
 import { clinicGrowthRoutes } from "./routes/clinic-growth.js";
 import { clinicTranslationRoutes } from "./routes/clinic-translations.js";
 import { clinicDocTemplateRoutes } from "./routes/clinic-doc-template.js";
-import { isFeatureEnabled } from "./config/features.js";
+import { isFeatureEnabled, isReadOnly, type Feature } from "./config/features.js";
+import { clinicPlanRoutes } from "./routes/clinic-plan.js";
 import { env } from "./config/env.js";
 import { clinicDepartmentRoutes } from "./routes/clinic-departments.js";
 import { clinicCounterRoutes } from "./routes/clinic-counter.js";
@@ -194,9 +195,12 @@ export function buildApp() {
    * see an allergy because an invoice is late is a safety problem, not a
    * billing lever.
    */
-  if (env.CLINIC_READ_ONLY) {
+  // Checked on every request, not once at start: the Nayaversse console can
+  // pause a clinic, or lift the pause, over a signed call (routes/clinic-plan.ts).
+  {
     const ALLOWED_WRITES = new Set(["/api/clinic/auth/login", "/api/clinic/auth/logout"]);
     app.addHook("onRequest", async (request, reply) => {
+      if (!isReadOnly()) return;
       const method = request.method.toUpperCase();
       if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
       const path = request.url.split("?")[0] ?? "";
@@ -212,6 +216,9 @@ export function buildApp() {
       // it changes nothing. A change it is asked to make goes through the
       // app's own route, which this same hook refuses.
       if (path === "/api/clinic/assistant/ask" || path === "/api/clinic/assistant/voice") return;
+      // The way out of a pause: paying for the plan, and the console
+      // setting it, must still go through.
+      if (path.startsWith("/api/clinic/plan/") || path.startsWith("/api/s2s/v1/")) return;
       return reply.status(423).send({
         error: "This clinic's account is paused, so nothing can be changed right now. Everything can still be viewed and exported. Please contact Nayaversse.",
         readOnly: true,
@@ -249,30 +256,40 @@ export function buildApp() {
   app.register(clinicBookingRoutes);
   app.register(clinicConnectorRoutes);
   app.register(clinicGrowthRoutes);
+  app.register(clinicPlanRoutes);
   app.register(clinicDocTemplateRoutes);
 
-  // Plan-gated modules. A module that is off is never registered, so its
-  // paths 404 like any other and there is nothing to probe -- see
-  // config/features.ts.
-  if (isFeatureEnabled("staff")) app.register(clinicStaffRoutes);
-  if (isFeatureEnabled("billing")) app.register(clinicBillingRoutes);
-  if (isFeatureEnabled("labs")) app.register(clinicLabRoutes);
-  if (isFeatureEnabled("pharmacy")) app.register(clinicInventoryRoutes);
-  if (isFeatureEnabled("analytics")) app.register(clinicAnalyticsRoutes);
-  if (isFeatureEnabled("expenses")) app.register(clinicExpenseRoutes);
-  if (isFeatureEnabled("multilingual")) app.register(clinicTranslationRoutes);
-  if (isFeatureEnabled("scribe")) app.register(clinicScribeRoutes);
-  if (isFeatureEnabled("scribe")) app.register(clinicAssistantRoutes);
+  // Plan-gated modules. Every one is registered, and each request is checked
+  // against the plan in force now, so a plan the console changes applies at
+  // once. A module that is off answers exactly as an unknown path does, so
+  // there is still nothing to probe -- see config/features.ts.
+  const gated = (on: () => boolean, routes: (app: FastifyInstance) => Promise<void> | void) =>
+    async (scope: FastifyInstance) => {
+      scope.addHook("onRequest", async (_request, reply) => {
+        if (!on()) return reply.callNotFound();
+      });
+      await scope.register(routes);
+    };
+  const has = (f: Feature) => () => isFeatureEnabled(f);
+  app.register(gated(has("staff"), clinicStaffRoutes));
+  app.register(gated(has("billing"), clinicBillingRoutes));
+  app.register(gated(has("labs"), clinicLabRoutes));
+  app.register(gated(has("pharmacy"), clinicInventoryRoutes));
+  app.register(gated(has("analytics"), clinicAnalyticsRoutes));
+  app.register(gated(has("expenses"), clinicExpenseRoutes));
+  app.register(gated(has("multilingual"), clinicTranslationRoutes));
+  app.register(gated(has("scribe"), clinicScribeRoutes));
+  app.register(gated(has("scribe"), clinicAssistantRoutes));
   // Hospital modules.
-  if (isFeatureEnabled("departments")) app.register(clinicDepartmentRoutes);
-  if (isFeatureEnabled("cashcounter")) app.register(clinicCounterRoutes);
-  if (isFeatureEnabled("ipd")) app.register(clinicIpdRoutes);
-  if (isFeatureEnabled("insurance") || isFeatureEnabled("schemes")) app.register(clinicClaimRoutes);
-  if (isFeatureEnabled("ot")) app.register(clinicOtRoutes);
-  if (isFeatureEnabled("radiology")) app.register(clinicRadiologyRoutes);
+  app.register(gated(has("departments"), clinicDepartmentRoutes));
+  app.register(gated(has("cashcounter"), clinicCounterRoutes));
+  app.register(gated(has("ipd"), clinicIpdRoutes));
+  app.register(gated(() => isFeatureEnabled("insurance") || isFeatureEnabled("schemes"), clinicClaimRoutes));
+  app.register(gated(has("ot"), clinicOtRoutes));
+  app.register(gated(has("radiology"), clinicRadiologyRoutes));
   // The ward list and chart need inpatients; writing on the chart is the
   // nursing module, checked in the route.
-  if (isFeatureEnabled("nursing") && isFeatureEnabled("ipd")) app.register(clinicNursingRoutes);
+  app.register(gated(() => isFeatureEnabled("nursing") && isFeatureEnabled("ipd"), clinicNursingRoutes));
 
   return app;
 }

@@ -167,6 +167,17 @@ const envSchema = z.object({
     .optional(),
   GROWTH_PARTNER_KEY: z.string().min(32, "GROWTH_PARTNER_KEY must be at least 32 characters").optional(),
 
+  // The Nayaversse console (apps/provider-api): it sells this clinic's plan
+  // as a monthly or yearly subscription and sets the plan here over a
+  // signed call, at once (lib/plan-state.ts). Its address and public key,
+  // this clinic's own private key (base64, from the console's
+  // scripts/s2s-keygen.mjs; its public half goes on the clinic's page in the
+  // console) and this clinic's name there. All four, or none.
+  CONSOLE_URL: z.string().url().optional(),
+  CONSOLE_PUBLIC_KEY: z.string().optional(),
+  CLINIC_SIGNING_KEY: z.string().optional(),
+  CONSOLE_CLINIC_REF: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/, "CONSOLE_CLINIC_REF is the clinic's slug in the console").optional(),
+
   // Comma-separated origins allowed to call this API in production.
   // Ignored in development, where any origin is accepted so a Vite dev
   // server on any port works.

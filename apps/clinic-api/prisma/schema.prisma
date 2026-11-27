@@ -1625,3 +1625,18 @@ model ClinicForm {
   extraFields Json?
   updatedAt   DateTime @updatedAt
 }
+
+/// The plan the Nayaversse console set for this clinic over a signed call
+/// (lib/plan-state.ts). One row; while it exists it takes the place of
+/// CLINIC_PLAN, CLINIC_FEATURES and CLINIC_READ_ONLY, applied at once.
+model ClinicPlanState {
+  id        String    @id @default("current")
+  plan      String
+  /// The exact modules, comma-separated; null is the plan's own.
+  features  String?
+  readOnly  Boolean   @default(false)
+  /// Paid up to here; shown to the clinic, never used to lock anything by itself.
+  paidUntil DateTime?
+  note      String?
+  updatedAt DateTime  @updatedAt
+}

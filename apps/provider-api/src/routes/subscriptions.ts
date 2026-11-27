@@ -4,8 +4,9 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
+import { publicKeyFrom } from "../lib/s2s.js";
 import {
-  GROWTH_MODULES, callGrowth, cancelAtEnd, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
+  GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
 } from "../lib/subscriptions.js";
 
 /**
@@ -82,7 +83,9 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     };
   });
 
-  const cleanGrants = (product: string, b: z.infer<typeof offerBody>): Grants | string => {
+  const cleanGrants = (product: string, b: z.infer<typeof offerBody>, current?: Grants): Grants | string => {
+    // A clinic plan opens its tier; that is fixed by the offer, not edited.
+    if (product === "CLINIC") return { plan: current?.plan };
     if (product === "GROWTH") {
       const bad = b.modules.find((m) => !GROWTH_MODULES[m]);
       if (bad) return `Unknown module: ${bad}.`;
@@ -100,7 +103,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     const body = offerBody.safeParse(request.body);
     if (!body.success) return reply.status(400).send({ error: body.error.issues[0]?.message ?? "Check the fields." });
     if (body.data.published && body.data.priceRupees == null) return reply.status(400).send({ error: "Set a price before putting it on sale." });
-    const grants = cleanGrants(found.product, body.data);
+    const grants = cleanGrants(found.product, body.data, found.grants as Grants);
     if (typeof grants === "string") return reply.status(400).send({ error: grants });
     await prisma.catalogOffer.update({
       where: { id },
@@ -191,6 +194,35 @@ export async function subscriptionRoutes(app: FastifyInstance) {
   app.post("/api/provider/subscriptions/retry-pushes", async (request, reply) => {
     if (!requireProviderAuth(request, reply)) return;
     return { pushed: await retryPushes() };
+  });
+
+  // ── Clinics, through their own servers ───────────────────────────────
+  // The clinic server's public key (its private half stays in its env).
+  app.put("/api/provider/accounts/:id/s2s-key", async (request, reply) => {
+    if (!requireOwnerAuth(request, reply)) return;
+    const body = z.object({ publicKey: z.string().trim().max(200).nullable() }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: "Paste the clinic's public key." });
+    if (body.data.publicKey) {
+      try {
+        publicKeyFrom(body.data.publicKey);
+      } catch {
+        return reply.status(400).send({ error: "That is not an Ed25519 public key. Paste the PUBLIC_KEY line from s2s-keygen." });
+      }
+    }
+    await prisma.clinicAccount.update({ where: { id: (request.params as { id: string }).id }, data: { s2sPublicKey: body.data.publicKey || null } });
+    return { ok: true };
+  });
+
+  // What the clinic's own server says it runs now.
+  app.get("/api/provider/accounts/:id/s2s-status", async (request, reply) => {
+    if (!requireProviderAuth(request, reply)) return;
+    const a = await prisma.clinicAccount.findUnique({ where: { id: (request.params as { id: string }).id } });
+    if (!a) return reply.status(404).send({ error: "Not found." });
+    try {
+      return await callClinic(a, "/api/s2s/v1/status");
+    } catch (err) {
+      return fail(reply, err);
+    }
   });
 
   // ── Growth, through its own server ───────────────────────────────────

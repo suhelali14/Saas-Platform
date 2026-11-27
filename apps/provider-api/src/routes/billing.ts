@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { env } from "../config/env.js";
+import { callClinic } from "../lib/subscriptions.js";
 import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
 import {
   invoiceLines, invoiceNumber, invoiceTotals, financialYear, nextPeriodStart, STATE_CODES, stateFromGstin,
@@ -129,8 +130,18 @@ export async function billingRoutes(app: FastifyInstance) {
     //      looking stuck.
     let jobId: string | null = null;
     let queued = false;
+    let direct = false;
     const inline = shouldProvisionInline();
-    if (jobsAvailable()) {
+    if (account.s2sPublicKey && account.apiDomain) {
+      // Connected for signed calls: the clinic's server takes the plan at
+      // once, with no restart (the clinic's routes/clinic-plan.ts).
+      try {
+        await callClinic(account, "/api/s2s/v1/plan", "PUT", { plan, features, readOnly, paidUntil: account.renewsAt?.toISOString() ?? null, note: reason?.slice(0, 200) });
+        direct = true;
+      } catch (err) {
+        return reply.status(502).send({ error: `The clinic's server did not take the plan: ${(err as Error).message}` });
+      }
+    } else if (jobsAvailable()) {
       jobId = enqueuePlanSync({ slug: account.slug, plan, features, readOnly, maxUsers });
       queued = true;
     } else if (!inline) {
@@ -163,13 +174,14 @@ export async function billingRoutes(app: FastifyInstance) {
         data: {
           accountId: id, actorId: auth.id, actorName: auth.name, action: "plan.applied",
           detail: `${PLAN_LABELS[plan]}${readOnly ? ", read-only" : ""}: ${features.join(", ")}`,
-          applied: queued,
+          applied: queued || direct,
         },
       }),
     ]);
 
     return reply.status(queued ? 202 : 200).send({
       queued,
+      direct,
       jobId,
       plan,
       features,

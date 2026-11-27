@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /*
@@ -111,6 +112,8 @@ export function Subscriptions() {
         </div>
       )}
 
+      <ClinicPrices />
+
       <Card>
         <CardContent className="p-0">
           {data.subscriptions.length === 0 ? (
@@ -189,5 +192,87 @@ export function Subscriptions() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+interface ClinicOffer {
+  id: string;
+  name: string;
+  summary: string;
+  includes: string[];
+  grants: { plan?: string };
+  monthlyPricePaise: number | null;
+  yearlyDiscountPct: number | null;
+  effectiveYearlyDiscountPct: number;
+  yearlyPricePaise: number | null;
+  published: boolean;
+}
+
+/** The clinic plans a clinic can subscribe to from its own Settings, monthly or yearly. */
+function ClinicPrices() {
+  const toast = useToast();
+  const [offers, setOffers] = useState<ClinicOffer[] | null>(null);
+  const [edit, setEdit] = useState<Record<string, { price: string; yearly: string; published: boolean }>>({});
+  const load = () =>
+    apiFetch<{ offers: ClinicOffer[] }>("/catalog?product=CLINIC").then((r) => {
+      setOffers(r.offers);
+      setEdit(Object.fromEntries(r.offers.map((o) => [o.id, { price: o.monthlyPricePaise ? String(o.monthlyPricePaise / 100) : "", yearly: o.yearlyDiscountPct != null ? String(o.yearlyDiscountPct) : "", published: o.published }])));
+    });
+  useEffect(() => {
+    load();
+  }, []);
+  const save = async (o: ClinicOffer) => {
+    const e = edit[o.id];
+    try {
+      await apiFetch(`/catalog/${encodeURIComponent(o.id)}`, {
+        method: "PUT",
+        data: { name: o.name, summary: o.summary, includes: o.includes, modules: [], priceRupees: e.price.trim() ? Math.round(Number(e.price.replace(/,/g, ""))) : null, yearlyDiscountPct: e.yearly.trim() ? Number(e.yearly) : null, published: e.published },
+      });
+      toast.success(`${o.name} saved.`);
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not save.");
+    }
+  };
+  if (!offers) return null;
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold">Clinic plans</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">What a connected clinic can subscribe to from its own Settings. A month's price; the yearly one is twelve months less the discount (the default is on the Growth page). Off sale until you put it on sale.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-4 py-2.5 font-medium">Plan</th>
+                <th className="px-3 py-2.5 font-medium">A month, ₹</th>
+                <th className="px-3 py-2.5 font-medium">Own yearly discount, %</th>
+                <th className="px-3 py-2.5 text-right font-medium">A year</th>
+                <th className="px-3 py-2.5 font-medium">On sale</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {offers.map((o) => {
+                const e = edit[o.id] ?? { price: "", yearly: "", published: false };
+                const set = (p: Partial<typeof e>) => setEdit({ ...edit, [o.id]: { ...e, ...p } });
+                return (
+                  <tr key={o.id}>
+                    <td className="px-4 py-2.5"><span className="block font-medium">{o.name}</span><span className="text-xs text-muted-foreground">{o.summary}</span></td>
+                    <td className="px-3 py-2.5"><Input aria-label={`${o.name}, a month`} className="h-8 w-28" inputMode="numeric" value={e.price} onChange={(ev) => set({ price: ev.target.value })} /></td>
+                    <td className="px-3 py-2.5"><Input aria-label={`${o.name}, own yearly discount`} className="h-8 w-24" inputMode="decimal" placeholder="Default" value={e.yearly} onChange={(ev) => set({ yearly: ev.target.value })} /></td>
+                    <td className="px-3 py-2.5 text-right tabular">{o.yearlyPricePaise != null ? money(o.yearlyPricePaise / 100) : "—"}</td>
+                    <td className="px-3 py-2.5"><input type="checkbox" aria-label={`${o.name} on sale`} checked={e.published} onChange={(ev) => set({ published: ev.target.checked })} /></td>
+                    <td className="px-4 py-2.5 text-right"><Button size="sm" variant="outline" onClick={() => save(o)}>Save</Button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

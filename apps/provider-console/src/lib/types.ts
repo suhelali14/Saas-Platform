@@ -52,6 +52,8 @@ export interface ClinicAccount {
   publicDomain: string | null;
   portalDomain: string | null;
   apiDomain: string | null;
+  /** The clinic server's public key for signed calls; set on its page. */
+  s2sPublicKey?: string | null;
   neonProjectId: string | null;
   provisionedAt: string | null;
   createdAt: string;

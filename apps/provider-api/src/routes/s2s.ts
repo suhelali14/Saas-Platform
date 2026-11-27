@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { parseEvent, validWebhook } from "../lib/razorpay.js";
 import { verifyRequest } from "../lib/s2s.js";
-import { cancelAtEnd, handleRazorpayEvent, onSale, productKey, SaleError, startSubscription, testPay, view, type ProductKey } from "../lib/subscriptions.js";
+import { cancelAtEnd, handleRazorpayEvent, onSale, SaleError, startSubscription, testPay, view, whoSigned, type Signer } from "../lib/subscriptions.js";
 
 /**
  * What products call (signed, src/lib/s2s.ts) and what Razorpay calls. Both
@@ -18,9 +18,9 @@ declare module "fastify" {
   }
 }
 
-/** The product a signed request came from, or a 401. */
-function signedBy(request: FastifyRequest, reply: FastifyReply): ProductKey | null {
-  const who = productKey(request.headers["x-nv-key"] as string | undefined);
+/** Who signed the request, or a 401. */
+async function signedBy(request: FastifyRequest, reply: FastifyReply): Promise<Signer | null> {
+  const who = await whoSigned(request.headers["x-nv-key"] as string | undefined);
   const ok =
     who &&
     verifyRequest(who.key, request.method, request.url, request.rawBody ?? "", request.headers["x-nv-time"] as string | undefined, request.headers["x-nv-signature"] as string | undefined);
@@ -28,8 +28,11 @@ function signedBy(request: FastifyRequest, reply: FastifyReply): ProductKey | nu
     reply.status(401).send({ error: "Bad signature." });
     return null;
   }
-  return who.product;
+  return who;
 }
+
+/** The account a call is about: a clinic only ever its own; Growth says which business. */
+const accountOf = (who: Signer, asked: string) => who.account?.id ?? asked;
 
 function fail(reply: FastifyReply, err: unknown) {
   const e = err as Error & { status?: number };
@@ -61,34 +64,37 @@ export async function s2sRoutes(app: FastifyInstance) {
 
   // ── For products ─────────────────────────────────────────────────────
   app.get("/api/provider/s2s/v1/catalog", async (request, reply) => {
-    const product = signedBy(request, reply);
-    if (!product) return;
+    const who = await signedBy(request, reply);
+    if (!who) return;
     const { account = "" } = request.query as { account?: string };
     try {
-      return { offers: await onSale(product, account), mode: env.SUBSCRIPTIONS_MODE };
+      return { offers: await onSale(who.product, accountOf(who, account)), mode: env.SUBSCRIPTIONS_MODE };
     } catch (err) {
       return fail(reply, err);
     }
   });
 
   app.post("/api/provider/s2s/v1/subscriptions", async (request, reply) => {
-    const product = signedBy(request, reply);
-    if (!product) return;
+    const who = await signedBy(request, reply);
+    if (!who) return;
     const body = subscribeBody.safeParse(request.body);
     if (!body.success) return reply.status(400).send({ error: "Choose a plan, and monthly or yearly." });
     try {
-      return await startSubscription({ product, ...body.data, by: body.data.by || body.data.accountName });
+      return await startSubscription({
+        product: who.product, ...body.data, accountRef: accountOf(who, body.data.accountRef), accountName: who.account?.name ?? body.data.accountName,
+        by: body.data.by || body.data.accountName,
+      });
     } catch (err) {
       return fail(reply, err);
     }
   });
 
   app.get("/api/provider/s2s/v1/subscriptions", async (request, reply) => {
-    const product = signedBy(request, reply);
-    if (!product) return;
+    const who = await signedBy(request, reply);
+    if (!who) return;
     const { account = "" } = request.query as { account?: string };
     const subs = await prisma.subscription.findMany({
-      where: { product, accountRef: account, status: { not: "EXPIRED" } },
+      where: { product: who.product, accountRef: accountOf(who, account), status: { not: "EXPIRED" } },
       orderBy: { createdAt: "desc" },
       take: 20,
     });
@@ -97,12 +103,12 @@ export async function s2sRoutes(app: FastifyInstance) {
 
   // One subscription, only for the account it belongs to.
   const own = async (request: FastifyRequest, reply: FastifyReply) => {
-    const product = signedBy(request, reply);
-    if (!product) return null;
+    const who = await signedBy(request, reply);
+    if (!who) return null;
     const { id } = request.params as { id: string };
     const { account = "" } = request.query as { account?: string };
     const sub = await prisma.subscription.findUnique({ where: { id } });
-    if (!sub || sub.product !== product || sub.accountRef !== account) {
+    if (!sub || sub.product !== who.product || sub.accountRef !== accountOf(who, account)) {
       reply.status(404).send({ error: "No such subscription." });
       return null;
     }

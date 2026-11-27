@@ -193,6 +193,11 @@ model ClinicAccount {
   /// A demonstration deployment: made-up patients, reset nightly.
   isDemo Boolean @default(false)
 
+  // The clinic server's public Ed25519 key for signed calls (src/lib/s2s.ts):
+  // with it the clinic can ask for its subscription and the console can set
+  // its plan at once. A public key, never a secret.
+  s2sPublicKey String?
+
   // ── Deployment ────────────────────────────────────────────────────────
   publicDomain String?   // drasif.in
   portalDomain String?   // dashboard.drasif.in

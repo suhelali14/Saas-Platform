@@ -156,11 +156,40 @@ export function resolveModules(tier: PlanTier, explicit: string | undefined): Se
   return on;
 }
 
+/**
+ * The plan the Nayaversse console set for this clinic, over a signed call
+ * (lib/plan-state.ts), which takes the place of CLINIC_PLAN, CLINIC_FEATURES
+ * and CLINIC_READ_ONLY from the moment it arrives: no restart. Without one,
+ * the env decides, as it always has.
+ */
+export interface PlanOverride {
+  plan: PlanTier;
+  /** The exact module list, or null for the plan's own. */
+  features: string | null;
+  readOnly: boolean;
+  paidUntil: Date | null;
+}
+
+let override: PlanOverride | null = null;
 let cached: Set<Feature> | null = null;
+
+export function applyPlanOverride(o: PlanOverride | null): void {
+  override = o;
+  cached = null;
+}
+
+export function planOverride(): PlanOverride | null {
+  return override;
+}
+
+/** Nothing can be changed: the env says so, or the console does. */
+export function isReadOnly(): boolean {
+  return env.CLINIC_READ_ONLY || Boolean(override?.readOnly);
+}
 
 export function enabledModules(): Set<Feature> {
   if (!cached) {
-    cached = resolveModules(env.CLINIC_PLAN, env.CLINIC_FEATURES);
+    cached = override ? resolveModules(override.plan, override.features ?? undefined) : resolveModules(env.CLINIC_PLAN, env.CLINIC_FEATURES);
     // The clinic assistant stays off until this deployment is told it may
     // have it (ASSISTANT_ENABLED in config/env.ts), even if a list names it.
     if (!env.ASSISTANT_ENABLED) cached.delete("scribe");
@@ -179,9 +208,9 @@ export function moduleStates(): Record<Feature, boolean> {
 }
 
 export function currentPlan(): Plan {
-  // env.CLINIC_PLAN is validated against these keys at boot, so an
-  // unknown tier cannot reach here.
-  const tier = env.CLINIC_PLAN;
+  // env.CLINIC_PLAN is validated against these keys at boot, and the
+  // console's plan when it is stored, so an unknown tier cannot reach here.
+  const tier = override?.plan ?? env.CLINIC_PLAN;
   return { tier, label: PLAN_LABELS[tier], maxUsers: PLAN_MAX_USERS[tier] };
 }
 
