@@ -1,0 +1,712 @@
+{
+ "format": "reel",
+ "W": 1080,
+ "H": 1920,
+ "fps": 30,
+ "voice": "en-IN-NeerjaNeural",
+ "rate": "+12%",
+ "lead": 0.25,
+ "pad": 0.3,
+ "series": "NAYAVERSSE · FOR CLINICS",
+ "rightDark": "THE PROBLEM",
+ "rightCream": "REAL SCREENS",
+ "shots": "modules-reel",
+ "beats": [
+  {
+   "chapter": "THE MORNING RUSH",
+   "ground": "dark",
+   "min": 3.6,
+   "cap": "10:30 AM. *38* patients. *One* doctor.",
+   "say": "Ten thirty. Thirty-eight patients. One doctor.",
+   "visual": {
+    "type": "flap",
+    "rows": [
+     {
+      "text": "10:30 AM",
+      "size": "s",
+      "y": -200,
+      "at": 0.2
+     },
+     {
+      "text": "38 WAITING",
+      "size": "l",
+      "y": -90,
+      "at": "w:2"
+     },
+     {
+      "text": "1 DOCTOR",
+      "size": "l",
+      "y": 80,
+      "at": "w:4",
+      "color": "#eba63f"
+     }
+    ]
+   },
+   "sayPro": "[serious] Ten thirty. Thirty-eight patients. One doctor."
+  },
+  {
+   "chapter": "THE MORNING RUSH",
+   "ground": "dark",
+   "cap": "Every few minutes, someone asks: *who's* *next?*",
+   "visual": {
+    "type": "tokens",
+    "qAt": "w:4"
+   },
+   "punch": "WHO'S NEXT?",
+   "punchAt": "w:5",
+   "sayPro": "[tired] Every few minutes, someone asks: [sighs] who's next?"
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "Last month's file is somewhere in a *cupboard.*",
+   "visual": {
+    "type": "files",
+    "gapAt": "w:3"
+   },
+   "punch": "LOST.",
+   "punchAt": "w:7",
+   "extra": 0.2,
+   "sayPro": "[frustrated] Last month's file is somewhere in a cupboard."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "The prescription is *handwritten.* The bill, a scrap of paper.",
+   "visual": {
+    "type": "slips",
+    "billAt": "w:4"
+   },
+   "extra": 0.1,
+   "sayPro": "The prescription is handwritten. The bill, a scrap of paper."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "Medicines expire on the shelf. Follow-ups are *forgotten.*",
+   "visual": {
+    "type": "expiry",
+    "calAt": "w:5"
+   },
+   "punch": "FORGOTTEN.",
+   "punchAt": "w:7",
+   "punchSize": 124,
+   "extra": 0.2,
+   "sayPro": "[concerned] Medicines expire on the shelf. Follow-ups are forgotten."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "The doctor isn't slow. *The* *paper* is.",
+   "visual": {
+    "type": "sweep"
+   },
+   "punch": "PAPER.",
+   "punchAt": "w:4",
+   "sayPro": "[softly] The doctor isn't slow. The paper is."
+  },
+  {
+   "chapter": "ONE SYSTEM",
+   "ground": "cream",
+   "min": 5.2,
+   "cap": "*Nayaversse* puts the whole clinic on one screen.",
+   "visual": {
+    "type": "cards",
+    "logo": true,
+    "cards": [
+     {
+      "shot": "overview",
+      "label": "OVERVIEW",
+      "cam": [
+       {
+        "at": 2.2,
+        "dur": 1.3,
+        "r": [
+         0.42,
+         0.0,
+         0.56,
+         0.3
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": 3.4,
+        "r": [
+         0.68,
+         0.1,
+         0.3,
+         0.07
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0,
+   "sayPro": "[warmly] नयावर्स puts the whole clinic on one screen."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "The queue *sorts* *itself.* Emergencies first, then pregnant women and seniors, then children.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "queue",
+      "label": "TODAY'S QUEUE",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.23,
+         0.18,
+         0.62,
+         0.62
+        ]
+       },
+       {
+        "at": "w:6",
+        "dur": 1.1,
+        "r": [
+         0.235,
+         0.3,
+         0.5,
+         0.25
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.247,
+         0.32,
+         0.46,
+         0.064
+        ]
+       },
+       {
+        "at": "w:7",
+        "r": [
+         0.247,
+         0.393,
+         0.46,
+         0.06
+        ]
+       },
+       {
+        "at": "w:12",
+        "r": [
+         0.247,
+         0.465,
+         0.46,
+         0.06
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "[confident] The queue sorts itself. Emergencies first, then pregnant women and seniors, then children."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Website bookings land here, and every patient gets a *file* *number.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "requests",
+      "label": "BOOKING REQUESTS",
+      "ring": [
+       {
+        "at": "w:2",
+        "r": [
+         0.245,
+         0.125,
+         0.725,
+         0.085
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "patients",
+      "label": "ALL PATIENTS",
+      "focus": "w:5",
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.25,
+         0.14,
+         0.72,
+         0.045
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "Website bookings land here, and every patient gets a file number."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Open a visit, and *allergies* are the first thing the doctor sees.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "encounter",
+      "label": "CONSULTATION",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.235,
+         0.035,
+         0.5,
+         0.2
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.247,
+         0.056,
+         0.46,
+         0.051
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "[reassuring] Open a visit, and allergies are the first thing the doctor sees."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Type a few letters. *2,46,068* Indian medicines.",
+   "say": "Type a few letters. Two lakh, forty-six thousand Indian medicines.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "rx",
+      "label": "PRESCRIPTION",
+      "cam": [
+       {
+        "at": 0.5,
+        "dur": 1.2,
+        "r": [
+         0.24,
+         0.6,
+         0.62,
+         0.26
+        ]
+       }
+      ],
+      "cursor": {
+       "at": 1.0,
+       "dur": 0.8,
+       "to": [
+        0.3,
+        0.672
+       ],
+       "click": 1.85
+      },
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.255,
+         0.68,
+         0.21,
+         0.135
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "punch": "2,46,068",
+   "punchCount": 246068,
+   "punchAt": "w:4",
+   "extra": 0.25,
+   "sayPro": "[upbeat] Type a few letters. Two lakh, forty-six thousand Indian medicines."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Every antenatal visit sits side by side, in *one* *file.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "patient",
+      "label": "PATIENT FILE",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.3,
+        "r": [
+         0.23,
+         0.42,
+         0.48,
+         0.56
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.245,
+         0.68,
+         0.43,
+         0.28
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "Every antenatal visit sits side by side, in one file."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Lab and scan orders reach the lab, and *results* come back to the file.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "labs",
+      "label": "LAB ORDERS",
+      "ring": [
+       {
+        "at": "w:3",
+        "r": [
+         0.255,
+         0.14,
+         0.64,
+         0.05
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "radiology",
+      "label": "RADIOLOGY",
+      "focus": "w:7",
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.245,
+         0.145,
+         0.72,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0,
+   "sayPro": "Lab and scan orders reach the lab, and results come back to the file."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "The pharmacy sees what *expires* first, before it goes to waste.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "pharmacy",
+      "label": "PHARMACY · STOCK",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.23,
+         0.08,
+         0.5,
+         0.14
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.25,
+         0.12,
+         0.47,
+         0.055
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "The pharmacy sees what expires first, before it goes to waste."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "Bill at the desk. Cash, UPI or card, settled *to* *the* *rupee.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "encounter",
+      "label": "CHARGES FOR THIS VISIT",
+      "cam": [
+       {
+        "at": 0.2,
+        "dur": 0.9,
+        "r": [
+         0.235,
+         0.6,
+         0.5,
+         0.18
+        ]
+       }
+      ],
+      "cursor": {
+       "at": 0.8,
+       "dur": 0.7,
+       "to": [
+        0.52,
+        0.741
+       ],
+       "click": 1.55
+      },
+      "ring": [
+       {
+        "at": 1.55,
+        "r": [
+         0.467,
+         0.728,
+         0.113,
+         0.027
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "billing",
+      "label": "BILLING",
+      "focus": "w:6",
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.25,
+         0.125,
+         0.72,
+         0.045
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "[confident] Bill at the desk. Cash, UPI or card, settled to the rupee."
+  },
+  {
+   "chapter": "THE WARDS",
+   "ground": "cream",
+   "cap": "Running beds? A *bed* *board,* nursing charts and insurance claims.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "ipd",
+      "label": "BED BOARD",
+      "ring": [
+       {
+        "at": "w:3",
+        "r": [
+         0.733,
+         0.162,
+         0.233,
+         0.068
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "nursing",
+      "label": "NURSING",
+      "focus": "w:5",
+      "ring": [
+       {
+        "at": "w:6",
+        "r": [
+         0.245,
+         0.12,
+         0.72,
+         0.06
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "claims",
+      "label": "CLAIMS",
+      "focus": "w:7",
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.25,
+         0.195,
+         0.72,
+         0.04
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "[curious] Running beds? [confident] A bed board, nursing charts and insurance claims."
+  },
+  {
+   "chapter": "THE OWNER'S DESK",
+   "ground": "cream",
+   "cap": "Who's *overdue,* the day's numbers, and who opened which record.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "reminders",
+      "label": "FOLLOW-UPS DUE",
+      "ring": [
+       {
+        "at": "w:1",
+        "r": [
+         0.25,
+         0.215,
+         0.72,
+         0.045
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "analytics",
+      "label": "REPORTS",
+      "focus": "w:3",
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.245,
+         0.18,
+         0.72,
+         0.17
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "audit",
+      "label": "AUDIT LOG",
+      "focus": "w:5",
+      "ring": [
+       {
+        "at": "w:7",
+        "r": [
+         0.245,
+         0.2,
+         0.72,
+         0.08
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "Who's overdue, the day's numbers, and who opened which record."
+  },
+  {
+   "chapter": "OUTSIDE THE CLINIC",
+   "ground": "cream",
+   "cap": "And patients get the clinic's own website, in *twelve* Indian languages.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "site-mr",
+      "label": "CLINIC WEBSITE · मराठी",
+      "ring": [
+       {
+        "at": "w:7",
+        "r": [
+         0.015,
+         0.53,
+         0.3,
+         0.05
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "livequeue",
+      "label": "LIVE QUEUE",
+      "focus": "w:9",
+      "ring": [
+       {
+        "at": "w:10",
+        "r": [
+         0.17,
+         0.18,
+         0.66,
+         0.15
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "extra": 0.25,
+   "sayPro": "[excited] And patients get the clinic's own website, in twelve Indian languages."
+  },
+  {
+   "chapter": "NAYAVERSSE",
+   "ground": "cream",
+   "min": 5.2,
+   "cap": "*Nayaversse.* Run smarter. Grow stronger.",
+   "say": "Nayaversse. Run smarter, grow stronger. Book a demo at nayaversse dot in.",
+   "visual": {
+    "type": "end"
+   },
+   "sayPro": "[warmly] नयावर्स. Run smarter, grow stronger. [friendly] Book a demo at नयावर्स dot in."
+  }
+ ],
+ "tts": "elevenlabs",
+ "elevenVoice": "OtEfb2LVzIE45wdYe54M",
+ "elevenModel": "eleven_v3",
+ "elevenStability": 0.5
+}

@@ -1,0 +1,1097 @@
+{
+ "format": "yt",
+ "W": 1920,
+ "H": 1080,
+ "fps": 30,
+ "voice": "en-IN-NeerjaNeural",
+ "rate": "+6%",
+ "lead": 0.3,
+ "pad": 0.4,
+ "series": "NAYAVERSSE · CLINIC SOFTWARE",
+ "rightDark": "THE PROBLEM",
+ "rightCream": "REAL PRODUCT SCREENS",
+ "shots": "modules-yt",
+ "beats": [
+  {
+   "chapter": "THE MORNING RUSH",
+   "ground": "dark",
+   "min": 5,
+   "cap": "10:30 AM. *38* patients, one doctor, and a front desk doing everything by hand.",
+   "say": "Ten thirty in the morning. Thirty-eight patients, one doctor, and a front desk doing everything by hand.",
+   "visual": {
+    "type": "flap",
+    "rows": [
+     {
+      "text": "10:30 AM",
+      "size": "s",
+      "y": -230,
+      "at": 0.25
+     },
+     {
+      "text": "38 WAITING",
+      "size": "l",
+      "y": -120,
+      "at": "w:2"
+     },
+     {
+      "text": "1 DOCTOR",
+      "size": "l",
+      "y": 40,
+      "at": "w:4",
+      "color": "#eba63f"
+     }
+    ]
+   },
+   "sayPro": "[serious] Ten thirty in the morning. Thirty-eight patients, one doctor, and a front desk doing everything by hand."
+  },
+  {
+   "chapter": "THE MORNING RUSH",
+   "ground": "dark",
+   "cap": "Nobody knows their turn, so every few minutes someone asks: *who's* *next?*",
+   "visual": {
+    "type": "tokens",
+    "qAt": "w:10"
+   },
+   "punch": "WHO'S NEXT?",
+   "punchAt": "w:11",
+   "sayPro": "[tired] Nobody knows their turn, so every few minutes someone asks: [sighs] who's next?"
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "A returning patient's file is somewhere in a *cupboard.* The doctor starts again from memory.",
+   "visual": {
+    "type": "files",
+    "gapAt": "w:5"
+   },
+   "punch": "LOST.",
+   "punchAt": "w:8",
+   "sayPro": "[frustrated] A returning patient's file is somewhere in a cupboard. The doctor starts again from memory."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "Prescriptions are *handwritten,* bills are scraps of paper, and the cash never quite tallies.",
+   "visual": {
+    "type": "slips",
+    "billAt": "w:4"
+   },
+   "sayPro": "Prescriptions are handwritten, bills are scraps of paper, and the cash never quite tallies."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "Medicines expire on the shelf, and follow-ups quietly slip *away.*",
+   "visual": {
+    "type": "expiry",
+    "calAt": "w:6"
+   },
+   "punch": "FORGOTTEN.",
+   "punchAt": "w:9",
+   "sayPro": "[concerned] Medicines expire on the shelf, and follow-ups quietly slip away."
+  },
+  {
+   "chapter": "WHERE IT BREAKS",
+   "ground": "dark",
+   "cap": "None of this is the doctor's fault. It's *the* *paper.*",
+   "visual": {
+    "type": "sweep"
+   },
+   "punch": "PAPER.",
+   "punchAt": "w:7",
+   "sayPro": "[softly] None of this is the doctor's fault. It's the paper."
+  },
+  {
+   "chapter": "MEET NAYAVERSSE",
+   "ground": "cream",
+   "min": 6,
+   "cap": "This is *Nayaversse:* one system for the front desk, the doctor, the pharmacy, the counter and the wards.",
+   "visual": {
+    "type": "cards",
+    "logo": true,
+    "cards": [
+     {
+      "shot": "overview",
+      "label": "OVERVIEW"
+     }
+    ]
+   },
+   "sayPro": "[warmly] This is नयावर्स: one system for the front desk, the doctor, the pharmacy, the counter and the wards."
+  },
+  {
+   "chapter": "MEET NAYAVERSSE",
+   "ground": "cream",
+   "cap": "The day starts here: who is with the doctor, who is *next,* what needs doing, and what has been collected.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "overview",
+      "label": "OVERVIEW",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.03,
+         0.62,
+         0.42
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.555,
+         0.135,
+         0.2,
+         0.07
+        ]
+       }
+      ]
+     }
+    ],
+    "continue": true
+   },
+   "sayPro": "[confident] The day starts here: who is with the doctor, who is next, what needs doing, and what has been collected."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Reception adds a walk-in in seconds, and the queue *orders* *itself.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "queue",
+      "label": "TODAY'S QUEUE",
+      "cam": [
+       {
+        "at": "w:4",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.18,
+         0.62,
+         0.62
+        ]
+       }
+      ],
+      "cursor": {
+       "at": 0.4,
+       "dur": 0.8,
+       "to": [
+        0.8,
+        0.075
+       ],
+       "click": 1.3
+      }
+     }
+    ]
+   },
+   "sayPro": "Reception adds a walk-in in seconds, and the queue orders itself."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Emergencies first, then pregnant women and seniors, then children, and everyone else in the order they *came.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "queue",
+      "label": "TODAY'S QUEUE",
+      "cam": [
+       {
+        "at": 0,
+        "dur": 0.01,
+        "r": [
+         0.16,
+         0.18,
+         0.62,
+         0.62
+        ]
+       },
+       {
+        "at": "w:0",
+        "dur": 1.0,
+        "r": [
+         0.16,
+         0.32,
+         0.5,
+         0.42
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:0",
+        "r": [
+         0.17,
+         0.405,
+         0.45,
+         0.07
+        ]
+       },
+       {
+        "at": "w:3",
+        "r": [
+         0.17,
+         0.5,
+         0.45,
+         0.065
+        ]
+       },
+       {
+        "at": "w:8",
+        "r": [
+         0.17,
+         0.595,
+         0.45,
+         0.065
+        ]
+       }
+      ]
+     }
+    ],
+    "continue": true
+   },
+   "sayPro": "[clear] Emergencies first, then pregnant women and seniors, then children, and everyone else in the order they came."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Patients follow the *live* *queue* on a waiting-room screen or their own phone. Token numbers only, never names.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "livequeue",
+      "label": "LIVE QUEUE",
+      "ring": [
+       {
+        "at": "w:2",
+        "r": [
+         0.27,
+         0.22,
+         0.46,
+         0.19
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Patients follow the live queue on a waiting-room screen or their own phone. Token numbers only, never names."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Bookings from the clinic's website arrive here, and nothing enters the diary until the clinic *confirms* it.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "requests",
+      "label": "BOOKING REQUESTS",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.0,
+         0.55,
+         0.45
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.17,
+         0.16,
+         0.5,
+         0.09
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Bookings from the clinic's website arrive here, and nothing enters the diary until the clinic confirms it."
+  },
+  {
+   "chapter": "THE FRONT DESK",
+   "ground": "cream",
+   "cap": "Every patient gets a *file* *number,* and one search finds them by name, number or phone.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "patients",
+      "label": "ALL PATIENTS",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.08,
+         0.55,
+         0.55
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.17,
+         0.32,
+         0.45,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Every patient gets a file number, and one search finds them by name, number or phone."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "When the doctor opens a visit, *allergies* and chronic conditions are the first thing on screen.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "encounter",
+      "label": "CONSULTATION",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.04,
+         0.48,
+         0.5
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:7",
+        "r": [
+         0.17,
+         0.075,
+         0.44,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[reassuring] When the doctor opens a visit, allergies and chronic conditions are the first thing on screen."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "The last visit's complaint and diagnosis sit just below, so the story *continues* where it left off.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "encounter",
+      "label": "CONSULTATION",
+      "cam": [
+       {
+        "at": 0,
+        "dur": 0.01,
+        "r": [
+         0.16,
+         0.04,
+         0.48,
+         0.5
+        ]
+       },
+       {
+        "at": "w:1",
+        "dur": 1.0,
+        "r": [
+         0.16,
+         0.3,
+         0.48,
+         0.4
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.17,
+         0.42,
+         0.44,
+         0.11
+        ]
+       }
+      ]
+     }
+    ],
+    "continue": true
+   },
+   "sayPro": "The last visit's complaint and diagnosis sit just below, so the story continues where it left off."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Prescriptions draw from *2,46,068* Indian medicines. Type a few letters, or repeat the last prescription in one tap.",
+   "say": "Prescriptions draw from two lakh forty-six thousand Indian medicines. Type a few letters, or repeat the last prescription in one tap.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "rx",
+      "label": "PRESCRIPTION",
+      "cam": [
+       {
+        "at": 0.5,
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.36,
+         0.5,
+         0.4
+        ]
+       }
+      ],
+      "cursor": {
+       "at": 1.0,
+       "dur": 0.8,
+       "to": [
+        0.2,
+        0.495
+       ],
+       "click": 1.9
+      },
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.18,
+         0.51,
+         0.15,
+         0.18
+        ]
+       },
+       {
+        "at": "w:13",
+        "r": [
+         0.53,
+         0.44,
+         0.07,
+         0.03
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "punch": "2,46,068",
+   "punchCount": 246068,
+   "punchAt": "w:3",
+   "sayPro": "[upbeat] Prescriptions draw from two lakh forty-six thousand Indian medicines. Type a few letters, or repeat the last prescription in one tap."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Specialty records follow the patient: a pregnancy, visit by visit, with weight, BP and fundal height *side* *by* *side.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "patient",
+      "label": "PATIENT FILE",
+      "cam": [
+       {
+        "at": "w:2",
+        "dur": 1.3,
+        "r": [
+         0.16,
+         0.45,
+         0.42,
+         0.55
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.17,
+         0.74,
+         0.4,
+         0.26
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Specialty records follow the patient: a pregnancy, visit by visit, with weight, BP and fundal height side by side."
+  },
+  {
+   "chapter": "THE CONSULTATION",
+   "ground": "cream",
+   "cap": "Lab and scan orders go straight to the lab, and *results* come back into the patient's file.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "labs",
+      "label": "LAB ORDERS",
+      "cam": [
+       {
+        "at": 0.3,
+        "dur": 1.0,
+        "r": [
+         0.16,
+         0.05,
+         0.5,
+         0.4
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.18,
+         0.225,
+         0.42,
+         0.07
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "radiology",
+      "label": "RADIOLOGY",
+      "focus": "w:8",
+      "ring": [
+       {
+        "at": "w:10",
+        "r": [
+         0.175,
+         0.19,
+         0.67,
+         0.06
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Lab and scan orders go straight to the lab, and results come back into the patient's file."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "The pharmacy sees stock by batch, with *near-expiry* and low-stock warnings before anything goes to waste.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "pharmacy",
+      "label": "PHARMACY · STOCK",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.06,
+         0.5,
+         0.35
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:7",
+        "r": [
+         0.17,
+         0.16,
+         0.44,
+         0.055
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "The pharmacy sees stock by batch, with near-expiry and low-stock warnings before anything goes to waste."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "No cashier? Charges are added during the visit, and payment is collected *before* the patient leaves.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "encounter",
+      "label": "CHARGES FOR THIS VISIT",
+      "cam": [
+       {
+        "at": 0.3,
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.6,
+         0.48,
+         0.4
+        ]
+       }
+      ],
+      "cursor": {
+       "at": "w:9",
+       "dur": 0.8,
+       "to": [
+        0.36,
+        0.927
+       ],
+       "click": "w:12"
+      },
+      "ring": [
+       {
+        "at": "w:12",
+        "r": [
+         0.32,
+         0.912,
+         0.085,
+         0.03
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[curious] No cashier? [confident] Charges are added during the visit, and payment is collected before the patient leaves."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "Every bill shows paid or pending. Cash, UPI and card, with part payments and a *daily* *closing.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "billing",
+      "label": "BILLING",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.05,
+         0.55,
+         0.6
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.17,
+         0.16,
+         0.51,
+         0.045
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Every bill shows paid or pending. Cash, UPI and card, with part payments and a daily closing."
+  },
+  {
+   "chapter": "THE COUNTER",
+   "ground": "cream",
+   "cap": "Insurance and scheme claims are tracked from *pre-authorisation* to settlement.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "claims",
+      "label": "CLAIMS",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.0,
+         0.8,
+         0.5
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:6",
+        "r": [
+         0.17,
+         0.245,
+         0.77,
+         0.055
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Insurance and scheme claims are tracked from pre-authorisation to settlement."
+  },
+  {
+   "chapter": "THE WARDS",
+   "ground": "cream",
+   "cap": "For hospitals, the *bed* *board* shows every ward, bed and patient at a glance.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "ipd",
+      "label": "BED BOARD",
+      "cam": [
+       {
+        "at": "w:2",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.12,
+         0.7,
+         0.45
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.585,
+         0.2,
+         0.2,
+         0.085
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "For hospitals, the bed board shows every ward, bed and patient at a glance."
+  },
+  {
+   "chapter": "THE WARDS",
+   "ground": "cream",
+   "cap": "Nurses see who is admitted and whose *vitals* are due.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "nursing",
+      "label": "NURSING",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.0,
+         0.65,
+         0.6
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:7",
+        "r": [
+         0.17,
+         0.155,
+         0.6,
+         0.06
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Nurses see who is admitted and whose vitals are due."
+  },
+  {
+   "chapter": "THE OWNER'S DESK",
+   "ground": "cream",
+   "cap": "Follow-ups that slipped past their date are listed, *ready* *to* *call.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "reminders",
+      "label": "FOLLOW-UPS DUE",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.1,
+        "r": [
+         0.16,
+         0.05,
+         0.55,
+         0.45
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:4",
+        "r": [
+         0.17,
+         0.325,
+         0.52,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Follow-ups that slipped past their date are listed, ready to call."
+  },
+  {
+   "chapter": "THE OWNER'S DESK",
+   "ground": "cream",
+   "cap": "Reports show visits, common diagnoses and each doctor's workload, and the expense ledger shows what the clinic *really* *earned.*",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "analytics",
+      "label": "REPORTS",
+      "ring": [
+       {
+        "at": "w:2",
+        "r": [
+         0.17,
+         0.22,
+         0.52,
+         0.21
+        ]
+       }
+      ]
+     },
+     {
+      "shot": "expenses",
+      "label": "EXPENSES",
+      "focus": "w:11",
+      "ring": [
+       {
+        "at": "w:14",
+        "r": [
+         0.17,
+         0.17,
+         0.13,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Reports show visits, common diagnoses and each doctor's workload, and the expense ledger shows what the clinic really earned."
+  },
+  {
+   "chapter": "THE OWNER'S DESK",
+   "ground": "cream",
+   "cap": "Each person sees only what their role allows, and an append-only *audit* *log* records who opened which record.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "staff",
+      "label": "STAFF & ROLES"
+     },
+     {
+      "shot": "audit",
+      "label": "AUDIT LOG",
+      "focus": "w:9",
+      "ring": [
+       {
+        "at": "w:11",
+        "r": [
+         0.17,
+         0.065,
+         0.48,
+         0.035
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Each person sees only what their role allows, and an append-only audit log records who opened which record."
+  },
+  {
+   "chapter": "THE OWNER'S DESK",
+   "ground": "cream",
+   "cap": "Prescriptions, certificates and bills print on the clinic's own *letterhead,* laid out the way the doctor wants.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "settings",
+      "label": "DOCUMENTS",
+      "ring": [
+       {
+        "at": "w:8",
+        "r": [
+         0.51,
+         0.2,
+         0.34,
+         0.69
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Prescriptions, certificates and bills print on the clinic's own letterhead, laid out the way the doctor wants."
+  },
+  {
+   "chapter": "OUTSIDE THE CLINIC",
+   "ground": "cream",
+   "cap": "Every clinic also gets its own *website,* built and edited from the same dashboard.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "website",
+      "label": "WEBSITE BUILDER",
+      "ring": [
+       {
+        "at": "w:6",
+        "r": [
+         0.43,
+         0.2,
+         0.55,
+         0.52
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "Every clinic also gets its own website, built and edited from the same dashboard."
+  },
+  {
+   "chapter": "OUTSIDE THE CLINIC",
+   "ground": "cream",
+   "cap": "In *twelve* Indian languages, so patients read it in their own.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "site-mr",
+      "label": "CLINIC WEBSITE · मराठी",
+      "cam": [
+       {
+        "at": "w:3",
+        "dur": 1.2,
+        "r": [
+         0.1,
+         0.45,
+         0.6,
+         0.5
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:6",
+        "r": [
+         0.15,
+         0.655,
+         0.18,
+         0.05
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[excited] In twelve Indian languages, so patients read it in their own."
+  },
+  {
+   "chapter": "YOUR DATA",
+   "ground": "cream",
+   "cap": "Each clinic runs on its own database. The records belong to the clinic, and can be *exported* at any time.",
+   "visual": {
+    "type": "cards",
+    "cards": [
+     {
+      "shot": "backup",
+      "label": "DATA & BACKUP",
+      "cam": [
+       {
+        "at": "w:1",
+        "dur": 1.2,
+        "r": [
+         0.16,
+         0.15,
+         0.48,
+         0.55
+        ]
+       }
+      ],
+      "ring": [
+       {
+        "at": "w:9",
+        "r": [
+         0.17,
+         0.53,
+         0.44,
+         0.16
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "sayPro": "[reassuring] Each clinic runs on its own database. The records belong to the clinic, and can be exported at any time."
+  },
+  {
+   "chapter": "NAYAVERSSE",
+   "ground": "cream",
+   "min": 6,
+   "cap": "",
+   "say": "Nayaversse. Run smarter, grow stronger. Book a demo at nayaversse dot in.",
+   "visual": {
+    "type": "end",
+    "center": true
+   },
+   "sayPro": "[warmly] नयावर्स. Run smarter, grow stronger. [friendly] Book a demo at नयावर्स dot in."
+  }
+ ],
+ "tts": "elevenlabs",
+ "elevenVoice": "OtEfb2LVzIE45wdYe54M",
+ "elevenModel": "eleven_v3",
+ "elevenStability": 0.5
+}

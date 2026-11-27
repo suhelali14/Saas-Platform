@@ -1,0 +1,749 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nayaversse reel</title>
+<!--
+  A 30-second vertical reel, drawn as flat 2D motion graphics in the same
+  world as nayaversse.in: a painted destination board above laminated chart
+  panels in steel frames, ruled in red ink and stamped.
+
+  Every frame is a pure function of time: render(t) sets every style from t
+  and nothing accumulates between frames, so the capture script can render
+  frame N on its own and get the same pixels every time.
+
+  The story follows one patient, Priya, through a clinic morning:
+    queue (she is pregnant, so she goes first) -> her antenatal visits side
+    by side -> her prescription (repeat last, add one) -> her bill at the
+    desk -> the clinic's own website, in her language -> brand.
+  All names, numbers and the clinic are invented for the illustration.
+-->
+<style>
+/*FONTS*/
+:root{
+  --steel:#161b20; --steel-deep:#0d1115; --steel-line:#313c45; --rivet:#55626c; --frame:#222a31;
+  --board:#0a0c0d; --board-ink:#f6f2e9; --board-soft:#a7b0b6; --tile:#1a1f23;
+  --chart:#f3ede1; --band:#e5dac4; --edge:#d6c9b0; --paper-hi:#fbf8f1;
+  --rule:#a85f44; --rule-soft:#cfa894;
+  --ink:#1a1917; --ink-soft:#4b4740; --ink-faint:#6b6459;
+  --confirmed:#1a6340; --waiting:#845608; --priority:#a81f18; --stamp:#453585; --lamp:#eba63f;
+  --brand:#db4a2b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--steel)}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--steel);
+  font-family:'IBM Plex Sans Variable','IBM Plex Sans Devanagari','Nirmala UI',sans-serif;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.a{position:absolute;left:0;top:0}
+.cond{font-family:'Barlow Condensed','Arial Narrow',sans-serif}
+.mono{font-family:'IBM Plex Mono','IBM Plex Sans Devanagari','Nirmala UI',monospace}
+
+/* steel ground: two frame rails and rivets, so the void between panels is a
+   built thing rather than an empty colour */
+.rail{position:absolute;top:0;bottom:0;width:2px;background:var(--steel-line);opacity:.55}
+.rivet{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--rivet);
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.06)}
+
+/* split-flap */
+.flaprow{position:absolute;display:flex;gap:6px}
+.cell{position:relative;background:var(--tile);border-radius:5px;display:flex;align-items:center;justify-content:center;
+  color:var(--board-ink);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.cell::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--board)}
+.cell span{display:block;line-height:1}
+
+/* the board / strip */
+#board{position:absolute;background:var(--board);overflow:hidden}
+
+/* headline */
+.hl{position:absolute;left:100px;top:388px;width:880px;color:var(--board-ink);
+  font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;letter-spacing:.005em;text-transform:uppercase}
+.hl .ln{height:98px;overflow:hidden}
+.hl .ln span{display:block;font-size:100px;line-height:98px;white-space:nowrap}
+.hl em{font-style:normal;color:var(--lamp)}
+.hl .rule{position:absolute;left:0;height:5px;width:150px;background:var(--brand);transform-origin:left center}
+
+.cap{position:absolute;left:100px;width:880px;color:var(--board-soft);font-size:23px;letter-spacing:.09em;text-transform:uppercase;
+  font-weight:500;white-space:nowrap}
+
+/* the chart panel in its steel frame */
+.panel{position:absolute;left:100px;width:880px;background:var(--chart);border-radius:4px;
+  box-shadow:0 0 0 12px var(--frame),0 0 0 14px var(--steel-line),0 34px 60px -18px rgba(0,0,0,.75)}
+.panel .pr{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--rivet);
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.45)}
+.ph{position:absolute;left:0;right:0;top:0;height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;
+  border-bottom:2px solid var(--rule)}
+.ph .t{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:46px;letter-spacing:.02em;text-transform:uppercase}
+.ph .m{font-family:'IBM Plex Mono',monospace;font-size:22px;color:var(--ink-faint);letter-spacing:.06em;text-transform:uppercase}
+
+.colh{position:absolute;left:0;right:0;height:52px;font-family:'IBM Plex Mono',monospace;font-size:19px;letter-spacing:.1em;color:var(--ink-faint);
+  border-bottom:1px solid var(--rule)}
+.colh span{position:absolute;top:16px}
+
+.row{position:absolute;left:0;right:0;height:96px;border-bottom:1px solid var(--rule-soft)}
+.row > *{position:absolute}
+.tok{left:30px;top:26px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:36px}
+.nm{left:132px;top:25px;font-size:36px;font-weight:500;white-space:nowrap}
+.chip{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;letter-spacing:.06em;padding:6px 10px 5px;border:2px solid currentColor;border-radius:3px;white-space:nowrap}
+.st{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:20px;letter-spacing:.06em;white-space:nowrap}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:9px;vertical-align:1px}
+
+.stampmark{position:absolute;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  border-radius:6px;padding:0 16px;line-height:1.08;mix-blend-mode:multiply;white-space:nowrap}
+
+/* visits grid */
+.vlab{position:absolute;left:30px;font-family:'IBM Plex Mono',monospace;font-size:19px;letter-spacing:.1em;color:var(--ink-faint)}
+.vcol{position:absolute;top:92px;bottom:0;width:226px}
+.vcol .vh{position:absolute;left:0;right:0;top:0;height:112px;padding:22px 18px 0;border-bottom:1px solid var(--rule)}
+.vcol .vh .d{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:40px;line-height:1}
+.vcol .vh .w{font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--ink-faint);letter-spacing:.08em;margin-top:6px}
+.vcol .vc{position:absolute;left:18px;right:12px;font-size:30px;line-height:1.12}
+.vcol .vc.sm{font-size:24px;line-height:1.18}
+.vsep{position:absolute;top:92px;bottom:0;width:1px;background:var(--rule-soft)}
+.vrow{position:absolute;left:0;right:0;height:84px;border-bottom:1px solid var(--rule-soft)}
+.sweep{position:absolute;left:176px;right:0;height:84px;background:rgba(235,166,63,.26);transform-origin:left center}
+
+/* rx */
+.btn{position:absolute;display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:23px;letter-spacing:.06em;
+  border:2px solid var(--ink);border-radius:4px;padding:0 22px;height:64px;color:var(--ink);background:var(--paper-hi)}
+.field{position:absolute;left:30px;right:30px;height:70px;border:2px solid var(--ink-faint);border-radius:4px;background:var(--paper-hi);
+  display:flex;align-items:center;padding:0 20px;gap:16px;font-size:30px}
+.caret{display:inline-block;width:3px;height:36px;background:var(--ink);vertical-align:-6px;margin-left:2px}
+.drop{position:absolute;left:30px;right:30px;background:var(--paper-hi);border:2px solid var(--ink-faint);border-top:none;border-radius:0 0 4px 4px;
+  box-shadow:0 22px 40px -16px rgba(26,25,23,.45);transform-origin:top center;overflow:hidden}
+.drop .it{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:28px;border-bottom:1px solid var(--edge);position:relative}
+.drop .it .k{font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--ink-faint);letter-spacing:.08em}
+.drop .hi{position:absolute;inset:0;background:rgba(235,166,63,.32)}
+.rx{position:absolute;left:0;right:0;height:92px;border-bottom:1px solid var(--rule-soft);padding:14px 30px 0}
+.rx .n{font-size:32px;font-weight:500;white-space:nowrap}
+.rx .s{font-family:'IBM Plex Mono',monospace;font-size:21px;color:var(--ink-soft);letter-spacing:.05em;margin-top:4px;text-transform:uppercase}
+.rx .flash{position:absolute;inset:0;background:var(--lamp)}
+
+/* bill */
+.bl{position:absolute;left:0;right:0;height:84px;border-bottom:1px solid var(--rule-soft)}
+.bl .l{position:absolute;left:30px;top:24px;font-size:32px}
+.bl .r{position:absolute;right:30px;top:22px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:34px}
+.tot{position:absolute;left:0;right:0;height:112px;border-top:3px double var(--rule)}
+.pay{position:absolute;display:flex;gap:16px}
+.pay .c{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:24px;letter-spacing:.08em;border:2px solid var(--ink);border-radius:4px;
+  height:62px;width:150px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.pay .c .f{position:absolute;inset:0;background:var(--ink)}
+.pay .c b{position:relative;font-weight:600}
+
+/* tap */
+.tap{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:4px solid var(--ink)}
+.tapdot{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(26,25,23,.28)}
+
+/* phone */
+.phone{position:absolute;left:250px;width:580px;background:var(--frame);border-radius:58px;padding:16px;
+  box-shadow:0 0 0 2px var(--steel-line),0 34px 60px -18px rgba(0,0,0,.75)}
+.screen{position:relative;width:100%;height:100%;background:var(--chart);border-radius:44px;overflow:hidden}
+.url{position:absolute;left:24px;right:24px;top:22px;height:50px;border-radius:25px;background:var(--band);font-family:'IBM Plex Mono',monospace;
+  font-size:20px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;letter-spacing:.04em}
+.lang{display:inline-block;font-size:21px;padding:5px 11px;border:2px solid var(--edge);border-radius:4px;color:var(--ink-soft);position:relative;line-height:1.3}
+.lang .lit{position:absolute;inset:-2px;background:var(--lamp);border-radius:4px}
+.lang b{position:relative;font-weight:500}
+.book{position:absolute;left:30px;right:30px;height:100px;border-radius:6px;background:var(--ink);color:var(--chart);overflow:hidden;
+  display:flex;align-items:center;justify-content:center}
+.book::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(243,237,225,.14)}
+.book span{position:absolute;white-space:nowrap;font-weight:600;line-height:1.25}
+
+/* end */
+#sheet{position:absolute;left:0;top:0;width:1080px;height:1920px;background:var(--chart)}
+#sheet .ruled{position:absolute;left:0;right:0;height:1px;background:var(--rule-soft);opacity:.55}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+'use strict';
+const W = 1080, H = 1920, FPS = 30, DUR = 30;
+const stage = document.getElementById('stage');
+
+/* ---------- small toolkit ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, x) => a + (b - a) * x;
+const eOut = x => 1 - Math.pow(1 - x, 4);
+const eExpo = x => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const eInOut = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const ePress = x => { const c1 = 2.1, c3 = c1 + 1; return x <= 0 ? 0 : 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+function el(tag, cls, parent, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  (parent || stage).appendChild(e);
+  return e;
+}
+const css = (e, o) => Object.assign(e.style, o);
+const tf = (e, x = 0, y = 0, s = 1, r = 0) => { e.style.transform = `translate(${x}px,${y}px) scale(${s}) rotate(${r}deg)`; };
+const op = (e, v) => { e.style.opacity = v; };
+const show = (e, on) => { e.style.visibility = on ? 'visible' : 'hidden'; };
+const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+function hash(a, b) {
+  let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35);
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12;
+  return h >>> 0;
+}
+
+/* sound events, read by the capture script and synthesised by sfx.py */
+const SFX = [];
+const sfx = (t, type, g = 1, extra = {}) => SFX.push({ t: +t.toFixed(3), type, g, ...extra });
+
+/* ---------- split-flap ---------- */
+const FLAP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function flapRow(parent, n, cw, ch, fs, seed) {
+  const row = el('div', 'flaprow', parent);
+  const cells = [];
+  for (let i = 0; i < n; i++) {
+    const c = el('div', 'cell', row);
+    css(c, { width: cw + 'px', height: ch + 'px', fontSize: fs + 'px' });
+    const s = el('span', '', c);
+    cells.push({ c, s });
+  }
+  return { row, cells, seed, width: n * cw + (n - 1) * 6 };
+}
+/* prev -> next, starting at `start`; each changed cell spins for `spin` s,
+   staggered by `stag`. Unchanged cells do not flip, as on a real board. */
+function flapPlan(fr, prev, next, start, stag, spin, gain = 1) {
+  const plan = [];
+  let k = 0;
+  for (let i = 0; i < fr.cells.length; i++) {
+    const a = prev[i] || ' ', b = next[i] || ' ';
+    if (a === b) { plan.push(null); continue; }
+    const s0 = start + k * stag, s1 = s0 + spin;
+    plan.push([s0, s1]);
+    sfx(s0, 'rattle', gain, { end: +s1.toFixed(3) });
+    k++;
+  }
+  return { prev, next, plan };
+}
+function flapRender(fr, steps, t) {
+  for (let i = 0; i < fr.cells.length; i++) {
+    let ch = steps[0].prev[i] || ' ';
+    let squash = 1;
+    for (const st of steps) {
+      const w = st.plan[i];
+      if (!w) { if (t >= (st.at ?? -1)) ch = st.next[i] || ' '; continue; }
+      if (t < w[0]) break;
+      if (t >= w[1]) { ch = st.next[i] || ' '; continue; }
+      const tick = Math.floor(t * 30);
+      ch = FLAP[hash(i + fr.seed * 97, tick) % FLAP.length];
+      squash = 0.78 + 0.22 * Math.abs(Math.cos((t * 30 % 1) * Math.PI));
+      break;
+    }
+    const cell = fr.cells[i];
+    if (cell.s.textContent !== ch) cell.s.textContent = ch === ' ' ? ' ' : ch;
+    cell.s.style.transform = `scaleY(${squash})`;
+  }
+}
+
+/* ---------- the steel ground ---------- */
+el('div', 'rail', stage).style.left = '44px';
+el('div', 'rail', stage).style.left = '1034px';
+for (const y of [150, 1780]) for (const x of [38, 1028]) css(el('div', 'rivet', stage), { left: x + 'px', top: y + 'px' });
+
+/* ---------- timeline ---------- */
+const S = {
+  queue: [3.2, 8.3],
+  visits: [8.3, 12.7],
+  rx: [12.7, 17.2],
+  bill: [17.2, 21.5],
+  web: [21.5, 25.75],
+  end: [25.6, 30.0],
+};
+
+/* ---------- scene chrome: headline, panel, caption ---------- */
+const scenes = [];
+function scene(key, lines, caption, panelTop, panelH, opts = {}) {
+  const root = el('div', 'a', stage);
+  css(root, { width: W + 'px', height: H + 'px' });
+  const hl = el('div', 'hl', root);
+  const spans = lines.map(l => { const ln = el('div', 'ln', hl); return el('span', '', ln, l); });
+  if (opts.hlSize) spans.forEach(s => css(s, { fontSize: opts.hlSize + 'px' }));
+  const rule = el('div', 'rule', hl);
+  rule.style.top = lines.length * 98 + 16 + 'px';
+  let panel;
+  if (opts.phone) {
+    panel = el('div', 'phone', root);
+    css(panel, { top: panelTop + 'px', height: panelH + 'px' });
+  } else {
+    panel = el('div', 'panel', root);
+    css(panel, { top: panelTop + 'px', height: panelH + 'px' });
+    for (const [x, y] of [[-8, -8], [870, -8], [-8, panelH - 2], [870, panelH - 2]]) css(el('div', 'pr', panel), { left: x + 2 + 'px', top: y + 'px' });
+  }
+  const cap = el('div', 'cap mono', root, caption);
+  cap.style.top = panelTop + panelH + 50 + 'px';
+  const sc = { key, win: S[key], root, hl, spans, rule, panel, cap };
+  scenes.push(sc);
+  sfx(S[key][0] + 0.04, 'slide', 0.8);
+  return sc;
+}
+function chrome(sc, t) {
+  const [a, b] = sc.win;
+  const on = t >= a - 0.02 && t <= b + 0.02;
+  sc.root.style.display = on ? '' : 'none';
+  if (!on) return false;
+  const ein = eExpo(p(t, a, a + 0.8)), fin = p(t, a, a + 0.2);
+  const ex = eInOut(p(t, b - 0.42, b));
+  tf(sc.panel, 0, lerp(190, 0, ein) - 80 * ex);
+  op(sc.panel, fin * (1 - ex));
+  sc.spans.forEach((s, i) => {
+    const u = eExpo(p(t, a + 0.06 + i * 0.1, a + 0.75 + i * 0.1));
+    tf(s, 0, (1 - u) * 104);
+  });
+  tf(sc.hl, 0, -36 * ex);
+  op(sc.hl, 1 - ex);
+  sc.rule.style.transform = `scaleX(${eExpo(p(t, a + 0.3, a + 1.0))})`;
+  const cu = eOut(p(t, a + 0.45, a + 0.95));
+  tf(sc.cap, 0, (1 - cu) * 14);
+  op(sc.cap, cu * (1 - ex));
+  return true;
+}
+function tap(parent, x, y, t0) {
+  const ring = el('div', 'tap', parent), dot = el('div', 'tapdot', parent);
+  css(ring, { left: x + 'px', top: y + 'px' }); css(dot, { left: x + 'px', top: y + 'px' });
+  sfx(t0, 'tap', 0.9);
+  return t => {
+    const u = p(t, t0 - 0.12, t0 + 0.38);
+    const vis = t > t0 - 0.12 && t < t0 + 0.38;
+    show(ring, vis); show(dot, vis);
+    if (!vis) return;
+    const g = eOut(p(t, t0, t0 + 0.38));
+    tf(ring, 0, 0, lerp(0.55, 1.5, g)); op(ring, t < t0 ? p(t, t0 - 0.12, t0) * 0.7 : 0.7 * (1 - g));
+    tf(dot, 0, 0, t < t0 ? lerp(1.4, 1, p(t, t0 - 0.12, t0)) : 1); op(dot, t < t0 ? p(t, t0 - 0.12, t0) : 1 - g);
+  };
+}
+function stampMark(parent, text, color, size, x, y, rot, t0, kind = 'stamp', liftAt = null) {
+  const s = el('div', 'stampmark', parent, text);
+  css(s, { color, border: `${Math.round(size / 15)}px solid ${color}`, fontSize: size + 'px', left: x + 'px', top: y + 'px' });
+  sfx(t0 + 0.12, kind, 1);
+  return t => {
+    const u = p(t, t0, t0 + 0.24);
+    show(s, t >= t0);
+    if (t < t0) return;
+    // a stamp that has done its job lifts off, so the status under it reads
+    const lift = liftAt == null ? 0 : eOut(p(t, liftAt, liftAt + 0.3));
+    tf(s, 0, -26 * lift, lerp(1.9, 1, ePress(u)) * (1 + 0.12 * lift), rot);
+    op(s, Math.min(1, u * 2.6) * 0.9 * (1 - lift));
+  };
+}
+
+/* ================= HOOK + BOARD/STRIP ================= */
+const board = el('div', '', stage); board.id = 'board';
+const hookMeta = el('div', 'a mono', board, 'MON&nbsp;&nbsp;·&nbsp;&nbsp;10:38 AM&nbsp;&nbsp;·&nbsp;&nbsp;OPD');
+css(hookMeta, { left: '0', width: W + 'px', top: '640px', textAlign: 'center', color: 'var(--board-soft)', fontSize: '28px', letterSpacing: '.14em' });
+const L1 = '38 WAITING.', L2 = "WHO'S NEXT?";
+const hook1 = flapRow(board, 11, 80, 136, 124, 3), hook2 = flapRow(board, 11, 80, 136, 124, 7);
+css(hook1.row, { left: (W - hook1.width) / 2 + 'px', top: '728px' });
+css(hook2.row, { left: (W - hook2.width) / 2 + 'px', top: '884px' });
+hook2.cells.forEach(c => (c.s.style.color = 'var(--lamp)'));
+const hookSteps1 = [flapPlan(hook1, '           ', L1, 0.3, 0.05, 0.42)];
+const hookSteps2 = [flapPlan(hook2, '           ', L2, 1.05, 0.05, 0.42)];
+const hookBar = el('div', 'a', board);
+css(hookBar, { left: '470px', top: '1072px', width: '140px', height: '5px', background: 'var(--brand)', transformOrigin: 'center' });
+
+/* strip contents: wordmark left, live lamp + clock right */
+const strip = el('div', 'a', board);
+const mark = el('img', 'a', strip); mark.src = '{{IMG:wordmark}}';
+css(mark, { left: '36px', top: '31px', height: '38px' });
+const lampDot = el('div', 'a', strip);
+css(lampDot, { left: '640px', top: '44px', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--lamp)' });
+const lampLab = el('div', 'a mono', strip, 'OPD 1');
+css(lampLab, { whiteSpace: 'nowrap', left: '662px', top: '36px', color: 'var(--board-soft)', fontSize: '22px', letterSpacing: '.12em' });
+const clock = flapRow(strip, 5, 44, 64, 50, 11);
+css(clock.row, { left: 1000 - 36 - clock.width + 'px', top: '18px' });
+const CLOCKS = [['queue', '10:40'], ['visits', '10:46'], ['rx', '10:52'], ['bill', '10:58'], ['web', '11:10']];
+const clockSteps = [];
+{
+  let prev = '10:38';
+  const first = { prev, next: prev, plan: [null, null, null, null, null] };
+  clockSteps.push(first);
+  for (const [k, v] of CLOCKS) {
+    const st = flapPlan(clock, prev, v, S[k][0] + 0.15, 0.06, 0.32, 0.55);
+    clockSteps.push(st);
+    prev = v;
+  }
+}
+const BOARD_FULL = { x: 0, y: 0, w: W, h: H, r: 0 };
+const BOARD_STRIP = { x: 40, y: 232, w: 1000, h: 100, r: 6 };
+sfx(2.78, 'whoosh', 0.8);
+
+function renderBoard(t) {
+  const m = eInOut(p(t, 2.75, 3.35));
+  const b = {};
+  for (const k of ['x', 'y', 'w', 'h', 'r']) b[k] = lerp(BOARD_FULL[k], BOARD_STRIP[k], m);
+  css(board, { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px', borderRadius: b.r + 'px',
+    boxShadow: m > 0 ? `0 0 0 2px rgba(49,60,69,${m}), 0 18px 30px -14px rgba(0,0,0,${0.6 * m})` : 'none' });
+  // hook content rides up and out as the board collapses
+  const hk = 1 - p(t, 2.7, 2.95);
+  show(hookMeta, hk > 0); show(hook1.row, hk > 0); show(hook2.row, hk > 0); show(hookBar, hk > 0);
+  if (hk > 0) {
+    op(hookMeta, p(t, 0.1, 0.45) * hk);
+    tf(hookMeta, 0, (1 - eOut(p(t, 0.1, 0.5))) * 16);
+    op(hook1.row, hk); op(hook2.row, hk);
+    tf(hook1.row, 0, -40 * (1 - hk)); tf(hook2.row, 0, -40 * (1 - hk));
+    flapRender(hook1, hookSteps1, t); flapRender(hook2, hookSteps2, t);
+    hookBar.style.transform = `scaleX(${eExpo(p(t, 1.75, 2.3))})`;
+    op(hookBar, hk);
+  }
+  // strip contents arrive once the board has landed
+  const sk = p(t, 3.2, 3.5);
+  show(strip, sk > 0);
+  op(strip, sk * (1 - p(t, 25.55, 25.75)));
+  if (sk > 0) {
+    flapRender(clock, clockSteps, t);
+    op(lampDot, 0.35 + 0.65 * (Math.floor(t * 1.6) % 2 === 0 ? 1 : 0));
+  }
+}
+
+/* ================= SCENE 1: QUEUE ================= */
+const q = scene('queue', ['The queue knows', '<em>who goes first.</em>'],
+  'Emergency&nbsp;›&nbsp;pregnant · senior&nbsp;›&nbsp;child&nbsp;›&nbsp;general', 640, 740);
+{
+  const P = q.panel;
+  const ph = el('div', 'ph', P, '<div class="t">Today’s queue</div><div class="m">Dr. Deshpande</div>');
+  q.count = ph.querySelector('.m');
+  const ch = el('div', 'colh', P, '<span style="left:30px">TOKEN</span><span style="left:132px">PATIENT</span><span style="left:470px">CATEGORY</span><span style="left:704px">STATUS</span>');
+  ch.style.top = '92px';
+  const rowsBox = el('div', 'a', P); css(rowsBox, { top: '144px', left: '0', width: '880px', height: '600px' });
+  const ROWS = [
+    { tok: '14', nm: 'Ramesh Kulkarni', cat: 'GENERAL', cc: 'var(--ink-faint)', st: 'IN CONSULT', sc: 'var(--confirmed)' },
+    { tok: '16', nm: 'Arjun Shinde', cat: 'CHILD · 6 Y', cc: 'var(--stamp)', st: 'WAITING', sc: 'var(--waiting)' },
+    { tok: '15', nm: 'Sunita Patil', cat: 'GENERAL', cc: 'var(--ink-faint)', st: 'WAITING', sc: 'var(--waiting)' },
+    { tok: '17', nm: 'Meera Joshi', cat: 'GENERAL', cc: 'var(--ink-faint)', st: 'WAITING', sc: 'var(--waiting)' },
+    { tok: '18', nm: 'Imran Shaikh', cat: 'GENERAL', cc: 'var(--ink-faint)', st: 'WAITING', sc: 'var(--waiting)' },
+    { tok: '19', nm: 'Priya Deshmukh', cat: 'PREGNANT', cc: 'var(--priority)', st: 'WAITING', sc: 'var(--waiting)' },
+  ];
+  const FROM = [0, 1, 2, 3, 4, 5], TO = [0, 2, 3, 4, 5, 1];
+  q.rows = ROWS.map((r, i) => {
+    const row = el('div', 'row', rowsBox);
+    const band = el('div', 'a', row); css(band, { inset: '0', width: '100%', height: '100%', background: 'var(--lamp)', opacity: 0 });
+    el('div', 'tok', row, r.tok);
+    el('div', 'nm', row, r.nm);
+    const chip = el('div', 'chip', row, r.cat); css(chip, { left: '470px', top: '28px', color: r.cc });
+    const st = el('div', 'st', row, `<span class="dot" style="background:${r.sc}"></span>${r.st}`);
+    css(st, { left: '704px', top: '35px', color: r.sc });
+    return { row, band, st };
+  });
+  const pr = q.rows[5];
+  pr.next = el('div', 'st', pr.row, '<span style="background:var(--lamp);color:var(--ink);padding:6px 12px 5px;border-radius:3px">NEXT&nbsp;▸</span>');
+  css(pr.next, { left: '704px', top: '28px' });
+  q.stamp = stampMark(pr.row, 'Priority', 'var(--priority)', 50, 622, 14, -7, 5.0, 'stamp', 6.5);
+  q.FROM = FROM; q.TO = TO;
+  sfx(4.25, 'paper', 0.9); sfx(5.72, 'lift', 0.9); sfx(6.62, 'tick', 0.9);
+}
+function renderQueue(t) {
+  if (!chrome(q, t)) return;
+  q.count.textContent = t < 4.3 ? '5 IN QUEUE' : '6 IN QUEUE';
+  const u = eInOut(p(t, 5.7, 6.55));
+  q.rows.forEach((r, i) => {
+    let y = lerp(q.FROM[i], q.TO[i], u) * 96;
+    if (i === 5) {
+      const e = eExpo(p(t, 4.2, 4.8));
+      show(r.row, t >= 4.2);
+      const lift = Math.sin(Math.PI * u);
+      tf(r.row, (1 - e) * 140, y, 1 + 0.025 * lift);
+      op(r.row, p(t, 4.2, 4.38));
+      r.row.style.zIndex = 5;
+      r.row.style.background = 'var(--chart)';
+      r.row.style.boxShadow = `0 ${10 * lift}px ${28 * lift}px -8px rgba(26,25,23,${0.45 * lift})`;
+      const settled = t >= 6.62;
+      op(r.st, settled ? 0 : 1); op(r.next, settled ? 1 : 0);
+      op(r.band, settled ? 0.16 + 0.34 * (1 - p(t, 6.62, 7.3)) : 0.1 * p(t, 4.2, 4.8));
+    } else {
+      tf(r.row, 0, y);
+    }
+  });
+  q.stamp(t);
+}
+
+/* ================= SCENE 2: VISITS SIDE BY SIDE ================= */
+const v = scene('visits', ['Every visit,', '<em>side by side.</em>'],
+  'Pregnancy · diabetes · BP — every follow-up in one view', 640, 640);
+{
+  const P = v.panel;
+  el('div', 'ph', P, '<div class="t">Priya Deshmukh · 29 F</div><div class="m">ANC</div>');
+  const LABELS = ['BP', 'WEIGHT', 'HB', 'MEDICINES', 'NOTE'];
+  const TOP = 92 + 112;
+  v.sweeps = [];
+  LABELS.forEach((l, i) => {
+    const r = el('div', 'vrow', P); r.style.top = TOP + i * 84 + 'px';
+    if (i === 0 || i === 2) { const s = el('div', 'sweep', P); s.style.top = TOP + i * 84 + 'px'; v.sweeps.push(s); }
+    const lab = el('div', 'vlab', P, l); lab.style.top = TOP + i * 84 + 30 + 'px';
+  });
+  const COLS = [
+    { d: '28 AUG', w: '22 WK', vals: ['110/70', '58.2 kg', '10.8', 'Iron + FA', 'Diet advice'] },
+    { d: '09 OCT', w: '28 WK', vals: ['114/72', '61.0 kg', '11.4', 'Iron + FA<br>Calcium', 'GTT normal'] },
+    { d: 'TODAY', w: '34 WK', vals: ['118/76', '63.4 kg', '<i style="color:var(--ink-faint)">ordered</i>', '↻ Repeat', 'Growth scan'], today: true },
+  ];
+  v.cols = COLS.map((c, i) => {
+    const x = 176 + i * 234;
+    if (i > 0) { const s = el('div', 'vsep', P); s.style.left = x - 4 + 'px'; }
+    const col = el('div', 'vcol', P); col.style.left = x + 'px';
+    const vh = el('div', 'vh', col, `<div class="d">${c.d}</div><div class="w">${c.w}</div>`);
+    if (c.today) { vh.style.background = 'rgba(235,166,63,.22)'; }
+    const cells = c.vals.map((val, j) => {
+      const cell = el('div', 'vc' + (j >= 3 ? ' sm' : ''), col, val);
+      cell.style.top = 112 + j * 84 + (j >= 3 ? (val.includes('<br>') ? 10 : 26) : 24) + 'px';
+      return cell;
+    });
+    return { col, cells, today: !!c.today };
+  });
+  v.todayAt = [9.7, 9.95, 10.2, 10.45, 10.7];
+  v.todayAt.forEach(t0 => sfx(t0, 'tick', 0.55));
+  sfx(10.95, 'sweep', 0.5); sfx(11.35, 'sweep', 0.5);
+}
+function renderVisits(t) {
+  if (!chrome(v, t)) return;
+  const a = v.win[0];
+  v.cols.forEach((c, i) => {
+    const e = eExpo(p(t, a + 0.35 + i * 0.22, a + 0.95 + i * 0.22));
+    tf(c.col, (1 - e) * 90, 0); op(c.col, p(t, a + 0.35 + i * 0.22, a + 0.6 + i * 0.22));
+    if (c.today) c.cells.forEach((cell, j) => {
+      const u = eOut(p(t, v.todayAt[j], v.todayAt[j] + 0.3));
+      op(cell, u); tf(cell, 0, (1 - u) * 14);
+    });
+  });
+  v.sweeps.forEach((s, i) => {
+    const t0 = 10.95 + i * 0.4;
+    const u = eInOut(p(t, t0, t0 + 0.6));
+    s.style.transform = `scaleX(${u})`;
+    op(s, u > 0 ? 1 : 0);
+  });
+}
+
+/* ================= SCENE 3: PRESCRIPTION ================= */
+const r = scene('rx', ['Same medicines?', '<em>One tap.</em>'],
+  '2,46,068 Indian medicines · type a few letters', 640, 640);
+{
+  const P = r.panel;
+  el('div', 'ph', P, '<div class="t">Rx · Priya Deshmukh</div><div class="m">34 wk</div>');
+  r.btn = el('div', 'btn', P, '<span style="font-size:30px;line-height:1">↻</span>REPEAT LAST PRESCRIPTION');
+  css(r.btn, { left: '30px', top: '118px' });
+  r.field = el('div', 'field', P,
+    '<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="#6b6459" stroke-width="3"><circle cx="12.5" cy="12.5" r="8.5"/><path d="M19 19l7 7" stroke-linecap="round"/></svg><span class="ph2" style="color:var(--ink-faint)">Search medicine</span><span class="typed"></span><span class="caret"></span>');
+  r.field.style.top = '208px';
+  r.ph2 = r.field.querySelector('.ph2'); r.typed = r.field.querySelector('.typed'); r.caret = r.field.querySelector('.caret');
+  const LIST_TOP = 300;
+  const RX = [
+    { n: 'Iron + Folic Acid Tablet', s: '0-0-1 · 30 days · after dinner', t0: 13.55 },
+    { n: 'Calcium 500 mg Tablet', s: '1-1-0 · 30 days · after food', t0: 13.68 },
+    { n: 'Paracetamol 500 mg Tablet', s: 'SOS · 3 days · if fever', t0: 15.85, flash: true },
+  ];
+  r.rx = RX.map((x, i) => {
+    const row = el('div', 'rx', P, `<div class="n">${x.n}</div><div class="s">${x.s}</div>`);
+    row.style.top = LIST_TOP + i * 92 + 'px';
+    const fl = x.flash ? el('div', 'flash', row) : null;
+    if (fl) row.insertBefore(fl, row.firstChild);
+    sfx(x.t0, 'paper', 0.6);
+    return { row, t0: x.t0, fl };
+  });
+  r.drop = el('div', 'drop', P);
+  r.drop.style.top = '276px';
+  const ITEMS = [['Paracetamol 500 mg Tablet', 'TAB'], ['Paracetamol 650 mg Tablet', 'TAB'], ['Paracetamol 125 mg/5 ml Syrup', 'SYP'], ['Paracetamol 250 mg/5 ml Susp.', 'SUSP']];
+  r.items = ITEMS.map(([n, k]) => {
+    const it = el('div', 'it', r.drop);
+    const hi = el('div', 'hi', it);
+    el('span', '', it, n).style.position = 'relative';
+    el('span', 'k', it, k).style.position = 'relative';
+    return { it, hi };
+  });
+  r.tapBtn = tap(P, 250, 150, 13.3);
+  r.keys = [14.3, 14.46, 14.62, 14.78];
+  r.keys.forEach(k => sfx(k, 'key', 0.7));
+  sfx(14.95, 'pop', 0.5); sfx(15.6, 'tick', 0.8);
+}
+function renderRx(t) {
+  if (!chrome(r, t)) return;
+  // button press
+  const press = t >= 13.3 && t < 13.5;
+  tf(r.btn, 0, 0, press ? 0.97 : 1);
+  r.btn.style.background = press ? 'var(--band)' : 'var(--paper-hi)';
+  r.tapBtn(t);
+  // list
+  r.rx.forEach(x => {
+    const u = eOut(p(t, x.t0, x.t0 + 0.35));
+    show(x.row, t >= x.t0);
+    op(x.row, u); tf(x.row, 0, (1 - u) * -22);
+    if (x.fl) op(x.fl, 0.55 * (1 - p(t, x.t0 + 0.1, x.t0 + 1.1)));
+  });
+  // typing
+  const n = r.keys.filter(k => t >= k).length;
+  const cleared = t >= 15.62;
+  r.typed.textContent = cleared ? '' : 'para'.slice(0, n);
+  r.ph2.style.display = (n === 0 || cleared) ? '' : 'none';
+  const typing = n > 0 && !cleared;
+  r.field.style.borderColor = typing ? 'var(--ink)' : 'var(--ink-faint)';
+  op(r.caret, (t > 14.1 && t < 15.62) ? (Math.floor(t * 2.4) % 2 === 0 || (t > 14.25 && t < 14.95) ? 1 : 0) : 0);
+  // dropdown
+  const open = eExpo(p(t, 14.95, 15.3)), close = eInOut(p(t, 15.58, 15.74));
+  const dv = open * (1 - close);
+  show(r.drop, dv > 0.001);
+  r.drop.style.transform = `scaleY(${dv})`;
+  op(r.drop, Math.min(1, dv * 1.5));
+  r.items.forEach((it, i) => op(it.hi, i === 0 && t >= 15.25 ? 1 : 0));
+}
+
+/* ================= SCENE 4: BILL ================= */
+const bl = scene('bill', ['No cashier?', '<em>Bill at the desk.</em>'],
+  'Cash · UPI · card · part payments · day closing', 640, 650);
+{
+  const P = bl.panel;
+  el('div', 'ph', P, '<div class="t">Bill · Priya Deshmukh</div><div class="m">Visit · 20 Nov</div>');
+  const LINES = [['Consultation', 500, 17.75], ['Haemoglobin (Hb) test', 150, 18.1], ['Medicines · 3 items', 386, 18.45]];
+  bl.lines = LINES.map(([l, amt, t0], i) => {
+    const row = el('div', 'bl', P, `<div class="l">${l}</div><div class="r">${inr(amt)}</div>`);
+    row.style.top = 92 + i * 84 + 'px';
+    sfx(t0, 'paper', 0.6);
+    return { row, amt, t0 };
+  });
+  const tot = el('div', 'tot', P); tot.style.top = 92 + 3 * 84 + 10 + 'px';
+  el('div', 'a cond', tot, 'TOTAL').style.cssText += 'left:30px;top:30px;font-weight:600;font-size:46px;letter-spacing:.04em';
+  bl.total = el('div', 'a mono', tot); css(bl.total, { right: '30px', left: 'auto', top: '26px', fontWeight: 600, fontSize: '50px' });
+  const pay = el('div', 'pay', P); css(pay, { left: '30px', top: 92 + 3 * 84 + 10 + 112 + 24 + 'px' });
+  bl.chips = ['CASH', 'UPI', 'CARD'].map(k => { const c = el('div', 'c', pay); const f = el('div', 'f', c); const b = el('b', '', c, k); return { c, f, b }; });
+  bl.tapUpi = tap(P, 30 + 150 + 16 + 75, 92 + 3 * 84 + 10 + 112 + 24 + 31, 19.1);
+  bl.paid = stampMark(P, 'Paid', 'var(--confirmed)', 104, 560, 92 + 3 * 84 + 10 + 104, -9, 19.45);
+  bl.rcpt = el('div', 'a mono', P, 'RECEIVED ₹1,036 · UPI · 10:59');
+  css(bl.rcpt, { left: '30px', top: 92 + 3 * 84 + 10 + 112 + 24 + 62 + 30 + 'px', fontSize: '20px', color: 'var(--ink-faint)', letterSpacing: '.08em' });
+  sfx(19.95, 'tick', 0.5);
+}
+function renderBill(t) {
+  if (!chrome(bl, t)) return;
+  let sum = 0;
+  bl.lines.forEach(x => {
+    const u = eOut(p(t, x.t0, x.t0 + 0.35));
+    op(x.row, u); tf(x.row, 0, (1 - u) * -18);
+    sum += x.amt * eOut(p(t, x.t0, x.t0 + 0.4));
+  });
+  bl.total.textContent = inr(sum);
+  bl.chips.forEach((c, i) => {
+    const on = i === 1 && t >= 19.12;
+    op(c.f, on ? 1 : 0);
+    c.b.style.color = on ? 'var(--chart)' : 'var(--ink)';
+  });
+  bl.tapUpi(t);
+  bl.paid(t);
+  const u = eOut(p(t, 19.95, 20.3)); op(bl.rcpt, u); tf(bl.rcpt, 0, (1 - u) * 10);
+}
+
+/* ================= SCENE 5: CLINIC WEBSITE, 12 LANGUAGES ================= */
+const w = scene('web', ['Your own website.', '<em>12 Indian languages.</em>'],
+  'Booking · live queue · your own domain', 620, 830, { phone: true, hlSize: 92 });
+{
+  const scr = el('div', 'screen', w.panel);
+  el('div', 'url', scr, 'shreeclinic.in');
+  const name = el('div', 'a cond', scr, 'SHREE CLINIC');
+  css(name, { left: '30px', top: '104px', fontWeight: 600, fontSize: '72px', letterSpacing: '.01em', lineHeight: '1' });
+  const doc = el('div', 'a', scr, 'Dr. N. Deshpande · MBBS, DGO');
+  css(doc, { left: '30px', top: '184px', fontSize: '25px', color: 'var(--ink-soft)' });
+  const open = el('div', 'a mono', scr, '<span class="dot" style="background:var(--confirmed)"></span>OPEN NOW · TILL 9 PM');
+  css(open, { left: '30px', top: '232px', fontSize: '20px', fontWeight: 600, color: 'var(--confirmed)', letterSpacing: '.06em' });
+  const hr = el('div', 'a', scr); css(hr, { left: '30px', right: '30px', top: '282px', height: '2px', background: 'var(--rule)' });
+  w.book = el('div', 'book', scr); w.book.style.top = '312px';
+  const LANGS = [
+    ['EN', 'Book an Appointment'], ['हिन्दी', 'अपॉइंटमेंट बुक करें'], ['मराठी', 'अपॉइंटमेंट बुक करा'], ['ગુજરાતી', 'એપોઇન્ટમેન્ટ બુક કરો'],
+    ['বাংলা', 'অ্যাপয়েন্টমেন্ট বুক করুন'], ['தமிழ்', 'சந்திப்பு பதிவு செய்யவும்'], ['ಕನ್ನಡ', 'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಿ'], ['తెలుగు', 'అపాయింట్‌మెంట్ బుక్ చేయండి'],
+    ['മലയാളം', ''], ['ਪੰਜਾਬੀ', ''], ['ଓଡ଼ିଆ', ''], ['اردو', ''], ['অসমীয়া', ''],
+  ];
+  w.btxt = LANGS.filter(l => l[1]).map(([, txt]) => { const s = el('span', '', w.book, txt); return s; });
+  const chips = el('div', 'a', scr); css(chips, { left: '30px', right: '30px', top: '440px', display: 'flex', flexWrap: 'wrap', gap: '10px' });
+  w.chips = LANGS.map(([lab]) => { const c = el('div', 'lang', chips); const lit = el('div', 'lit', c); el('b', '', c, lab); return { c, lit }; });
+  const live = el('div', 'a', scr); css(live, { left: '30px', right: '30px', top: '660px', height: '120px', border: '2px solid var(--edge)', borderRadius: '6px', background: 'var(--paper-hi)' });
+  w.liveDot = el('div', 'a', live); css(w.liveDot, { left: '22px', top: '24px', width: '14px', height: '14px', borderRadius: '50%', background: 'var(--confirmed)' });
+  el('div', 'a mono', live, 'LIVE QUEUE').style.cssText += 'left:46px;top:18px;font-size:20px;font-weight:600;letter-spacing:.1em;color:var(--confirmed)';
+  el('div', 'a', live, 'Now serving').style.cssText += 'left:22px;top:60px;font-size:28px;color:var(--ink-soft)';
+  el('div', 'a mono', live, '19').style.cssText += 'right:22px;left:auto;top:40px;font-size:60px;font-weight:600;line-height:1';
+  w.START = 22.05; w.STEP = 0.42;
+  w.btxt.forEach((_, k) => { if (k > 0) sfx(w.START + k * w.STEP, 'flip', 0.55); });
+}
+function fitBook() {
+  // measured once, after fonts load: every language must fit the button
+  w.btxt.forEach(s => {
+    s.style.fontSize = '36px';
+    const wd = s.getBoundingClientRect().width;
+    if (wd > 450) s.style.fontSize = (36 * 450 / wd).toFixed(1) + 'px';
+  });
+}
+function renderWeb(t) {
+  if (!chrome(w, t)) return;
+  const k = clamp(Math.floor((t - w.START) / w.STEP), 0, w.btxt.length - 1);
+  const into = t - (w.START + k * w.STEP);
+  const flipping = k > 0 && into >= 0 && into < 0.14;
+  w.btxt.forEach((s, i) => {
+    let showIt = i === k, sy = 1;
+    if (flipping) {
+      const u = into / 0.14;
+      if (u < 0.5) { showIt = i === k - 1; sy = 1 - u * 2; } else { showIt = i === k; sy = (u - 0.5) * 2; }
+    }
+    show(s, showIt);
+    if (showIt) s.style.transform = `scaleY(${Math.max(0.02, sy)})`;
+  });
+  w.chips.forEach((c, i) => op(c.lit, i === k ? 1 : 0));
+  op(w.liveDot, 0.35 + 0.65 * (Math.floor(t * 1.6) % 2 === 0 ? 1 : 0));
+}
+
+/* ================= END CARD ================= */
+const sheet = el('div', '', stage); sheet.id = 'sheet';
+for (let y = 160; y < H; y += 96) el('div', 'ruled', sheet).style.top = y + 'px';
+const endMark = el('img', 'a', sheet); endMark.src = '{{IMG:wordmark}}';
+css(endMark, { left: (W - 860) / 2 + 'px', top: '720px', width: '860px' });
+const endTag = el('img', 'a', sheet); endTag.src = '{{IMG:tagline}}';
+css(endTag, { left: (W - 600) / 2 + 'px', top: '880px', width: '600px' });
+const endRule = el('div', 'a', sheet); css(endRule, { left: '390px', top: '1000px', width: '300px', height: '4px', background: 'var(--rule)', transformOrigin: 'center' });
+const endLine = el('div', 'a', sheet, 'Clinic software for India’s clinics<br>and small hospitals.');
+css(endLine, { left: '0', width: W + 'px', top: '1040px', textAlign: 'center', fontSize: '40px', lineHeight: '1.3', color: 'var(--ink-soft)', fontWeight: 450 });
+const endUrl = el('div', 'a mono', sheet, 'www.nayaversse.in');
+css(endUrl, { left: (W - 560) / 2 + 'px', width: '560px', top: '1188px', height: '84px', border: '2px solid var(--ink)', borderRadius: '4px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', fontWeight: 600, letterSpacing: '.02em', background: 'var(--paper-hi)' });
+const endDemo = stampMark(sheet, 'Book a demo', 'var(--stamp)', 56, 0, 1312, -4, 28.05);
+sfx(25.62, 'whoosh', 1); sfx(26.42, 'thud', 1);
+
+function renderEnd(t) {
+  const u = eInOut(p(t, 25.6, 26.2));
+  sheet.style.display = u > 0 ? '' : 'none';
+  if (u <= 0) return;
+  tf(sheet, 0, (1 - u) * H);
+  const m = p(t, 26.3, 26.56);
+  op(endMark, Math.min(1, m * 2.5)); tf(endMark, 0, 0, lerp(1.16, 1, ePress(m)));
+  const tg = eOut(p(t, 26.75, 27.3));
+  endTag.style.clipPath = `inset(0 ${(1 - tg) * 100}% 0 0)`;
+  endRule.style.transform = `scaleX(${eExpo(p(t, 27.05, 27.6))})`;
+  const l = eOut(p(t, 27.25, 27.7)); op(endLine, l); tf(endLine, 0, (1 - l) * 16);
+  const uu = eOut(p(t, 27.6, 28.0)); op(endUrl, uu); tf(endUrl, 0, (1 - uu) * 16);
+  endDemo(t);
+}
+// centre the demo stamp once its width is known
+function placeDemo() {
+  const d = sheet.querySelector('.stampmark');
+  d.style.left = (W - d.getBoundingClientRect().width) / 2 + 'px';
+}
+
+/* ================= frame ================= */
+function render(t) {
+  renderBoard(t);
+  renderQueue(t);
+  renderVisits(t);
+  renderRx(t);
+  renderBill(t);
+  renderWeb(t);
+  renderEnd(t);
+}
+window.REEL = {
+  W, H, FPS, DUR,
+  render,
+  async ready() {
+    const faces = ['600 100px "Barlow Condensed"', '700 100px "Barlow Condensed"', '500 30px "IBM Plex Sans Variable"', '400 30px "IBM Plex Sans Variable"',
+      '600 30px "IBM Plex Sans Variable"', '400 20px "IBM Plex Mono"', '600 20px "IBM Plex Mono"', '500 30px "IBM Plex Sans Devanagari"', '600 30px "IBM Plex Sans Devanagari"'];
+    await Promise.all(faces.map(f => document.fonts.load(f, 'Aa₹0 अपॉइंटमेंट')));
+    await document.fonts.ready;
+    await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+    fitBook(); placeDemo();
+    render(0);
+    return { sfx: SFX.slice().sort((a, b) => a.t - b.t), fonts: [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family + ' ' + f.weight) };
+  },
+};
+</script>
+</body>
+</html>
