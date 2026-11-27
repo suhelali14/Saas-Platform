@@ -2,9 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/:path((?!assets/).*)",
       "has": [{ "type": "host", "value": "console.nayaverse.in" }],
-      "destination": "https://console.nayaversse.in/:path*",
+      "destination": "https://console.nayaversse.in/:path",
       "permanent": false
     }
   ],
