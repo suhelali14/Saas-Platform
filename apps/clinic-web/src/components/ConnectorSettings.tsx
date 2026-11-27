@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Copy, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Copy, ExternalLink, MessageCircle, ShieldCheck, Star } from 'lucide-react';
 import { apiFetch, ApiError, getApiBaseUrl } from '../lib/api';
 import { useToast } from './Toast';
 import { Button } from './Button';
@@ -29,6 +29,50 @@ function connectorAddress(): string {
   } catch {
     return window.location.origin;
   }
+}
+
+/**
+ * Nayaverse Growth in one click (Growth's D53): the clinic's account is made
+ * from these details, with Reviews QR free for a year; the next click signs
+ * the same clinic straight in. Shown only when this clinic is connected.
+ */
+function GrowthCard() {
+  const toast = useToast();
+  const [available, setAvailable] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    apiFetch<{ available: boolean }>('/growth').then((r) => setAvailable(r.available), () => undefined);
+  }, []);
+  if (!available) return null;
+  const open = async () => {
+    setBusy(true);
+    // Opened at the click, so no pop-up blocker stops it; filled once the link arrives.
+    const tab = window.open('about:blank', '_blank');
+    try {
+      const r = await apiFetch<{ url: string }>('/growth/open', { method: 'POST' });
+      if (tab) tab.location.href = r.url;
+      else window.location.assign(r.url);
+    } catch (e) {
+      tab?.close();
+      toast.error(e instanceof ApiError ? e.message : 'Could not open Nayaverse Growth.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-4">
+      <h2 className="flex items-center gap-2 text-sm font-semibold">
+        <Star size={15} className="text-primary" /> Nayaverse Growth: more Google reviews, free for a year
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        A counter card patients scan to post their own Google review, your Google rating, and what patients tell only you. Your Growth account is made from the clinic's name
+        and your email; WhatsApp automation, ads and videos are there to add when you want them.
+      </p>
+      <Button variant="primary" size="sm" className="mt-3" onClick={open} disabled={busy}>
+        <ExternalLink size={13} /> Open Nayaverse Growth
+      </Button>
+    </div>
+  );
 }
 
 export function ConnectorSettings() {
@@ -78,6 +122,7 @@ export function ConnectorSettings() {
 
   return (
     <div className="flex flex-col gap-6">
+      <GrowthCard />
       <div className="rounded-xl border border-border/10 bg-foreground/[0.02] p-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <MessageCircle size={15} className="text-muted-foreground" /> Nayaverse Growth: your WhatsApp assistant

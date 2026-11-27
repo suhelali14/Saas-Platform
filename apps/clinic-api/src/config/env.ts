@@ -157,6 +157,16 @@ const envSchema = z.object({
   // minutes. A recording left running over lunch should stop on its own.
   SCRIBE_MAX_MINUTES: z.coerce.number().int().min(1).max(120).default(30),
 
+  // Nayaverse Growth (Growth's D53): its address, and the key Growth gave
+  // this clinic, for the "Open Nayaverse Growth" button in Settings. Both
+  // empty hides the button.
+  GROWTH_URL: z
+    .string()
+    .url()
+    .refine((u) => /^https:\/\/([a-z0-9-]+\.)*nayaverse\.in(\/|$)/.test(u) || /^http:\/\/localhost(:\d+)?(\/|$)/.test(u), "GROWTH_URL must be https on nayaverse.in")
+    .optional(),
+  GROWTH_PARTNER_KEY: z.string().min(32, "GROWTH_PARTNER_KEY must be at least 32 characters").optional(),
+
   // Comma-separated origins allowed to call this API in production.
   // Ignored in development, where any origin is accepted so a Vite dev
   // server on any port works.

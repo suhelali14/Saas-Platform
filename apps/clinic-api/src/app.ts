@@ -30,6 +30,7 @@ import { clinicExportRoutes } from "./routes/clinic-export.js";
 import { clinicSiteRoutes } from "./routes/clinic-site.js";
 import { clinicBookingRoutes } from "./routes/clinic-booking.js";
 import { clinicConnectorRoutes } from "./routes/clinic-connector.js";
+import { clinicGrowthRoutes } from "./routes/clinic-growth.js";
 import { clinicTranslationRoutes } from "./routes/clinic-translations.js";
 import { clinicDocTemplateRoutes } from "./routes/clinic-doc-template.js";
 import { isFeatureEnabled } from "./config/features.js";
@@ -247,6 +248,7 @@ export function buildApp() {
   app.register(clinicSiteRoutes);
   app.register(clinicBookingRoutes);
   app.register(clinicConnectorRoutes);
+  app.register(clinicGrowthRoutes);
   app.register(clinicDocTemplateRoutes);
 
   // Plan-gated modules. A module that is off is never registered, so its
