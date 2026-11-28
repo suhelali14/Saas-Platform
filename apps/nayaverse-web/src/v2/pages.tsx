@@ -13,6 +13,7 @@ import { DayCharts } from '@/sections/DayCharts';
 import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Fold, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
 import { shotSize, type ShotName } from './shots';
 import { Arm, Deck, Marquee, Parallax, SideIn, Stage3D, Tilt, Words, scr } from './motion';
+import { Everything, QrCard } from './card';
 
 function Sec({ tone = 'white', id, children }: { tone?: 'white' | 'alt' | 'dark'; id?: string; children: ReactNode }) {
   return (
@@ -333,6 +334,9 @@ export function HomePage() {
           </Rise>
         </div>
       </Sec>
+
+      <Everything />
+      <QrCard />
 
       <Sec>
         <Head h={s.different.heading} lede={s.different.lede} />
@@ -674,6 +678,9 @@ export function GrowthPage() {
           </Stage3D>
         </div>
       </section>
+
+      <QrCard />
+      <Everything only="growth" />
 
       <Sec tone="alt">
         <Head h={g.firmHeading} lede={g.firmLede} />

@@ -76,6 +76,32 @@ export interface SiteCopy {
     pilotHeading: string;
     pilotLede: string;
   };
+  /** Growth's two QR cards, as a PVC card that turns in 3D. */
+  card: {
+    heading: string;
+    lede: string;
+    hint: string;
+    flip: string;
+    /** shown on a computer only: scan the screen with a phone */
+    scan: string;
+    frontTitle: string;
+    frontText: string;
+    backTitle: string;
+    backText: string;
+    faceFrontLine: string;
+    faceFrontCall: string;
+    faceBackTable: string;
+    faceBackCall: string;
+    faceBackLine: string;
+    alt: string;
+  };
+  /** Everything for sale or built today, each with its true status. */
+  everything: {
+    heading: string;
+    lede: string;
+    clinic: { t: string; d: string; trial?: boolean }[];
+    growth: { t: string; d: string }[];
+  };
   pricing: {
     title: string;
     lede: string;
@@ -247,12 +273,51 @@ const en: SiteCopy = {
     seePricing: 'See pricing',
     standingHeading: 'Where it stands, plainly.',
     standing: [
-      { t: 'Built and working on our machines', d: 'The video studio, ads from your own account, offers and automatic messages, automatic replies, the held-back comparison, the weekly report, export and erase.' },
+      { t: 'Built and working on our machines', d: 'The video studio, product photos and posts, ads from your own account, offers and automatic messages, automatic replies, the reviews card with complaints sent to the owner, the QR menu and table orders, several shops, the held-back comparison, the weekly report, export and erase.' },
       { t: 'Not yet run with live accounts', d: 'Ads against a real Meta ad account, sending through the WhatsApp Business service, Instagram and Messenger replies, and taking payments. Each has only run in test mode.' },
       { t: 'No business has used it', d: 'So there is no result to quote and no owner to call. The first businesses are pilots, and we sit with each one through its first month.' },
     ],
     pilotHeading: 'Be one of the first to run it.',
     pilotLede: 'A pilot, on terms we agree together. Run it yourself or have us run it. Either way we sit with you through the first month and read the result with you.',
+  },
+  card: {
+    heading: 'One card on the counter. One on every table.',
+    lede: 'Growth draws both cards with your name and your QR codes. Print them on card or PVC; they wipe clean.',
+    hint: 'Drag to turn it. Tap to flip.',
+    flip: 'Turn it over',
+    scan: 'Point your phone’s camera at the card: both codes work.',
+    frontTitle: 'At the counter: reviews on Google',
+    frontText: 'Customers scan and write a review on Google in a few seconds. When a review is a complaint, it comes to you on WhatsApp with a reply drafted, so you can put it right yourself.',
+    backTitle: 'At the table: the menu and the order',
+    backText: 'The same kind of code on each table opens your menu. Guests order from their phone, the kitchen sees it at once, and the bill is paid by UPI straight to you.',
+    faceFrontLine: 'Enjoyed your visit?',
+    faceFrontCall: 'Scan to review us on Google',
+    faceBackTable: 'Table 7',
+    faceBackCall: 'Scan for the menu',
+    faceBackLine: 'Order from your table · Pay by UPI',
+    alt: 'A white PVC card. The front has a QR code to review the restaurant on Google; the back has a QR code for table 7’s menu.',
+  },
+  everything: {
+    heading: 'What you can use today.',
+    lede: 'Every part of both products, and where each one stands.',
+    clinic: [
+      { t: 'A queue that sorts itself', d: 'Emergencies, pregnant patients, seniors and children go ahead by a declared rule.' },
+      { t: 'One sheet for the whole visit', d: 'Complaint, findings, diagnosis, medicines and tests, by hand or by voice, from a 2,46,000-medicine database.' },
+      { t: 'Billing, pharmacy and lab', d: 'Cash, UPI and card, stock, lab orders and the day’s close.' },
+      { t: 'The clinic’s own website', d: 'In up to twelve Indian languages, with the live queue on it.' },
+      { t: 'An assistant that listens', d: 'Drafts the note from the visit; the doctor checks and confirms.', trial: true },
+      { t: 'Your records stay yours', d: 'They export in full, from the first day.' },
+    ],
+    growth: [
+      { t: 'Reviews QR', d: 'A counter card that takes customers to your Google review page. A complaint comes to you with a reply drafted.' },
+      { t: 'WhatsApp offers and win-back', d: 'Offers to customers who agreed to hear from you, the ones who stopped coming brought back, a thank-you after a visit.' },
+      { t: 'Replies at any hour', d: 'Questions on WhatsApp, Instagram and Messenger answered in words you approved.' },
+      { t: 'Ads from your own account', d: 'Facebook and Instagram ads that open a WhatsApp chat, capped at the sum you approved.' },
+      { t: 'Videos, photos and posts', d: 'Video ads and product photos from a phone photo, and a month of posts.' },
+      { t: 'Find customers online', d: 'People asking for what you sell, with a reply ready.' },
+      { t: 'QR menu and table orders', d: 'For restaurants and hotels: order from the table, a kitchen screen, the bill paid by UPI, in English, Hindi and Marathi.' },
+      { t: 'Several shops', d: 'Each branch with its own Google listing, review page and counter card.' },
+    ],
   },
   pricing: {
     title: 'What it costs.',
@@ -430,12 +495,51 @@ const hi: SiteCopy = {
     seePricing: 'कीमत देखें',
     standingHeading: 'यह कहाँ तक पहुँचा है, साफ़-साफ़।',
     standing: [
-      { t: 'बना हुआ, हमारी मशीनों पर चलता हुआ', d: 'वीडियो स्टूडियो, आपके अकाउंट से विज्ञापन, ऑफ़र और अपने आप जाने वाले मैसेज, अपने आप जवाब, छोड़े गए लोगों से तुलना, हफ़्ते की रिपोर्ट, डाउनलोड और मिटाना।' },
+      { t: 'बना हुआ, हमारी मशीनों पर चलता हुआ', d: 'वीडियो स्टूडियो, प्रोडक्ट फ़ोटो और पोस्ट, आपके अकाउंट से विज्ञापन, ऑफ़र और अपने आप जाने वाले मैसेज, अपने आप जवाब, मालिक तक शिकायत पहुँचाने वाला रिव्यू कार्ड, QR मेनू और टेबल ऑर्डर, कई दुकानें, छोड़े गए लोगों से तुलना, हफ़्ते की रिपोर्ट, डाउनलोड और मिटाना।' },
       { t: 'असली अकाउंट पर अभी नहीं चला', d: 'असली Meta विज्ञापन अकाउंट पर विज्ञापन, WhatsApp Business सेवा से भेजना, Instagram और Messenger पर जवाब, और भुगतान लेना। हर एक सिर्फ़ टेस्ट मोड में चला है।' },
       { t: 'किसी व्यवसाय ने इस्तेमाल नहीं किया', d: 'इसलिए न बताने को कोई नतीजा है, न किसी मालिक से बात कराने को। पहले व्यवसाय पायलट हैं, और हम हर एक के साथ उसका पहला महीना बैठते हैं।' },
     ],
     pilotHeading: 'इसे चलाने वाले पहले लोगों में से बनें।',
     pilotLede: 'एक पायलट, उन शर्तों पर जो हम साथ तय करें। ख़ुद चलाएँ या हमसे चलवाएँ। दोनों तरह हम पहले महीने आपके साथ बैठते हैं और नतीजा आपके साथ पढ़ते हैं।',
+  },
+  card: {
+    heading: 'काउंटर पर एक कार्ड। हर टेबल पर एक।',
+    lede: 'Growth दोनों कार्ड आपके नाम और आपके QR कोड के साथ बनाता है। इन्हें कार्ड या PVC पर छपवाएँ, ये पोंछकर साफ़ हो जाते हैं।',
+    hint: 'घुमाने के लिए खींचें। पलटने के लिए टैप करें।',
+    flip: 'कार्ड पलटें',
+    scan: 'अपने फ़ोन का कैमरा कार्ड की ओर करें: दोनों कोड काम करते हैं।',
+    frontTitle: 'काउंटर पर: Google पर रिव्यू',
+    frontText: 'ग्राहक स्कैन करके कुछ सेकंड में Google पर रिव्यू लिखते हैं। अगर कोई रिव्यू शिकायत हो, तो वह जवाब के मसौदे के साथ WhatsApp पर आपके पास आता है, ताकि आप खुद बात सुधार सकें।',
+    backTitle: 'टेबल पर: मेनू और ऑर्डर',
+    backText: 'हर टेबल पर ऐसा ही कोड आपका मेनू खोलता है। मेहमान फ़ोन से ऑर्डर करते हैं, किचन को तुरंत दिखता है, और बिल UPI से सीधे आपको मिलता है।',
+    faceFrontLine: 'आपकी विज़िट कैसी रही?',
+    faceFrontCall: 'Google पर रिव्यू के लिए स्कैन करें',
+    faceBackTable: 'टेबल 7',
+    faceBackCall: 'मेनू के लिए स्कैन करें',
+    faceBackLine: 'टेबल से ऑर्डर · UPI से भुगतान',
+    alt: 'एक सफ़ेद PVC कार्ड। आगे रेस्टोरेंट का Google पर रिव्यू देने का QR कोड, पीछे टेबल 7 के मेनू का QR कोड।',
+  },
+  everything: {
+    heading: 'आज आप क्या इस्तेमाल कर सकते हैं।',
+    lede: 'दोनों प्रोडक्ट का हर हिस्सा, और हर एक कहाँ तक पहुँचा है।',
+    clinic: [
+      { t: 'अपने-आप लगने वाली कतार', d: 'इमरजेंसी, गर्भवती मरीज़, बुज़ुर्ग और बच्चे एक तय नियम से आगे जाते हैं।' },
+      { t: 'पूरी विज़िट के लिए एक शीट', d: 'शिकायत, जाँच, निदान, दवाइयाँ और टेस्ट, हाथ से या बोलकर, 2,46,000 दवाइयों के डेटाबेस से।' },
+      { t: 'बिलिंग, फ़ार्मेसी और लैब', d: 'नकद, UPI और कार्ड, स्टॉक, लैब ऑर्डर और दिन का हिसाब।' },
+      { t: 'क्लिनिक की अपनी वेबसाइट', d: 'बारह भारतीय भाषाओं तक, उस पर चलती कतार के साथ।' },
+      { t: 'सुनने वाला असिस्टेंट', d: 'विज़िट सुनकर नोट का मसौदा बनाता है; डॉक्टर जाँचकर पुष्टि करते हैं।', trial: true },
+      { t: 'आपके रिकॉर्ड आपके ही रहते हैं', d: 'पहले दिन से पूरे के पूरे डाउनलोड हो सकते हैं।' },
+    ],
+    growth: [
+      { t: 'रिव्यू QR', d: 'काउंटर का कार्ड जो ग्राहकों को आपके Google रिव्यू पेज पर ले जाता है। शिकायत जवाब के मसौदे के साथ आपके पास आती है।' },
+      { t: 'WhatsApp ऑफ़र और ग्राहकों की वापसी', d: 'सहमति देने वाले ग्राहकों को ऑफ़र, आना बंद कर चुके ग्राहकों की वापसी, विज़िट के बाद धन्यवाद।' },
+      { t: 'हर समय जवाब', d: 'WhatsApp, Instagram और Messenger पर सवालों के जवाब, आपके मंज़ूर किए शब्दों में।' },
+      { t: 'आपके अपने अकाउंट से विज्ञापन', d: 'Facebook और Instagram विज्ञापन जो WhatsApp चैट खोलते हैं, आपकी मंज़ूर की गई रकम तक सीमित।' },
+      { t: 'वीडियो, फ़ोटो और पोस्ट', d: 'फ़ोन की एक फ़ोटो से वीडियो विज्ञापन और प्रोडक्ट फ़ोटो, और पूरे महीने की पोस्ट।' },
+      { t: 'ऑनलाइन ग्राहक ढूँढना', d: 'जो लोग वही ढूँढ रहे हैं जो आप बेचते हैं, तैयार जवाब के साथ।' },
+      { t: 'QR मेनू और टेबल ऑर्डर', d: 'रेस्टोरेंट और होटलों के लिए: टेबल से ऑर्डर, किचन स्क्रीन, UPI से बिल, अंग्रेज़ी, हिंदी और मराठी में।' },
+      { t: 'कई दुकानें', d: 'हर ब्रांच की अपनी Google लिस्टिंग, रिव्यू पेज और काउंटर कार्ड।' },
+    ],
   },
   pricing: {
     title: 'इसकी कीमत।',
@@ -613,12 +717,51 @@ const mr: SiteCopy = {
     seePricing: 'किंमत पाहा',
     standingHeading: 'हे कुठपर्यंत पोहोचले आहे, स्पष्टपणे.',
     standing: [
-      { t: 'बनलेले, आमच्या मशीनवर चालणारे', d: 'व्हिडिओ स्टुडिओ, तुमच्या अकाउंटवरून जाहिराती, ऑफर आणि आपोआप जाणारे मेसेज, आपोआप उत्तरे, वगळलेल्या लोकांशी तुलना, आठवड्याचा अहवाल, डाउनलोड आणि पुसणे.' },
+      { t: 'बनलेले, आमच्या मशीनवर चालणारे', d: 'व्हिडिओ स्टुडिओ, उत्पादन फोटो आणि पोस्ट, तुमच्या अकाउंटवरून जाहिराती, ऑफर आणि आपोआप जाणारे मेसेज, आपोआप उत्तरे, मालकापर्यंत तक्रार पोहोचवणारे रिव्ह्यू कार्ड, QR मेनू आणि टेबल ऑर्डर, अनेक दुकाने, वगळलेल्या लोकांशी तुलना, आठवड्याचा अहवाल, डाउनलोड आणि पुसणे.' },
       { t: 'खऱ्या अकाउंटवर अजून चाललेले नाही', d: 'खऱ्या Meta जाहिरात अकाउंटवर जाहिराती, WhatsApp Business सेवेतून पाठवणे, Instagram आणि Messenger वरची उत्तरे, आणि पैसे घेणे. प्रत्येक फक्त टेस्ट मोडमध्ये चालले आहे.' },
       { t: 'कोणत्याही व्यवसायाने वापरलेले नाही', d: 'म्हणून सांगायला कोणताही निकाल नाही, बोलायला कोणताही मालक नाही. पहिले व्यवसाय पायलट आहेत, आणि आम्ही प्रत्येकासोबत त्याचा पहिला महिना बसतो.' },
     ],
     pilotHeading: 'हे चालवणाऱ्या पहिल्या लोकांपैकी व्हा.',
     pilotLede: 'एक पायलट, आपण मिळून ठरवलेल्या अटींवर. स्वतः चालवा किंवा आमच्याकडून चालवून घ्या. दोन्ही प्रकारे आम्ही पहिला महिना तुमच्यासोबत बसतो आणि निकाल तुमच्यासोबत वाचतो.',
+  },
+  card: {
+    heading: 'काउंटरवर एक कार्ड. प्रत्येक टेबलवर एक.',
+    lede: 'Growth दोन्ही कार्ड तुमच्या नावासह आणि तुमच्या QR कोडसह बनवते. ते कार्ड किंवा PVC वर छापा; ते पुसून स्वच्छ होतात.',
+    hint: 'फिरवण्यासाठी ओढा. उलटण्यासाठी टॅप करा.',
+    flip: 'कार्ड उलटा',
+    scan: 'तुमच्या फोनचा कॅमेरा कार्डकडे धरा: दोन्ही कोड चालतात.',
+    frontTitle: 'काउंटरवर: Google वर रिव्ह्यू',
+    frontText: 'ग्राहक स्कॅन करून काही सेकंदांत Google वर रिव्ह्यू लिहितात. एखादा रिव्ह्यू तक्रार असेल, तर तो उत्तराच्या मसुद्यासह WhatsApp वर तुमच्याकडे येतो, म्हणजे तुम्ही स्वतः ते सुधारू शकता.',
+    backTitle: 'टेबलवर: मेनू आणि ऑर्डर',
+    backText: 'प्रत्येक टेबलवरचा असाच कोड तुमचा मेनू उघडतो. पाहुणे फोनवरून ऑर्डर करतात, किचनला लगेच दिसते, आणि बिल UPI ने थेट तुम्हाला मिळते.',
+    faceFrontLine: 'तुमची भेट कशी झाली?',
+    faceFrontCall: 'Google वर रिव्ह्यूसाठी स्कॅन करा',
+    faceBackTable: 'टेबल 7',
+    faceBackCall: 'मेनूसाठी स्कॅन करा',
+    faceBackLine: 'टेबलवरून ऑर्डर · UPI ने पेमेंट',
+    alt: 'एक पांढरे PVC कार्ड. पुढे रेस्टॉरंटचा Google वर रिव्ह्यू देण्याचा QR कोड, मागे टेबल 7 च्या मेनूचा QR कोड.',
+  },
+  everything: {
+    heading: 'आज तुम्ही काय वापरू शकता.',
+    lede: 'दोन्ही उत्पादनांचा प्रत्येक भाग, आणि प्रत्येक कुठवर आला आहे.',
+    clinic: [
+      { t: 'आपोआप लागणारी रांग', d: 'इमर्जन्सी, गर्भवती रुग्ण, ज्येष्ठ आणि मुले ठरलेल्या नियमाने पुढे जातात.' },
+      { t: 'संपूर्ण भेटीसाठी एक शीट', d: 'तक्रार, तपासणी, निदान, औषधे आणि चाचण्या, हाताने किंवा बोलून, 2,46,000 औषधांच्या डेटाबेसमधून.' },
+      { t: 'बिलिंग, फार्मसी आणि लॅब', d: 'रोख, UPI आणि कार्ड, स्टॉक, लॅब ऑर्डर आणि दिवसाचा हिशेब.' },
+      { t: 'क्लिनिकची स्वतःची वेबसाइट', d: 'बारा भारतीय भाषांपर्यंत, त्यावर चालू रांगेसह.' },
+      { t: 'ऐकणारा असिस्टंट', d: 'भेट ऐकून नोंदीचा मसुदा करतो; डॉक्टर तपासून पक्के करतात.', trial: true },
+      { t: 'तुमच्या नोंदी तुमच्याच राहतात', d: 'पहिल्या दिवसापासून संपूर्ण डाउनलोड करता येतात.' },
+    ],
+    growth: [
+      { t: 'रिव्ह्यू QR', d: 'काउंटरवरचे कार्ड जे ग्राहकांना तुमच्या Google रिव्ह्यू पानावर नेते. तक्रार उत्तराच्या मसुद्यासह तुमच्याकडे येते.' },
+      { t: 'WhatsApp ऑफर आणि ग्राहक परत आणणे', d: 'संमती दिलेल्या ग्राहकांना ऑफर, येणे बंद केलेल्यांना परत आणणे, भेटीनंतर धन्यवाद.' },
+      { t: 'कधीही उत्तरे', d: 'WhatsApp, Instagram आणि Messenger वरील प्रश्नांची उत्तरे, तुम्ही मंजूर केलेल्या शब्दांत.' },
+      { t: 'तुमच्या स्वतःच्या अकाउंटवरून जाहिराती', d: 'WhatsApp चॅट उघडणाऱ्या Facebook आणि Instagram जाहिराती, तुम्ही मंजूर केलेल्या रकमेपर्यंतच.' },
+      { t: 'व्हिडिओ, फोटो आणि पोस्ट', d: 'फोनवरच्या एका फोटोवरून व्हिडिओ जाहिराती आणि उत्पादन फोटो, आणि महिनाभराच्या पोस्ट.' },
+      { t: 'ऑनलाइन ग्राहक शोधणे', d: 'तुम्ही जे विकता ते शोधणारे लोक, तयार उत्तरासह.' },
+      { t: 'QR मेनू आणि टेबल ऑर्डर', d: 'रेस्टॉरंट आणि हॉटेलसाठी: टेबलवरून ऑर्डर, किचन स्क्रीन, UPI ने बिल, इंग्रजी, हिंदी आणि मराठीत.' },
+      { t: 'अनेक दुकाने', d: 'प्रत्येक शाखेची स्वतःची Google लिस्टिंग, रिव्ह्यू पान आणि काउंटर कार्ड.' },
+    ],
   },
   pricing: {
     title: 'याची किंमत.',

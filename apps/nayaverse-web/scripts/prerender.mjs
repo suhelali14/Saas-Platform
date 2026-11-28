@@ -247,6 +247,40 @@ const rewrites = allRoutes
     destination: `/${fileFor(locale, page)}`,
   }));
 
+/*
+ * The Content-Security-Policy. Every script is one of the site's own files
+ * (no inline script anywhere, checked below); the only other server the
+ * page talks to is the console's public price list, read from the same
+ * setting the page reads it from, so the two cannot drift apart. Styles may
+ * be inline because the prerendered markup carries style attributes; with
+ * scripts locked down that opens no way in. JSON-LD blocks are data, not
+ * script, and are not affected.
+ */
+const pricingOrigin = (() => {
+  try {
+    return new URL(process.env.VITE_PRICING_URL?.trim() || 'https://api.nayaverse.in/api/provider/public/pricing').origin;
+  } catch {
+    return 'https://api.nayaverse.in';
+  }
+})();
+const csp = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "media-src 'self'",
+  `connect-src 'self' ${pricingOrigin}`,
+  "worker-src 'self' blob:",
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "manifest-src 'self'",
+  'upgrade-insecure-requests',
+].join('; ');
+
 const vercelConfig = {
   $schema: 'https://openapi.vercel.sh/vercel.json',
   trailingSlash: false,
@@ -276,16 +310,23 @@ const vercelConfig = {
   ],
   rewrites,
   headers: [
-    // Baseline security headers on every response. HSTS already comes from
-    // Vercel. No Content-Security-Policy yet: the page carries inline JSON-LD
-    // and a WebGL scene, and a wrong CSP breaks the site silently.
+    // Security headers on every response. HSTS comes from Vercel. The CSP
+    // is above; it was tried page by page in a browser before it shipped
+    // (no violation on any page, the 3D scenes and films included).
     {
       source: '/(.*)',
       headers: [
+        { key: 'Content-Security-Policy', value: csp },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+        {
+          key: 'Permissions-Policy',
+          value:
+            'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), accelerometer=(), gyroscope=(), magnetometer=(), display-capture=(), browsing-topics=()',
+        },
       ],
     },
     {
@@ -304,6 +345,20 @@ fs.writeFileSync(
   JSON.stringify(vercelConfig, null, 2) + '\n',
   'utf8',
 );
+
+// The CSP allows only the site's own script files. A page with an inline
+// script, or an inline event handler, would be broken by it in production,
+// so the build refuses one here.
+for (const r of allRoutes) {
+  const file = path.join(dist, fileFor(r.locale, r.page));
+  if (!fs.existsSync(file)) continue;
+  const html = fs.readFileSync(file, 'utf8');
+  const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(([, attrs]) => !/\bsrc=/.test(attrs) && !/type=["']application\/ld\+json["']/.test(attrs));
+  if (inline.length > 0 || /\son[a-z]+=["']/i.test(html.replace(/<script[\s\S]*?<\/script>/gi, ''))) {
+    console.error(`prerender: ${fileFor(r.locale, r.page)} carries an inline script or event handler, which the Content-Security-Policy blocks`);
+    process.exit(1);
+  }
+}
 
 // Every rewrite must point at a file that exists, and every page must have a
 // rewrite. Checked here rather than discovered by a visitor.
