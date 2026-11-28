@@ -7,7 +7,7 @@ import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
 import { publicKeyFrom } from "../lib/s2s.js";
 import { pricingChanged } from "./public-pricing.js";
 import {
-  GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, consolePublicKey, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
+  GROWTH_KINDS, GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, consolePublicKey, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
 } from "../lib/subscriptions.js";
 
 /**
@@ -33,6 +33,7 @@ const offerBody = z.object({
   photosMonth: z.coerce.number().int().min(0).max(1000).default(0),
   postsMonth: z.coerce.number().int().min(0).max(300).default(0),
   branches: z.coerce.number().int().min(0).max(50).default(0),
+  kinds: z.array(z.string()).max(20).default([]),
   priceRupees: z.coerce.number().int().min(1).max(10_00_000).nullable().default(null),
   yearlyDiscountPct: z.coerce.number().min(0).max(90).nullable().default(null),
   published: z.boolean().default(false),
@@ -76,6 +77,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     return {
       defaultYearlyDiscountPct: pct,
       modules: product === "GROWTH" ? GROWTH_MODULES : {},
+      kinds: product === "GROWTH" ? GROWTH_KINDS : {},
       offers: rows.map((o) => {
         const d = o.yearlyDiscountPct != null ? Number(o.yearlyDiscountPct) : pct;
         return {
@@ -98,8 +100,10 @@ export async function subscriptionRoutes(app: FastifyInstance) {
       if (bad) return `Unknown module: ${bad}.`;
       if (b.modules.length === 0 && b.videosMonth === 0) return "Choose at least one module, or some videos a month.";
       if (b.modules.includes("content") && b.photosMonth === 0 && b.postsMonth === 0) return "Posts and photos needs some photos or posts a month.";
+      const badKind = b.kinds.find((k) => !GROWTH_KINDS[k]);
+      if (badKind) return `Unknown kind of business: ${badKind}.`;
     }
-    return { modules: [...new Set(b.modules)], videosMonth: b.videosMonth, aiSecondsMonth: b.aiSecondsMonth, photosMonth: b.photosMonth, postsMonth: b.postsMonth, branches: b.branches };
+    return { modules: [...new Set(b.modules)], videosMonth: b.videosMonth, aiSecondsMonth: b.aiSecondsMonth, photosMonth: b.photosMonth, postsMonth: b.postsMonth, branches: b.branches, kinds: [...new Set(b.kinds)] };
   };
 
   app.put("/api/provider/catalog/:id", async (request, reply) => {

@@ -28,7 +28,7 @@ interface Offer {
   name: string;
   summary: string;
   includes: string[];
-  grants: { modules?: string[]; videosMonth?: number; aiSecondsMonth?: number; photosMonth?: number; postsMonth?: number; branches?: number };
+  grants: { modules?: string[]; videosMonth?: number; aiSecondsMonth?: number; photosMonth?: number; postsMonth?: number; branches?: number; kinds?: string[] };
   monthlyPricePaise: number | null;
   yearlyDiscountPct: number | null;
   effectiveYearlyDiscountPct: number;
@@ -41,6 +41,7 @@ interface Offer {
 interface Catalog {
   defaultYearlyDiscountPct: number;
   modules: Record<string, string>;
+  kinds?: Record<string, string>;
   offers: Offer[];
 }
 
@@ -388,6 +389,7 @@ export function Growth() {
                           {o.grants.photosMonth ? ` · ${o.grants.photosMonth} photos a month` : ""}
                           {o.grants.postsMonth ? ` · ${o.grants.postsMonth} posts a month` : ""}
                           {(o.grants.branches ?? 0) > 1 ? ` · ${o.grants.branches} shops` : ""}
+                          {(o.grants.kinds ?? []).length > 0 ? ` · for ${(o.grants.kinds ?? []).map((k) => catalog.kinds?.[k] ?? k).join(", ")}` : ""}
                         </td>
                         <td className="px-3 py-3 text-right font-medium tabular">{rupees(o.monthlyPricePaise)}</td>
                         <td className="px-3 py-3 text-right tabular">
@@ -415,14 +417,14 @@ export function Growth() {
       <WelcomeLinks />
       <Requests onMake={(id, name) => setCustom({ id, name })} />
 
-      {editing && catalog && <OfferDialog offer={editing} modules={catalog.modules} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); loadCatalog(); }} />}
-      {custom && catalog && <OfferDialog custom={custom} modules={catalog.modules} onClose={() => setCustom(null)} onSaved={() => { setCustom(null); loadCatalog(); }} />}
+      {editing && catalog && <OfferDialog offer={editing} modules={catalog.modules} kinds={catalog.kinds ?? {}} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); loadCatalog(); }} />}
+      {custom && catalog && <OfferDialog custom={custom} modules={catalog.modules} kinds={catalog.kinds ?? {}} onClose={() => setCustom(null)} onSaved={() => { setCustom(null); loadCatalog(); }} />}
       {granting && catalog && <GrantDialog business={granting} offers={catalog.offers} onClose={() => setGranting(null)} onDone={() => { setGranting(null); loadBusinesses(); }} />}
     </div>
   );
 }
 
-function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Offer; custom?: { id: string; name: string }; modules: Record<string, string>; onClose: () => void; onSaved: () => void }) {
+function OfferDialog({ offer, custom, modules, kinds, onClose, onSaved }: { offer?: Offer; custom?: { id: string; name: string }; modules: Record<string, string>; kinds: Record<string, string>; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const [f, setF] = useState({
     name: offer?.name ?? "",
@@ -434,6 +436,7 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
     photosMonth: String(offer?.grants.photosMonth ?? 0),
     postsMonth: String(offer?.grants.postsMonth ?? 0),
     branches: String(offer?.grants.branches ?? 0),
+    kinds: offer?.grants.kinds ?? [],
     price: offer?.monthlyPricePaise ? String(offer.monthlyPricePaise / 100) : "",
     yearly: offer?.yearlyDiscountPct != null ? String(offer.yearlyDiscountPct) : "",
     published: offer?.published ?? true,
@@ -454,6 +457,7 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
       photosMonth: Number(f.photosMonth) || 0,
       postsMonth: Number(f.postsMonth) || 0,
       branches: Number(f.branches) || 0,
+      kinds: f.kinds,
       priceRupees: f.price.trim() ? Math.round(Number(f.price.replace(/,/g, ""))) : null,
       yearlyDiscountPct: f.yearly.trim() ? Number(f.yearly) : null,
       published: f.published,
@@ -520,6 +524,24 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
                 <Input id="o-posts" className="mt-1" inputMode="numeric" value={f.postsMonth} onChange={(e) => setF({ ...f, postsMonth: e.target.value })} />
               </div>
             </div>
+          )}
+          {Object.keys(kinds).length > 0 && (
+            <fieldset>
+              <legend className="text-sm font-medium">Shown to</legend>
+              <p className="mt-0.5 text-xs text-muted-foreground">Only these kinds of business see it in Growth. None ticked: every kind.</p>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {Object.entries(kinds).map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={f.kinds.includes(k)}
+                      onChange={(e) => setF({ ...f, kinds: e.target.checked ? [...f.kinds, k] : f.kinds.filter((x) => x !== k) })}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           )}
           {f.modules.includes("reviews") && (
             <div className="max-w-[220px]">

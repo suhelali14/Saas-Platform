@@ -30,6 +30,8 @@ export interface Grants {
   postsMonth?: number;
   /** Growth's branches: how many shops the plan covers, the main one counted (0 is one). */
   branches?: number;
+  /** Growth: the kinds of business the offer is shown to; none is every kind. */
+  kinds?: string[];
   /** A clinic plan's tier: BASIC, STANDARD, PREMIUM or ENTERPRISE. */
   plan?: string;
 }
@@ -41,6 +43,20 @@ export const GROWTH_MODULES: Record<string, string> = {
   ads: "Ads",
   online: "Find customers online",
   content: "Posts and photos",
+  dinein: "QR menu and table orders",
+};
+
+/** Growth's kinds of business, for an offer made for some of them only. */
+export const GROWTH_KINDS: Record<string, string> = {
+  restaurant: "Restaurants & cafés",
+  hotel: "Hotels & resorts",
+  jeweller: "Jewellers",
+  clothing: "Clothing stores",
+  salon: "Salons",
+  spa: "Spas",
+  gym: "Gyms",
+  coaching: "Coaching classes",
+  services: "Other local services",
 };
 
 // ── Products this console talks to ─────────────────────────────────────
