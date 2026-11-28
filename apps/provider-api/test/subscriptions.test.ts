@@ -12,7 +12,7 @@ process.env.JWT_SECRET ??= "test-secret-not-used-for-anything-real-0000";
 process.env.RAZORPAY_WEBHOOK_SECRET = "rzp-webhook-test";
 
 const { canonical, privateKeyFrom, publicKeyFrom, signRequest, verifyRequest } = await import("../src/lib/s2s.js");
-const { priceChoice, withGst, yearlyPaise } = await import("../src/lib/subscriptions.js");
+const { priceChoice, runningWhere, withGst, yearlyPaise } = await import("../src/lib/subscriptions.js");
 const { parseEvent, validWebhook } = await import("../src/lib/razorpay.js");
 
 // A throwaway key (seed 0x07 x 32). Growth's backend/internal/s2s test checks
@@ -83,4 +83,9 @@ test("Razorpay's webhooks are trusted only with its signature, and read for what
   assert.equal(e.paymentAmount, 1000000);
   assert.equal(e.currentEnd!.getTime(), 1766978400 * 1000);
   assert.equal(parseEvent(JSON.stringify({ event: "payment.captured", payload: {} })), null, "not a subscription event");
+});
+
+test("with real payments on, a test subscription does not hold back a real one", () => {
+  assert.deepEqual(runningWhere("GROWTH", "biz-1", "razorpay"), { product: "GROWTH", accountRef: "biz-1", status: "ACTIVE", cancelAtEnd: false, test: false });
+  assert.equal("test" in runningWhere("GROWTH", "biz-1", "test"), false, "in test mode, test ones follow each other");
 });

@@ -221,15 +221,21 @@ export function withGst(subtotalPaise: number) {
   return { subtotalPaise, gstPercent: GST_RATE_PERCENT, gstPaise, totalPaise: subtotalPaise + gstPaise };
 }
 
+/**
+ * The subscription being paid for now, which a new one follows. With real
+ * payments on, a test one does not count: it never took money, so it must
+ * not push a real one months out.
+ */
+export function runningWhere(product: ProductKey, accountRef: string, mode = env.SUBSCRIPTIONS_MODE) {
+  return { product, accountRef, status: "ACTIVE" as const, cancelAtEnd: false, ...(mode === "razorpay" ? { test: false } : {}) };
+}
+
 /** What a choice costs each cycle, line by line, before anything is started. */
 export async function quoteFor(input: { product: ProductKey; accountRef: string; offers: string[]; interval: Interval }) {
   if (env.SUBSCRIPTIONS_MODE === "off") throw Object.assign(new SaleError("Subscriptions are not switched on in the console."), { status: 409 });
   const sale = await onSale(input.product, input.accountRef);
   const { chosen, amountPaise } = priceChoice(sale, input.offers, input.interval);
-  const running = await prisma.subscription.findFirst({
-    where: { product: input.product, accountRef: input.accountRef, status: "ACTIVE", cancelAtEnd: false },
-    orderBy: { createdAt: "desc" },
-  });
+  const running = await prisma.subscription.findFirst({ where: runningWhere(input.product, input.accountRef), orderBy: { createdAt: "desc" } });
   return {
     lines: chosen.map((o) => ({ code: o.code, name: o.name, paise: input.interval === "MONTH" ? o.monthlyPaise : o.yearlyPaise })),
     interval: input.interval,
@@ -262,10 +268,7 @@ export async function startSubscription(input: { product: ProductKey; accountRef
   const label = `${productName} · ${chosen.map((o) => o.name).join(" + ")} (${input.interval === "MONTH" ? "monthly" : "yearly"})`;
 
   // A switch: the running one stops at the end of what is paid, and the new one starts there.
-  const running = await prisma.subscription.findFirst({
-    where: { product: input.product, accountRef: input.accountRef, status: "ACTIVE", cancelAtEnd: false },
-    orderBy: { createdAt: "desc" },
-  });
+  const running = await prisma.subscription.findFirst({ where: runningWhere(input.product, input.accountRef), orderBy: { createdAt: "desc" } });
   const startsAt = running?.currentEnd ?? null;
 
   // Unpaid ones the customer walked away from are closed, so only one waits.
@@ -324,6 +327,13 @@ export async function recordCharge(subId: string, c: { paymentId: string | null;
     const sub = await tx.subscription.update({ where: { id: subId }, data: { status: "ACTIVE", currentStart: c.start, currentEnd: c.end } });
     // The one it replaces has done its job.
     if (sub.replacesId) await tx.subscription.updateMany({ where: { id: sub.replacesId, status: { in: [...OPEN] } }, data: { status: "COMPLETED" } });
+    // The first real payment ends the account's test ones.
+    if (!sub.test) {
+      await tx.subscription.updateMany({
+        where: { product: sub.product, accountRef: sub.accountRef, test: true, status: { in: [...OPEN] } },
+        data: { status: "COMPLETED" },
+      });
+    }
     return ch;
   });
   await pushCharge(charge.id).catch(() => { pushesWaiting = true; }); // retried by the loop if the product is down
