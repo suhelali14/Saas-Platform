@@ -14,6 +14,7 @@ import { demoRoutes } from "./routes/demos.js";
 import { quotationRoutes } from "./routes/quotations.js";
 import { s2sRoutes } from "./routes/s2s.js";
 import { subscriptionRoutes } from "./routes/subscriptions.js";
+import { publicPricingRoutes } from "./routes/public-pricing.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -30,6 +31,7 @@ export function buildApp() {
     .split(",")
     .map((o: string) => o.trim())
     .filter(Boolean);
+  const siteOrigins = env.SITE_ORIGINS.split(",").map((o: string) => o.trim()).filter(Boolean);
 
   app.register(cors, {
     credentials: true,
@@ -40,6 +42,10 @@ export function buildApp() {
             // A same-origin or server-to-server request sends no Origin.
             if (!origin) return cb(null, true);
             if (allowed.includes(origin)) return cb(null, true);
+            // nayaversse.in reads the public prices only. No CORS headers
+            // from here (so nothing else on this API is readable to it);
+            // the prices route adds its own.
+            if (siteOrigins.includes(origin)) return cb(null, false);
             // Every clinic site is a subdomain of the platform domain and
             // must reach the tenant directory to boot at all. There is no
             // finite list to enumerate -- clinic #500 gets no DNS work and
@@ -94,6 +100,7 @@ export function buildApp() {
   app.register(demoRoutes);
   app.register(quotationRoutes);
   app.register(subscriptionRoutes);
+  app.register(publicPricingRoutes);
   // Its own scope: products' signed calls and Razorpay's webhook read the body as sent.
   app.register(s2sRoutes);
   // Public and unauthenticated: every clinic site calls this to boot.

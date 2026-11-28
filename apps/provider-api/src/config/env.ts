@@ -119,6 +119,11 @@ const envSchema = z.object({
   // and its public key (base64 SPKI). Both empty: Growth is not connected.
   GROWTH_URL: z.string().url().optional(),
   GROWTH_PUBLIC_KEY: z.string().optional(),
+
+  // ── nayaversse.in (routes/public-pricing.ts) ─────────────────────────
+  // The site's addresses, comma-separated. A browser on them may read the
+  // public prices and nothing else: they are not CORS_ORIGINS.
+  SITE_ORIGINS: z.string().default("https://nayaversse.in,https://www.nayaversse.in"),
 }).superRefine((e, ctx) => {
   if (e.SUBSCRIPTIONS_MODE === "razorpay") {
     for (const k of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"] as const) {

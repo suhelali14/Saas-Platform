@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
 import { publicKeyFrom } from "../lib/s2s.js";
+import { pricingChanged } from "./public-pricing.js";
 import {
   GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
 } from "../lib/subscriptions.js";
@@ -58,6 +59,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
       create: { id: "default", yearlyDiscountPct: body.data.yearlyDiscountPct, updatedBy: auth.name },
       update: { yearlyDiscountPct: body.data.yearlyDiscountPct, updatedBy: auth.name },
     });
+    pricingChanged();
     return { ok: true };
   });
 
@@ -65,7 +67,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
   app.get("/api/provider/catalog", async (request, reply) => {
     if (!requireProviderAuth(request, reply)) return;
     const { product = "GROWTH" } = request.query as { product?: string };
-    if (product !== "GROWTH" && product !== "CLINIC") return reply.status(400).send({ error: "Unknown product." });
+    if (product !== "GROWTH" && product !== "CLINIC" && product !== "BUSINESS") return reply.status(400).send({ error: "Unknown product." });
     const pct = await defaultYearlyDiscount();
     const rows = await prisma.catalogOffer.findMany({ where: { product }, orderBy: [{ kind: "asc" }, { position: "asc" }, { name: "asc" }] });
     return {
@@ -86,6 +88,8 @@ export async function subscriptionRoutes(app: FastifyInstance) {
   const cleanGrants = (product: string, b: z.infer<typeof offerBody>, current?: Grants): Grants | string => {
     // A clinic plan opens its tier; that is fixed by the offer, not edited.
     if (product === "CLINIC") return { plan: current?.plan };
+    // The site's fare chart only prices; nothing is opened by it yet.
+    if (product === "BUSINESS") return {};
     if (product === "GROWTH") {
       const bad = b.modules.find((m) => !GROWTH_MODULES[m]);
       if (bad) return `Unknown module: ${bad}.`;
@@ -113,6 +117,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         yearlyDiscountPct: body.data.yearlyDiscountPct, published: body.data.published, updatedBy: auth.name,
       },
     });
+    pricingChanged();
     return { ok: true };
   });
 

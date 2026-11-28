@@ -565,6 +565,8 @@ model Agreement {
 enum Product {
   CLINIC
   GROWTH
+  /// The business software on nayaversse.in's fare chart: priced here, shown on the site.
+  BUSINESS
 }
 
 enum SubInterval {

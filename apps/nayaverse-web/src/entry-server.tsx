@@ -28,6 +28,8 @@ import { site, contact, founder, googleSiteVerification } from './content/contac
 import { searchTitles } from './content/seo';
 import { productsCopy } from './content/products';
 import { guides, guidesIndex, guideBySlug } from './content/guides';
+import { buildPrices } from './content/pricing';
+import { rupees } from './content/site';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -110,8 +112,9 @@ function jsonLd(locale: Locale) {
     offers: {
       '@type': 'AggregateOffer',
       priceCurrency: 'INR',
-      lowPrice: '3000',
-      highPrice: '50000',
+      // The fare chart's prices, from the console (content/pricing.ts).
+      lowPrice: String(buildPrices().fareLow),
+      highPrice: String(buildPrices().fareHigh),
       offerCount: String(t.fares.length),
       availability: 'https://schema.org/LimitedAvailability',
     },
@@ -233,7 +236,7 @@ export function pageMeta(locale: Locale, page: Page) {
   const description = simple
     ? simple.lede
     : page === 'pricing'
-    ? t.farePanel.pageLede
+    ? t.farePanel.pageLede.replace('{from}', rupees(buildPrices().fareLow))
     : t.site.description;
   return { title, description };
 }

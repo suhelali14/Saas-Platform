@@ -242,7 +242,8 @@ export type ActivityKind = (typeof ActivityKind)[keyof typeof ActivityKind]
 
 export const Product: {
   CLINIC: 'CLINIC',
-  GROWTH: 'GROWTH'
+  GROWTH: 'GROWTH',
+  BUSINESS: 'BUSINESS'
 };
 
 export type Product = (typeof Product)[keyof typeof Product]

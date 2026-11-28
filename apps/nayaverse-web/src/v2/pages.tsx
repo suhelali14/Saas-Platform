@@ -6,7 +6,8 @@
 import type { ReactNode } from 'react';
 import { groupOrder, healthClasses, serviceRows } from '@/content/structure';
 import { growthFilm } from '@/content/products';
-import { prices, rupees } from '@/content/site';
+import { rupees } from '@/content/site';
+import { usePrices, type PublicOffer } from '@/content/pricing';
 import { Player } from '@/sections/Films';
 import { DayCharts } from '@/sections/DayCharts';
 import { About, Arrow, AssistantFilms, Enquiry, FilmsBand, Fold, Frame, Lean, Pill, PlayLink, Questions, Rise, Shot, Stepper, useSite } from './parts';
@@ -43,6 +44,85 @@ function From({ n, custom }: { n?: number; custom?: boolean }) {
         </>
       )}
     </p>
+  );
+}
+
+/* Prices come from the console (content/pricing.ts): the build's copy
+ * first, then the console's live answer once the page is up. */
+
+function ClinicFrom({ i }: { i: number }) {
+  return <From n={usePrices().clinicClasses[i]} />;
+}
+
+function GrowthFrom() {
+  return <From n={usePrices().growthFrom} />;
+}
+
+/** A fare chart row's price. Rows A-C are the console's; one taken off sale
+ *  reads like row D, on enquiry. */
+function FarePrice({ i }: { i: number }) {
+  const { t } = useSite();
+  const pv = usePrices();
+  const f = t.fares[i];
+  const enquiry = t.fares[t.fares.length - 1];
+  if (i >= pv.fares.length) {
+    return (
+      <span className="v-price">
+        {f.fare} <small>{f.period.replace('{top}', rupees(pv.fareHigh))}</small>
+      </span>
+    );
+  }
+  const n = pv.fares[i];
+  return n === null ? (
+    <span className="v-price">{enquiry.fare}</span>
+  ) : (
+    <span className="v-price">
+      {rupees(n)} <small>{f.period}</small>
+    </span>
+  );
+}
+
+/** Growth's plans and single modules, as they are on sale in the console.
+ *  Nothing shows until the console has put one on sale. */
+function GrowthOffers() {
+  const { s } = useSite();
+  const pv = usePrices();
+  if (!pv.growthPlans.length && !pv.growthModules.length) return null;
+  const pct = (n: number) => Math.round(n * 10) / 10;
+  const row = (o: PublicOffer) => (
+    <div key={o.code} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+      <span className="min-w-0 flex-[1_1_300px]">
+        <span className="v-h3 text-[19px]">{o.name}</span>
+        {o.summary && <span className="mt-1 block text-[15px] text-[var(--v-body)]">{o.summary}</span>}
+        {o.includes.length > 0 && <span className="mt-1 block text-[14px] text-[var(--v-muted)]">{o.includes.join(' · ')}</span>}
+      </span>
+      <span className="flex-none">
+        <span className="v-price">
+          {rupees(Math.round(o.monthlyPaise / 100))} <small>{s.money.perMonth}</small>
+        </span>
+        {o.yearlyDiscountPct > 0 && (
+          <span className="v-small block">
+            {rupees(Math.round(o.yearlyPaise / 100))} {s.money.perYear}, {pct(o.yearlyDiscountPct)}% {s.money.off}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+  return (
+    <div className="mt-14 grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {pv.growthPlans.length > 0 && (
+        <div>
+          <h3 className="v-h3 text-[22px]">{s.pricing.growthPlans}</h3>
+          <div className="v-rules mt-5">{pv.growthPlans.map(row)}</div>
+        </div>
+      )}
+      {pv.growthModules.length > 0 && (
+        <div>
+          <h3 className="v-h3 text-[22px]">{s.pricing.growthModules}</h3>
+          <div className="v-rules mt-5">{pv.growthModules.map(row)}</div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -221,7 +301,7 @@ export function HomePage() {
             <p className="v-small mt-1">{p.lineup.clinic.forWhom}</p>
             <p className="mt-3 text-[16px]">{p.lineup.clinic.body}</p>
             <div className="mt-3">
-              <From n={prices.clinicClasses[0]} />
+              <ClinicFrom i={0} />
             </div>
             <ul className="v-ticks">
               {p.lineup.clinic.points.map((x) => (
@@ -239,7 +319,7 @@ export function HomePage() {
             <p className="v-small mt-1">{s.products.growthFor}</p>
             <p className="mt-3 text-[16px]">{s.products.growthLine}</p>
             <div className="mt-3">
-              <From n={prices.growthFrom} />
+              <GrowthFrom />
             </div>
             <ul className="v-ticks">
               {s.products.growthPoints.map((x) => (
@@ -353,7 +433,7 @@ function Classes() {
               <div key={c.klass} className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
                 <span className="v-h3 w-[150px] flex-none text-[18px]">{c.klass}</span>
                 <span className="min-w-0 flex-[1_1_220px] text-[15px] text-[var(--v-body)]">{c.forWhom}</span>
-                <From n={prices.clinicClasses[i]} />
+                <ClinicFrom i={i} />
                 {healthClasses[i]?.live ? <Pill kind="live">{t.readiness.LIVE}</Pill> : <Pill kind="built">{p.status.built}</Pill>}
               </div>
             ))}
@@ -694,7 +774,7 @@ export function GrowthPage() {
         <Rise className="mt-14 flex flex-wrap items-center justify-between gap-6 rounded-[20px] bg-[var(--v-alt)] p-8">
           <div className="min-w-0 flex-[1_1_420px]">
             <div className="text-[34px]">
-              <From n={prices.growthFrom} />
+              <GrowthFrom />
             </div>
             <p className="mb-0 mt-2 max-w-[560px] text-[16px] text-[var(--v-body)]">{g.priceNote}</p>
           </div>
@@ -860,16 +940,14 @@ export function VisionPage() {
       <Sec>
         <Head h={t.farePanel.heading + '.'} lede={t.farePanel.lede} />
         <div className="v-rules mt-12">
-          {t.fares.map((f) => (
+          {t.fares.map((f, i) => (
             <div key={f.code} className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
               <span className="v-h3 w-[180px] flex-none text-[19px]">{f.klass}</span>
               <span className="min-w-0 flex-[1_1_320px] text-[15px] text-[var(--v-body)]">
                 {f.forWhom} <span className="text-[var(--v-muted)]">{f.size}.</span>
                 <span className="mt-1 block text-[14px] text-[var(--v-muted)]">{f.includes}</span>
               </span>
-              <span className="v-price">
-                {f.fare} <small>{f.period}</small>
-              </span>
+              <FarePrice i={i} />
             </div>
           ))}
         </div>
@@ -906,7 +984,7 @@ export function PricingPage() {
               </div>
               <p className="v-small mt-1">{c.forWhom}</p>
               <div className="mt-4">
-                <From n={prices.clinicClasses[i]} />
+                <ClinicFrom i={i} />
               </div>
               <p className="mt-4 text-[15px] text-[var(--v-body)]">{c.carries}</p>
               <p className="v-small mt-auto pt-3">{c.stands}</p>
@@ -930,7 +1008,7 @@ export function PricingPage() {
             <h2 className="v-h2 mt-4">{pr.growthHeading}</h2>
             <p className="v-lead">{pr.growthLede}</p>
             <div className="mt-6 text-[34px]">
-              <From n={prices.growthFrom} />
+              <GrowthFrom />
             </div>
             <p className="v-small mt-2 max-w-[520px]">{s.growth.priceNote}</p>
             <a href={href('growth')} className="v-link mt-3">
@@ -943,6 +1021,7 @@ export function PricingPage() {
             ))}
           </ul>
         </div>
+        <GrowthOffers />
       </Sec>
 
       <Sec tone="alt">

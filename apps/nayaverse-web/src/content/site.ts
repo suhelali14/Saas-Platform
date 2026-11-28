@@ -11,10 +11,15 @@
  */
 import type { Locale } from './index';
 
-/** The founder's starting prices, per month, rupees (26 November 2026). */
+/** The founder's starting prices, per month, rupees (26 November 2026).
+ *  Since 28 November the console sets the prices (content/pricing.ts);
+ *  these are what the site shows until the console has answered, and for a
+ *  clinic class whose plan the console has not put on sale. */
 export const prices = {
   clinicClasses: [3000, 5000, 10000, 25000] as const,
   growthFrom: 10000,
+  /** The fare chart's rows A-C, as the site has shown them. */
+  fares: [3000, 12000, 50000] as const,
 };
 
 export interface SiteCopy {
@@ -23,7 +28,7 @@ export interface SiteCopy {
   phone: { enlarge: string; drag: string; close: string };
   facts: { title: string; text: string }[];
   products: { heading: string; lede: string; growthPoints: string[]; growthLine: string; growthFor: string };
-  money: { from: string; perMonth: string; custom: string };
+  money: { from: string; perMonth: string; custom: string; perYear: string; off: string };
   different: { heading: string; lede: string; items: { title: string; text: string; alt: string }[] };
   assistant: { pill: string; heading: string; lede: string; pick: string };
   growthHow: { heading: string; lede: string; steps: { title: string; text: string }[]; caption: string; more: string };
@@ -80,6 +85,8 @@ export interface SiteCopy {
     growthHeading: string;
     growthLede: string;
     growthPoints: string[];
+    growthPlans: string;
+    growthModules: string;
     howHeading: string;
     how: { t: string; d: string }[];
     platformHeading: string;
@@ -121,7 +128,7 @@ const en: SiteCopy = {
       'One screen shows what went out and what came back, in rupees',
     ],
   },
-  money: { from: 'From', perMonth: 'a month', custom: 'Custom' },
+  money: { from: 'From', perMonth: 'a month', custom: 'Custom', perYear: 'a year', off: 'off' },
   different: {
     heading: 'Nayaversse Clinic: where it is different.',
     lede: 'Any clinic software can print a prescription. These are the parts the doctors we built it with did not find anywhere else.',
@@ -255,6 +262,8 @@ const en: SiteCopy = {
     customFor: 'Several branches, or a need none of the classes fits.',
     growthHeading: 'Nayaversse Growth',
     growthLede: 'A marketing firm’s work, run by you or by us, with every rupee shown.',
+    growthPlans: 'Plans',
+    growthModules: 'Or one part on its own',
     growthPoints: ['Videos and posts made each month', 'Ads from your own Meta account, around your area or across India', 'Offers and automatic replies on WhatsApp, Instagram and Messenger', 'A statement of what went out and what came back'],
     howHeading: 'How paying works',
     how: [
@@ -302,7 +311,7 @@ const hi: SiteCopy = {
       'एक ही स्क्रीन पर रुपयों में: कितना गया और कितना लौटा',
     ],
   },
-  money: { from: 'शुरुआत', perMonth: 'प्रति माह', custom: 'आपकी ज़रूरत के हिसाब से' },
+  money: { from: 'शुरुआत', perMonth: 'प्रति माह', custom: 'आपकी ज़रूरत के हिसाब से', perYear: 'प्रति वर्ष', off: 'छूट' },
   different: {
     heading: 'Nayaversse क्लिनिक: यह कहाँ अलग है।',
     lede: 'पर्चा तो हर क्लिनिक सॉफ़्टवेयर छाप देता है। ये वे हिस्से हैं जो जिन डॉक्टरों के साथ हमने इसे बनाया, उन्हें और कहीं नहीं मिले।',
@@ -436,6 +445,8 @@ const hi: SiteCopy = {
     customFor: 'कई शाखाएँ, या ऐसी ज़रूरत जो किसी श्रेणी में न बैठे।',
     growthHeading: 'Nayaversse ग्रोथ',
     growthLede: 'मार्केटिंग फ़र्म का काम, आप चलाएँ या हम, हर रुपये का हिसाब दिखाकर।',
+    growthPlans: 'प्लान',
+    growthModules: 'या सिर्फ़ एक हिस्सा',
     growthPoints: ['हर महीने बनने वाले वीडियो और पोस्ट', 'आपके अपने Meta अकाउंट से विज्ञापन, आपके इलाके में या पूरे भारत में', 'WhatsApp, Instagram और Messenger पर ऑफ़र और अपने आप जवाब', 'क्या गया और क्या लौटा, इसका हिसाब'],
     howHeading: 'भुगतान कैसे होता है',
     how: [
@@ -483,7 +494,7 @@ const mr: SiteCopy = {
       'एकाच स्क्रीनवर रुपयांत: किती गेले आणि किती परत आले',
     ],
   },
-  money: { from: 'सुरुवात', perMonth: 'दरमहा', custom: 'तुमच्या गरजेनुसार' },
+  money: { from: 'सुरुवात', perMonth: 'दरमहा', custom: 'तुमच्या गरजेनुसार', perYear: 'दरवर्षी', off: 'सूट' },
   different: {
     heading: 'Nayaversse क्लिनिक: हे कुठे वेगळे आहे.',
     lede: 'चिठ्ठी तर कोणतेही क्लिनिक सॉफ्टवेअर छापते. हे असे भाग आहेत जे ज्या डॉक्टरांसोबत आम्ही हे बनवले, त्यांना इतर कुठेही मिळाले नाहीत.',
@@ -617,6 +628,8 @@ const mr: SiteCopy = {
     customFor: 'अनेक शाखा, किंवा अशी गरज जी कोणत्याही श्रेणीत बसत नाही.',
     growthHeading: 'Nayaversse ग्रोथ',
     growthLede: 'मार्केटिंग फर्मचे काम, तुम्ही चालवा किंवा आम्ही, प्रत्येक रुपयाचा हिशोब दाखवून.',
+    growthPlans: 'प्लॅन',
+    growthModules: 'किंवा फक्त एक भाग',
     growthPoints: ['दर महिन्याला बनणारे व्हिडिओ आणि पोस्ट', 'तुमच्या स्वतःच्या Meta अकाउंटवरून जाहिराती, तुमच्या परिसरात किंवा पूर्ण भारतात', 'WhatsApp, Instagram आणि Messenger वर ऑफर आणि आपोआप उत्तरे', 'काय गेले आणि काय परत आले, याचा हिशोब'],
     howHeading: 'पैसे कसे दिले जातात',
     how: [

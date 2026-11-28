@@ -554,7 +554,8 @@ exports.AgreementStatus = exports.$Enums.AgreementStatus = {
 
 exports.Product = exports.$Enums.Product = {
   CLINIC: 'CLINIC',
-  GROWTH: 'GROWTH'
+  GROWTH: 'GROWTH',
+  BUSINESS: 'BUSINESS'
 };
 
 exports.SubInterval = exports.$Enums.SubInterval = {

@@ -356,7 +356,7 @@ export const en = {
     healthNote: 'Clinics and hospitals are priced on the health line instead: a setup once, then a yearly fee.',
     pageHeading: 'What it costs',
     pageLede:
-      'From ₹3,000 a month, per business, by the number of people who need a login. Billed monthly, no setup fee, and your records are exportable in full from the first day.',
+      'From {from} a month, per business, by the number of people who need a login. Billed monthly, no setup fee, and your records are exportable in full from the first day.',
   },
 
   fares: [
@@ -393,7 +393,7 @@ export const en = {
       forWhom: 'More than that, or a requirement none of the rows above fits.',
       size: '40+ logins',
       fare: 'On enquiry',
-      period: 'above ₹50,000',
+      period: 'above {top}',
       includes: 'Everything in Multi-location, scoped and written into the agreement. Priced against what you actually run — locations, departments, and how much of your old records need bringing across.',
     },
   ],

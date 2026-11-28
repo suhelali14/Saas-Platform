@@ -112,7 +112,16 @@ export function Subscriptions() {
         </div>
       )}
 
-      <ClinicPrices />
+      <ProductPrices
+        product="CLINIC"
+        title="Clinic plans"
+        note="What a connected clinic can subscribe to from its own Settings, and what the health line on nayaversse.in shows once a plan is on sale. A month's price; the yearly one is twelve months less the discount (the default is on the Growth page)."
+      />
+      <ProductPrices
+        product="BUSINESS"
+        title="nayaversse.in fare chart"
+        note="The business software's rows on the site. The site shows these prices within minutes of a change; a row off sale shows as on enquiry."
+      />
 
       <Card>
         <CardContent className="p-0">
@@ -208,13 +217,13 @@ interface ClinicOffer {
   published: boolean;
 }
 
-/** The clinic plans a clinic can subscribe to from its own Settings, monthly or yearly. */
-function ClinicPrices() {
+/** One product's prices: the clinic plans, or the site's fare chart. */
+function ProductPrices({ product, title, note }: { product: "CLINIC" | "BUSINESS"; title: string; note: string }) {
   const toast = useToast();
   const [offers, setOffers] = useState<ClinicOffer[] | null>(null);
   const [edit, setEdit] = useState<Record<string, { price: string; yearly: string; published: boolean }>>({});
   const load = () =>
-    apiFetch<{ offers: ClinicOffer[] }>("/catalog?product=CLINIC").then((r) => {
+    apiFetch<{ offers: ClinicOffer[] }>(`/catalog?product=${product}`).then((r) => {
       setOffers(r.offers);
       setEdit(Object.fromEntries(r.offers.map((o) => [o.id, { price: o.monthlyPricePaise ? String(o.monthlyPricePaise / 100) : "", yearly: o.yearlyDiscountPct != null ? String(o.yearlyDiscountPct) : "", published: o.published }])));
     });
@@ -239,8 +248,8 @@ function ClinicPrices() {
     <Card>
       <CardContent className="p-0">
         <div className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Clinic plans</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">What a connected clinic can subscribe to from its own Settings. A month's price; the yearly one is twelve months less the discount (the default is on the Growth page). Off sale until you put it on sale.</p>
+          <h2 className="text-sm font-semibold">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{note}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
