@@ -74,8 +74,26 @@ export async function s2sFetch<T = unknown>(opts: { base: string; path: string; 
     data = null;
   }
   if (!res.ok) {
+    // The other server refusing this console's signature is a broken
+    // connection between servers, not the person's login: it must never
+    // reach the browser as a 401, which the console screens read as
+    // "signed out" (they clear the session and go to the login page).
+    if (res.status === 401 || res.status === 403) {
+      throw Object.assign(new Error(refusedBecause(url.host, res.headers.get("date"))), { status: 502, refused: true });
+    }
     const msg = (data as { error?: string } | null)?.error ?? `${res.status} from ${url.host}`;
     throw Object.assign(new Error(msg), { status: res.status });
   }
   return data as T;
+}
+
+/** Why another server refused a signed call, as far as this side can tell:
+ *  the clocks (from its Date header), or else the key. */
+export function refusedBecause(host: string, dateHeader: string | null, now = Date.now()): string {
+  const theirs = dateHeader ? Date.parse(dateHeader) : NaN;
+  if (Number.isFinite(theirs) && Math.abs(now - theirs) > MAX_SKEW_SECONDS * 1000) {
+    const minutes = Math.round(Math.abs(now - theirs) / 60_000);
+    return `${host} refused this console's signature: the two servers' clocks are ${minutes} minutes apart. Set both to the right time (NTP).`;
+  }
+  return `${host} refused this console's signature: its CONSOLE_PUBLIC_KEY is not this console's public key. Copy this console's public key into it and restart it.`;
 }

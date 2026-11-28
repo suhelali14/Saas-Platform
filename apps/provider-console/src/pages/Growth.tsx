@@ -96,9 +96,58 @@ function Section({ title, sub, action, children }: { title: string; sub?: string
   );
 }
 
+/** Whether Growth really accepts this console (GET /growth/check). */
+interface GrowthCheck {
+  configured: boolean;
+  ok: boolean;
+  consolePublicKey: string | null;
+  error: string | null;
+}
+
+/** What is wrong between this console and Growth, and the one thing to do
+ *  about it. Shown only while Growth does not accept the console. */
+function ConnectionProblem({ check, onRecheck }: { check: GrowthCheck; onRecheck: () => void }) {
+  const toast = useToast();
+  return (
+    <div role="alert" className="space-y-3 rounded-md border border-destructive/25 bg-destructive/10 p-4 text-sm">
+      <div className="flex items-start gap-2 text-destructive">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        <p className="font-medium">{check.error}</p>
+      </div>
+      {!check.configured ? (
+        <p className="text-muted-foreground">
+          Set GROWTH_URL and GROWTH_PUBLIC_KEY on the console, and CONSOLE_URL, CONSOLE_PUBLIC_KEY and GROWTH_SIGNING_KEY on Growth, to connect them.
+        </p>
+      ) : (
+        check.consolePublicKey && (
+          <div className="space-y-2">
+            <p className="text-muted-foreground">
+              On Growth's server, set CONSOLE_PUBLIC_KEY to this console's public key below, then restart Growth. It is public: safe to copy and paste anywhere.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded border border-border bg-background px-2 py-1.5 font-mono text-xs">{check.consolePublicKey}</code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard.writeText(check.consolePublicKey!);
+                  toast.success("Copied.");
+                }}
+              >
+                <Copy /> Copy
+              </Button>
+            </div>
+          </div>
+        )
+      )}
+      <Button size="sm" variant="ghost" onClick={onRecheck}>Check again</Button>
+    </div>
+  );
+}
+
 export function Growth() {
   const toast = useToast();
-  const [connected, setConnected] = useState<boolean | null>(null);
+  const [check, setCheck] = useState<GrowthCheck | null>(null);
   const [mode, setMode] = useState("off");
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [businesses, setBusinesses] = useState<Business[] | null>(null);
@@ -124,14 +173,18 @@ export function Growth() {
     );
 
   useEffect(() => {
-    apiFetch<{ mode: string; growthConnected: boolean }>("/billing-settings").then((s) => {
-      setConnected(s.growthConnected);
-      setMode(s.mode);
-    });
+    apiFetch<{ mode: string }>("/billing-settings").then((s) => setMode(s.mode));
+    recheck();
     loadCatalog();
     loadBusinesses("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const recheck = () =>
+    apiFetch<GrowthCheck>("/growth/check").then(
+      (c) => setCheck(c),
+      () => setCheck({ configured: false, ok: false, consolePublicKey: null, error: "The console could not check Growth." }),
+    );
 
   const saveDiscount = async () => {
     try {
@@ -154,16 +207,19 @@ export function Growth() {
           <Badge variant={mode === "razorpay" ? "success" : mode === "test" ? "warning" : "outline"}>
             {mode === "razorpay" ? "Razorpay" : mode === "test" ? "Test payments" : "Payments off"}
           </Badge>
-          <Badge variant={connected ? "success" : "destructive"}>{connected === null ? "…" : connected ? "Growth connected" : "Growth not connected"}</Badge>
+          <Badge variant={check?.ok ? "success" : "destructive"}>
+            {check === null ? "…" : check.ok ? "Growth connected" : check.configured ? "Growth refuses the console" : "Growth not connected"}
+          </Badge>
         </div>
       </div>
 
-      {connected === false && (
-        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <p>Set GROWTH_URL and GROWTH_PUBLIC_KEY on the console, and CONSOLE_URL, CONSOLE_PUBLIC_KEY and GROWTH_SIGNING_KEY on Growth, to connect them.</p>
-        </div>
-      )}
+      {check && !check.ok && <ConnectionProblem
+          check={check}
+          onRecheck={() => {
+            recheck();
+            loadBusinesses();
+          }}
+        />}
 
       <Section
         title="Businesses"
@@ -186,7 +242,9 @@ export function Growth() {
       >
         <Card>
           <CardContent className="p-0">
-            {bizError ? (
+            {check && !check.ok ? (
+              <p className="p-5 text-sm text-muted-foreground">Shown once Growth accepts this console (above).</p>
+            ) : bizError ? (
               <p className="p-5 text-sm text-destructive">{bizError}</p>
             ) : !businesses ? (
               <div className="space-y-2 p-5"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-full" /></div>

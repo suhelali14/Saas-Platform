@@ -7,7 +7,7 @@ import { requireOwnerAuth, requireProviderAuth } from "../plugins/auth.js";
 import { publicKeyFrom } from "../lib/s2s.js";
 import { pricingChanged } from "./public-pricing.js";
 import {
-  GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
+  GROWTH_MODULES, callClinic, callGrowth, cancelAtEnd, consolePublicKey, defaultYearlyDiscount, growthConnection, renewNow, retryPushes, yearlyPaise, type Grants,
 } from "../lib/subscriptions.js";
 
 /**
@@ -231,6 +231,25 @@ export async function subscriptionRoutes(app: FastifyInstance) {
   });
 
   // ── Growth, through its own server ───────────────────────────────────
+
+  // Whether Growth really accepts this console, not only whether the
+  // addresses are set: one signed call, and why it failed if it did. With
+  // this console's public key, which is what Growth's CONSOLE_PUBLIC_KEY
+  // must be.
+  app.get("/api/provider/growth/check", async (request, reply) => {
+    if (!requireProviderAuth(request, reply)) return;
+    const consoleKey = consolePublicKey();
+    const configured = Boolean(growthConnection());
+    if (!configured) return { configured, ok: false, consolePublicKey: consoleKey, error: "GROWTH_URL and GROWTH_PUBLIC_KEY are not set on this console." };
+    if (!consoleKey) return { configured, ok: false, consolePublicKey: null, error: "CONSOLE_SIGNING_KEY is not set on this console, or is not a private key." };
+    try {
+      await callGrowth("/api/s2s/v1/requests");
+      return { configured, ok: true, consolePublicKey: consoleKey, error: null };
+    } catch (err) {
+      return { configured, ok: false, consolePublicKey: consoleKey, error: (err as Error).message || "Growth did not answer." };
+    }
+  });
+
   app.get("/api/provider/growth/businesses", async (request, reply) => {
     if (!requireProviderAuth(request, reply)) return;
     const { q = "" } = request.query as { q?: string };

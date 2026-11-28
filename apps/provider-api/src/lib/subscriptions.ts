@@ -1,4 +1,4 @@
-import type { KeyObject } from "node:crypto";
+import { createPublicKey, type KeyObject } from "node:crypto";
 import { env } from "../config/env.js";
 import { prisma } from "./prisma.js";
 import { resolveFeatures, type PlanTier } from "./plans.js";
@@ -48,6 +48,17 @@ export function signingKey(): KeyObject {
   if (!env.CONSOLE_SIGNING_KEY) throw new Error("CONSOLE_SIGNING_KEY is not set on this console.");
   consoleKey ??= privateKeyFrom(env.CONSOLE_SIGNING_KEY);
   return consoleKey;
+}
+
+/** This console's public key (base64 SPKI), from its signing key: what
+ *  Growth and each clinic set as CONSOLE_PUBLIC_KEY. Public, safe to show;
+ *  null if the signing key is not set or not readable. */
+export function consolePublicKey(): string | null {
+  try {
+    return createPublicKey(signingKey()).export({ type: "spki", format: "der" }).toString("base64");
+  } catch {
+    return null;
+  }
 }
 
 let growth: Connection | null | undefined;
