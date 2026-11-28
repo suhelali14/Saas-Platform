@@ -27,7 +27,7 @@ interface Offer {
   name: string;
   summary: string;
   includes: string[];
-  grants: { modules?: string[]; videosMonth?: number; aiSecondsMonth?: number };
+  grants: { modules?: string[]; videosMonth?: number; aiSecondsMonth?: number; photosMonth?: number; postsMonth?: number };
   monthlyPricePaise: number | null;
   yearlyDiscountPct: number | null;
   effectiveYearlyDiscountPct: number;
@@ -381,6 +381,8 @@ export function Growth() {
                           {(o.grants.modules ?? []).map((m) => catalog.modules[m] ?? m).join(", ") || "—"}
                           {o.grants.videosMonth ? ` · ${o.grants.videosMonth} videos a month` : ""}
                           {o.grants.aiSecondsMonth ? ` · ${o.grants.aiSecondsMonth}s AI` : ""}
+                          {o.grants.photosMonth ? ` · ${o.grants.photosMonth} photos a month` : ""}
+                          {o.grants.postsMonth ? ` · ${o.grants.postsMonth} posts a month` : ""}
                         </td>
                         <td className="px-3 py-3 text-right font-medium tabular">{rupees(o.monthlyPricePaise)}</td>
                         <td className="px-3 py-3 text-right tabular">
@@ -424,6 +426,8 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
     modules: offer?.grants.modules ?? [],
     videosMonth: String(offer?.grants.videosMonth ?? 0),
     aiSecondsMonth: String(offer?.grants.aiSecondsMonth ?? 0),
+    photosMonth: String(offer?.grants.photosMonth ?? 0),
+    postsMonth: String(offer?.grants.postsMonth ?? 0),
     price: offer?.monthlyPricePaise ? String(offer.monthlyPricePaise / 100) : "",
     yearly: offer?.yearlyDiscountPct != null ? String(offer.yearlyDiscountPct) : "",
     published: offer?.published ?? true,
@@ -441,6 +445,8 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
       modules: f.modules,
       videosMonth: Number(f.videosMonth) || 0,
       aiSecondsMonth: Number(f.aiSecondsMonth) || 0,
+      photosMonth: Number(f.photosMonth) || 0,
+      postsMonth: Number(f.postsMonth) || 0,
       priceRupees: f.price.trim() ? Math.round(Number(f.price.replace(/,/g, ""))) : null,
       yearlyDiscountPct: f.yearly.trim() ? Number(f.yearly) : null,
       published: f.published,
@@ -496,6 +502,18 @@ function OfferDialog({ offer, custom, modules, onClose, onSaved }: { offer?: Off
               <Input id="o-ai" className="mt-1" inputMode="numeric" value={f.aiSecondsMonth} onChange={(e) => setF({ ...f, aiSecondsMonth: e.target.value })} />
             </div>
           </div>
+          {f.modules.includes("content") && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="o-photos">AI photos a month</Label>
+                <Input id="o-photos" className="mt-1" inputMode="numeric" value={f.photosMonth} onChange={(e) => setF({ ...f, photosMonth: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="o-posts">Posts a month</Label>
+                <Input id="o-posts" className="mt-1" inputMode="numeric" value={f.postsMonth} onChange={(e) => setF({ ...f, postsMonth: e.target.value })} />
+              </div>
+            </div>
+          )}
           <div>
             <Label htmlFor="o-inc">What is included (one line each)</Label>
             <Textarea id="o-inc" className="mt-1" rows={4} value={f.includes} onChange={(e) => setF({ ...f, includes: e.target.value })} />

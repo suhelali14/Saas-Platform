@@ -24,6 +24,9 @@ export interface Grants {
   modules?: string[];
   videosMonth?: number;
   aiSecondsMonth?: number;
+  /** Growth's posts and photos (its D55): AI photos and published posts a month. */
+  photosMonth?: number;
+  postsMonth?: number;
   /** A clinic plan's tier: BASIC, STANDARD, PREMIUM or ENTERPRISE. */
   plan?: string;
 }
@@ -34,6 +37,7 @@ export const GROWTH_MODULES: Record<string, string> = {
   whatsapp: "WhatsApp automation",
   ads: "Ads",
   online: "Find customers online",
+  content: "Posts and photos",
 };
 
 // ── Products this console talks to ─────────────────────────────────────
@@ -298,6 +302,8 @@ export async function pushCharge(chargeId: string): Promise<void> {
         name: grants[code]?.name ?? code,
         modules: grants[code]?.modules ?? [],
         videosMonth: grants[code]?.videosMonth ?? 0,
+        photosMonth: grants[code]?.photosMonth ?? 0,
+        postsMonth: grants[code]?.postsMonth ?? 0,
         aiSeconds: (grants[code]?.aiSecondsMonth ?? 0) * months,
         from: ch.periodStart.toISOString(),
         to: new Date(ch.periodEnd.getTime() + grace).toISOString(),
