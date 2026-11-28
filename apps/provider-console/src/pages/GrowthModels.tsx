@@ -48,9 +48,13 @@ interface Model {
   active: boolean;
   position: number;
   portrait: boolean;
+  side: boolean;
+  full: boolean;
   look: string;
   manner: string;
   thumb?: string;
+  thumbSide?: string;
+  thumbFull?: string;
   examples: Example[];
   photos: number;
 }
@@ -63,9 +67,17 @@ interface Roster {
 
 const KIND_NAMES: Record<Kind, string> = { jeweller: "Jewellers", clothing: "Clothing shops", general: "Other shops" };
 
+type Angle = "front" | "side" | "full";
+/** A model's reference photos. One front portrait says nothing of the side of the face or the body; Google's image models keep a person from several references (4 on Gemini 3.1 Flash Image, 5 on 3 Pro). */
+const ANGLES: { angle: Angle; name: string; use: string }[] = [
+  { angle: "front", name: "Front", use: "Who they are. Made from the description." },
+  { angle: "side", name: "Three-quarter", use: "For earrings and turned shots." },
+  { angle: "full", name: "Full length", use: "For clothing: height and build." },
+];
+
 const blank: Model = {
   id: "", name: "", gender: "woman", age: 28, line: "", skin: "", build: "", hair: "", features: "", expression: "", pose: "", styling: "", note: "",
-  suits: ["jeweller", "clothing"], active: true, position: 0, portrait: false, look: "", manner: "", examples: [], photos: 0,
+  suits: ["jeweller", "clothing"], active: true, position: 0, portrait: false, side: false, full: false, look: "", manner: "", examples: [], photos: 0,
 };
 
 /** What Growth's image model reads, as Growth composes it (imagegen.Person.Look and Manner). */
@@ -215,7 +227,7 @@ export function GrowthModels() {
                         {m.suits.map((k) => (
                           <Badge key={k}>{KIND_NAMES[k]}</Badge>
                         ))}
-                        {!m.portrait && <Badge variant="warning">No portrait</Badge>}
+                        {!m.portrait ? <Badge variant="warning">No portrait</Badge> : (!m.side || !m.full) && <Badge variant="warning">{[!m.side && "three-quarter", !m.full && "full length"].filter(Boolean).join(", ")} missing</Badge>}
                         {m.examples.length > 0 && <Badge variant="primary">{m.examples.length} examples</Badge>}
                       </div>
                       <div className="flex items-center justify-between pt-1">
@@ -296,7 +308,7 @@ function ModelDialog({
   const [m, setM] = useState<Model>(model);
   const [idTouched, setIdTouched] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [making, setMaking] = useState(false);
+  const [making, setMaking] = useState<Angle | null>(null);
   const [ex, setEx] = useState<{ image: string; caption: string; kind: Kind }>({ image: "", caption: "", kind: "jeweller" });
   const saved = !isNew;
   const preview = useMemo(() => describe(m), [m]);
@@ -308,7 +320,7 @@ function ModelDialog({
     if (!id) return toast.error("Give the model a name.");
     setSaving(true);
     try {
-      const { look: _l, manner: _m, thumb: _t, examples: _e, photos: _p, portrait: _po, ...body } = { ...m, id };
+      const { look: _l, manner: _m, thumb: _t, thumbSide: _ts, thumbFull: _tf, side: _s, full: _f, examples: _e, photos: _p, portrait: _po, ...body } = { ...m, id };
       const out = await apiFetch<Model>(`/growth/models/${encodeURIComponent(id)}`, { method: "PUT", data: body });
       toast.success(saved ? `${out.name} is saved.` : `${out.name} is added. Owners can choose them now.`);
       setM(out);
@@ -331,27 +343,29 @@ function ModelDialog({
     }
   };
 
-  const uploadPortrait = (e: ChangeEvent<HTMLInputElement>) =>
+  const uploadAngle = (angle: Angle) => (e: ChangeEvent<HTMLInputElement>) =>
     withPicture(e, async (image) => {
-      const out = await apiFetch<Model>(`/growth/models/${encodeURIComponent(m.id)}/portrait`, { method: "PUT", data: { image } });
+      const out = await apiFetch<Model>(`/growth/models/${encodeURIComponent(m.id)}/portrait?angle=${angle}`, { method: "PUT", data: { image } });
       setM(out);
       onSaved(out);
-      toast.success("The portrait is kept. New photos with this model use it.");
+      toast.success("Kept. New photos with this model use it.");
     });
 
-  const makePortrait = async () => {
-    setMaking(true);
+  const makeAngle = async (angle: Angle) => {
+    setMaking(angle);
     try {
-      const out = await apiFetch<Model>(`/growth/models/${encodeURIComponent(m.id)}/portrait/make`, { method: "POST", data: {} });
+      const out = await apiFetch<Model>(`/growth/models/${encodeURIComponent(m.id)}/portrait/make?angle=${angle}`, { method: "POST", data: {} });
       setM(out);
       onSaved(out);
-      toast.success("A new portrait is made from the description.");
+      toast.success(angle === "front" ? "A new portrait is made from the description." : "Made from the front portrait: the same person, another angle.");
     } catch (err) {
       toast.error(errorText(err));
     } finally {
-      setMaking(false);
+      setMaking(null);
     }
   };
+  const has = (a: Angle) => (a === "front" ? m.portrait : a === "side" ? m.side : m.full);
+  const thumbOf = (a: Angle) => (a === "front" ? m.thumb : a === "side" ? m.thumbSide : m.thumbFull);
 
   const addExample = async () => {
     try {
@@ -395,28 +409,56 @@ function ModelDialog({
           <DialogDescription>Made by AI, not a real person. Describe them plainly: the image model reads every word.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)]">
-          <div className="space-y-3">
-            <div className="aspect-[4/5] w-full overflow-hidden rounded-lg bg-muted">
-              {m.thumb ? <img src={m.thumb} alt={`${m.name}'s portrait`} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-5xl font-semibold text-muted-foreground">{(m.name || "?").slice(0, 1)}</div>}
-            </div>
+        <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="space-y-4">
             {saved ? (
-              <div className="grid gap-2">
-                <Button variant="outline" size="sm" asChild disabled={!pictures}>
-                  <label className="cursor-pointer">
-                    <Upload className="mr-1.5 h-4 w-4" /> Upload portrait
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={uploadPortrait} disabled={!pictures} />
-                  </label>
-                </Button>
-                <Button variant="outline" size="sm" onClick={makePortrait} loading={making} disabled={!pictures || !gemini}>
-                  <Sparkles className="mr-1.5 h-4 w-4" /> Make with AI
-                </Button>
+              <>
+                {ANGLES.map(({ angle, name, use }) => (
+                  <div key={angle} className={angle === "front" ? "space-y-2" : "grid grid-cols-[72px_minmax(0,1fr)] items-start gap-3"}>
+                    <div className={`${angle === "front" ? "aspect-[4/5] w-full" : angle === "full" ? "aspect-[2/3] w-[72px]" : "aspect-[4/5] w-[72px]"} overflow-hidden rounded-lg bg-muted`}>
+                      {thumbOf(angle) ? (
+                        <img src={thumbOf(angle)} alt={`${m.name}, ${name.toLowerCase()}`} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className={`grid h-full place-items-center font-semibold text-muted-foreground ${angle === "front" ? "text-5xl" : "text-xl"}`}>{(m.name || "?").slice(0, 1)}</div>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-semibold">
+                        {name}
+                        {!has(angle) && <span className="ml-1.5 text-xs font-normal text-warning">missing</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{use}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button variant="outline" size="sm" asChild disabled={!pictures}>
+                          <label className="cursor-pointer">
+                            <Upload className="mr-1 h-3.5 w-3.5" /> Upload
+                            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={uploadAngle(angle)} disabled={!pictures} aria-label={`Upload ${name.toLowerCase()} photo`} />
+                          </label>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => makeAngle(angle)}
+                          loading={making === angle}
+                          disabled={!pictures || !gemini || making !== null || (angle !== "front" && !m.portrait)}
+                          aria-label={`Make the ${name.toLowerCase()} photo with AI`}
+                        >
+                          <Sparkles className="mr-1 h-3.5 w-3.5" /> Make
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
                 <p className="text-xs text-muted-foreground">
-                  {!pictures ? "Growth needs picture storage first." : !gemini ? "Making needs Growth's Gemini key." : "Head and shoulders, plain grey background, from the description. About a minute."}
+                  {!pictures
+                    ? "Growth needs picture storage first."
+                    : !gemini
+                      ? "Making needs Growth's Gemini key; uploading works now."
+                      : "Make the front first: the other two are made from it, so they are the same person. About a minute each."}
                 </p>
-              </div>
+              </>
             ) : (
-              <p className="text-xs text-muted-foreground">Save the model first; then add their portrait and examples.</p>
+              <p className="text-xs text-muted-foreground">Save the model first; then add their reference photos and examples.</p>
             )}
           </div>
 

@@ -43,6 +43,12 @@ const PICTURE_LIMIT = 2 * 1024 * 1024;
 
 const idOf = (request: FastifyRequest) => encodeURIComponent((request.params as { id: string }).id);
 
+// Which reference photo: the front portrait, a three-quarter view, or full length.
+const angleOf = (request: FastifyRequest) => {
+  const a = (request.query as { angle?: string }).angle ?? "front";
+  return ["front", "side", "full"].includes(a) ? a : null;
+};
+
 export async function growthModelRoutes(app: FastifyInstance) {
   app.get("/api/provider/growth/models", async (request, reply) => {
     if (!requireProviderAuth(request, reply)) return;
@@ -81,8 +87,10 @@ export async function growthModelRoutes(app: FastifyInstance) {
     if (!auth) return;
     const body = picture.safeParse(request.body);
     if (!body.success) return reply.status(400).send({ error: "Choose a picture under 1 MB." });
+    const angle = angleOf(request);
+    if (!angle) return reply.status(400).send({ error: "Choose the front portrait, the three-quarter view or the full-length photo." });
     try {
-      return await callGrowth(`/api/s2s/v1/models/${idOf(request)}/portrait`, "PUT", { image: body.data.image, by: auth.name });
+      return await callGrowth(`/api/s2s/v1/models/${idOf(request)}/portrait?angle=${angle}`, "PUT", { image: body.data.image, by: auth.name });
     } catch (err) {
       return fail(reply, err);
     }
@@ -92,8 +100,10 @@ export async function growthModelRoutes(app: FastifyInstance) {
   app.post("/api/provider/growth/models/:id/portrait/make", async (request, reply) => {
     const auth = requireOwnerAuth(request, reply);
     if (!auth) return;
+    const angle = angleOf(request);
+    if (!angle) return reply.status(400).send({ error: "Choose the front portrait, the three-quarter view or the full-length photo." });
     try {
-      return await callGrowth(`/api/s2s/v1/models/${idOf(request)}/portrait/make`, "POST", { by: auth.name }, 150_000);
+      return await callGrowth(`/api/s2s/v1/models/${idOf(request)}/portrait/make?angle=${angle}`, "POST", { by: auth.name }, 150_000);
     } catch (err) {
       return fail(reply, err);
     }
