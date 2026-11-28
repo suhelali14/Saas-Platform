@@ -32,6 +32,7 @@ const offerBody = z.object({
   aiSecondsMonth: z.coerce.number().int().min(0).max(3600).default(0),
   photosMonth: z.coerce.number().int().min(0).max(1000).default(0),
   postsMonth: z.coerce.number().int().min(0).max(300).default(0),
+  branches: z.coerce.number().int().min(0).max(50).default(0),
   priceRupees: z.coerce.number().int().min(1).max(10_00_000).nullable().default(null),
   yearlyDiscountPct: z.coerce.number().min(0).max(90).nullable().default(null),
   published: z.boolean().default(false),
@@ -98,7 +99,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
       if (b.modules.length === 0 && b.videosMonth === 0) return "Choose at least one module, or some videos a month.";
       if (b.modules.includes("content") && b.photosMonth === 0 && b.postsMonth === 0) return "Posts and photos needs some photos or posts a month.";
     }
-    return { modules: [...new Set(b.modules)], videosMonth: b.videosMonth, aiSecondsMonth: b.aiSecondsMonth, photosMonth: b.photosMonth, postsMonth: b.postsMonth };
+    return { modules: [...new Set(b.modules)], videosMonth: b.videosMonth, aiSecondsMonth: b.aiSecondsMonth, photosMonth: b.photosMonth, postsMonth: b.postsMonth, branches: b.branches };
   };
 
   app.put("/api/provider/catalog/:id", async (request, reply) => {
@@ -291,7 +292,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         amountPaise: 0,
         note: `${body.data.note} · ${auth.name}`,
         periods: [{
-          offerCode: offer.code, name: offer.name, modules: g.modules ?? [], videosMonth: g.videosMonth ?? 0, photosMonth: g.photosMonth ?? 0, postsMonth: g.postsMonth ?? 0,
+          offerCode: offer.code, name: offer.name, modules: g.modules ?? [], videosMonth: g.videosMonth ?? 0, photosMonth: g.photosMonth ?? 0, postsMonth: g.postsMonth ?? 0, branches: g.branches ?? 0,
           aiSeconds: (g.aiSecondsMonth ?? 0) * body.data.months, months: body.data.months,
         }],
       });

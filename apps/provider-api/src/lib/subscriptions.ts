@@ -28,6 +28,8 @@ export interface Grants {
   /** Growth's posts and photos (its D55): AI photos and published posts a month. */
   photosMonth?: number;
   postsMonth?: number;
+  /** Growth's branches: how many shops the plan covers, the main one counted (0 is one). */
+  branches?: number;
   /** A clinic plan's tier: BASIC, STANDARD, PREMIUM or ENTERPRISE. */
   plan?: string;
 }
@@ -340,6 +342,7 @@ export async function pushCharge(chargeId: string): Promise<void> {
         videosMonth: grants[code]?.videosMonth ?? 0,
         photosMonth: grants[code]?.photosMonth ?? 0,
         postsMonth: grants[code]?.postsMonth ?? 0,
+        branches: grants[code]?.branches ?? 0,
         aiSeconds: (grants[code]?.aiSecondsMonth ?? 0) * months,
         from: ch.periodStart.toISOString(),
         to: new Date(ch.periodEnd.getTime() + grace).toISOString(),
