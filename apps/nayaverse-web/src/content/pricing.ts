@@ -12,10 +12,13 @@
  * What each part of the site reads:
  *  - the fare chart's rows A-C: the console's BUSINESS offers a-c. A row
  *    taken off sale reads "on enquiry", like row D.
- *  - each clinic class: the console's clinic plan for that tier, once it is
- *    on sale; until then, the founder's figure in site.ts.
+ *  - each clinic class: the console's clinic plan for that tier, on sale or
+ *    not (on sale only lets a clinic subscribe from its Settings).
  *  - Growth: "from" the cheapest Growth plan on sale, and the list of plans
- *    and single modules on sale; until the console answers, site.ts.
+ *    and single modules on sale.
+ *  - the cost answer in the questions: the cheapest clinic class and
+ *    Growth's "from".
+ * Until the console has answered once, the founder's figures in site.ts.
  */
 import { useSyncExternalStore } from 'react';
 import { snapshot } from './pricing-snapshot';
@@ -32,6 +35,8 @@ export interface PublicOffer {
   monthlyPaise: number;
   yearlyPaise: number;
   yearlyDiscountPct: number;
+  /** False for a clinic plan the console lists but has not put on sale. */
+  onSale: boolean;
 }
 
 export interface PublicPricing {
@@ -85,6 +90,7 @@ export function readPricing(d: unknown, fetchedAt: string): PublicPricing | null
         monthlyPaise: r.monthlyPaise as number,
         yearlyPaise: Number.isInteger(r.yearlyPaise) ? (r.yearlyPaise as number) : (r.monthlyPaise as number) * 12,
         yearlyDiscountPct: typeof r.yearlyDiscountPct === 'number' ? r.yearlyDiscountPct : 0,
+        onSale: r.onSale !== false,
       });
     }
     return out;
@@ -110,9 +116,10 @@ export function sitePrices(p: PublicPricing): SitePrices {
   if (hit) return hit;
   const known = p.fetchedAt !== null;
   const clinic = p.products.CLINIC.filter((o) => o.kind === 'plan');
-  const growthPlans = p.products.GROWTH.filter((o) => o.kind === 'plan');
-  const growthModules = p.products.GROWTH.filter((o) => o.kind === 'module');
-  const business = p.products.BUSINESS;
+  const growth = p.products.GROWTH.filter((o) => o.onSale);
+  const growthPlans = growth.filter((o) => o.kind === 'plan');
+  const growthModules = growth.filter((o) => o.kind === 'module');
+  const business = p.products.BUSINESS.filter((o) => o.onSale);
   const fares = known
     ? fareCodes.map((c) => {
         const o = business.find((b) => b.code === c);

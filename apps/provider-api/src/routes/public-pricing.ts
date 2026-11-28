@@ -3,10 +3,12 @@ import { prisma } from "../lib/prisma.js";
 import { defaultYearlyDiscount, yearlyPaise, type Grants } from "../lib/subscriptions.js";
 
 /**
- * Every published price, for nayaversse.in. Public on
- * purpose: these are the prices the site prints, so there is nothing to
- * sign and no secret to hold. Only what is on sale, priced, and for
- * everyone: never a plan made for one customer.
+ * Every price nayaversse.in prints. Public on purpose: there is nothing to
+ * sign and no secret to hold. Priced and for everyone, never a plan made
+ * for one customer. What is on sale; and the clinic plans whether on sale
+ * or not, because the site prints each clinic class's price either way
+ * (on sale only decides whether a clinic can subscribe from its Settings).
+ * onSale says which.
  *
  * The site reads this when it is built (so the page a search engine sees
  * has the console's prices) and again in the browser (so a price changed
@@ -28,7 +30,10 @@ export function pricingChanged(): void {
 async function publicPricing() {
   const pct = await defaultYearlyDiscount();
   const rows = await prisma.catalogOffer.findMany({
-    where: { published: true, monthlyPricePaise: { not: null }, accountRef: null, kind: { not: "custom" } },
+    where: {
+      monthlyPricePaise: { not: null }, accountRef: null, kind: { not: "custom" },
+      OR: [{ published: true }, { product: "CLINIC", kind: "plan" }],
+    },
     orderBy: [{ position: "asc" }, { name: "asc" }],
   });
   const products: Record<string, unknown[]> = { GROWTH: [], CLINIC: [], BUSINESS: [] };
@@ -40,6 +45,7 @@ async function publicPricing() {
       code: o.code, kind: o.kind, name: o.name, summary: o.summary, includes: o.includes,
       modules: g.modules ?? [], videosMonth: g.videosMonth ?? 0, aiSecondsMonth: g.aiSecondsMonth ?? 0, plan: g.plan ?? null,
       monthlyPaise: o.monthlyPricePaise!, yearlyPaise: yearlyPaise(o.monthlyPricePaise!, d), yearlyDiscountPct: d,
+      onSale: o.published,
     });
     if (o.updatedAt > updatedAt) updatedAt = o.updatedAt;
   }

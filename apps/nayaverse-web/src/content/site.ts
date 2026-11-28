@@ -178,7 +178,7 @@ const en: SiteCopy = {
     link: 'Read the Vision',
   },
   questions: {
-    cost: { q: 'What does it cost?', a: 'Clinic starts at ₹3,000 a month and Growth at ₹10,000 a month. The exact price is quoted after the walkthrough, against the size of what you run, and written into the agreement.' },
+    cost: { q: 'What does it cost?', a: 'Clinic starts at {clinic} a month and Growth at {growth} a month. The exact price is quoted after the walkthrough, against the size of what you run, and written into the agreement.' },
     whatsapp: 'Clinic does not: its reminders are inside the app. Growth is the product that writes to customers on WhatsApp, Instagram and Messenger, only to people who agreed and only with words the owner approved. Growth has not yet run against live Meta accounts.',
   },
   enquiry: { heading: 'Twenty minutes, your screen and mine.', lede: 'On what you actually do at the desk every day. No slide deck. If it does not fit how you work, I will say so.', about: 'What you are asking about', options: ['Nayaversse Clinic', 'Nayaversse Growth', 'Both', 'Something on the Vision page'], call: 'Or call' },
@@ -361,7 +361,7 @@ const hi: SiteCopy = {
     link: 'आगे की योजना पढ़ें',
   },
   questions: {
-    cost: { q: 'इसकी कीमत क्या है?', a: 'क्लिनिक ₹3,000 प्रति माह से और ग्रोथ ₹10,000 प्रति माह से शुरू होता है। सही कीमत डेमो के बाद, आपके काम के आकार के हिसाब से बताई जाती है और अनुबंध में लिखी जाती है।' },
+    cost: { q: 'इसकी कीमत क्या है?', a: 'क्लिनिक {clinic} प्रति माह से और ग्रोथ {growth} प्रति माह से शुरू होता है। सही कीमत डेमो के बाद, आपके काम के आकार के हिसाब से बताई जाती है और अनुबंध में लिखी जाती है।' },
     whatsapp: 'क्लिनिक नहीं: उसके रिमाइंडर ऐप के अंदर हैं। ग्रोथ वह प्रोडक्ट है जो WhatsApp, Instagram और Messenger पर ग्राहकों को लिखता है, सिर्फ़ उन्हें जिन्होंने हाँ कहा, और सिर्फ़ मालिक के मंज़ूर किए शब्दों में। ग्रोथ अभी असली Meta अकाउंट पर नहीं चला है।',
   },
   enquiry: { heading: 'बीस मिनट, आपकी स्क्रीन और मेरी।', lede: 'उस काम पर जो आप रोज़ डेस्क पर करते हैं। कोई स्लाइड नहीं। अगर यह आपके काम के तरीके में नहीं बैठता, तो मैं साफ़ कह दूँगा।', about: 'आप किसके बारे में पूछ रहे हैं', options: ['Nayaversse क्लिनिक', 'Nayaversse ग्रोथ', 'दोनों', 'आगे की योजना में से कुछ'], call: 'या कॉल करें' },
@@ -544,7 +544,7 @@ const mr: SiteCopy = {
     link: 'पुढची योजना वाचा',
   },
   questions: {
-    cost: { q: 'याची किंमत किती?', a: 'क्लिनिक ₹3,000 दरमहा पासून आणि ग्रोथ ₹10,000 दरमहा पासून सुरू होते. नेमकी किंमत डेमोनंतर, तुमच्या कामाच्या आकारानुसार सांगितली जाते आणि करारात लिहिली जाते.' },
+    cost: { q: 'याची किंमत किती?', a: 'क्लिनिक {clinic} दरमहा पासून आणि ग्रोथ {growth} दरमहा पासून सुरू होते. नेमकी किंमत डेमोनंतर, तुमच्या कामाच्या आकारानुसार सांगितली जाते आणि करारात लिहिली जाते.' },
     whatsapp: 'क्लिनिक नाही: त्याचे रिमाइंडर ॲपमध्येच आहेत. ग्रोथ हे ते उत्पादन आहे जे WhatsApp, Instagram आणि Messenger वर ग्राहकांना लिहिते, फक्त ज्यांनी होकार दिला त्यांनाच, आणि फक्त मालकाने मंजूर केलेल्या शब्दांत. ग्रोथ अजून खऱ्या Meta अकाउंटवर चाललेले नाही.',
   },
   enquiry: { heading: 'वीस मिनिटे, तुमची स्क्रीन आणि माझी.', lede: 'तुम्ही रोज डेस्कवर करता त्या कामावर. कोणत्याही स्लाइड नाहीत. हे तुमच्या कामाच्या पद्धतीत बसत नसेल, तर मी स्पष्ट सांगेन.', about: 'तुम्ही कशाबद्दल विचारत आहात', options: ['Nayaversse क्लिनिक', 'Nayaversse ग्रोथ', 'दोन्ही', 'पुढच्या योजनेतील काही'], call: 'किंवा कॉल करा' },

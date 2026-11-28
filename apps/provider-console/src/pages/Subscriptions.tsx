@@ -115,7 +115,7 @@ export function Subscriptions() {
       <ProductPrices
         product="CLINIC"
         title="Clinic plans"
-        note="What a connected clinic can subscribe to from its own Settings, and what the health line on nayaversse.in shows once a plan is on sale. A month's price; the yearly one is twelve months less the discount (the default is on the Growth page)."
+        note="Each plan's price is what nayaversse.in shows for that clinic class, on sale or not. On sale also lets a connected clinic subscribe to it from its own Settings. A month's price; the yearly one is twelve months less the discount (the default is on the Growth page)."
       />
       <ProductPrices
         product="BUSINESS"

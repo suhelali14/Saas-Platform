@@ -13,7 +13,8 @@ export { Rise } from './motion';
 import { useContentCtx } from '@/content/use-content';
 import { localeNames, locales, localesFor, pathFor, type Page } from '@/content/index';
 import { productsCopy, assistantFilms, clinicFilm, growthFilm, type FilmKey } from '@/content/products';
-import { siteCopy } from '@/content/site';
+import { rupees, siteCopy } from '@/content/site';
+import { usePrices } from '@/content/pricing';
 import { contact, founder } from '@/content/contact';
 import { Player } from '@/sections/Films';
 import { Rise, ScrollLine, SideIn, Swipe, Tilt } from './motion';
@@ -545,10 +546,16 @@ export function PlayLink({ children }: { children: ReactNode }) {
 
 export function Questions() {
   const { t, s } = useSite();
-  // The old site's questions, kept, with the price answered and the WhatsApp
-  // answer brought up to date now that Growth writes to customers.
+  const pv = usePrices();
+  // The old site's questions, kept, with the price answered (from the
+  // console: content/pricing.ts) and the WhatsApp answer brought up to date
+  // now that Growth writes to customers.
   const list = t.conditions.map((c, i) => (i === 5 ? { q: c.q, a: s.questions.whatsapp } : c));
-  list.splice(1, 0, s.questions.cost);
+  const cost = s.questions.cost;
+  list.splice(1, 0, {
+    q: cost.q,
+    a: cost.a.replace('{clinic}', rupees(Math.min(...pv.clinicClasses))).replace('{growth}', rupees(pv.growthFrom)),
+  });
   const [open, setOpen] = useState(0);
   return (
     <section id="questions" className="v-sec v-white">

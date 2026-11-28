@@ -40,6 +40,7 @@ function read(d, fetchedAt) {
         monthlyPaise: r.monthlyPaise,
         yearlyPaise: Number.isInteger(r.yearlyPaise) ? r.yearlyPaise : r.monthlyPaise * 12,
         yearlyDiscountPct: typeof r.yearlyDiscountPct === 'number' ? r.yearlyDiscountPct : 0,
+        onSale: r.onSale !== false,
       });
     }
     return rows;

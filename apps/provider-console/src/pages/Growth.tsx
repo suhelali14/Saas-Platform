@@ -96,18 +96,65 @@ function Section({ title, sub, action, children }: { title: string; sub?: string
   );
 }
 
-/** Whether Growth really accepts this console (GET /growth/check). */
+/** Whether Growth and this console accept each other (GET /growth/check):
+ *  ok is this console calling Growth; fromGrowth is Growth calling back,
+ *  null when Growth cannot say (an older Growth). */
 interface GrowthCheck {
   configured: boolean;
   ok: boolean;
   consolePublicKey: string | null;
   error: string | null;
+  fromGrowth: { ok: boolean; error: string; consoleUrl: string; growthPublicKey: string } | null;
+}
+
+/** A public key to copy, with the one place it goes. */
+function KeyToCopy({ value, where }: { value: string; where: string }) {
+  const toast = useToast();
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground">{where} It is public: safe to copy and paste anywhere.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="min-w-0 flex-1 break-all rounded border border-border bg-background px-2 py-1.5 font-mono text-xs">{value}</code>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            void navigator.clipboard.writeText(value);
+            toast.success("Copied.");
+          }}
+        >
+          <Copy /> Copy
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** What is wrong between this console and Growth, and the one thing to do
  *  about it. Shown only while Growth does not accept the console. */
 function ConnectionProblem({ check, onRecheck }: { check: GrowthCheck; onRecheck: () => void }) {
-  const toast = useToast();
+  const back = check.fromGrowth;
+  if (check.ok && back && !back.ok) {
+    // This console reaches Growth, but Growth cannot reach this console:
+    // Growth's Plans page shows "Payments could not be reached".
+    const keyProblem = back.error.includes("GROWTH_PUBLIC_KEY");
+    return (
+      <div role="alert" className="space-y-3 rounded-md border border-destructive/25 bg-destructive/10 p-4 text-sm">
+        <div className="flex items-start gap-2 text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <p className="font-medium">Growth cannot use this console, so owners see no plans. {back.error}</p>
+        </div>
+        {keyProblem && back.growthPublicKey && (
+          <KeyToCopy
+            value={back.growthPublicKey}
+            where="On this console's server, set GROWTH_PUBLIC_KEY in provider.env to Growth's public key below, then restart the console (sudo systemctl restart provider-api)."
+          />
+        )}
+        {!keyProblem && <p className="text-muted-foreground">Change CONSOLE_URL in Growth's growth.env, then restart Growth.</p>}
+        <Button size="sm" variant="ghost" onClick={onRecheck}>Check again</Button>
+      </div>
+    );
+  }
   return (
     <div role="alert" className="space-y-3 rounded-md border border-destructive/25 bg-destructive/10 p-4 text-sm">
       <div className="flex items-start gap-2 text-destructive">
@@ -120,24 +167,7 @@ function ConnectionProblem({ check, onRecheck }: { check: GrowthCheck; onRecheck
         </p>
       ) : (
         check.consolePublicKey && (
-          <div className="space-y-2">
-            <p className="text-muted-foreground">
-              On Growth's server, set CONSOLE_PUBLIC_KEY to this console's public key below, then restart Growth. It is public: safe to copy and paste anywhere.
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="min-w-0 flex-1 break-all rounded border border-border bg-background px-2 py-1.5 font-mono text-xs">{check.consolePublicKey}</code>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  void navigator.clipboard.writeText(check.consolePublicKey!);
-                  toast.success("Copied.");
-                }}
-              >
-                <Copy /> Copy
-              </Button>
-            </div>
-          </div>
+          <KeyToCopy value={check.consolePublicKey} where="On Growth's server, set CONSOLE_PUBLIC_KEY in growth.env to this console's public key below, then restart Growth." />
         )
       )}
       <Button size="sm" variant="ghost" onClick={onRecheck}>Check again</Button>
@@ -183,7 +213,7 @@ export function Growth() {
   const recheck = () =>
     apiFetch<GrowthCheck>("/growth/check").then(
       (c) => setCheck(c),
-      () => setCheck({ configured: false, ok: false, consolePublicKey: null, error: "The console could not check Growth." }),
+      () => setCheck({ configured: false, ok: false, consolePublicKey: null, error: "The console could not check Growth.", fromGrowth: null }),
     );
 
   const saveDiscount = async () => {
@@ -207,13 +237,17 @@ export function Growth() {
           <Badge variant={mode === "razorpay" ? "success" : mode === "test" ? "warning" : "outline"}>
             {mode === "razorpay" ? "Razorpay" : mode === "test" ? "Test payments" : "Payments off"}
           </Badge>
-          <Badge variant={check?.ok ? "success" : "destructive"}>
-            {check === null ? "…" : check.ok ? "Growth connected" : check.configured ? "Growth refuses the console" : "Growth not connected"}
+          <Badge variant={check?.ok && check.fromGrowth?.ok !== false ? "success" : "destructive"}>
+            {check === null
+              ? "…"
+              : !check.ok
+                ? check.configured ? "Growth refuses the console" : "Growth not connected"
+                : check.fromGrowth?.ok === false ? "Growth can't reach the console" : "Growth connected"}
           </Badge>
         </div>
       </div>
 
-      {check && !check.ok && <ConnectionProblem
+      {check && (!check.ok || check.fromGrowth?.ok === false) && <ConnectionProblem
           check={check}
           onRecheck={() => {
             recheck();

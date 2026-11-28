@@ -232,22 +232,33 @@ export async function subscriptionRoutes(app: FastifyInstance) {
 
   // ── Growth, through its own server ───────────────────────────────────
 
-  // Whether Growth really accepts this console, not only whether the
-  // addresses are set: one signed call, and why it failed if it did. With
-  // this console's public key, which is what Growth's CONSOLE_PUBLIC_KEY
-  // must be.
+  // Whether Growth and this console really accept each other, not only
+  // whether the addresses are set. Both directions:
+  //  - this console calls Growth (Growth's CONSOLE_PUBLIC_KEY must be this
+  //    console's public key, returned here);
+  //  - Growth, asked to, calls this console back (this console's
+  //    GROWTH_PUBLIC_KEY must be Growth's public key, which Growth returns),
+  //    which is what Growth's Plans page needs to list the plans.
   app.get("/api/provider/growth/check", async (request, reply) => {
     if (!requireProviderAuth(request, reply)) return;
     const consoleKey = consolePublicKey();
     const configured = Boolean(growthConnection());
-    if (!configured) return { configured, ok: false, consolePublicKey: consoleKey, error: "GROWTH_URL and GROWTH_PUBLIC_KEY are not set on this console." };
-    if (!consoleKey) return { configured, ok: false, consolePublicKey: null, error: "CONSOLE_SIGNING_KEY is not set on this console, or is not a private key." };
+    const none = { fromGrowth: null };
+    if (!configured) return { configured, ok: false, consolePublicKey: consoleKey, error: "GROWTH_URL and GROWTH_PUBLIC_KEY are not set on this console.", ...none };
+    if (!consoleKey) return { configured, ok: false, consolePublicKey: null, error: "CONSOLE_SIGNING_KEY is not set on this console, or is not a private key.", ...none };
     try {
       await callGrowth("/api/s2s/v1/requests");
-      return { configured, ok: true, consolePublicKey: consoleKey, error: null };
     } catch (err) {
-      return { configured, ok: false, consolePublicKey: consoleKey, error: (err as Error).message || "Growth did not answer." };
+      return { configured, ok: false, consolePublicKey: consoleKey, error: (err as Error).message || "Growth did not answer.", ...none };
     }
+    // The other way. A Growth without this check yet answers 404: unknown.
+    let fromGrowth: { ok: boolean; error: string; consoleUrl: string; growthPublicKey: string } | null = null;
+    try {
+      fromGrowth = await callGrowth("/api/s2s/v1/console-check");
+    } catch {
+      fromGrowth = null;
+    }
+    return { configured, ok: true, consolePublicKey: consoleKey, error: null, fromGrowth };
   });
 
   app.get("/api/provider/growth/businesses", async (request, reply) => {
