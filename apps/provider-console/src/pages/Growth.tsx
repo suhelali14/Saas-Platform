@@ -108,12 +108,12 @@ interface GrowthCheck {
   fromGrowth: { ok: boolean; error: string; consoleUrl: string; growthPublicKey: string } | null;
 }
 
-/** A public key to copy, with the one place it goes. */
+/** A public key, or the one command that puts it in place, to copy. */
 function KeyToCopy({ value, where }: { value: string; where: string }) {
   const toast = useToast();
   return (
     <div className="space-y-2">
-      <p className="text-muted-foreground">{where} It is public: safe to copy and paste anywhere.</p>
+      <p className="text-muted-foreground">{where} The key is public: safe to copy and paste anywhere.</p>
       <div className="flex flex-wrap items-center gap-2">
         <code className="min-w-0 flex-1 break-all rounded border border-border bg-background px-2 py-1.5 font-mono text-xs">{value}</code>
         <Button
@@ -147,8 +147,8 @@ function ConnectionProblem({ check, onRecheck }: { check: GrowthCheck; onRecheck
         </div>
         {keyProblem && back.growthPublicKey && (
           <KeyToCopy
-            value={back.growthPublicKey}
-            where="On this console's server, set GROWTH_PUBLIC_KEY in provider.env to Growth's public key below, then restart the console (sudo systemctl restart provider-api)."
+            value={`sudo /srv/clinic/repo/deploy/set-growth-key.sh ${back.growthPublicKey}`}
+            where="Run this once on the console's server. It puts Growth's public key in provider.env and restarts the console in its container, so the key is used (editing the file alone, or systemctl restart, leaves the running console on the old key)."
           />
         )}
         {!keyProblem && <p className="text-muted-foreground">Change CONSOLE_URL in Growth's growth.env, then restart Growth.</p>}
