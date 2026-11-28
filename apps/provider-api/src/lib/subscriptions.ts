@@ -112,10 +112,10 @@ export function callClinic<T = unknown>(a: { apiDomain: string | null; s2sPublic
 }
 
 /** A signed call from this console to Growth. */
-export function callGrowth<T = unknown>(path: string, method = "GET", body?: unknown): Promise<T> {
+export function callGrowth<T = unknown>(path: string, method = "GET", body?: unknown, timeoutMs?: number): Promise<T> {
   const g = growthConnection();
   if (!g) throw Object.assign(new Error("Growth is not connected to this console (GROWTH_URL, GROWTH_PUBLIC_KEY)."), { status: 503 });
-  return s2sFetch<T>({ base: g.base, path, method, body, key: signingKey(), keyId: "console" });
+  return s2sFetch<T>({ base: g.base, path, method, body, key: signingKey(), keyId: "console", timeoutMs });
 }
 
 // ── Prices ─────────────────────────────────────────────────────────────

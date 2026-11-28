@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { AlertTriangle, Copy, Gift, MessageCircle, Pencil, Plus, Search } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { money } from "@/lib/types";
@@ -234,6 +235,9 @@ export function Growth() {
           <p className="mt-1 text-sm text-muted-foreground">Plans and prices, subscriptions, and Growth's businesses, from one place.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/growth/models">AI models</Link>
+          </Button>
           <Badge variant={mode === "razorpay" ? "success" : mode === "test" ? "warning" : "outline"}>
             {mode === "razorpay" ? "Razorpay" : mode === "test" ? "Test payments" : "Payments off"}
           </Badge>

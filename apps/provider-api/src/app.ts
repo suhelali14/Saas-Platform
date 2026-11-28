@@ -14,6 +14,7 @@ import { demoRoutes } from "./routes/demos.js";
 import { quotationRoutes } from "./routes/quotations.js";
 import { s2sRoutes } from "./routes/s2s.js";
 import { subscriptionRoutes } from "./routes/subscriptions.js";
+import { growthModelRoutes } from "./routes/growthModels.js";
 import { publicPricingRoutes } from "./routes/public-pricing.js";
 
 export function buildApp() {
@@ -100,6 +101,7 @@ export function buildApp() {
   app.register(demoRoutes);
   app.register(quotationRoutes);
   app.register(subscriptionRoutes);
+  app.register(growthModelRoutes);
   app.register(publicPricingRoutes);
   // Its own scope: products' signed calls and Razorpay's webhook read the body as sent.
   app.register(s2sRoutes);

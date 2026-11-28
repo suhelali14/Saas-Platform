@@ -15,6 +15,7 @@ import { Quotations } from "./pages/Quotations";
 import { QuotationDetail } from "./pages/QuotationDetail";
 import { AgreementDetail } from "./pages/AgreementDetail";
 import { Growth } from "./pages/Growth";
+import { GrowthModels } from "./pages/GrowthModels";
 import { Subscriptions } from "./pages/Subscriptions";
 
 function Booting({ label }: { label: string }) {
@@ -169,6 +170,7 @@ export default function App() {
             <Route path="/clinics/:id" element={<Protected><Shell><AccountDetail /></Shell></Protected>} />
             <Route path="/billing" element={<Protected><Shell><Billing /></Shell></Protected>} />
             <Route path="/growth" element={<Protected><Shell><Growth /></Shell></Protected>} />
+            <Route path="/growth/models" element={<Protected><Shell><GrowthModels /></Shell></Protected>} />
             <Route path="/subscriptions" element={<Protected><Shell><Subscriptions /></Shell></Protected>} />
             <Route path="/demos" element={<Protected><Shell><Demos /></Shell></Protected>} />
             <Route path="/invoices/:id" element={<Protected><Shell><InvoiceView /></Shell></Protected>} />
