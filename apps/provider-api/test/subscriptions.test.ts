@@ -12,7 +12,7 @@ process.env.JWT_SECRET ??= "test-secret-not-used-for-anything-real-0000";
 process.env.RAZORPAY_WEBHOOK_SECRET = "rzp-webhook-test";
 
 const { canonical, privateKeyFrom, publicKeyFrom, signRequest, verifyRequest } = await import("../src/lib/s2s.js");
-const { priceChoice, yearlyPaise } = await import("../src/lib/subscriptions.js");
+const { priceChoice, withGst, yearlyPaise } = await import("../src/lib/subscriptions.js");
 const { parseEvent, validWebhook } = await import("../src/lib/razorpay.js");
 
 // A throwaway key (seed 0x07 x 32). Growth's backend/internal/s2s test checks
@@ -48,6 +48,12 @@ const sale = [
   { id: "g:module-reviews", code: "module-reviews", kind: "module", name: "Reviews QR", summary: "", includes: [], grants: { modules: ["reviews"] }, monthlyPaise: 999_00, yearlyPaise: 10_189_00, yearlyDiscountPct: 15, custom: false },
   { id: "g:module-online", code: "module-online", kind: "module", name: "Find customers online", summary: "", includes: [], grants: { modules: ["online"] }, monthlyPaise: 2_999_00, yearlyPaise: 30_590_00, yearlyDiscountPct: 15, custom: false },
 ];
+
+test("GST is added on top, 18% to the rupee, and the total is what is charged", () => {
+  assert.deepEqual(withGst(10_000_00), { subtotalPaise: 10_000_00, gstPercent: 18, gstPaise: 1_800_00, totalPaise: 11_800_00 });
+  assert.equal(withGst(12_999_00).gstPaise, 2_340_00, "rounded to the rupee");
+  assert.equal(withGst(200_00).totalPaise, 236_00);
+});
 
 test("one plan, with single modules beside it only for what it lacks", () => {
   assert.equal(priceChoice(sale, ["plan-10k", "module-online"], "MONTH").amountPaise, 12_999_00);

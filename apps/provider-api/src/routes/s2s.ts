@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { parseEvent, validWebhook } from "../lib/razorpay.js";
 import { verifyRequest } from "../lib/s2s.js";
-import { cancelAtEnd, handleRazorpayEvent, onSale, SaleError, startSubscription, testPay, view, whoSigned, type Signer } from "../lib/subscriptions.js";
+import { cancelAtEnd, handleRazorpayEvent, onSale, SaleError, quoteFor, startSubscription, testPay, view, whoSigned, type Signer } from "../lib/subscriptions.js";
 
 /**
  * What products call (signed, src/lib/s2s.ts) and what Razorpay calls. Both
@@ -84,6 +84,19 @@ export async function s2sRoutes(app: FastifyInstance) {
         product: who.product, ...body.data, accountRef: accountOf(who, body.data.accountRef), accountName: who.account?.name ?? body.data.accountName,
         by: body.data.by || body.data.accountName,
       });
+    } catch (err) {
+      return fail(reply, err);
+    }
+  });
+
+  // What a choice costs, line by line with GST, before it is started.
+  app.post("/api/provider/s2s/v1/subscriptions/quote", async (request, reply) => {
+    const who = await signedBy(request, reply);
+    if (!who) return;
+    const body = subscribeBody.safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: "Choose a plan, and monthly or yearly." });
+    try {
+      return await quoteFor({ product: who.product, offers: body.data.offers, interval: body.data.interval, accountRef: accountOf(who, body.data.accountRef) });
     } catch (err) {
       return fail(reply, err);
     }

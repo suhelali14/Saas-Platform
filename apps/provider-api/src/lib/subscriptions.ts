@@ -1,5 +1,6 @@
 import { createPublicKey, type KeyObject } from "node:crypto";
 import { env } from "../config/env.js";
+import { GST_RATE_PERCENT } from "./billing.js";
 import { prisma } from "./prisma.js";
 import { resolveFeatures, type PlanTier } from "./plans.js";
 import * as rzp from "./razorpay.js";
@@ -190,6 +191,37 @@ export function priceChoice(sale: PricedOffer[], codes: string[], interval: Inte
   return { chosen, amountPaise };
 }
 
+// ── GST ────────────────────────────────────────────────────────────────
+
+/**
+ * Prices are before GST, as the console's terms say of every fee: 18% is
+ * added at checkout, to the rupee (billing.ts, GST_RATE_PERCENT). What a
+ * subscription charges each cycle is the total.
+ */
+export function withGst(subtotalPaise: number) {
+  const gstPaise = Math.round((subtotalPaise * GST_RATE_PERCENT) / 100 / 100) * 100;
+  return { subtotalPaise, gstPercent: GST_RATE_PERCENT, gstPaise, totalPaise: subtotalPaise + gstPaise };
+}
+
+/** What a choice costs each cycle, line by line, before anything is started. */
+export async function quoteFor(input: { product: ProductKey; accountRef: string; offers: string[]; interval: Interval }) {
+  if (env.SUBSCRIPTIONS_MODE === "off") throw Object.assign(new SaleError("Subscriptions are not switched on in the console."), { status: 409 });
+  const sale = await onSale(input.product, input.accountRef);
+  const { chosen, amountPaise } = priceChoice(sale, input.offers, input.interval);
+  const running = await prisma.subscription.findFirst({
+    where: { product: input.product, accountRef: input.accountRef, status: "ACTIVE", cancelAtEnd: false },
+    orderBy: { createdAt: "desc" },
+  });
+  return {
+    lines: chosen.map((o) => ({ code: o.code, name: o.name, paise: input.interval === "MONTH" ? o.monthlyPaise : o.yearlyPaise })),
+    interval: input.interval,
+    ...withGst(amountPaise),
+    // A switch starts when what is paid now ends.
+    startsAt: running?.currentEnd ?? null,
+    mode: env.SUBSCRIPTIONS_MODE,
+  };
+}
+
 // ── Starting one ───────────────────────────────────────────────────────
 
 const OPEN = ["CREATED", "AUTHENTICATED", "ACTIVE", "PENDING"] as const;
@@ -205,7 +237,9 @@ async function razorpayPlanFor(interval: Interval, amountPaise: number, name: st
 export async function startSubscription(input: { product: ProductKey; accountRef: string; accountName: string; offers: string[]; interval: Interval; by: string }) {
   if (env.SUBSCRIPTIONS_MODE === "off") throw Object.assign(new SaleError("Subscriptions are not switched on in the console."), { status: 409 });
   const sale = await onSale(input.product, input.accountRef);
-  const { chosen, amountPaise } = priceChoice(sale, input.offers, input.interval);
+  const { chosen, amountPaise: subtotalPaise } = priceChoice(sale, input.offers, input.interval);
+  // Each cycle charges the total, GST included.
+  const { totalPaise: amountPaise } = withGst(subtotalPaise);
   const productName = input.product === "GROWTH" ? "Nayaversse Growth" : "Nayaverse Clinic";
   const label = `${productName} · ${chosen.map((o) => o.name).join(" + ")} (${input.interval === "MONTH" ? "monthly" : "yearly"})`;
 
@@ -236,13 +270,15 @@ export async function startSubscription(input: { product: ProductKey; accountRef
       const planId = await razorpayPlanFor(input.interval, amountPaise, label);
       const r = await rzp.createSubscription(planId, input.interval, { product: input.product, account: input.accountRef, subscription: sub.id }, startsAt ?? undefined);
       await prisma.subscription.update({ where: { id: sub.id }, data: { razorpayPlanId: planId, razorpaySubscriptionId: r.id, shortUrl: r.short_url } });
-      return { id: sub.id, url: r.short_url, amountPaise, startsAt };
+      // The subscription id and the public key id let the product open
+      // Razorpay's own checkout on its page; the link is the fallback.
+      return { id: sub.id, url: r.short_url, amountPaise, startsAt, razorpaySubscriptionId: r.id, keyId: env.RAZORPAY_KEY_ID ?? null };
     } catch (err) {
       await prisma.subscription.update({ where: { id: sub.id }, data: { status: "EXPIRED" } });
       throw Object.assign(new Error("Razorpay could not start the subscription just now. Try again in a minute."), { status: 502, cause: err });
     }
   }
-  return { id: sub.id, url: null, amountPaise, startsAt };
+  return { id: sub.id, url: null, amountPaise, startsAt, razorpaySubscriptionId: null, keyId: null };
 }
 
 // ── A paid cycle ───────────────────────────────────────────────────────
