@@ -2,7 +2,7 @@ import "dotenv/config";
 import { buildApp } from "./app.js";
 import { env } from "./config/env.js";
 import { startHealthPolling } from "./lib/health.js";
-import { renewTestSubscriptions, retryPushes } from "./lib/subscriptions.js";
+import { pushesMayWait, renewTestSubscriptions, retryPushes } from "./lib/subscriptions.js";
 
 const app = buildApp();
 
@@ -20,11 +20,17 @@ app.listen({ port: env.PORT, host }, (err, address) => {
   app.log.info(`Provider console API listening at ${address}`);
   startHealthPolling();
   // Paid cycles a product has not heard about are retried; in test mode
-  // the console renews test subscriptions as Razorpay would.
+  // the console renews test subscriptions as Razorpay would. The database
+  // is Neon, which sleeps when idle and bills the minutes it is awake: the
+  // loop reads it only while a push waits, and otherwise every six hours.
   if (env.SUBSCRIPTIONS_MODE !== "off") {
+    const SWEEP_MS = 6 * 60 * 60 * 1000;
+    let sweptAt = 0;
     setInterval(() => {
-      retryPushes().catch((e) => app.log.warn({ err: e }, "subscription pushes"));
-      if (env.SUBSCRIPTIONS_MODE === "test") renewTestSubscriptions().catch((e) => app.log.warn({ err: e }, "test renewals"));
+      const sweep = Date.now() - sweptAt >= SWEEP_MS;
+      if (sweep) sweptAt = Date.now();
+      if (sweep || pushesMayWait()) retryPushes().catch((e) => app.log.warn({ err: e }, "subscription pushes"));
+      if (sweep && env.SUBSCRIPTIONS_MODE === "test") renewTestSubscriptions().catch((e) => app.log.warn({ err: e }, "test renewals"));
     }, 60_000).unref();
   }
 });

@@ -310,7 +310,7 @@ export async function recordCharge(subId: string, c: { paymentId: string | null;
     if (sub.replacesId) await tx.subscription.updateMany({ where: { id: sub.replacesId, status: { in: [...OPEN] } }, data: { status: "COMPLETED" } });
     return ch;
   });
-  await pushCharge(charge.id).catch(() => undefined); // retried by the loop if the product is down
+  await pushCharge(charge.id).catch(() => { pushesWaiting = true; }); // retried by the loop if the product is down
   return charge;
 }
 
@@ -403,6 +403,16 @@ export async function renewTestSubscriptions(now = new Date()): Promise<number> 
   return due.length;
 }
 
+/**
+ * Whether a charge may still be waiting to reach its product. The loop in
+ * server.ts reads the database only then (and on a slow sweep), so an idle
+ * console lets Neon sleep instead of waking it every minute.
+ */
+let pushesWaiting = true;
+export function pushesMayWait() {
+  return pushesWaiting;
+}
+
 /** Charges the product has not been told about yet, retried. */
 export async function retryPushes(): Promise<number> {
   const waiting = await prisma.subscriptionCharge.findMany({ where: { pushedAt: null }, orderBy: { createdAt: "asc" }, take: 20 });
@@ -415,6 +425,7 @@ export async function retryPushes(): Promise<number> {
       /* stays waiting; the error is on the row for the console to show */
     }
   }
+  pushesWaiting = ok < waiting.length || waiting.length === 20;
   return ok;
 }
 

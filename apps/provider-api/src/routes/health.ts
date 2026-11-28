@@ -10,8 +10,7 @@ export async function healthRoutes(app: FastifyInstance) {
   app.post("/api/provider/health/check-now", async (request, reply) => {
     const auth = requireProviderAuth(request, reply);
     if (!auth) return;
-    const checked = await checkAllLive();
-    const latest = await prisma.healthCheck.findMany({ orderBy: { checkedAt: "desc" }, take: checked });
-    return { checked, latest };
+    const latest = await checkAllLive(true);
+    return { checked: latest.length, latest };
   });
 }

@@ -1,3 +1,4 @@
+import { newerHealth } from "../lib/health.js";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
@@ -172,7 +173,8 @@ export async function accountRoutes(app: FastifyInstance) {
         return {
           ...rest,
           progress: { done: steps.filter((s) => s.done).length, total: steps.length },
-          lastHealth: health[0] ?? null,
+          // The sweep keeps its latest result in memory (lib/health.ts).
+          lastHealth: newerHealth(a.id, health[0]),
         };
       }),
       // Revenue is only counted for accounts actually being served. A LEAD
@@ -202,6 +204,9 @@ export async function accountRoutes(app: FastifyInstance) {
       },
     });
     if (!account) return reply.status(404).send({ error: "Not found" });
+    // The sweep's latest result, when newer than the last row written.
+    const live = newerHealth(account.id, account.health[0]);
+    if (live && live !== account.health[0]) account.health.unshift({ ...live, accountId: account.id, latencyMs: live.latencyMs ?? null } as (typeof account.health)[number]);
 
     const features = resolveFeatures(account.plan as PlanTier, account.featureOverrides);
     const readOnly = account.status === "SUSPENDED";

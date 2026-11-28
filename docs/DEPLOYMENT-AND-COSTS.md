@@ -112,6 +112,14 @@ Set a pool that lets idle connections close:
 DATABASE_URL=postgresql://...?connection_limit=5&pool_timeout=20
 ```
 
+**The console's own timers count too.** Its clinic health sweep (every 10
+minutes) and its subscriptions loop (every minute) once read Neon on every
+tick, so the console's project never slept: 93.6% of the month's compute by
+28 November 2026. Now the sweep keeps results in memory and writes only when
+a clinic goes down or comes back (plus one heartbeat every six hours), and
+the loop reads Neon only while a payment waits to reach its product, or every
+six hours. Any new timer in the console should do the same.
+
 Check Neon usage in week one. If you are near the cap, Launch is
 pay-as-you-go with no minimum — a small clinic lands around $2–4/month.
 
